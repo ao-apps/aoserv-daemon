@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,6 +22,11 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
+import com.aoapps.collections.SortedArrayList;
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
+import com.aoapps.net.DomainName;
 import com.aoindustries.aoserv.client.linux.GroupServer;
 import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
@@ -40,13 +45,8 @@ import com.aoindustries.aoserv.client.web.tomcat.Worker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
-import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
+import com.aoindustries.aoserv.daemon.posix.linux.LinuxAccountManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.collections.SortedArrayList;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.net.DomainName;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -76,7 +76,7 @@ class HttpdSharedTomcatManager_8_0_X extends HttpdSharedTomcatManager<TomcatComm
 	}
 
 	@Override
-	void buildSharedTomcatDirectory(String optSlash, UnixFile sharedTomcatDirectory, List<File> deleteFileList, Set<SharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
+	void buildSharedTomcatDirectory(String optSlash, PosixFile sharedTomcatDirectory, List<File> deleteFileList, Set<SharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
 		/*
 		 * Get values used in the rest of the loop.
 		 */
@@ -92,31 +92,31 @@ class HttpdSharedTomcatManager_8_0_X extends HttpdSharedTomcatManager<TomcatComm
 		final int lsgGID = lsg.getGid().getId();
 		final String wwwGroupDir = sharedTomcatDirectory.getPath();
 		final PosixPath wwwDirectory = httpdConfig.getHttpdSitesDirectory();
-		final UnixFile daemonUF = new UnixFile(sharedTomcatDirectory, "daemon", false);
-		final UnixFile confUF = new UnixFile(sharedTomcatDirectory, "conf", false);
+		final PosixFile daemonUF = new PosixFile(sharedTomcatDirectory, "daemon", false);
+		final PosixFile confUF = new PosixFile(sharedTomcatDirectory, "conf", false);
 
 		// Create and fill in the directory if it does not exist or is owned by root.
-		UnixFile workUF = new UnixFile(sharedTomcatDirectory, "work", false);
-		UnixFile innerWorkUF = new UnixFile(workUF, "Catalina", false);
+		PosixFile workUF = new PosixFile(sharedTomcatDirectory, "work", false);
+		PosixFile innerWorkUF = new PosixFile(workUF, "Catalina", false);
 
 		boolean needRestart=false;
 		Stat sharedTomcatStat = sharedTomcatDirectory.getStat();
-		if (!sharedTomcatStat.exists() || sharedTomcatStat.getUid() == UnixFile.ROOT_GID) {
+		if (!sharedTomcatStat.exists() || sharedTomcatStat.getUid() == PosixFile.ROOT_GID) {
 
 			// Create the /wwwgroup/name/...
 
 			// 001
 			if (!sharedTomcatStat.exists()) sharedTomcatDirectory.mkdir();
 			sharedTomcatDirectory.setMode(0770);
-			new UnixFile(sharedTomcatDirectory, "bin", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
+			new PosixFile(sharedTomcatDirectory, "bin", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
 			confUF.mkdir().chown(lsaUID, lsgGID).setMode(0770);
-			new UnixFile(confUF, "Catalina", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
+			new PosixFile(confUF, "Catalina", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
 			daemonUF.mkdir().chown(lsaUID, lsgGID).setMode(0770);
 			DaemonFileUtils.ln("var/log", wwwGroupDir+"/logs", lsaUID, lsgGID);
 			DaemonFileUtils.mkdir(wwwGroupDir+"/temp", 0770, lsaUID, lsgGID);
-			UnixFile varUF = new UnixFile(sharedTomcatDirectory, "var", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
-			new UnixFile(varUF, "log", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
-			new UnixFile(varUF, "run", false).mkdir().chown(lsaUID, lsgGID).setMode(0700);
+			PosixFile varUF = new PosixFile(sharedTomcatDirectory, "var", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
+			new PosixFile(varUF, "log", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
+			new PosixFile(varUF, "run", false).mkdir().chown(lsaUID, lsgGID).setMode(0700);
 
 			workUF.mkdir().chown(lsaUID, lsgGID).setMode(0750);
 			DaemonFileUtils.mkdir(innerWorkUF.getPath(), 0750, lsaUID, lsgGID);
@@ -132,7 +132,7 @@ class HttpdSharedTomcatManager_8_0_X extends HttpdSharedTomcatManager<TomcatComm
 			String profileFile = wwwGroupDir + "/bin/profile";
 			LinuxAccountManager.setBashProfile(lsa, profileFile);
 
-			UnixFile profileUF = new UnixFile(profileFile);
+			PosixFile profileUF = new PosixFile(profileFile);
 			try (
 				ChainWriter out = new ChainWriter(
 					new BufferedOutputStream(
@@ -169,7 +169,7 @@ class HttpdSharedTomcatManager_8_0_X extends HttpdSharedTomcatManager<TomcatComm
 						+ "done\n");
 			}
 
-			UnixFile tomcatUF = new UnixFile(wwwGroupDir + "/bin/tomcat");
+			PosixFile tomcatUF = new PosixFile(wwwGroupDir + "/bin/tomcat");
 			try (
 				ChainWriter out = new ChainWriter(
 					new BufferedOutputStream(
@@ -228,13 +228,13 @@ class HttpdSharedTomcatManager_8_0_X extends HttpdSharedTomcatManager<TomcatComm
 
 			DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-8.0/bin/setclasspath.sh", wwwGroupDir+"/bin/setclasspath.sh", lsaUID, lsgGID);
 
-			UnixFile shutdown=new UnixFile(wwwGroupDir+"/bin/shutdown.sh");
+			PosixFile shutdown=new PosixFile(wwwGroupDir+"/bin/shutdown.sh");
 			try (ChainWriter out = new ChainWriter(shutdown.getSecureOutputStream(lsaUID, lsgGID, 0700, true, uid_min, gid_min))) {
 				out.print("#!/bin/sh\n"
 						  + "exec \"").print(wwwGroupDir).print("/bin/tomcat\" stop\n");
 			}
 
-			UnixFile startup=new UnixFile(wwwGroupDir+"/bin/startup.sh");
+			PosixFile startup=new PosixFile(wwwGroupDir+"/bin/startup.sh");
 			try (ChainWriter out = new ChainWriter(startup.getSecureOutputStream(lsaUID, lsgGID, 0700, true, uid_min, gid_min))) {
 				out.print("#!/bin/sh\n"
 						  + "exec \"").print(wwwGroupDir).print("/bin/tomcat\" start\n");
@@ -254,39 +254,39 @@ class HttpdSharedTomcatManager_8_0_X extends HttpdSharedTomcatManager<TomcatComm
 			//}
 			//String mysqlConnectorPath = osConfig.getMySQLConnectorJavaJarPath();
 			//if(mysqlConnectorPath!=null) {
-			//    String filename = new UnixFile(mysqlConnectorPath).getFile().getName();
+			//    String filename = new PosixFile(mysqlConnectorPath).getFile().getName();
 			//    FileUtils.ln("../../.."+mysqlConnectorPath, wwwGroupDir+"/lib/"+filename, lsaUID, lsgGID);
 			//}
 
 			{
-				UnixFile cp=new UnixFile(wwwGroupDir+"/conf/catalina.policy");
-				new UnixFile("/opt/apache-tomcat-8.0/conf/catalina.policy").copyTo(cp, false);
+				PosixFile cp=new PosixFile(wwwGroupDir+"/conf/catalina.policy");
+				new PosixFile("/opt/apache-tomcat-8.0/conf/catalina.policy").copyTo(cp, false);
 				cp.chown(lsaUID, lsgGID).setMode(0660);
 			}
 			{
-				UnixFile cp=new UnixFile(wwwGroupDir+"/conf/catalina.properties");
-				new UnixFile("/opt/apache-tomcat-8.0/conf/catalina.properties").copyTo(cp, false);
+				PosixFile cp=new PosixFile(wwwGroupDir+"/conf/catalina.properties");
+				new PosixFile("/opt/apache-tomcat-8.0/conf/catalina.properties").copyTo(cp, false);
 				cp.chown(lsaUID, lsgGID).setMode(0660);
 			}
 			{
-				UnixFile cp=new UnixFile(wwwGroupDir+"/conf/context.xml");
-				new UnixFile("/opt/apache-tomcat-8.0/conf/context.xml").copyTo(cp, false);
+				PosixFile cp=new PosixFile(wwwGroupDir+"/conf/context.xml");
+				new PosixFile("/opt/apache-tomcat-8.0/conf/context.xml").copyTo(cp, false);
 				cp.chown(lsaUID, lsgGID).setMode(0660);
 			}
 			{
-				UnixFile cp=new UnixFile(wwwGroupDir+"/conf/logging.properties");
-				new UnixFile("/opt/apache-tomcat-8.0/conf/logging.properties").copyTo(cp, false);
+				PosixFile cp=new PosixFile(wwwGroupDir+"/conf/logging.properties");
+				new PosixFile("/opt/apache-tomcat-8.0/conf/logging.properties").copyTo(cp, false);
 				cp.chown(lsaUID, lsgGID).setMode(0660);
 			}
 			{
-				UnixFile tuUF=new UnixFile(wwwGroupDir+"/conf/tomcat-users.xml");
-				new UnixFile("/opt/apache-tomcat-8.0/conf/tomcat-users.xml").copyTo(tuUF, false);
+				PosixFile tuUF=new PosixFile(wwwGroupDir+"/conf/tomcat-users.xml");
+				new PosixFile("/opt/apache-tomcat-8.0/conf/tomcat-users.xml").copyTo(tuUF, false);
 				tuUF.chown(lsaUID, lsgGID).setMode(0660);
 			}
 			DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-8.0/conf/tomcat-users.xsd", wwwGroupDir+"/conf/tomcat-users.xsd", lsaUID, lsgGID);
 			{
-				UnixFile webUF=new UnixFile(wwwGroupDir+"/conf/web.xml");
-				new UnixFile("/opt/apache-tomcat-8.0/conf/web.xml").copyTo(webUF, false);
+				PosixFile webUF=new PosixFile(wwwGroupDir+"/conf/web.xml");
+				new PosixFile("/opt/apache-tomcat-8.0/conf/web.xml").copyTo(webUF, false);
 				webUF.chown(lsaUID, lsgGID).setMode(0660);
 			}
 
@@ -298,7 +298,7 @@ class HttpdSharedTomcatManager_8_0_X extends HttpdSharedTomcatManager<TomcatComm
 
 		// always rebuild profile.sites file
 		List<SharedTomcatSite> sites = sharedTomcat.getHttpdTomcatSharedSites();
-		UnixFile newSitesFileUF = new UnixFile(sharedTomcatDirectory, "bin/profile.sites.new", false);
+		PosixFile newSitesFileUF = new PosixFile(sharedTomcatDirectory, "bin/profile.sites.new", false);
 		try (
 			ChainWriter out = new ChainWriter(
 				new BufferedOutputStream(
@@ -319,12 +319,12 @@ class HttpdSharedTomcatManager_8_0_X extends HttpdSharedTomcatManager<TomcatComm
 			out.print("\"\n");
 		}
 		// flag as needing a restart if this file is different than any existing
-		UnixFile sitesFile = new UnixFile(sharedTomcatDirectory, "bin/profile.sites", false);
+		PosixFile sitesFile = new PosixFile(sharedTomcatDirectory, "bin/profile.sites", false);
 		Stat sitesStat = sitesFile.getStat();
 		if(!sitesStat.exists() || !newSitesFileUF.contentEquals(sitesFile)) {
 			needRestart=true;
 			if(sitesStat.exists()) {
-				UnixFile backupFile=new UnixFile(sharedTomcatDirectory, "bin/profile.sites.old", false);
+				PosixFile backupFile=new PosixFile(sharedTomcatDirectory, "bin/profile.sites.old", false);
 				sitesFile.renameTo(backupFile);
 			}
 			newSitesFileUF.renameTo(sitesFile);
@@ -341,7 +341,7 @@ class HttpdSharedTomcatManager_8_0_X extends HttpdSharedTomcatManager<TomcatComm
 			if(!hs.isDisabled()) {
 				String subwork = hs.getPrimaryHttpdSiteURL().getHostname().toString();
 				workFiles.remove(subwork);
-				UnixFile workDir = new UnixFile(innerWorkUF, subwork, false);
+				PosixFile workDir = new PosixFile(innerWorkUF, subwork, false);
 				if (!workDir.getStat().exists()) {
 					workDir
 						.mkdir()
@@ -364,10 +364,10 @@ class HttpdSharedTomcatManager_8_0_X extends HttpdSharedTomcatManager<TomcatComm
 		String autoWarning = getAutoWarningXml();
 		String autoWarningOld = getAutoWarningXmlOld();
 		String confServerXML=wwwGroupDir+"/conf/server.xml";
-		UnixFile confServerXMLUF=new UnixFile(confServerXML);
+		PosixFile confServerXMLUF=new PosixFile(confServerXML);
 		if(!sharedTomcat.isManual() || !confServerXMLUF.getStat().exists()) {
 			String newConfServerXML=wwwGroupDir+"/conf/server.xml.new";
-			UnixFile newConfServerXMLUF=new UnixFile(newConfServerXML);
+			PosixFile newConfServerXMLUF=new PosixFile(newConfServerXML);
 			try (
 				ChainWriter out = new ChainWriter(
 					new BufferedOutputStream(
@@ -532,7 +532,7 @@ class HttpdSharedTomcatManager_8_0_X extends HttpdSharedTomcatManager<TomcatComm
 				break;
 			}
 		}
-		UnixFile daemonSymlink = new UnixFile(daemonUF, "tomcat", false);
+		PosixFile daemonSymlink = new PosixFile(daemonUF, "tomcat", false);
 		if(!sharedTomcat.isDisabled() && hasEnabledSite) {
 			// Enabled
 			if(!daemonSymlink.getStat().exists()) {
@@ -549,7 +549,7 @@ class HttpdSharedTomcatManager_8_0_X extends HttpdSharedTomcatManager<TomcatComm
 	}
 
 	@Override
-	protected boolean upgradeSharedTomcatDirectory(String optSlash, UnixFile siteDirectory) throws IOException, SQLException {
+	protected boolean upgradeSharedTomcatDirectory(String optSlash, PosixFile siteDirectory) throws IOException, SQLException {
 		// Upgrade Tomcat
 		boolean needsRestart = getTomcatCommon().upgradeTomcatDirectory(
 			optSlash,

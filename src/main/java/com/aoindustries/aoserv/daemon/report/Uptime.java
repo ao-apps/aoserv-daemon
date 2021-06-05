@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2000-2013, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2000-2013, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,8 +22,8 @@
  */
 package com.aoindustries.aoserv.daemon.report;
 
+import com.aoapps.lang.util.ErrorPrinter;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.util.ErrorPrinter;
 import java.io.BufferedReader;
 import java.io.EOFException;
 import java.io.IOException;

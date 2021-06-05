@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,6 +22,8 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.linux.UserServer;
@@ -35,10 +37,8 @@ import com.aoindustries.aoserv.client.web.tomcat.PrivateTomcatSite;
 import com.aoindustries.aoserv.client.web.tomcat.Worker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
-import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
+import com.aoindustries.aoserv.daemon.posix.linux.LinuxAccountManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.UnixFile;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -57,7 +57,7 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 	}
 
 	@Override
-	protected void buildSiteDirectoryContents(String optSlash, UnixFile siteDirectory, boolean isUpgrade) throws IOException, SQLException {
+	protected void buildSiteDirectoryContents(String optSlash, PosixFile siteDirectory, boolean isUpgrade) throws IOException, SQLException {
 		if(isUpgrade) throw new IllegalArgumentException("In-place upgrade not supported");
 		// Resolve and allocate stuff used throughout the method
 		final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
@@ -103,7 +103,7 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 		try (
 			ChainWriter out = new ChainWriter(
 				new BufferedOutputStream(
-					new UnixFile(profileFile).getSecureOutputStream(
+					new PosixFile(profileFile).getSecureOutputStream(
 						uid,
 						gid,
 						0750,
@@ -144,7 +144,7 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 		try (
 			ChainWriter out = new ChainWriter(
 				new BufferedOutputStream(
-					new UnixFile(tomcatScript).getSecureOutputStream(
+					new PosixFile(tomcatScript).getSecureOutputStream(
 						uid,
 						gid,
 						0700,
@@ -202,12 +202,12 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 		}
 		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-8.0/bin/setclasspath.sh", siteDir+"/bin/setclasspath.sh", uid, gid);
 
-		try (ChainWriter out = new ChainWriter(new UnixFile(siteDir+"/bin/shutdown.sh").getSecureOutputStream(uid, gid, 0700, true, uid_min, gid_min))) {
+		try (ChainWriter out = new ChainWriter(new PosixFile(siteDir+"/bin/shutdown.sh").getSecureOutputStream(uid, gid, 0700, true, uid_min, gid_min))) {
 			out.print("#!/bin/sh\n"
 					+ "exec \"").print(siteDir).print("/bin/tomcat\" stop\n");
 		}
 
-		try (ChainWriter out = new ChainWriter(new UnixFile(siteDir+"/bin/startup.sh").getSecureOutputStream(uid, gid, 0700, true, uid_min, gid_min))) {
+		try (ChainWriter out = new ChainWriter(new PosixFile(siteDir+"/bin/startup.sh").getSecureOutputStream(uid, gid, 0700, true, uid_min, gid_min))) {
 			out.print("#!/bin/sh\n"
 					+ "exec \"").print(siteDir).print("/bin/tomcat\" start\n");
 		}
@@ -226,7 +226,7 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 		//}
 		//String mysqlConnectorPath = osConfig.getMySQLConnectorJavaJarPath();
 		//if(mysqlConnectorPath!=null) {
-		//    String filename = new UnixFile(mysqlConnectorPath).getFile().getName();
+		//    String filename = new PosixFile(mysqlConnectorPath).getFile().getName();
 		//    FileUtils.ln("../../.."+mysqlConnectorPath, siteDir+"/lib/"+filename, uid, gid);
 		//}
 
@@ -234,38 +234,38 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 		 * Write the conf/catalina.policy file
 		 */
 		{
-			UnixFile cp=new UnixFile(siteDir+"/conf/catalina.policy");
-			new UnixFile("/opt/apache-tomcat-8.0/conf/catalina.policy").copyTo(cp, false);
+			PosixFile cp=new PosixFile(siteDir+"/conf/catalina.policy");
+			new PosixFile("/opt/apache-tomcat-8.0/conf/catalina.policy").copyTo(cp, false);
 			cp.chown(uid, gid).setMode(0660);
 		}
 
 		{
-			UnixFile cp=new UnixFile(siteDir+"/conf/catalina.properties");
-			new UnixFile("/opt/apache-tomcat-8.0/conf/catalina.properties").copyTo(cp, false);
+			PosixFile cp=new PosixFile(siteDir+"/conf/catalina.properties");
+			new PosixFile("/opt/apache-tomcat-8.0/conf/catalina.properties").copyTo(cp, false);
 			cp.chown(uid, gid).setMode(0660);
 		}
 
 		{
-			UnixFile cp=new UnixFile(siteDir+"/conf/context.xml");
-			new UnixFile("/opt/apache-tomcat-8.0/conf/context.xml").copyTo(cp, false);
+			PosixFile cp=new PosixFile(siteDir+"/conf/context.xml");
+			new PosixFile("/opt/apache-tomcat-8.0/conf/context.xml").copyTo(cp, false);
 			cp.chown(uid, gid).setMode(0660);
 		}
 
 		{
-			UnixFile cp=new UnixFile(siteDir+"/conf/logging.properties");
-			new UnixFile("/opt/apache-tomcat-8.0/conf/logging.properties").copyTo(cp, false);
+			PosixFile cp=new PosixFile(siteDir+"/conf/logging.properties");
+			new PosixFile("/opt/apache-tomcat-8.0/conf/logging.properties").copyTo(cp, false);
 			cp.chown(uid, gid).setMode(0660);
 		}
 		{
-			UnixFile tu=new UnixFile(siteDir+"/conf/tomcat-users.xml");
-			new UnixFile("/opt/apache-tomcat-8.0/conf/tomcat-users.xml").copyTo(tu, false);
+			PosixFile tu=new PosixFile(siteDir+"/conf/tomcat-users.xml");
+			new PosixFile("/opt/apache-tomcat-8.0/conf/tomcat-users.xml").copyTo(tu, false);
 			tu.chown(uid, gid).setMode(0660);
 		}
 		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-8.0/conf/tomcat-users.xsd", siteDir+"/conf/tomcat-users.xsd", uid, gid);
 		{
 			// TODO: As symbolic link, what about other files copied?
-			UnixFile wx=new UnixFile(siteDir+"/conf/web.xml");
-			new UnixFile("/opt/apache-tomcat-8.0/conf/web.xml").copyTo(wx, false);
+			PosixFile wx=new PosixFile(siteDir+"/conf/web.xml");
+			new PosixFile("/opt/apache-tomcat-8.0/conf/web.xml").copyTo(wx, false);
 			wx.chown(uid, gid).setMode(0660);
 		}
 
@@ -276,7 +276,7 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 		try (
 			ChainWriter out = new ChainWriter(
 				new BufferedOutputStream(
-					new UnixFile(webXML).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
+					new PosixFile(webXML).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
 				)
 			)
 		) {
@@ -303,7 +303,7 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 	}
 
 	@Override
-	protected byte[] buildServerXml(UnixFile siteDirectory, String autoWarning) throws IOException, SQLException {
+	protected byte[] buildServerXml(PosixFile siteDirectory, String autoWarning) throws IOException, SQLException {
 		final TomcatCommon_8_0_X tomcatCommon = getTomcatCommon();
 		AOServConnector conn = AOServDaemon.getConnector();
 
@@ -414,7 +414,7 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 	}
 
 	@Override
-	protected boolean upgradeSiteDirectoryContents(String optSlash, UnixFile siteDirectory) throws IOException, SQLException {
+	protected boolean upgradeSiteDirectoryContents(String optSlash, PosixFile siteDirectory) throws IOException, SQLException {
 		// The only thing that needs to be modified is the included Tomcat
 		return getTomcatCommon().upgradeTomcatDirectory(
 			optSlash,
@@ -428,7 +428,7 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 	 * Does not use any README.txt for change detection.
 	 */
 	@Override
-	protected byte[] generateReadmeTxt(String optSlash, String apacheTomcatDir, UnixFile installDir) throws IOException, SQLException {
+	protected byte[] generateReadmeTxt(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException, SQLException {
 		return null;
 	}
 }

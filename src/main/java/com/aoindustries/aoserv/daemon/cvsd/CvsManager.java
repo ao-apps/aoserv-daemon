@@ -22,6 +22,9 @@
  */
 package com.aoindustries.aoserv.daemon.cvsd;
 
+import com.aoapps.collections.AoCollections;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.PosixPath;
@@ -31,11 +34,8 @@ import com.aoindustries.aoserv.client.scm.CvsRepository;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
-import com.aoindustries.collections.AoCollections;
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -96,7 +96,7 @@ final public class CvsManager extends BuilderThread {
 				if(
 					(cvsInstalled || !cvsRepositories.isEmpty())
 					&& !cvsDir.exists()
-				) new UnixFile(cvsDir).mkdir(false, 0755, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
+				) new PosixFile(cvsDir).mkdir(false, 0755, PosixFile.ROOT_UID, PosixFile.ROOT_GID);
 				// Get a list of all the directories in /var/cvs
 				Set<String> existing;
 				{
@@ -116,7 +116,7 @@ final public class CvsManager extends BuilderThread {
 				// while removing existing directories from existing
 				for(CvsRepository cvs : cvsRepositories) {
 					PosixPath path = cvs.getPath();
-					UnixFile cvsUF = new UnixFile(path.toString());
+					PosixFile cvsUF = new PosixFile(path.toString());
 					UserServer lsa = cvs.getLinuxServerAccount();
 					{
 						Stat cvsStat = cvsUF.getStat();
@@ -140,7 +140,7 @@ final public class CvsManager extends BuilderThread {
 						}
 					}
 					// Init if needed
-					UnixFile cvsRootUF = new UnixFile(cvsUF, "CVSROOT", false);
+					PosixFile cvsRootUF = new PosixFile(cvsUF, "CVSROOT", false);
 					if(!cvsRootUF.getStat().exists()) {
 						AOServDaemon.suexec(
 							lsa.getLinuxAccount_username_id(),

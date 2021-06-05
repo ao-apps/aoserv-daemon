@@ -20,11 +20,11 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.aoindustries.aoserv.daemon.unix.linux;
+package com.aoindustries.aoserv.daemon.posix.linux;
 
-import com.aoindustries.aoserv.daemon.unix.UnixProcess;
-import com.aoindustries.collections.AoCollections;
-import com.aoindustries.io.unix.UnixFile;
+import com.aoapps.collections.AoCollections;
+import com.aoapps.io.posix.PosixFile;
+import com.aoindustries.aoserv.daemon.posix.PosixProcess;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -35,12 +35,12 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * A <code>UnixProcess</code> represents a process
- * running on any Unix machine.
+ * A <code>PosixProcess</code> represents a process
+ * running on any POSIX machine.
  *
  * @author  AO Industries, Inc.
  */
-public class LinuxProcess extends UnixProcess {
+public class LinuxProcess extends PosixProcess {
 
 	private static final File proc = new File("/proc");
 
@@ -62,7 +62,7 @@ public class LinuxProcess extends UnixProcess {
 	 */
 	@Override
 	public int getGid() throws IOException {
-		return new UnixFile(getProc().getPath()).getStat().getGid();
+		return new PosixFile(getProc().getPath()).getStat().getGid();
 	}
 
 	/**
@@ -88,7 +88,7 @@ public class LinuxProcess extends UnixProcess {
 	 */
 	@Override
 	public int getUid() throws IOException {
-		return new UnixFile(getProc().getPath()).getStat().getUid();
+		return new PosixFile(getProc().getPath()).getStat().getUid();
 	}
 
 	/**

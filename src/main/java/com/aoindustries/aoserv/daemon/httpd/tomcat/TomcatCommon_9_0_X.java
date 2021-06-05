@@ -22,6 +22,7 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
+import com.aoapps.io.posix.PosixFile;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.Copy;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.Delete;
@@ -30,9 +31,8 @@ import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.Mkdir;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.ProfileScript;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.Symlink;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.SymlinkAll;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.UpgradeSymlink;
-import com.aoindustries.io.unix.UnixFile;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -71,7 +71,7 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 	// Note: Updates here should be matched between all VersionTomcat versions (8.5, 9.0, 10.0 currently)
 	//       in order to allow both upgrade and downgrade between them.
 	@Override
-	protected List<Install> getInstallFiles(String optSlash, UnixFile installDir, int confMode) throws IOException, SQLException {
+	protected List<Install> getInstallFiles(String optSlash, PosixFile installDir, int confMode) throws IOException, SQLException {
 		return Arrays.asList(
 			new Mkdir        ("bin", 0770),
 			new Symlink      ("bin/bootstrap.jar"),
@@ -140,7 +140,7 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 	 * @param optSlash  Relative path from the CATALINA_HOME to /opt/, including trailing slash, such as <code>../../opt/</code>.
 	 */
 	@Override
-	protected boolean upgradeTomcatDirectory(String optSlash, UnixFile tomcatDirectory, int uid, int gid) throws IOException, SQLException {
+	protected boolean upgradeTomcatDirectory(String optSlash, PosixFile tomcatDirectory, int uid, int gid) throws IOException, SQLException {
 		// TODO: This might be able to simply use the same lnAll as used to initially create the lib/ directory
 		boolean needsRestart = false;
 		OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();

@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,16 +22,16 @@
  */
 package com.aoindustries.aoserv.daemon.email;
 
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.UnixFile;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -51,7 +51,7 @@ final public class SaslauthdManager extends BuilderThread {
 
 	private static SaslauthdManager saslauthdManager;
 
-	private static final UnixFile saslauthConfig = new UnixFile("/etc/sysconfig/saslauthd");
+	private static final PosixFile saslauthConfig = new PosixFile("/etc/sysconfig/saslauthd");
 
 	private static final String SYSTEMCTL = "/usr/bin/systemctl";
 
@@ -72,7 +72,7 @@ final public class SaslauthdManager extends BuilderThread {
 			synchronized(rebuildLock) {
 				// Do nothing when package not installed
 				if(PackageManager.getInstalledPackage(PackageManager.PackageName.CYRUS_SASL) != null) {
-					Set<UnixFile> restorecon = new LinkedHashSet<>();
+					Set<PosixFile> restorecon = new LinkedHashSet<>();
 					try {
 						ByteArrayOutputStream bout = new ByteArrayOutputStream();
 						try (ChainWriter out = new ChainWriter(bout)) {
@@ -100,8 +100,8 @@ final public class SaslauthdManager extends BuilderThread {
 							saslauthConfig,
 							bout.toByteArray(),
 							0644,
-							UnixFile.ROOT_UID,
-							UnixFile.ROOT_GID,
+							PosixFile.ROOT_UID,
+							PosixFile.ROOT_GID,
 							null,
 							restorecon
 						);

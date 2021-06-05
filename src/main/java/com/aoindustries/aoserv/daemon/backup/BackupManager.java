@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2009, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2001-2009, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,12 +22,12 @@
  */
 package com.aoindustries.aoserv.daemon.backup;
 
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.lang.Strings;
 import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.lang.Strings;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -60,8 +60,8 @@ final public class BackupManager {
 	/**
 	 * Gets the oldaccounts directory, creating if necessary.
 	 */
-	private static UnixFile getOldaccountsDir() throws IOException {
-		UnixFile oldaccountsDir = new UnixFile(OLDACCOUNTS_DIR);
+	private static PosixFile getOldaccountsDir() throws IOException {
+		PosixFile oldaccountsDir = new PosixFile(OLDACCOUNTS_DIR);
 		if(!oldaccountsDir.getStat().exists()) oldaccountsDir.mkdir(false, 0700);
 		return oldaccountsDir;
 	}
@@ -87,7 +87,7 @@ final public class BackupManager {
 			int uid_min = thisServer.getUidMin().getId();
 			int gid_min = thisServer.getGidMin().getId();
 			for(File file : deleteFileList) {
-				new UnixFile(file).secureDeleteRecursive(uid_min, gid_min);
+				new PosixFile(file).secureDeleteRecursive(uid_min, gid_min);
 			}
 		}
 	}
@@ -248,7 +248,7 @@ final public class BackupManager {
 	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	static void cleanVarOldaccounts() {
 		try {
-			UnixFile oldaccountsDir = getOldaccountsDir();
+			PosixFile oldaccountsDir = getOldaccountsDir();
 			String[] files = oldaccountsDir.list();
 			if(files != null) {
 				for(String filename : files) {
@@ -272,7 +272,7 @@ final public class BackupManager {
 								+ "Please investigate and removed as-needed."
 						);
 					} else if(age >= MAX_OLDACCOUNTS_AGE) {
-						new UnixFile(oldaccountsDir, filename, true).delete();
+						new PosixFile(oldaccountsDir, filename, true).delete();
 					} else if(age < 0) {
 						logger.warning(
 							filename + "\n"
@@ -366,10 +366,10 @@ final public class BackupManager {
 			if(second < 10) SB.append('0');
 			SB.append(second).append('_');
 
-			UnixFile oldaccountsDir = getOldaccountsDir();
+			PosixFile oldaccountsDir = getOldaccountsDir();
 			String prefix = SB.toString();
 			for(int c = 1; c < Integer.MAX_VALUE; c++) {
-				UnixFile unixFile = new UnixFile(oldaccountsDir, prefix + c + extension, true);
+				PosixFile unixFile = new PosixFile(oldaccountsDir, prefix + c + extension, true);
 				if(!unixFile.getStat().exists()) {
 					File file = unixFile.getFile();
 					new FileOutputStream(file).close();

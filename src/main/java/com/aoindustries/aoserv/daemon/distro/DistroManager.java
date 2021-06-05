@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2013, 2015, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2001-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,6 +22,16 @@
  */
 package com.aoindustries.aoserv.daemon.distro;
 
+import com.aoapps.hodgepodge.io.ByteCountInputStream;
+import com.aoapps.hodgepodge.logging.ProcessTimer;
+import com.aoapps.hodgepodge.util.Tuple2;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
+import com.aoapps.lang.Strings;
+import com.aoapps.lang.SysExits;
+import com.aoapps.lang.io.IoUtils;
+import com.aoapps.lang.util.ErrorPrinter;
+import com.aoapps.lang.validation.ValidationException;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServTable;
 import com.aoindustries.aoserv.client.distribution.management.DistroFile;
@@ -40,16 +50,6 @@ import com.aoindustries.aoserv.client.sql.SQLComparator;
 import com.aoindustries.aoserv.client.sql.SQLExpression;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.io.ByteCountInputStream;
-import com.aoindustries.io.IoUtils;
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.lang.Strings;
-import com.aoindustries.lang.SysExits;
-import com.aoindustries.util.ErrorPrinter;
-import com.aoindustries.util.Tuple2;
-import com.aoindustries.util.logging.ProcessTimer;
-import com.aoindustries.validation.ValidationException;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -336,21 +336,21 @@ final public class DistroManager implements Runnable {
 	private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, PosixPath path) throws IOException {
 		addResult(results, verboseOut, type, path, null, null, null);
 	}
-	private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, UnixFile file, String actualValue, String expectedValue, String recommendedAction) throws IOException {
+	private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, PosixFile file, String actualValue, String expectedValue, String recommendedAction) throws IOException {
 		try {
 			addResult(results, verboseOut, type, PosixPath.valueOf(file.getPath()), actualValue, expectedValue, recommendedAction);
 		} catch(ValidationException e) {
 			throw new IOException(e);
 		}
 	}
-	private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, UnixFile file, String actualValue, String expectedValue) throws IOException {
+	private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, PosixFile file, String actualValue, String expectedValue) throws IOException {
 		try {
 			addResult(results, verboseOut, type, PosixPath.valueOf(file.getPath()), actualValue, expectedValue, null);
 		} catch(ValidationException e) {
 			throw new IOException(e);
 		}
 	}
-	private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, UnixFile file) throws IOException {
+	private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, PosixFile file) throws IOException {
 		try {
 			addResult(results, verboseOut, type, PosixPath.valueOf(file.getPath()), null, null, null);
 		} catch(ValidationException e) {
@@ -387,7 +387,7 @@ final public class DistroManager implements Runnable {
 				distroFiles,
 				foundFiles,
 				pathComparator,
-				new UnixFile("/"),
+				new PosixFile("/"),
 				results,
 				stats,
 				verboseOut
@@ -442,7 +442,7 @@ final public class DistroManager implements Runnable {
 		List<DistroFile> distroFiles,
 		boolean[] foundFiles,
 		SQLComparator<Object> pathComparator,
-		UnixFile file,
+		PosixFile file,
 		List<DistroReportFile> results,
 		DistroReportStats stats,
 		Appendable verboseOut
@@ -543,21 +543,21 @@ final public class DistroManager implements Runnable {
 			// Type
 			long fileMode = fileStat.getRawMode();
 			long distroMode = distroFile.getMode();
-			long fileType = fileMode & UnixFile.TYPE_MASK;
-			long distroType = distroMode & UnixFile.TYPE_MASK;
+			long fileType = fileMode & PosixFile.TYPE_MASK;
+			long distroType = distroMode & PosixFile.TYPE_MASK;
 			if(fileType != distroType) {
 				addResult(
 					results,
 					verboseOut,
 					DistroReportType.TYPE,
 					file,
-					UnixFile.getModeString(fileType),
-					UnixFile.getModeString(distroType)
+					PosixFile.getModeString(fileType),
+					PosixFile.getModeString(distroType)
 				);
 			} else {
 				// Permissions
-				long filePerms = fileMode & UnixFile.PERMISSION_MASK;
-				long distroPerms = distroMode & UnixFile.PERMISSION_MASK;
+				long filePerms = fileMode & PosixFile.PERMISSION_MASK;
+				long distroPerms = distroMode & PosixFile.PERMISSION_MASK;
 				if(filePerms != distroPerms) {
 					addResult(
 						results,
@@ -789,7 +789,7 @@ final public class DistroManager implements Runnable {
 											distroFiles,
 											foundFiles,
 											pathComparator,
-											new UnixFile(file, list[c], false),
+											new PosixFile(file, list[c], false),
 											results,
 											stats,
 											verboseOut
@@ -806,7 +806,7 @@ final public class DistroManager implements Runnable {
 
 	private static void checkUserDirectory(
 		Server thisServer,
-		UnixFile file,
+		PosixFile file,
 		List<DistroReportFile> results,
 		DistroReportStats stats,
 		Appendable verboseOut
@@ -831,7 +831,7 @@ final public class DistroManager implements Runnable {
 					stats.scanned++;
 					stats.userCount++;
 					String name = list[c];
-					UnixFile uf = new UnixFile(file, name, false);
+					PosixFile uf = new PosixFile(file, name, false);
 					try {
 						// Check for ...
 						if(isHidden(name)) {
@@ -875,7 +875,7 @@ final public class DistroManager implements Runnable {
 						// Make sure not setUID or setGID
 						long fileMode = ufStat.getMode();
 						if(
-							(fileMode & (UnixFile.SET_UID | UnixFile.SET_GID)) != 0
+							(fileMode & (PosixFile.SET_UID | PosixFile.SET_GID)) != 0
 							&& (
 								uid < thisServer.getUidMin().getId()
 								|| gid < thisServer.getGidMin().getId()
@@ -892,7 +892,7 @@ final public class DistroManager implements Runnable {
 									if(
 										fname.equals("wrapper")
 										&& fileMode == 04750
-										&& ufStat.getUid() == UnixFile.ROOT_UID
+										&& ufStat.getUid() == PosixFile.ROOT_UID
 										&& thisServer.getLinuxServerGroup(LinuxId.valueOf(ufStat.getGid())).getLinuxGroup().getName().equals(Group.MAIL)
 									) {
 										found = true;
@@ -912,7 +912,7 @@ final public class DistroManager implements Runnable {
 						}
 
 						// Make sure not world writable
-						//if((fileMode&UnixFile.OTHER_WRITE)==UnixFile.OTHER_WRITE) {
+						//if((fileMode&PosixFile.OTHER_WRITE)==PosixFile.OTHER_WRITE) {
 						//    results.add("PERMISSIONS "+uf+" "+Integer.toOctalString(fileMode));
 						//    if(displayResults) {
 						//        System.out.println(results.get(results.size()-1));

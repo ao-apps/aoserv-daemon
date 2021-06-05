@@ -22,6 +22,9 @@
  */
 package com.aoindustries.aoserv.daemon.iptables;
 
+import com.aoapps.collections.AoCollections;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.lang.math.SafeMath;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.account.Administrator;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
@@ -34,9 +37,6 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
-import com.aoindustries.collections.AoCollections;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.math.SafeMath;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -66,8 +66,8 @@ final public class IpReputationManager extends BuilderThread {
 	/**
 	 * Gets the iptables directory, creating if necessary.
 	 */
-	private static UnixFile getIptablesDir() throws IOException {
-		UnixFile iptablesDir = new UnixFile(IPTABLES_DIR);
+	private static PosixFile getIptablesDir() throws IOException {
+		PosixFile iptablesDir = new PosixFile(IPTABLES_DIR);
 		if(!iptablesDir.getStat().exists()) iptablesDir.mkdir(false, 0700);
 		return iptablesDir;
 	}
@@ -75,9 +75,9 @@ final public class IpReputationManager extends BuilderThread {
 	/**
 	 * Gets the iptables directory, creating if necessary.
 	 */
-	private static UnixFile getIpreputationDir() throws IOException {
-		UnixFile iptablesDir = getIptablesDir();
-		UnixFile ipreputationDir = new UnixFile(iptablesDir.getPath() + "/" + IPREPUTATION_SUBDIR);
+	private static PosixFile getIpreputationDir() throws IOException {
+		PosixFile iptablesDir = getIptablesDir();
+		PosixFile ipreputationDir = new PosixFile(iptablesDir.getPath() + "/" + IPREPUTATION_SUBDIR);
 		if(!ipreputationDir.getStat().exists()) ipreputationDir.mkdir(false, 0700);
 		return ipreputationDir;
 	}
@@ -193,7 +193,7 @@ final public class IpReputationManager extends BuilderThread {
 		Set.ConfidenceType confidence,
 		Set.ReputationType reputationType,
 		String identifier,
-		UnixFile setDir
+		PosixFile setDir
 	) throws IOException {
 		java.util.Set<Integer> entries = AoCollections.newLinkedHashSet(Math.min(Ipset.MAX_IPSET_SIZE + 1, hosts.size()));
 		for(Host host : hosts) {
@@ -217,7 +217,7 @@ final public class IpReputationManager extends BuilderThread {
 		java.util.Set<Network> networks,
 		short networkPrefix,
 		String identifier,
-		UnixFile setDir
+		PosixFile setDir
 	) throws IOException {
 		java.util.Set<Integer> entries = AoCollections.newLinkedHashSet(Math.min(Ipset.MAX_IPSET_SIZE+1, networks.size()));
 		for(Network network : networks) {
@@ -249,7 +249,7 @@ final public class IpReputationManager extends BuilderThread {
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 			synchronized(rebuildLock) {
-				final UnixFile ipreputationDir = getIpreputationDir();
+				final PosixFile ipreputationDir = getIpreputationDir();
 				final Collection<Set> sets = conn.getNet().getReputation().getSet().getRows();
 
 				// Track the names of each set, used to remove extra directories
@@ -265,7 +265,7 @@ final public class IpReputationManager extends BuilderThread {
 					setIdentifiers.add(identifier);
 
 					// Create the set directory if missing
-					UnixFile setDir = new UnixFile(ipreputationDir, identifier, true);
+					PosixFile setDir = new PosixFile(ipreputationDir, identifier, true);
 					if(!setDir.getStat().exists()) setDir.mkdir(false, 0700);
 
 					// TODO: Use concurrency equal to minimum of four or half the cores on the server
@@ -341,7 +341,7 @@ final public class IpReputationManager extends BuilderThread {
 					List<File> deleteFileList=new ArrayList<>();
 					for(String filename : list) {
 						if(!setIdentifiers.contains(filename)) {
-							UnixFile extraUf = new UnixFile(ipreputationDir, filename, true);
+							PosixFile extraUf = new PosixFile(ipreputationDir, filename, true);
 							deleteFileList.add(extraUf.getFile());
 						}
 					}

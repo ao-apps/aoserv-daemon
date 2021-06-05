@@ -22,6 +22,16 @@
  */
 package com.aoindustries.aoserv.daemon.postgres;
 
+import com.aoapps.cron.CronDaemon;
+import com.aoapps.cron.CronJob;
+import com.aoapps.cron.Schedule;
+import com.aoapps.hodgepodge.io.stream.StreamableOutput;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.lang.util.BufferManager;
+import com.aoapps.lang.util.ErrorPrinter;
+import com.aoapps.lang.validation.ValidationException;
+import com.aoapps.tempfiles.TempFile;
+import com.aoapps.tempfiles.TempFileContext;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.postgresql.Database;
@@ -33,18 +43,8 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
-import com.aoindustries.cron.CronDaemon;
-import com.aoindustries.cron.CronJob;
-import com.aoindustries.cron.Schedule;
-import com.aoindustries.io.stream.StreamableOutput;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.tempfiles.TempFile;
-import com.aoindustries.tempfiles.TempFileContext;
-import com.aoindustries.util.BufferManager;
-import com.aoindustries.util.ErrorPrinter;
-import com.aoindustries.validation.ValidationException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -337,7 +337,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 				tempFile.getFile(),
 				gzip
 			);
-			long dumpSize = new UnixFile(tempFile.getFile()).getStat().getSize();
+			long dumpSize = new PosixFile(tempFile.getFile()).getStat().getSize();
 			if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0) >= 0) {
 				masterOut.writeLong(dumpSize);
 			}

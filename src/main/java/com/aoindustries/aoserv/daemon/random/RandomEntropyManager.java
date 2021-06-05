@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2004-2013, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2004-2013, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,14 +22,14 @@
  */
 package com.aoindustries.aoserv.daemon.random;
 
+import com.aoapps.io.posix.linux.DevRandom;
+import com.aoapps.lang.util.BufferManager;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
-import com.aoindustries.io.unix.linux.DevRandom;
-import com.aoindustries.util.BufferManager;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.sql.SQLException;

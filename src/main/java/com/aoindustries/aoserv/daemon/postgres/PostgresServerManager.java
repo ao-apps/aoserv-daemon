@@ -22,6 +22,13 @@
  */
 package com.aoindustries.aoserv.daemon.postgres;
 
+import com.aoapps.cron.CronDaemon;
+import com.aoapps.cron.CronJob;
+import com.aoapps.cron.Schedule;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.net.InetAddress;
+import com.aoapps.net.Port;
+import com.aoapps.sql.pool.AOConnectionPool;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.net.AppProtocol;
@@ -32,17 +39,10 @@ import com.aoindustries.aoserv.client.postgresql.User;
 import com.aoindustries.aoserv.client.postgresql.Version;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.server.ServerManager;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
-import com.aoindustries.cron.CronDaemon;
-import com.aoindustries.cron.CronJob;
-import com.aoindustries.cron.Schedule;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.net.InetAddress;
-import com.aoindustries.net.Port;
 import com.aoindustries.selinux.SEManagePort;
-import com.aoindustries.sql.pool.AOConnectionPool;
 import java.io.File;
 import java.io.IOException;
 import java.net.ProtocolFamily;
@@ -367,7 +367,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 									monthAgo.add(Calendar.MONTH, -1);
 
 									if(fileDate.compareTo(monthAgo) < 0) {
-										new UnixFile(logDirectory, filename).delete();
+										new PosixFile(logDirectory, filename).delete();
 									}
 								}
 							}

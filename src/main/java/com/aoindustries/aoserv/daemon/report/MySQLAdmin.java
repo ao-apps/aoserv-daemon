@@ -22,10 +22,10 @@
  */
 package com.aoindustries.aoserv.daemon.report;
 
+import com.aoapps.lang.Strings;
+import com.aoapps.lang.util.ErrorPrinter;
 import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.lang.Strings;
-import com.aoindustries.util.ErrorPrinter;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;

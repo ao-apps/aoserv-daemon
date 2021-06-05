@@ -22,13 +22,14 @@
  */
 package com.aoindustries.aoserv.daemon.ftp;
 
+import com.aoapps.collections.AoCollections;
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.ftp.GuestUser;
 import com.aoindustries.aoserv.client.ftp.PrivateServer;
-import com.aoindustries.aoserv.client.linux.Group;
 import com.aoindustries.aoserv.client.linux.Server;
-import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.client.net.AppProtocol;
 import com.aoindustries.aoserv.client.net.Bind;
 import com.aoindustries.aoserv.client.net.IpAddress;
@@ -40,10 +41,6 @@ import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.httpd.HttpdSiteManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.collections.AoCollections;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.UnixFile;
-import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -65,18 +62,18 @@ final public class FTPManager extends BuilderThread {
 
 	private static final Logger logger = Logger.getLogger(FTPManager.class.getName());
 
-	private static final UnixFile
-		vsFtpdConfNew = new UnixFile("/etc/vsftpd/vsftpd.conf.new"),
-		vsFtpdConf = new UnixFile("/etc/vsftpd/vsftpd.conf"),
-		vsFtpdVhostsirectory = new UnixFile("/etc/vsftpd/vhosts"),
-		vsFtpdChrootList = new UnixFile("/etc/vsftpd/chroot_list"),
-		vsFtpdChrootListNew = new UnixFile("/etc/vsftpd/chroot_list.new")
+	private static final PosixFile
+		vsFtpdConfNew = new PosixFile("/etc/vsftpd/vsftpd.conf.new"),
+		vsFtpdConf = new PosixFile("/etc/vsftpd/vsftpd.conf"),
+		vsFtpdVhostsirectory = new PosixFile("/etc/vsftpd/vhosts"),
+		vsFtpdChrootList = new PosixFile("/etc/vsftpd/chroot_list"),
+		vsFtpdChrootListNew = new PosixFile("/etc/vsftpd/chroot_list.new")
 	;
 
 	/**
 	 * The directory that is used for site-independent FTP access.
 	 */
-	private static final UnixFile sharedFtpDirectory = new UnixFile("/var/ftp/pub");
+	private static final PosixFile sharedFtpDirectory = new PosixFile("/var/ftp/pub");
 
 	private static FTPManager ftpManager;
 
@@ -133,7 +130,7 @@ final public class FTPManager extends BuilderThread {
 
 				// Only write to filesystem if missing or changed
 				if(!vsFtpdChrootList.getStat().exists() || !vsFtpdChrootList.contentEquals(newBytes)) {
-					try (FileOutputStream newOut = vsFtpdChrootListNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true, uid_min, gid_min)) {
+					try (FileOutputStream newOut = vsFtpdChrootListNew.getSecureOutputStream(PosixFile.ROOT_UID, PosixFile.ROOT_GID, 0600, true, uid_min, gid_min)) {
 						newOut.write(newBytes);
 					}
 					vsFtpdChrootListNew.renameTo(vsFtpdChrootList);
@@ -178,7 +175,7 @@ final public class FTPManager extends BuilderThread {
 
 				// Only write to filesystem if missing or changed
 				if(!vsFtpdConf.getStat().exists() || !vsFtpdConf.contentEquals(newBytes)) {
-					try (FileOutputStream newOut = vsFtpdConfNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true, uid_min, gid_min)) {
+					try (FileOutputStream newOut = vsFtpdConfNew.getSecureOutputStream(PosixFile.ROOT_UID, PosixFile.ROOT_GID, 0600, true, uid_min, gid_min)) {
 						newOut.write(newBytes);
 					}
 					vsFtpdConfNew.renameTo(vsFtpdConf);
@@ -189,7 +186,7 @@ final public class FTPManager extends BuilderThread {
 			{
 				// Make the vhosts directory if it doesn't exist
 				if(!vsFtpdVhostsirectory.getStat().exists()) {
-					vsFtpdVhostsirectory.mkdir(false, 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
+					vsFtpdVhostsirectory.mkdir(false, 0700, PosixFile.ROOT_UID, PosixFile.ROOT_GID);
 				}
 
 				// Find all the FTP binds
@@ -205,8 +202,8 @@ final public class FTPManager extends BuilderThread {
 					if(redirect!=null) {
 						if(privateServer!=null) throw new SQLException("Bind allocated as both TcpRedirect and PrivateServer: "+bind.getPkey());
 					} else {
-						com.aoindustries.net.Protocol netProtocol=bind.getPort().getProtocol();
-						if(netProtocol != com.aoindustries.net.Protocol.TCP) throw new SQLException("vsftpd may only be configured for TCP service:  (net_binds.pkey="+bind.getPkey()+").net_protocol="+netProtocol);
+						com.aoapps.net.Protocol netProtocol=bind.getPort().getProtocol();
+						if(netProtocol != com.aoapps.net.Protocol.TCP) throw new SQLException("vsftpd may only be configured for TCP service:  (net_binds.pkey="+bind.getPkey()+").net_protocol="+netProtocol);
 						IpAddress ia=bind.getIpAddress();
 
 						// Write to buffer
@@ -261,10 +258,10 @@ final public class FTPManager extends BuilderThread {
 						// Only write to filesystem if missing or changed
 						String filename = "vsftpd_"+bind.getIpAddress().getInetAddress().toString()+"_"+bind.getPort().getPort()+".conf";
 						if(!existing.add(filename)) throw new SQLException("Filename already used: "+filename);
-						UnixFile confFile = new UnixFile(vsFtpdVhostsirectory, filename, false);
+						PosixFile confFile = new PosixFile(vsFtpdVhostsirectory, filename, false);
 						if(!confFile.getStat().exists() || !confFile.contentEquals(newBytes)) {
-							UnixFile newConfFile = new UnixFile(vsFtpdVhostsirectory, filename+".new", false);
-							try (FileOutputStream newOut = newConfFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true, uid_min, gid_min)) {
+							PosixFile newConfFile = new PosixFile(vsFtpdVhostsirectory, filename+".new", false);
+							try (FileOutputStream newOut = newConfFile.getSecureOutputStream(PosixFile.ROOT_UID, PosixFile.ROOT_GID, 0600, true, uid_min, gid_min)) {
 								newOut.write(newBytes);
 							}
 							newConfFile.renameTo(confFile);
@@ -275,7 +272,7 @@ final public class FTPManager extends BuilderThread {
 				// Clean the vhosts directory
 				for(String filename : vsFtpdVhostsirectory.list()) {
 					if(!existing.contains(filename)) {
-						new UnixFile(vsFtpdVhostsirectory, filename, false).delete();
+						new PosixFile(vsFtpdVhostsirectory, filename, false).delete();
 					}
 				}
 			}
@@ -287,7 +284,7 @@ final public class FTPManager extends BuilderThread {
 	 * shared FTP space.
 	 */
 	private static void doRebuildSharedFtpDirectory() throws IOException, SQLException {
-		Set<UnixFile> restorecon = new LinkedHashSet<>();
+		Set<PosixFile> restorecon = new LinkedHashSet<>();
 		try {
 			List<File> deleteFileList=new ArrayList<>();
 
@@ -309,7 +306,7 @@ final public class FTPManager extends BuilderThread {
 				 */
 				if(manager.enableAnonymousFtp()) {
 					String siteName = httpdSite.getName();
-					manager.configureFtpDirectory(new UnixFile(sharedFtpDirectory, siteName, false), restorecon);
+					manager.configureFtpDirectory(new PosixFile(sharedFtpDirectory, siteName, false), restorecon);
 					ftpDirectories.remove(siteName);
 				}
 			}
@@ -368,7 +365,7 @@ final public class FTPManager extends BuilderThread {
 	/**
 	 * Removes any file in the directory that is not listed in <code>files</code>.
 	 */
-	public static void trimFiles(UnixFile dir, String[] files) throws IOException {
+	public static void trimFiles(PosixFile dir, String[] files) throws IOException {
 		String[] list=dir.list();
 		if(list!=null) {
 			int len=list.length;
@@ -383,7 +380,7 @@ final public class FTPManager extends BuilderThread {
 					}
 				}
 				if(!found) {
-					UnixFile file=new UnixFile(dir, filename, false);
+					PosixFile file=new PosixFile(dir, filename, false);
 					if(file.getStat().exists()) file.delete();
 				}
 			}
@@ -393,7 +390,7 @@ final public class FTPManager extends BuilderThread {
 	/**
 	 * Removes any file in the directory that is not listed in <code>files</code>.
 	 */
-	public static void trimFiles(UnixFile dir, List<String> files) throws IOException {
+	public static void trimFiles(PosixFile dir, List<String> files) throws IOException {
 		String[] SA=new String[files.size()];
 		files.toArray(SA);
 		trimFiles(dir, SA);

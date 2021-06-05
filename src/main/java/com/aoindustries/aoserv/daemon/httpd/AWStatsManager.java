@@ -22,6 +22,11 @@
  */
 package com.aoindustries.aoserv.daemon.httpd;
 
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.hodgepodge.io.stream.StreamableOutput;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.lang.util.BufferManager;
+import com.aoapps.net.InetAddress;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.Group;
@@ -40,14 +45,9 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.stream.StreamableOutput;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.net.InetAddress;
-import com.aoindustries.util.BufferManager;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -96,7 +96,7 @@ final public class AWStatsManager extends BuilderThread {
 			int gid_min = thisServer.getGidMin().getId();
 
 			synchronized(rebuildLock) {
-				Set<UnixFile> restorecon = new LinkedHashSet<>();
+				Set<PosixFile> restorecon = new LinkedHashSet<>();
 				try {
 					// Get some variables that will be used throughout the method
 					List<File> deleteFileList = new ArrayList<>();
@@ -452,25 +452,25 @@ final public class AWStatsManager extends BuilderThread {
 							newFileContent = bout.toByteArray();
 							// Write to disk if file missing or doesn't match
 							DaemonFileUtils.atomicWrite(
-								new UnixFile(configDirectory, configFilename),
+								new PosixFile(configDirectory, configFilename),
 								newFileContent,
 								0640,
-								UnixFile.ROOT_UID,
+								PosixFile.ROOT_UID,
 								awstatsGID,
 								null,
 								restorecon
 							);
 
 							// Make sure /var/opt/awstats[-6]/hosts/<site_name> directory exists and has the proper permissions
-							UnixFile hostDirectory = new UnixFile(hostsDirectory, siteName);
-							DaemonFileUtils.mkdir(hostDirectory, 0750, UnixFile.ROOT_UID, awstatsGID);
+							PosixFile hostDirectory = new PosixFile(hostsDirectory, siteName);
+							DaemonFileUtils.mkdir(hostDirectory, 0750, PosixFile.ROOT_UID, awstatsGID);
 
 							// Make sure /var/opt/awstats[-6]/hosts/<site_name>/data directory exists and has the proper permissions
-							UnixFile dataDirectory = new UnixFile(hostDirectory, "data", false);
+							PosixFile dataDirectory = new PosixFile(hostDirectory, "data", false);
 							DaemonFileUtils.mkdir(dataDirectory, 0750, awstatsUID, awstatsGID);
 
 							// dnscachelastupdate.txt
-							UnixFile dnscachelastupdate = new UnixFile(hostDirectory, "dnscachelastupdate.txt", false);
+							PosixFile dnscachelastupdate = new PosixFile(hostDirectory, "dnscachelastupdate.txt", false);
 							DaemonFileUtils.createEmptyFile(dnscachelastupdate, 0640, awstatsUID, awstatsGID);
 
 							// logview.sh
@@ -512,10 +512,10 @@ final public class AWStatsManager extends BuilderThread {
 							newFileContent = bout.toByteArray();
 							// Write to disk if file missing or doesn't match
 							DaemonFileUtils.atomicWrite(
-								new UnixFile(hostDirectory, "logview.sh", false),
+								new PosixFile(hostDirectory, "logview.sh", false),
 								newFileContent,
 								0750,
-								UnixFile.ROOT_UID,
+								PosixFile.ROOT_UID,
 								awstatsGID,
 								null,
 								restorecon
@@ -599,10 +599,10 @@ final public class AWStatsManager extends BuilderThread {
 							newFileContent = bout.toByteArray();
 							// Write to disk if file missing or doesn't match
 							DaemonFileUtils.atomicWrite(
-								new UnixFile(hostDirectory, "runascgi.sh", false),
+								new PosixFile(hostDirectory, "runascgi.sh", false),
 								newFileContent,
 								0750,
-								UnixFile.ROOT_UID,
+								PosixFile.ROOT_UID,
 								awstatsGID,
 								null,
 								restorecon
@@ -626,10 +626,10 @@ final public class AWStatsManager extends BuilderThread {
 							newFileContent = bout.toByteArray();
 							// Write to disk if file missing or doesn't match
 							DaemonFileUtils.atomicWrite(
-								new UnixFile(hostDirectory, "update.sh", false),
+								new PosixFile(hostDirectory, "update.sh", false),
 								newFileContent,
 								0750,
-								UnixFile.ROOT_UID,
+								PosixFile.ROOT_UID,
 								awstatsGID,
 								null,
 								restorecon

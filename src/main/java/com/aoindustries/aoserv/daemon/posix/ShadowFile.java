@@ -20,18 +20,18 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.aoindustries.aoserv.daemon.unix;
+package com.aoindustries.aoserv.daemon.posix;
 
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.hodgepodge.util.Tuple2;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.lang.Strings;
+import com.aoapps.lang.math.SafeMath;
+import com.aoapps.lang.validation.ValidationException;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.lang.Strings;
-import com.aoindustries.math.SafeMath;
-import com.aoindustries.util.Tuple2;
-import com.aoindustries.validation.ValidationException;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
@@ -56,9 +56,9 @@ final public class ShadowFile {
 
 	private static final Logger logger = Logger.getLogger(ShadowFile.class.getName());
 
-	private static final UnixFile
-		shadowFile       = new UnixFile("/etc/shadow"),
-		backupShadowFile = new UnixFile("/etc/shadow-")
+	private static final PosixFile
+		shadowFile       = new PosixFile("/etc/shadow"),
+		backupShadowFile = new PosixFile("/etc/shadow-")
 	;
 
 	/**
@@ -446,7 +446,7 @@ final public class ShadowFile {
 	/**
 	 * Must hold {@link #shadowLock}
 	 */
-	public static void writeShadowFile(byte[] newContents, Set<UnixFile> restorecon) throws SQLException, IOException {
+	public static void writeShadowFile(byte[] newContents, Set<PosixFile> restorecon) throws SQLException, IOException {
 		assert Thread.holdsLock(shadowLock);
 		// Determine permissions
 		long mode;
@@ -467,8 +467,8 @@ final public class ShadowFile {
 			shadowFile,
 			newContents,
 			mode,
-			UnixFile.ROOT_UID,
-			UnixFile.ROOT_GID,
+			PosixFile.ROOT_UID,
+			PosixFile.ROOT_GID,
 			backupShadowFile,
 			restorecon
 		);
@@ -510,7 +510,7 @@ final public class ShadowFile {
 
 	/**
 	 * Sets the encrypted password for one user on the system.  This password must already
-	 * be {@link UnixFile#crypt(java.lang.String, com.aoindustries.io.unix.UnixFile.CryptAlgorithm) hashed}.
+	 * be {@link PosixFile#crypt(java.lang.String, com.aoapps.io.posix.PosixFile.CryptAlgorithm) hashed}.
 	 * <p>
 	 * This method is synchronized with <code>doRebuild</code> to ensure that
 	 * passwords are never lost during updates.
@@ -518,7 +518,7 @@ final public class ShadowFile {
 	 *
 	 * @param newChangedDate  The new changeDate or {@code null} to not alter
 	 *
-	 * @see UnixFile#crypt(java.lang.String, com.aoindustries.io.unix.UnixFile.CryptAlgorithm)
+	 * @see PosixFile#crypt(java.lang.String, com.aoapps.io.posix.PosixFile.CryptAlgorithm)
 	 */
 	public static void setEncryptedPassword(User.Name username, String encryptedPassword, Integer newChangedDate) throws IOException, SQLException {
 		synchronized(shadowLock) {
@@ -539,7 +539,7 @@ final public class ShadowFile {
 				shadowEntries.put(username, new Entry(username, encryptedPassword, newChangedDate));
 			}
 
-			Set<UnixFile> restorecon = new LinkedHashSet<>();
+			Set<PosixFile> restorecon = new LinkedHashSet<>();
 			writeShadowFile(
 				createShadowFile(shadowEntries.values()),
 				restorecon
@@ -551,12 +551,12 @@ final public class ShadowFile {
 	/**
 	 * Sets the password for one user on the system.
 	 */
-	public static void setPassword(User.Name username, String plaintext, UnixFile.CryptAlgorithm cryptAlgorithm, boolean updateChangedDate) throws IOException, SQLException {
+	public static void setPassword(User.Name username, String plaintext, PosixFile.CryptAlgorithm cryptAlgorithm, boolean updateChangedDate) throws IOException, SQLException {
 		setEncryptedPassword(
 			username,
 			plaintext == null || plaintext.isEmpty()
 				? User.NO_PASSWORD_CONFIG_VALUE
-				: UnixFile.crypt(plaintext, cryptAlgorithm, AOServDaemon.getSecureRandom()),
+				: PosixFile.crypt(plaintext, cryptAlgorithm, AOServDaemon.getSecureRandom()),
 			updateChangedDate ? Entry.getCurrentDate() : null
 		);
 	}

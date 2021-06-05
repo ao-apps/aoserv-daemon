@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2008-2013, 2015, 2017, 2018, 2020  AO Industries, Inc.
+ * Copyright (C) 2008-2013, 2015, 2017, 2018, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,11 +22,11 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
 import com.aoindustries.aoserv.client.web.tomcat.ContextDataSource;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.EnumSet;
@@ -90,7 +90,7 @@ class TomcatCommon_5_5_X extends TomcatCommon {
 	 *
 	 * @param optSlash  Relative path from the CATALINA_HOME to /opt/, including trailing slash, such as <code>../../opt/</code>.
 	 */
-	boolean upgradeTomcatDirectory(String optSlash, UnixFile tomcatDirectory, int uid, int gid) throws IOException, SQLException {
+	boolean upgradeTomcatDirectory(String optSlash, PosixFile tomcatDirectory, int uid, int gid) throws IOException, SQLException {
 		boolean needsRestart = false;
 		// Nothing to do
 		return needsRestart;

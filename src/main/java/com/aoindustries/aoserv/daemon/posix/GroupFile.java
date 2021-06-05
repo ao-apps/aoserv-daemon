@@ -20,16 +20,16 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.aoindustries.aoserv.daemon.unix;
+package com.aoindustries.aoserv.daemon.posix;
 
+import com.aoapps.collections.AoCollections;
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.lang.Strings;
+import com.aoapps.lang.validation.ValidationException;
 import com.aoindustries.aoserv.client.linux.Group;
 import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.collections.AoCollections;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.lang.Strings;
-import com.aoindustries.validation.ValidationException;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
@@ -54,9 +54,9 @@ final public class GroupFile {
 
 	private static final Logger logger = Logger.getLogger(GroupFile.class.getName());
 
-	private static final UnixFile
-		groupFile       = new UnixFile("/etc/group"),
-		backupGroupFile = new UnixFile("/etc/group-")
+	private static final PosixFile
+		groupFile       = new PosixFile("/etc/group"),
+		backupGroupFile = new PosixFile("/etc/group-")
 	;
 
 	/**
@@ -229,14 +229,14 @@ final public class GroupFile {
 	/**
 	 * Must hold {@link #groupLock}
 	 */
-	public static void writeGroupFile(byte[] newContents, Set<UnixFile> restorecon) throws SQLException, IOException {
+	public static void writeGroupFile(byte[] newContents, Set<PosixFile> restorecon) throws SQLException, IOException {
 		assert Thread.holdsLock(groupLock);
 		DaemonFileUtils.atomicWrite(
 			groupFile,
 			newContents,
 			0644,
-			UnixFile.ROOT_UID,
-			UnixFile.ROOT_GID,
+			PosixFile.ROOT_UID,
+			PosixFile.ROOT_GID,
 			backupGroupFile,
 			restorecon
 		);

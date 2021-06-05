@@ -22,6 +22,14 @@
  */
 package com.aoindustries.aoserv.daemon.ssl;
 
+import com.aoapps.collections.AoCollections;
+import com.aoapps.concurrent.KeyedConcurrencyReducer;
+import com.aoapps.hodgepodge.util.Tuple2;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
+import com.aoapps.lang.Strings;
+import com.aoapps.lang.concurrent.ExecutionExceptions;
+import com.aoapps.security.SmallIdentifier;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.email.CyrusImapdBind;
 import com.aoindustries.aoserv.client.email.CyrusImapdServer;
@@ -40,14 +48,6 @@ import com.aoindustries.aoserv.client.pki.CertificateName;
 import com.aoindustries.aoserv.client.pki.CertificateOtherUse;
 import com.aoindustries.aoserv.client.web.VirtualHost;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.collections.AoCollections;
-import com.aoindustries.concurrent.KeyedConcurrencyReducer;
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.lang.Strings;
-import com.aoindustries.security.SmallIdentifier;
-import com.aoindustries.util.Tuple2;
-import com.aoindustries.util.concurrent.ExecutionExceptions;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -85,8 +85,8 @@ import org.apache.commons.lang3.StringUtils;
 
 final public class SslCertificateManager {
 
-	private static UnixFile getUnixFile(PosixPath path) {
-		return (path == null) ? null : new UnixFile(path.toString());
+	private static PosixFile getPosixFile(PosixPath path) {
+		return (path == null) ? null : new PosixFile(path.toString());
 	}
 
 	private static final String ALGORITHM = "SHA-256";
@@ -120,11 +120,11 @@ final public class SslCertificateManager {
 	 * should be sufficient to keep this issue off the radar.
 	 * </p>
 	 */
-	private static final UnixFile CERTBOT_LOCK = new UnixFile("/var/lib/letsencrypt/.certbot.lock");
+	private static final PosixFile CERTBOT_LOCK = new PosixFile("/var/lib/letsencrypt/.certbot.lock");
 	private static final long CERTBOT_LOCKED_SLEEP = 6000;
 	private static final int CERTBOT_LOCKED_ATTEMPTS = 10;
 
-	private static final Map<Tuple2<UnixFile, String>, Tuple2<Long, String>> getHashedCache = new HashMap<>();
+	private static final Map<Tuple2<PosixFile, String>, Tuple2<Long, String>> getHashedCache = new HashMap<>();
 
 	/**
 	 * Gets the SHA-256 hashed output from a command, caching results when the file has not changed modified times.
@@ -133,9 +133,9 @@ final public class SslCertificateManager {
 	 * This synchronizes on {@link #getHashedCache} which will serialize all commands.  This is OK as results will be cached normally.
 	 * </p>
 	 */
-	private static String getCommandHash(UnixFile file, String type, long modifiedTime, boolean allowCached, String ... command) throws IOException {
+	private static String getCommandHash(PosixFile file, String type, long modifiedTime, boolean allowCached, String ... command) throws IOException {
 		try {
-			Tuple2<UnixFile, String> cacheKey = new Tuple2<>(file, type);
+			Tuple2<PosixFile, String> cacheKey = new Tuple2<>(file, type);
 			synchronized(getHashedCache) {
 				Tuple2<Long, String> cached = allowCached ? getHashedCache.get(cacheKey) : null;
 				if(cached != null && cached.getElement1() == modifiedTime) return cached.getElement2();
@@ -197,11 +197,11 @@ final public class SslCertificateManager {
 
 	private static final String FACTORY_TYPE = "X.509";
 
-	private static final Map<UnixFile, X509Status> x509Cache = new HashMap<>();
+	private static final Map<PosixFile, X509Status> x509Cache = new HashMap<>();
 	/**
 	 * Gets the x509 status.
 	 */
-	private static X509Status getX509Status(UnixFile certCanonical, UnixFile keyCanonical, boolean allowCached) throws IOException {
+	private static X509Status getX509Status(PosixFile certCanonical, PosixFile keyCanonical, boolean allowCached) throws IOException {
 		synchronized(x509Cache) {
 			long certModifyTime = certCanonical.getStat().getModifyTime();
 
@@ -330,13 +330,13 @@ final public class SslCertificateManager {
 
 	private static class CertbotStatus {
 		private final long cacheTime;
-		private final UnixFile certCanonicalFile;
+		private final PosixFile certCanonicalFile;
 		private final long certModifyTime;
-		private final UnixFile chainCanonicalFile;
+		private final PosixFile chainCanonicalFile;
 		private final long chainModifyTime;
-		private final UnixFile fullchainCanonicalFile;
+		private final PosixFile fullchainCanonicalFile;
 		private final long fullchainModifyTime;
-		private final UnixFile privkeyCanonicalFile;
+		private final PosixFile privkeyCanonicalFile;
 		private final long privkeyModifyTime;
 		private final long renewalModifyTime;
 
@@ -346,13 +346,13 @@ final public class SslCertificateManager {
 
 		private CertbotStatus(
 			long cacheTime,
-			UnixFile certCanonicalFile,
+			PosixFile certCanonicalFile,
 			long certModifyTime,
-			UnixFile chainCanonicalFile,
+			PosixFile chainCanonicalFile,
 			long chainModifyTime,
-			UnixFile fullchainCanonicalFile,
+			PosixFile fullchainCanonicalFile,
 			long fullchainModifyTime,
-			UnixFile privkeyCanonicalFile,
+			PosixFile privkeyCanonicalFile,
 			long privkeyModifyTime,
 			long renewalModifyTime,
 			Set<String> domains,
@@ -399,15 +399,15 @@ final public class SslCertificateManager {
 	private static CertbotStatus getCertbotStatus(String certbotName, boolean allowCached) throws IOException {
 		synchronized(certbotCache) {
 			long currentTime = System.currentTimeMillis();
-			UnixFile certCanonicalFile = new UnixFile(new File("/etc/letsencrypt/live/" + certbotName + "/cert.pem").getCanonicalFile());
+			PosixFile certCanonicalFile = new PosixFile(new File("/etc/letsencrypt/live/" + certbotName + "/cert.pem").getCanonicalFile());
 			long certModifyTime = certCanonicalFile.getStat().getModifyTime();
-			UnixFile chainCanonicalFile = new UnixFile(new File("/etc/letsencrypt/live/" + certbotName + "/chain.pem").getCanonicalFile());
+			PosixFile chainCanonicalFile = new PosixFile(new File("/etc/letsencrypt/live/" + certbotName + "/chain.pem").getCanonicalFile());
 			long chainModifyTime = chainCanonicalFile.getStat().getModifyTime();
-			UnixFile fullchainCanonicalFile = new UnixFile(new File("/etc/letsencrypt/live/" + certbotName + "/fullchain.pem").getCanonicalFile());
+			PosixFile fullchainCanonicalFile = new PosixFile(new File("/etc/letsencrypt/live/" + certbotName + "/fullchain.pem").getCanonicalFile());
 			long fullchainModifyTime = fullchainCanonicalFile.getStat().getModifyTime();
-			UnixFile privkeyCanonicalFile = new UnixFile(new File("/etc/letsencrypt/live/" + certbotName + "/privkey.pem").getCanonicalFile());
+			PosixFile privkeyCanonicalFile = new PosixFile(new File("/etc/letsencrypt/live/" + certbotName + "/privkey.pem").getCanonicalFile());
 			long privkeyModifyTime = privkeyCanonicalFile.getStat().getModifyTime();
-			UnixFile renewalFile = new UnixFile("/etc/letsencrypt/renewal/" + certbotName + ".conf");
+			PosixFile renewalFile = new PosixFile("/etc/letsencrypt/renewal/" + certbotName + ".conf");
 			long renewalModifyTime = renewalFile.getStat().getModifyTime();
 			CertbotStatus cached = allowCached ? certbotCache.get(certbotName) : null;
 			if(
@@ -567,10 +567,10 @@ final public class SslCertificateManager {
 					List<Check> results = new ArrayList<>();
 
 					// First make sure all expected files exist
-					UnixFile keyFile   = getUnixFile(certificate.getKeyFile());
-					UnixFile csrFile   = getUnixFile(certificate.getCsrFile());
-					UnixFile certFile  = getUnixFile(certificate.getCertFile());
-					UnixFile chainFile = getUnixFile(certificate.getChainFile());
+					PosixFile keyFile   = getPosixFile(certificate.getKeyFile());
+					PosixFile csrFile   = getPosixFile(certificate.getCsrFile());
+					PosixFile certFile  = getPosixFile(certificate.getCertFile());
+					PosixFile chainFile = getPosixFile(certificate.getChainFile());
 
 					// Stat each file
 					Stat keyStat   = keyFile.getStat();
@@ -601,11 +601,11 @@ final public class SslCertificateManager {
 					}
 
 					// Follow symbolic links to target
-					UnixFile keyCanonical;
+					PosixFile keyCanonical;
 					Stat keyCanonicalStat;
 					boolean keyCanonicalExists;
 					if(keyExists && keyStat.isSymLink()) {
-						keyCanonical = new UnixFile(keyFile.getFile().getCanonicalPath());
+						keyCanonical = new PosixFile(keyFile.getFile().getCanonicalPath());
 						keyCanonicalStat = keyCanonical.getStat();
 						keyCanonicalExists = keyCanonicalStat.exists();
 						results.add(new Check("Canonical key exists?", Boolean.toString(keyCanonicalExists), keyCanonicalExists ? NONE : CRITICAL, keyCanonical.toString()));
@@ -614,11 +614,11 @@ final public class SslCertificateManager {
 						keyCanonicalStat = keyStat;
 						keyCanonicalExists = keyExists;
 					}
-					UnixFile csrCanonical;
+					PosixFile csrCanonical;
 					Stat csrCanonicalStat;
 					boolean csrCanonicalExists;
 					if(csrExists && csrStat.isSymLink()) {
-						csrCanonical = new UnixFile(csrFile.getFile().getCanonicalPath());
+						csrCanonical = new PosixFile(csrFile.getFile().getCanonicalPath());
 						csrCanonicalStat = csrCanonical.getStat();
 						csrCanonicalExists = csrCanonicalStat.exists();
 						results.add(new Check("Canonical CSR exists?", Boolean.toString(csrCanonicalExists), csrCanonicalExists ? NONE : MEDIUM, csrCanonical.toString()));
@@ -627,11 +627,11 @@ final public class SslCertificateManager {
 						csrCanonicalStat = csrStat;
 						csrCanonicalExists = csrExists;
 					}
-					UnixFile certCanonical;
+					PosixFile certCanonical;
 					Stat certCanonicalStat;
 					boolean certCanonicalExists;
 					if(certExists && certStat.isSymLink()) {
-						certCanonical = new UnixFile(certFile.getFile().getCanonicalPath());
+						certCanonical = new PosixFile(certFile.getFile().getCanonicalPath());
 						certCanonicalStat = certCanonical.getStat();
 						certCanonicalExists = certCanonicalStat.exists();
 						results.add(new Check("Canonical cert exists?", Boolean.toString(certCanonicalExists), certCanonicalExists ? NONE : CRITICAL, certCanonical.toString()));
@@ -643,7 +643,7 @@ final public class SslCertificateManager {
 					Stat chainCanonicalStat;
 					boolean chainCanonicalExists;
 					if(chainExists && chainStat.isSymLink()) {
-						UnixFile chainCanonical = new UnixFile(chainFile.getFile().getCanonicalPath());
+						PosixFile chainCanonical = new PosixFile(chainFile.getFile().getCanonicalPath());
 						chainCanonicalStat = chainCanonical.getStat();
 						chainCanonicalExists = chainCanonicalStat.exists();
 						results.add(new Check("Canonical chain exists?", Boolean.toString(chainCanonicalExists), chainCanonicalExists ? NONE : CRITICAL, chainCanonical.toString()));

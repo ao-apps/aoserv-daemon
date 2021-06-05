@@ -22,6 +22,12 @@
  */
 package com.aoindustries.aoserv.daemon;
 
+import com.aoapps.hodgepodge.io.stream.StreamableInput;
+import com.aoapps.hodgepodge.io.stream.StreamableOutput;
+import com.aoapps.hodgepodge.util.Tuple2;
+import com.aoapps.net.Port;
+import com.aoapps.net.Protocol;
+import com.aoapps.security.Key;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.linux.DaemonAcl;
 import com.aoindustries.aoserv.client.linux.PosixPath;
@@ -49,6 +55,7 @@ import com.aoindustries.aoserv.daemon.mysql.MySQLDatabaseManager;
 import com.aoindustries.aoserv.daemon.mysql.MySQLServerManager;
 import com.aoindustries.aoserv.daemon.mysql.MySQLUserManager;
 import com.aoindustries.aoserv.daemon.net.NetDeviceManager;
+import com.aoindustries.aoserv.daemon.posix.linux.LinuxAccountManager;
 import com.aoindustries.aoserv.daemon.postgres.PostgresDatabaseManager;
 import com.aoindustries.aoserv.daemon.postgres.PostgresServerManager;
 import com.aoindustries.aoserv.daemon.postgres.PostgresUserManager;
@@ -56,14 +63,7 @@ import com.aoindustries.aoserv.daemon.server.PhysicalServerManager;
 import com.aoindustries.aoserv.daemon.server.ServerManager;
 import com.aoindustries.aoserv.daemon.server.VirtualServerManager;
 import com.aoindustries.aoserv.daemon.ssl.SslCertificateManager;
-import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
-import com.aoindustries.io.stream.StreamableInput;
-import com.aoindustries.io.stream.StreamableOutput;
-import com.aoindustries.net.Port;
-import com.aoindustries.net.Protocol;
 import com.aoindustries.noc.monitor.portmon.PortMonitor;
-import com.aoindustries.security.Key;
-import com.aoindustries.util.Tuple2;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.EOFException;
@@ -532,7 +532,7 @@ final public class AOServDaemonServerThread extends Thread {
 							{
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing CHECK_PORT, Thread="+toString());
 								if(daemonKey==null) throw new IOException("Only the master server may CHECK_PORT");
-								com.aoindustries.net.InetAddress ipAddress = com.aoindustries.net.InetAddress.valueOf(in.readUTF());
+								com.aoapps.net.InetAddress ipAddress = com.aoapps.net.InetAddress.valueOf(in.readUTF());
 								Port port;
 								{
 									int portNum = in.readCompressedInt();
@@ -564,8 +564,8 @@ final public class AOServDaemonServerThread extends Thread {
 							{
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing CHECK_SMTP_BLACKLIST, Thread="+toString());
 								if(daemonKey==null) throw new IOException("Only the master server may CHECK_SMTP_BLACKLIST");
-								com.aoindustries.net.InetAddress sourceIp = com.aoindustries.net.InetAddress.valueOf(in.readUTF());
-								com.aoindustries.net.InetAddress connectIp = com.aoindustries.net.InetAddress.valueOf(in.readUTF());
+								com.aoapps.net.InetAddress sourceIp = com.aoapps.net.InetAddress.valueOf(in.readUTF());
+								com.aoapps.net.InetAddress connectIp = com.aoapps.net.InetAddress.valueOf(in.readUTF());
 								String result = NetDeviceManager.checkSmtpBlacklist(sourceIp, connectIp);
 								out.write(AOServDaemonProtocol.DONE);
 								out.writeUTF(result);

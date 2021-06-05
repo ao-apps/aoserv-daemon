@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2013, 2017, 2018, 2020  AO Industries, Inc.
+ * Copyright (C) 2001-2013, 2017, 2018, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,8 +22,8 @@
  */
 package com.aoindustries.aoserv.daemon.util;
 
-import com.aoindustries.io.AOPool;
-import com.aoindustries.net.InetAddress;
+import com.aoapps.hodgepodge.io.AOPool;
+import com.aoapps.net.InetAddress;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;

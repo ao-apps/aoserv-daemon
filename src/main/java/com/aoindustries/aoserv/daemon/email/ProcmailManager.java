@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2000-2013, 2015, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2000-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,6 +22,13 @@
  */
 package com.aoindustries.aoserv.daemon.email;
 
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
+import com.aoapps.net.InetAddress;
+import com.aoapps.net.Port;
+import com.aoapps.tempfiles.TempFile;
+import com.aoapps.tempfiles.TempFileContext;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.email.AttachmentBlock;
@@ -37,16 +44,9 @@ import com.aoindustries.aoserv.client.linux.UserServer;
 import com.aoindustries.aoserv.client.net.Bind;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.net.InetAddress;
-import com.aoindustries.net.Port;
-import com.aoindustries.tempfiles.TempFile;
-import com.aoindustries.tempfiles.TempFileContext;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
@@ -95,7 +95,7 @@ public final class ProcmailManager extends BuilderThread {
 
 	private static ProcmailManager procmailManager;
 
-	private static final UnixFile cyrusDeliver = new UnixFile("/usr/lib/cyrus-imapd/deliver");
+	private static final PosixFile cyrusDeliver = new PosixFile("/usr/lib/cyrus-imapd/deliver");
 
 	/**
 	 * The minimum message size that will not be passed through spamc, since
@@ -123,7 +123,7 @@ public final class ProcmailManager extends BuilderThread {
 			synchronized(rebuildLock) {
 				// Only build .procmailrc files when procmail package is installed
 				if(PackageManager.getInstalledPackage(PackageManager.PackageName.PROCMAIL) != null) {
-					Set<UnixFile> restorecon = new LinkedHashSet<>();
+					Set<PosixFile> restorecon = new LinkedHashSet<>();
 					try {
 						int uid_min = thisServer.getUidMin().getId();
 						int gid_min = thisServer.getGidMin().getId();
@@ -169,8 +169,8 @@ public final class ProcmailManager extends BuilderThread {
 							// || osvId == OperatingSystemVersion.CENTOS_7_X86_64
 						) {
 							Stat deliverStat = cyrusDeliver.getStat();
-							if(deliverStat.getUid() != UnixFile.ROOT_UID || deliverStat.getGid() != mailGid) {
-								cyrusDeliver.chown(UnixFile.ROOT_UID, mailGid);
+							if(deliverStat.getUid() != PosixFile.ROOT_UID || deliverStat.getGid() != mailGid) {
+								cyrusDeliver.chown(PosixFile.ROOT_UID, mailGid);
 								deliverStat = cyrusDeliver.getStat();
 							}
 							if(deliverStat.getMode() != 02755) {
@@ -182,7 +182,7 @@ public final class ProcmailManager extends BuilderThread {
 							if(lsa.getLinuxAccount().getType().isEmail()) {
 								if(!isManual(lsa)) {
 									PosixPath home = lsa.getHome();
-									UnixFile procmailrc = new UnixFile(home.toString(), PROCMAILRC);
+									PosixFile procmailrc = new PosixFile(home.toString(), PROCMAILRC);
 
 									// Stat for use below
 									Stat procmailrcStat = procmailrc.getStat();
@@ -458,7 +458,7 @@ public final class ProcmailManager extends BuilderThread {
 											TempFileContext tempFileContext = new TempFileContext(home.toString());
 											TempFile tempFile = tempFileContext.createTempFile(".procmailrc", null)
 										) {
-											UnixFile tempUF = new UnixFile(tempFile.getFile());
+											PosixFile tempUF = new PosixFile(tempFile.getFile());
 											try (
 												FileOutputStream fout = tempUF.getSecureOutputStream(
 													lsa.getUid().getId(),
@@ -505,7 +505,7 @@ public final class ProcmailManager extends BuilderThread {
 		// If the home directory is outside /home/, it is manually maintained (not maintained by this code)
 		if(!home.toString().startsWith("/home/")) return true;
 
-		UnixFile procmailrc = new UnixFile(home.toString(), PROCMAILRC);
+		PosixFile procmailrc = new PosixFile(home.toString(), PROCMAILRC);
 		Stat procmailrcStat = procmailrc.getStat();
 
 		boolean isManual;

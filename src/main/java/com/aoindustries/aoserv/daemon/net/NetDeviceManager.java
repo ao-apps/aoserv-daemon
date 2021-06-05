@@ -22,6 +22,14 @@
  */
 package com.aoindustries.aoserv.daemon.net;
 
+import com.aoapps.collections.AoCollections;
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.hodgepodge.io.AOPool;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.lang.Throwables;
+import com.aoapps.lang.util.ErrorPrinter;
+import com.aoapps.net.InetAddress;
+import com.aoapps.net.MacAddress;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.Server;
@@ -32,14 +40,6 @@ import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
-import com.aoindustries.collections.AoCollections;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.AOPool;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.lang.Throwables;
-import com.aoindustries.net.InetAddress;
-import com.aoindustries.net.MacAddress;
-import com.aoindustries.util.ErrorPrinter;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -74,10 +74,10 @@ final public class NetDeviceManager extends BuilderThread {
 
 	private static final Logger logger = Logger.getLogger(NetDeviceManager.class.getName());
 
-	public static final UnixFile
-		netScriptDirectory=new UnixFile("/etc/sysconfig/network-scripts"),
-		networkScript=new UnixFile("/etc/sysconfig/network"),
-		networkScriptNew=new UnixFile("/etc/sysconfig/network.new")
+	public static final PosixFile
+		netScriptDirectory=new PosixFile("/etc/sysconfig/network-scripts"),
+		networkScript=new PosixFile("/etc/sysconfig/network"),
+		networkScriptNew=new PosixFile("/etc/sysconfig/network.new")
 	;
 
 	private static NetDeviceManager netDeviceManager;
@@ -162,7 +162,7 @@ final public class NetDeviceManager extends BuilderThread {
 						}
 						byte[] newBytes = bout.toByteArray();
 
-						UnixFile existing=new UnixFile(netScriptDirectory, "ifcfg-"+deviceId, false);
+						PosixFile existing=new PosixFile(netScriptDirectory, "ifcfg-"+deviceId, false);
 						if(!existing.getStat().exists() || !existing.contentEquals(newBytes)) {
 							if(WARN_ONLY) {
 								synchronized(System.err) {
@@ -172,8 +172,8 @@ final public class NetDeviceManager extends BuilderThread {
 									System.err.println("--------------------------------------------------------------------------------");
 								}
 							} else {
-								UnixFile newFile=new UnixFile(netScriptDirectory, "ifcfg-"+deviceId+".new", false);
-								try (FileOutputStream newOut = newFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true, uid_min, gid_min)) {
+								PosixFile newFile=new PosixFile(netScriptDirectory, "ifcfg-"+deviceId+".new", false);
+								try (FileOutputStream newOut = newFile.getSecureOutputStream(PosixFile.ROOT_UID, PosixFile.ROOT_GID, 0600, true, uid_min, gid_min)) {
 									newOut.write(newBytes);
 								}
 								newFile.renameTo(existing);
@@ -228,7 +228,7 @@ final public class NetDeviceManager extends BuilderThread {
 										}
 										newBytes = bout.toByteArray();
 
-										UnixFile cfgUF=new UnixFile(netScriptDirectory, filename, false);
+										PosixFile cfgUF=new PosixFile(netScriptDirectory, filename, false);
 										if(!cfgUF.getStat().exists() || !cfgUF.contentEquals(newBytes)) {
 											if(WARN_ONLY) {
 												synchronized(System.err) {
@@ -239,8 +239,8 @@ final public class NetDeviceManager extends BuilderThread {
 													System.err.println("--------------------------------------------------------------------------------");
 												}
 											} else {
-												UnixFile newCfgUF=new UnixFile(netScriptDirectory, filename+".new", false);
-												try (FileOutputStream newOut = newCfgUF.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true, uid_min, gid_min)) {
+												PosixFile newCfgUF=new PosixFile(netScriptDirectory, filename+".new", false);
+												try (FileOutputStream newOut = newCfgUF.getSecureOutputStream(PosixFile.ROOT_UID, PosixFile.ROOT_GID, 0600, true, uid_min, gid_min)) {
 													newOut.write(newBytes);
 												}
 												newCfgUF.renameTo(cfgUF);
@@ -267,7 +267,7 @@ final public class NetDeviceManager extends BuilderThread {
 								!cfgFilenames.contains(filename)
 								&& filename.startsWith(aliasBeginning)
 							) {
-								UnixFile extra=new UnixFile(netScriptDirectory, filename, false);
+								PosixFile extra=new PosixFile(netScriptDirectory, filename, false);
 								if(WARN_ONLY) {
 									synchronized(System.err) {
 										System.err.println();
@@ -321,7 +321,7 @@ final public class NetDeviceManager extends BuilderThread {
 							System.err.println("--------------------------------------------------------------------------------");
 						}
 					} else {
-						try (FileOutputStream newOut = networkScriptNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0755, true, uid_min, gid_min)) {
+						try (FileOutputStream newOut = networkScriptNew.getSecureOutputStream(PosixFile.ROOT_UID, PosixFile.ROOT_GID, 0755, true, uid_min, gid_min)) {
 							newOut.write(newBytes);
 						}
 						networkScriptNew.renameTo(networkScript);

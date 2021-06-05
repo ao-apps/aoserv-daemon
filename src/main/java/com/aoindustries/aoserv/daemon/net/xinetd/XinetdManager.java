@@ -22,6 +22,10 @@
  */
 package com.aoindustries.aoserv.daemon.net.xinetd;
 
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.net.Port;
+import com.aoapps.net.Protocol;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.Group;
@@ -37,10 +41,6 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.email.ImapManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.net.Port;
-import com.aoindustries.net.Protocol;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -383,12 +383,12 @@ public final class XinetdManager extends BuilderThread {
 					byte[] newBytes = bout.toByteArray();
 
 					// Move into place if different than existing
-					UnixFile existingUF=new UnixFile(xinetdDirectory, filename);
+					PosixFile existingUF=new PosixFile(xinetdDirectory, filename);
 					if(
 						!existingUF.getStat().exists()
 						|| !existingUF.contentEquals(newBytes)
 					) {
-						UnixFile newUF = new UnixFile(xinetdDirectory, filename+".new");
+						PosixFile newUF = new PosixFile(xinetdDirectory, filename+".new");
 						try (OutputStream newOut = new FileOutputStream(newUF.getFile())) {
 							newUF.setMode(0600);
 							newOut.write(newBytes);
@@ -403,14 +403,14 @@ public final class XinetdManager extends BuilderThread {
 				if(list!=null) {
 					for (String filename : list) {
 						if(!filenames.contains(filename)) {
-							new UnixFile(xinetdDirectory, filename).delete();
+							new PosixFile(xinetdDirectory, filename).delete();
 							needsReloaded=true;
 						}
 					}
 				}
 
 				// Control service
-				UnixFile rcFile=new UnixFile("/etc/rc.d/rc3.d/S56xinetd");
+				PosixFile rcFile=new PosixFile("/etc/rc.d/rc3.d/S56xinetd");
 				if(numServices==0) {
 					// Turn off xinetd completely if not already off
 					if(rcFile.getStat().exists()) {

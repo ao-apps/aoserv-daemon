@@ -22,6 +22,21 @@
  */
 package com.aoindustries.aoserv.daemon.email;
 
+import com.aoapps.collections.AoCollections;
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.hodgepodge.io.FilesystemIteratorRule;
+import com.aoapps.hodgepodge.util.Tuple3;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
+import com.aoapps.lang.Strings;
+import com.aoapps.lang.io.FileUtils;
+import com.aoapps.lang.validation.ValidationException;
+import com.aoapps.net.DomainName;
+import com.aoapps.net.InetAddress;
+import com.aoapps.net.Port;
+import com.aoapps.sql.SQLUtility;
+import com.aoapps.tempfiles.TempFile;
+import com.aoapps.tempfiles.TempFileContext;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.backup.FileReplication;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
@@ -40,25 +55,10 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.net.fail2ban.Fail2banManager;
-import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
+import com.aoindustries.aoserv.daemon.posix.linux.LinuxAccountManager;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.collections.AoCollections;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.FileUtils;
-import com.aoindustries.io.FilesystemIteratorRule;
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.lang.Strings;
-import com.aoindustries.net.DomainName;
-import com.aoindustries.net.InetAddress;
-import com.aoindustries.net.Port;
-import com.aoindustries.sql.SQLUtility;
-import com.aoindustries.tempfiles.TempFile;
-import com.aoindustries.tempfiles.TempFileContext;
-import com.aoindustries.util.Tuple3;
-import com.aoindustries.validation.ValidationException;
 import com.sun.mail.iap.Argument;
 import com.sun.mail.iap.ProtocolException;
 import com.sun.mail.iap.Response;
@@ -172,13 +172,13 @@ final public class ImapManager extends BuilderThread {
 	private static final File imapVirtDomainSpool = new File(imapSpool, "domain");
 	private static final File subsysLockFile = new File("/var/lock/subsys/cyrus-imapd");
 
-	private static final UnixFile
-		cyrusRcFile = new UnixFile("/etc/rc.d/rc3.d/S65cyrus-imapd"),
-		cyrusConfFile = new UnixFile("/etc/cyrus.conf"),
-		imapdConfFile = new UnixFile("/etc/imapd.conf")
+	private static final PosixFile
+		cyrusRcFile = new PosixFile("/etc/rc.d/rc3.d/S65cyrus-imapd"),
+		cyrusConfFile = new PosixFile("/etc/cyrus.conf"),
+		imapdConfFile = new PosixFile("/etc/imapd.conf")
 	;
 
-	private static final UnixFile wuBackupDirectory = new UnixFile("/var/opt/imap-2007d/backup");
+	private static final PosixFile wuBackupDirectory = new PosixFile("/var/opt/imap-2007d/backup");
 
 	/**
 	 * These directories may be in the imapSpool and will be ignored.
@@ -209,7 +209,7 @@ final public class ImapManager extends BuilderThread {
 	 * The directory that Let's Encrypt certificates are copied to.
 	 * Matches the path in cyrus-imapd-copy-certificates
 	 */
-	private static final UnixFile CERTIFICATE_COPY_DIRECTORY = new UnixFile("/etc/pki/cyrus-imapd/copy");
+	private static final PosixFile CERTIFICATE_COPY_DIRECTORY = new PosixFile("/etc/pki/cyrus-imapd/copy");
 
 	/**
 	 * The filenames used for copies of certificates
@@ -353,12 +353,12 @@ final public class ImapManager extends BuilderThread {
 		PrintWriter logOut,
 		User.Name username,
 		String[] tempPassword,
-		UnixFile passwordBackup
+		PosixFile passwordBackup
 	) throws IOException, SQLException, MessagingException {
 		if(!WUIMAP_CONVERSION_ENABLED) throw new AssertionError();
 		Port wuPort;
 		try {
-			wuPort = Port.valueOf(8143, com.aoindustries.net.Protocol.TCP);
+			wuPort = Port.valueOf(8143, com.aoapps.net.Protocol.TCP);
 		} catch(ValidationException e) {
 			throw new AssertionError("This hard-coded port must be valid", e);
 		}
@@ -383,7 +383,7 @@ final public class ImapManager extends BuilderThread {
 		PrintWriter logOut,
 		User.Name username,
 		String[] tempPassword,
-		UnixFile passwordBackup
+		PosixFile passwordBackup
 	) throws IOException, SQLException, MessagingException {
 		if(!WUIMAP_CONVERSION_ENABLED) throw new AssertionError();
 		Tuple3<InetAddress, Port, Boolean> imapServer = getImapServer();
@@ -408,7 +408,7 @@ final public class ImapManager extends BuilderThread {
 		User.Name username,
 		String imapUsername,
 		String[] tempPassword,
-		UnixFile passwordBackup
+		PosixFile passwordBackup
 	) throws IOException, SQLException, MessagingException {
 		if(!WUIMAP_CONVERSION_ENABLED) throw new AssertionError();
 		// Reset the user password if needed
@@ -470,8 +470,8 @@ final public class ImapManager extends BuilderThread {
 	/**
 	 * Gets the Cyrus protocol for the given protocl and address family.
 	 */
-	private static String getCyrusProtocol(com.aoindustries.net.Protocol protocol, ProtocolFamily family) {
-		if(protocol == com.aoindustries.net.Protocol.TCP) {
+	private static String getCyrusProtocol(com.aoapps.net.Protocol protocol, ProtocolFamily family) {
+		if(protocol == com.aoapps.net.Protocol.TCP) {
 			if(family.equals(StandardProtocolFamily.INET)) {
 				return "tcp4";
 			} else if(family.equals(StandardProtocolFamily.INET6)) {
@@ -479,7 +479,7 @@ final public class ImapManager extends BuilderThread {
 			} else {
 				throw new IllegalArgumentException("Unexpected family: " + family);
 			}
-		} else if(protocol == com.aoindustries.net.Protocol.UDP) {
+		} else if(protocol == com.aoapps.net.Protocol.UDP) {
 			if(family.equals(StandardProtocolFamily.INET)) {
 				return "udp4";
 			} else if(family.equals(StandardProtocolFamily.INET6)) {
@@ -578,7 +578,7 @@ final public class ImapManager extends BuilderThread {
 						cyrusImapdInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.CYRUS_IMAPD) != null;
 					}
 
-					Set<UnixFile> restorecon = new LinkedHashSet<>();
+					Set<PosixFile> restorecon = new LinkedHashSet<>();
 					try {
 						if(!certbotNames.isEmpty()) {
 							if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
@@ -589,22 +589,22 @@ final public class ImapManager extends BuilderThread {
 							boolean needCopy = false;
 							// Create any missing directories or links
 							for(String name : certbotNames) {
-								UnixFile dir = new UnixFile(CERTIFICATE_COPY_DIRECTORY, name, true);
+								PosixFile dir = new PosixFile(CERTIFICATE_COPY_DIRECTORY, name, true);
 								if(!dir.getStat().exists()) {
 									dir.mkdir();
 									needCopy = true;
 								}
-								UnixFile keySource = new UnixFile(dir, CERTIFICATE_COPY_KEY + SOURCE_SUFFIX, true);
+								PosixFile keySource = new PosixFile(dir, CERTIFICATE_COPY_KEY + SOURCE_SUFFIX, true);
 								if(!keySource.getStat().exists()) {
 									keySource.symLink(LETS_ENCRYPT_SYMLINK_PREFIX + name + LETS_ENCRYPT_KEY);
 									needCopy = true;
 								}
-								UnixFile certSource = new UnixFile(dir, CERTIFICATE_COPY_CERT + SOURCE_SUFFIX, true);
+								PosixFile certSource = new PosixFile(dir, CERTIFICATE_COPY_CERT + SOURCE_SUFFIX, true);
 								if(!certSource.getStat().exists()) {
 									certSource.symLink(LETS_ENCRYPT_SYMLINK_PREFIX + name + LETS_ENCRYPT_CERT);
 									needCopy = true;
 								}
-								UnixFile chainSource = new UnixFile(dir, CERTIFICATE_COPY_CHAIN + SOURCE_SUFFIX, true);
+								PosixFile chainSource = new PosixFile(dir, CERTIFICATE_COPY_CHAIN + SOURCE_SUFFIX, true);
 								if(!chainSource.getStat().exists()) {
 									chainSource.symLink(LETS_ENCRYPT_SYMLINK_PREFIX + name + LETS_ENCRYPT_CHAIN);
 									needCopy = true;
@@ -702,7 +702,7 @@ final public class ImapManager extends BuilderThread {
 											for(CyrusImapdBind cib : imapBinds) {
 												Bind imapBind = cib.getNetBind();
 												Port port = imapBind.getPort();
-												if(port.getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("imap requires TCP protocol");
+												if(port.getProtocol() != com.aoapps.net.Protocol.TCP) throw new SQLException("imap requires TCP protocol");
 												String serviceName = generateServiceName("imap", "imapd", counter++);
 												out.print("  ").print(serviceName);
 												if(serviceName.length() < 6) out.print('\t');
@@ -734,7 +734,7 @@ final public class ImapManager extends BuilderThread {
 											for(CyrusImapdBind cib : imapsBinds) {
 												Bind imapsBind = cib.getNetBind();
 												Port port = imapsBind.getPort();
-												if(port.getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("imaps requires TCP protocol");
+												if(port.getProtocol() != com.aoapps.net.Protocol.TCP) throw new SQLException("imaps requires TCP protocol");
 												String serviceName = generateServiceName("imaps", "imaps", counter++);
 												out.print("  ").print(serviceName);
 												if(serviceName.length() < 6) out.print('\t');
@@ -765,7 +765,7 @@ final public class ImapManager extends BuilderThread {
 											for(CyrusImapdBind cib : pop3Binds) {
 												Bind pop3Bind = cib.getNetBind();
 												Port port = pop3Bind.getPort();
-												if(port.getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("pop3 requires TCP protocol");
+												if(port.getProtocol() != com.aoapps.net.Protocol.TCP) throw new SQLException("pop3 requires TCP protocol");
 												String serviceName = generateServiceName("pop3", "pop3d", counter++);
 												out.print("  ").print(serviceName);
 												if(serviceName.length() < 6) out.print('\t');
@@ -797,7 +797,7 @@ final public class ImapManager extends BuilderThread {
 											for(CyrusImapdBind cib : pop3sBinds) {
 												Bind pop3sBind = cib.getNetBind();
 												Port port = pop3sBind.getPort();
-												if(port.getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("pop3s requires TCP protocol");
+												if(port.getProtocol() != com.aoapps.net.Protocol.TCP) throw new SQLException("pop3s requires TCP protocol");
 												String serviceName = generateServiceName("pop3s", "pop3s", counter++);
 												out.print("  ").print(serviceName);
 												if(serviceName.length() < 6) out.print('\t');
@@ -822,7 +822,7 @@ final public class ImapManager extends BuilderThread {
 										out.print("#  sieve\t\tcmd=\"timsieved\" listen=\"sieve\" prefork=0\n");
 										if(sieveBind != null) {
 											Port port = sieveBind.getPort();
-											if(port.getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("sieve requires TCP protocol");
+											if(port.getProtocol() != com.aoapps.net.Protocol.TCP) throw new SQLException("sieve requires TCP protocol");
 											String serviceName = "sieve";
 											out.print("  ").print(serviceName);
 											if(serviceName.length() < 6) out.print('\t');
@@ -933,8 +933,8 @@ final public class ImapManager extends BuilderThread {
 										cyrusConfFile,
 										bout.toByteArray(),
 										0644,
-										UnixFile.ROOT_UID,
-										UnixFile.ROOT_GID,
+										PosixFile.ROOT_UID,
+										PosixFile.ROOT_GID,
 										null,
 										restorecon
 									)
@@ -981,10 +981,10 @@ final public class ImapManager extends BuilderThread {
 										Certificate certificate = cyrusServer.getCertificate();
 										String certbotName = certificate.getCertbotName();
 										if(certbotName != null) {
-											UnixFile dir = new UnixFile(CERTIFICATE_COPY_DIRECTORY, certbotName, true);
-											certFile  = new UnixFile(dir, CERTIFICATE_COPY_CERT,  true).getPath();
-											keyFile   = new UnixFile(dir, CERTIFICATE_COPY_KEY,   true).getPath();
-											chainFile = new UnixFile(dir, CERTIFICATE_COPY_CHAIN, true).getPath();
+											PosixFile dir = new PosixFile(CERTIFICATE_COPY_DIRECTORY, certbotName, true);
+											certFile  = new PosixFile(dir, CERTIFICATE_COPY_CERT,  true).getPath();
+											keyFile   = new PosixFile(dir, CERTIFICATE_COPY_KEY,   true).getPath();
+											chainFile = new PosixFile(dir, CERTIFICATE_COPY_CHAIN, true).getPath();
 										} else {
 											certFile = certificate.getCertFile().toString();
 											keyFile = certificate.getKeyFile().toString();
@@ -1035,10 +1035,10 @@ final public class ImapManager extends BuilderThread {
 											{
 												String cibCertbotName = cibCertificate.getCertbotName();
 												if(cibCertbotName != null) {
-													UnixFile dir = new UnixFile(CERTIFICATE_COPY_DIRECTORY, cibCertbotName, true);
-													cibCertFile  = new UnixFile(dir, CERTIFICATE_COPY_CERT,  true).getPath();
-													cibKeyFile   = new UnixFile(dir, CERTIFICATE_COPY_KEY,   true).getPath();
-													cibChainFile = new UnixFile(dir, CERTIFICATE_COPY_CHAIN, true).getPath();
+													PosixFile dir = new PosixFile(CERTIFICATE_COPY_DIRECTORY, cibCertbotName, true);
+													cibCertFile  = new PosixFile(dir, CERTIFICATE_COPY_CERT,  true).getPath();
+													cibKeyFile   = new PosixFile(dir, CERTIFICATE_COPY_KEY,   true).getPath();
+													cibChainFile = new PosixFile(dir, CERTIFICATE_COPY_CHAIN, true).getPath();
 												} else {
 													cibCertFile = cibCertificate.getCertFile().toString();
 													cibKeyFile = cibCertificate.getKeyFile().toString();
@@ -1130,8 +1130,8 @@ final public class ImapManager extends BuilderThread {
 										imapdConfFile,
 										bout.toByteArray(),
 										0644,
-										UnixFile.ROOT_UID,
-										UnixFile.ROOT_GID,
+										PosixFile.ROOT_UID,
+										PosixFile.ROOT_GID,
 										null,
 										restorecon
 									)
@@ -1196,7 +1196,7 @@ final public class ImapManager extends BuilderThread {
 								List<File> deleteFileList = new ArrayList<>();
 								for(String filename : list) {
 									if(!certbotNames.contains(filename)) {
-										UnixFile uf = new UnixFile(CERTIFICATE_COPY_DIRECTORY, filename, true);
+										PosixFile uf = new PosixFile(CERTIFICATE_COPY_DIRECTORY, filename, true);
 										if(uf.getStat().isDirectory()) deleteFileList.add(uf.getFile());
 									}
 								}
@@ -1371,11 +1371,11 @@ final public class ImapManager extends BuilderThread {
 		final User.Name username,
 		final int junkRetention,
 		final int trashRetention,
-		final UnixFile directory,
-		final UnixFile backupDirectory,
+		final PosixFile directory,
+		final PosixFile backupDirectory,
 		final String folderPath,
 		final String[] tempPassword,
-		final UnixFile passwordBackup
+		final PosixFile passwordBackup
 	) throws IOException, SQLException, MessagingException {
 		// Careful not a symbolic link
 		if(!directory.getStat().isDirectory()) throw new IOException("Not a directory: " + directory.getPath());
@@ -1391,10 +1391,10 @@ final public class ImapManager extends BuilderThread {
 		if(list != null) {
 			Arrays.sort(list);
 			for(String childName : list) {
-				UnixFile childUf = new UnixFile(directory, childName, false);
+				PosixFile childUf = new PosixFile(directory, childName, false);
 				long mode = childUf.getStat().getRawMode();
-				boolean isDirectory = UnixFile.isDirectory(mode);
-				boolean isFile = UnixFile.isRegularFile(mode);
+				boolean isDirectory = PosixFile.isDirectory(mode);
+				boolean isFile = PosixFile.isRegularFile(mode);
 				if(isDirectory && isFile) throw new IOException("Both directory and regular file: " + childUf.getPath());
 				if(!isDirectory && !isFile) throw new IOException("Neither directory nor regular file: " + childUf.getPath());
 				String folderName = folderPath.length() == 0 ? childName : (folderPath + '/' + childName);
@@ -1423,7 +1423,7 @@ final public class ImapManager extends BuilderThread {
 				}
 
 				// Recurse
-				UnixFile childBackupUf = new UnixFile(backupDirectory, childName, false);
+				PosixFile childBackupUf = new PosixFile(backupDirectory, childName, false);
 				if(isDirectory && !isFile) {
 					convertImapDirectory(logOut, username, junkRetention, trashRetention, childUf, childBackupUf, folderName, tempPassword, passwordBackup);
 				} else if(isFile && !isDirectory) {
@@ -1523,11 +1523,11 @@ final public class ImapManager extends BuilderThread {
 		final User.Name username,
 		final int junkRetention,
 		final int trashRetention,
-		final UnixFile file,
-		final UnixFile backupFile,
+		final PosixFile file,
+		final PosixFile backupFile,
 		final String folderName,
 		final String[] tempPassword,
-		final UnixFile passwordBackup
+		final PosixFile passwordBackup
 	) throws IOException, SQLException, MessagingException {
 		// Careful not a symolic link
 		if(!file.getStat().isRegularFile()) throw new IOException("Not a regular file: " + file.getPath());
@@ -1539,9 +1539,9 @@ final public class ImapManager extends BuilderThread {
 				TempFileContext tempFileContext = new TempFileContext(backupFile.getFile().getParentFile());
 				TempFile tempFile = tempFileContext.createTempFile(backupFile.getFile().getName())
 			) {
-				UnixFile tempUF = new UnixFile(tempFile.getFile());
+				PosixFile tempUF = new PosixFile(tempFile.getFile());
 				file.copyTo(tempUF, true);
-				tempUF.chown(UnixFile.ROOT_UID, UnixFile.ROOT_GID).setMode(0600).renameTo(backupFile);
+				tempUF.chown(PosixFile.ROOT_UID, PosixFile.ROOT_GID).setMode(0600).renameTo(backupFile);
 			}
 		}
 
@@ -1857,37 +1857,37 @@ final public class ImapManager extends BuilderThread {
 										if(isDebug) logger.fine("Creating directory: " + wuBackupDirectory.getPath());
 										wuBackupDirectory.mkdir(true, 0700);
 									}
-									UnixFile userBackupDirectory = new UnixFile(wuBackupDirectory, laUsername.toString(), false);
+									PosixFile userBackupDirectory = new PosixFile(wuBackupDirectory, laUsername.toString(), false);
 									if(!userBackupDirectory.getStat().exists()) {
 										if(isDebug) logger.fine(laUsername + ": Creating backup directory: " + userBackupDirectory.getPath());
 										userBackupDirectory.mkdir(false, 0700);
 									}
 
 									// Per-user logs
-									UnixFile logFile = new UnixFile(userBackupDirectory, "log", false);
+									PosixFile logFile = new PosixFile(userBackupDirectory, "log", false);
 									if(isTrace) logger.finer(laUsername + ": Using logfile: " + logFile.getPath());
 									try (PrintWriter logOut = new PrintWriter(new FileOutputStream(logFile.getFile(), true))) {
 										if(logFile.getStat().getMode() != 0600) logFile.setMode(0600);
 										// Password backup is delayed until immediately before the password is reset.
 										// This avoids unnecessary password resets.
-										UnixFile passwordBackup = new UnixFile(userBackupDirectory, "passwd", false);
+										PosixFile passwordBackup = new PosixFile(userBackupDirectory, "passwd", false);
 
 										// Backup the mailboxlist
-										UnixFile homeDir = new UnixFile(homePath.toString());
-										UnixFile mailBoxListFile = new UnixFile(homeDir, ".mailboxlist", false);
+										PosixFile homeDir = new PosixFile(homePath.toString());
+										PosixFile mailBoxListFile = new PosixFile(homeDir, ".mailboxlist", false);
 										Stat mailBoxListFileStat = mailBoxListFile.getStat();
 										if(mailBoxListFileStat.exists()) {
 											if(!mailBoxListFileStat.isRegularFile()) throw new IOException("Not a regular file: " + mailBoxListFile.getPath());
-											UnixFile mailBoxListBackup = new UnixFile(userBackupDirectory, "mailboxlist", false);
+											PosixFile mailBoxListBackup = new PosixFile(userBackupDirectory, "mailboxlist", false);
 											if(!mailBoxListBackup.getStat().exists()) {
 												log(logOut, Level.FINE, laUsername, "Backing-up mailboxlist");
 												try (
 													TempFileContext tempFileContext = new TempFileContext(mailBoxListBackup.getFile().getParentFile());
 													TempFile tempFile = tempFileContext.createTempFile(mailBoxListBackup.getFile().getName())
 												) {
-													UnixFile tempUF = new UnixFile(tempFile.getFile());
+													PosixFile tempUF = new PosixFile(tempFile.getFile());
 													mailBoxListFile.copyTo(tempUF, true);
-													tempUF.chown(UnixFile.ROOT_UID, UnixFile.ROOT_GID).setMode(0600).renameTo(mailBoxListBackup);
+													tempUF.chown(PosixFile.ROOT_UID, PosixFile.ROOT_GID).setMode(0600).renameTo(mailBoxListBackup);
 												}
 											}
 										}
@@ -1898,11 +1898,11 @@ final public class ImapManager extends BuilderThread {
 										int junkRetention = lsa.getJunkEmailRetention();
 										int trashRetention = lsa.getTrashEmailRetention();
 										// Convert old INBOX
-										UnixFile inboxFile = new UnixFile(mailSpool, laUsername.toString());
+										PosixFile inboxFile = new PosixFile(mailSpool, laUsername.toString());
 										Stat inboxFileStat = inboxFile.getStat();
 										if(inboxFileStat.exists()) {
 											if(!inboxFileStat.isRegularFile()) throw new IOException("Not a regular file: " + inboxFile.getPath());
-											convertImapFile(logOut, laUsername, junkRetention, trashRetention, inboxFile, new UnixFile(userBackupDirectory, "INBOX", false), "INBOX", tempPassword, passwordBackup);
+											convertImapFile(logOut, laUsername, junkRetention, trashRetention, inboxFile, new PosixFile(userBackupDirectory, "INBOX", false), "INBOX", tempPassword, passwordBackup);
 										}
 
 										// Convert old folders from UW software
@@ -1910,11 +1910,11 @@ final public class ImapManager extends BuilderThread {
 											!"/home/a/acccorpapp".equals(homeDir.getPath())
 											&& !"/home/acccorpapp".equals(homeDir.getPath())
 										) {
-											UnixFile mailDir = new UnixFile(homeDir, "Mail", false);
+											PosixFile mailDir = new PosixFile(homeDir, "Mail", false);
 											Stat mailDirStat = mailDir.getStat();
 											if(mailDirStat.exists()) {
 												if(!mailDirStat.isDirectory()) throw new IOException("Not a directory: " + mailDir.getPath());
-												convertImapDirectory(logOut, laUsername, junkRetention, trashRetention, mailDir, new UnixFile(userBackupDirectory, "Mail", false), "", tempPassword, passwordBackup);
+												convertImapDirectory(logOut, laUsername, junkRetention, trashRetention, mailDir, new PosixFile(userBackupDirectory, "Mail", false), "", tempPassword, passwordBackup);
 											}
 										}
 
@@ -1932,7 +1932,7 @@ final public class ImapManager extends BuilderThread {
 											if(!savedEncryptedPassword.equals(currentEncryptedPassword)) {
 												log(logOut, Level.FINE, laUsername, "Restoring password");
 												LinuxAccountManager.setEncryptedPassword(laUsername, savedEncryptedPassword, null);
-												UnixFile passwordBackupOld = new UnixFile(userBackupDirectory, "passwd.old", false);
+												PosixFile passwordBackupOld = new PosixFile(userBackupDirectory, "passwd.old", false);
 												passwordBackup.renameTo(passwordBackupOld);
 											} else {
 												passwordBackup.delete();

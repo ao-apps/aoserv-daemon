@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,6 +22,11 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
+import com.aoapps.collections.SortedArrayList;
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
+import com.aoapps.lang.io.IoUtils;
 import com.aoindustries.aoserv.client.aosh.Command;
 import com.aoindustries.aoserv.client.linux.GroupServer;
 import com.aoindustries.aoserv.client.linux.PosixPath;
@@ -46,11 +51,6 @@ import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.Generated;
 import static com.aoindustries.aoserv.daemon.httpd.tomcat.VersionedTomcatCommon.BACKUP_EXTENSION;
 import static com.aoindustries.aoserv.daemon.httpd.tomcat.VersionedTomcatCommon.BACKUP_SEPARATOR;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.collections.SortedArrayList;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.IoUtils;
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -248,7 +248,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 	}
 
 	@Override
-	void buildSharedTomcatDirectory(String optSlash, UnixFile sharedTomcatDirectory, List<File> deleteFileList, Set<SharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
+	void buildSharedTomcatDirectory(String optSlash, PosixFile sharedTomcatDirectory, List<File> deleteFileList, Set<SharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
 		/*
 		 * Get values used in the rest of the loop.
 		 */
@@ -263,13 +263,13 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 		final TC tomcatCommon = getTomcatCommon();
 		final String apacheTomcatDir = tomcatCommon.getApacheTomcatDir();
 
-		final UnixFile bin           = new UnixFile(sharedTomcatDirectory, "bin", false);
-		final UnixFile binProfileD   = new UnixFile(bin, "profile.d", false);
-		final UnixFile conf          = new UnixFile(sharedTomcatDirectory, "conf", false);
-		final UnixFile serverXml     = new UnixFile(conf, "server.xml", false);
-		final UnixFile daemon        = new UnixFile(sharedTomcatDirectory, "daemon", false);
-		final UnixFile work          = new UnixFile(sharedTomcatDirectory, "work", false);
-		final UnixFile workCatalina  = new UnixFile(work, "Catalina", false);
+		final PosixFile bin           = new PosixFile(sharedTomcatDirectory, "bin", false);
+		final PosixFile binProfileD   = new PosixFile(bin, "profile.d", false);
+		final PosixFile conf          = new PosixFile(sharedTomcatDirectory, "conf", false);
+		final PosixFile serverXml     = new PosixFile(conf, "server.xml", false);
+		final PosixFile daemon        = new PosixFile(sharedTomcatDirectory, "daemon", false);
+		final PosixFile work          = new PosixFile(sharedTomcatDirectory, "work", false);
+		final PosixFile workCatalina  = new PosixFile(work, "Catalina", false);
 
 		final String backupSuffix = VersionedTomcatCommon.getBackupSuffix();
 		final ByteArrayOutputStream bout = new ByteArrayOutputStream();
@@ -280,11 +280,11 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 		final Stat sharedTomcatStat = sharedTomcatDirectory.getStat();
 		final boolean isInstall =
 			!sharedTomcatStat.exists()
-			|| sharedTomcatStat.getUid() == UnixFile.ROOT_UID;
+			|| sharedTomcatStat.getUid() == PosixFile.ROOT_UID;
 
 		// Perform upgrade in-place when not doing a full install and the README.txt file missing or changed
 		final byte[] readmeTxtContent = generateReadmeTxt(optSlash, apacheTomcatDir, sharedTomcatDirectory);
-		final UnixFile readmeTxt = new UnixFile(sharedTomcatDirectory, README_TXT, false);
+		final PosixFile readmeTxt = new PosixFile(sharedTomcatDirectory, README_TXT, false);
 		final boolean isUpgrade;
 		{
 			final Stat readmeTxtStat;
@@ -344,7 +344,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 					+ "done\n"
 					+ "unset SITE\n");
 		}
-		UnixFile httpdSitesSh = new UnixFile(binProfileD, "httpd-sites.sh", false);
+		PosixFile httpdSitesSh = new PosixFile(binProfileD, "httpd-sites.sh", false);
 		if(
 			DaemonFileUtils.atomicWrite(
 				httpdSitesSh, bout.toByteArray(), 0640, lsaUID, lsgGID,
@@ -368,7 +368,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 				workFiles.remove(subwork);
 				if(
 					DaemonFileUtils.mkdir(
-						new UnixFile(workCatalina, subwork, false), 0750, lsaUID, hs.getLinuxServerGroup().getGid().getId()
+						new PosixFile(workCatalina, subwork, false), 0750, lsaUID, hs.getLinuxServerGroup().getGid().getId()
 					)
 				) {
 					needRestart = true;
@@ -429,7 +429,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 				break;
 			}
 		}
-		UnixFile daemonSymlink = new UnixFile(daemon, "tomcat", false);
+		PosixFile daemonSymlink = new PosixFile(daemon, "tomcat", false);
 		if(!sharedTomcat.isDisabled() && hasEnabledSite) {
 			// Enabled
 			if(!daemonSymlink.getStat().exists()) {
@@ -445,7 +445,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 		}
 	}
 
-	protected static byte[] generateTomcatScript(String optSlash, String apacheTomcatDir, UnixFile installDir) throws IOException {
+	protected static byte[] generateTomcatScript(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException {
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
 		try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
 			out.print("#!/bin/bash\n"
@@ -541,10 +541,10 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 	/**
 	 * Generates the README.txt that is used to detect major version changes to rebuild the Tomcat installation.
 	 *
-	 * @see  VersionedTomcatStdSiteManager#generateReadmeTxt(java.lang.String, java.lang.String, com.aoindustries.io.unix.UnixFile)
+	 * @see  VersionedTomcatStdSiteManager#generateReadmeTxt(java.lang.String, java.lang.String, com.aoapps.io.posix.PosixFile)
 	 * @see  #README_TXT
 	 */
-	protected byte[] generateReadmeTxt(String optSlash, String apacheTomcatDir, UnixFile installDir) throws IOException, SQLException {
+	protected byte[] generateReadmeTxt(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException, SQLException {
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
 		try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
 			out.print(
@@ -589,9 +589,9 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 	 * Gets the set of files that are installed during install and upgrade/downgrade.
 	 * Each path is relative to CATALINA_HOME/CATALINA_BASE.
 	 *
-	 * @see  VersionedTomcatCommon#getInstallFiles(java.lang.String, com.aoindustries.io.unix.UnixFile, int)
+	 * @see  VersionedTomcatCommon#getInstallFiles(java.lang.String, com.aoapps.io.posix.PosixFile, int)
 	 */
-	protected List<Install> getInstallFiles(String optSlash, UnixFile installDir) throws IOException, SQLException {
+	protected List<Install> getInstallFiles(String optSlash, PosixFile installDir) throws IOException, SQLException {
 		List<Install> installFiles = new ArrayList<>();
 		installFiles.addAll(getTomcatCommon().getInstallFiles(optSlash, installDir, 0770));
 		// bin/profile.sites is now bin/profile.d/httpd-sites.sh as of Tomcat 8.5
@@ -603,7 +603,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 	}
 
 	@Override
-	protected boolean upgradeSharedTomcatDirectory(String optSlash, UnixFile siteDirectory) throws IOException, SQLException {
+	protected boolean upgradeSharedTomcatDirectory(String optSlash, PosixFile siteDirectory) throws IOException, SQLException {
 		TC tomcatCommon = getTomcatCommon();
 		int uid = sharedTomcat.getLinuxServerAccount().getUid().getId();
 		int gid = sharedTomcat.getLinuxServerGroup().getGid().getId();
@@ -616,7 +616,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 			gid
 		);
 		// Verify RELEASE-NOTES, looking for any update that doesn't change symlinks
-		UnixFile newReleaseNotes = new UnixFile(siteDirectory, "RELEASE-NOTES", true);
+		PosixFile newReleaseNotes = new PosixFile(siteDirectory, "RELEASE-NOTES", true);
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
 		try (InputStream in = new FileInputStream("/opt/" + apacheTomcatDir + "/RELEASE-NOTES")) {
 			IoUtils.copy(in, bout);

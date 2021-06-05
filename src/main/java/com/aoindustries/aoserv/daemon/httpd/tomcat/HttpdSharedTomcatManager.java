@@ -22,6 +22,9 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.lang.io.FileUtils;
+import com.aoapps.lang.validation.ValidationException;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.aosh.Command;
 import com.aoindustries.aoserv.client.linux.PosixPath;
@@ -33,10 +36,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.HttpdSiteManager;
 import com.aoindustries.aoserv.daemon.httpd.StopStartable;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
-import com.aoindustries.io.FileUtils;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.validation.ValidationException;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -112,7 +112,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 			Server thisServer = AOServDaemon.getThisServer();
 
 			// The www group directories that exist but are not used will be removed
-			UnixFile wwwgroupDirectory = new UnixFile(osConfig.getHttpdSharedTomcatsDirectory().toString());
+			PosixFile wwwgroupDirectory = new PosixFile(osConfig.getHttpdSharedTomcatsDirectory().toString());
 			Set<String> wwwgroupRemoveList = new HashSet<>();
 			{
 				String[] list = wwwgroupDirectory.list();
@@ -133,7 +133,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 
 				// Create and fill in any incomplete installations.
 				final String tomcatName = sharedTomcat.getName();
-				UnixFile sharedTomcatDirectory = new UnixFile(wwwgroupDirectory, tomcatName, false);
+				PosixFile sharedTomcatDirectory = new PosixFile(wwwgroupDirectory, tomcatName, false);
 				manager.buildSharedTomcatDirectory(
 					optSlash,
 					sharedTomcatDirectory,
@@ -148,7 +148,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 
 			// Stop, disable, and mark files for deletion
 			for (String tomcatName : wwwgroupRemoveList) {
-				UnixFile removeFile = new UnixFile(wwwgroupDirectory, tomcatName, false);
+				PosixFile removeFile = new PosixFile(wwwgroupDirectory, tomcatName, false);
 				// Stop and disable any daemons
 				stopAndDisableDaemons(removeFile);
 				// Only remove the directory when not used by a home directory
@@ -231,7 +231,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 	/**
 	 * @see  HttpdSiteManager#stopAndDisableDaemons
 	 */
-	private static void stopAndDisableDaemons(UnixFile sharedTomcatDirectory) throws IOException, SQLException {
+	private static void stopAndDisableDaemons(PosixFile sharedTomcatDirectory) throws IOException, SQLException {
 		HttpdSiteManager.stopAndDisableDaemons(sharedTomcatDirectory);
 	}
 
@@ -353,20 +353,20 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 	 *   <li>Otherwise, make necessary config changes or upgrades while adhering to the manual flag</li>
 	 * </ol>
 	 */
-	abstract void buildSharedTomcatDirectory(String optSlash, UnixFile sharedTomcatDirectory, List<File> deleteFileList, Set<SharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException;
+	abstract void buildSharedTomcatDirectory(String optSlash, PosixFile sharedTomcatDirectory, List<File> deleteFileList, Set<SharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException;
 
 	/**
 	 * Upgrades the site directory contents for an auto-upgrade.
 	 *
 	 * @return  <code>true</code> if the site needs to be restarted.
 	 */
-	protected abstract boolean upgradeSharedTomcatDirectory(String optSlash, UnixFile siteDirectory) throws IOException, SQLException;
+	protected abstract boolean upgradeSharedTomcatDirectory(String optSlash, PosixFile siteDirectory) throws IOException, SQLException;
 
 	/**
 	 * Gets the PID file.
 	 */
-	public UnixFile getPidFile() throws IOException, SQLException {
-		return new UnixFile(
+	public PosixFile getPidFile() throws IOException, SQLException {
+		return new PosixFile(
 			HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSharedTomcatsDirectory()
 			+ "/"
 			+ sharedTomcat.getName()
@@ -406,7 +406,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 
 	@Override
 	public boolean stop() throws IOException, SQLException {
-		UnixFile pidFile = getPidFile();
+		PosixFile pidFile = getPidFile();
 		if(pidFile.getStat().exists()) {
 			AOServDaemon.suexec(
 				sharedTomcat.getLinuxServerAccount().getLinuxAccount_username_id(),
@@ -423,7 +423,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 
 	@Override
 	public boolean start() throws IOException, SQLException {
-		UnixFile pidFile = getPidFile();
+		PosixFile pidFile = getPidFile();
 		if(!pidFile.getStat().exists()) {
 			AOServDaemon.suexec(
 				sharedTomcat.getLinuxServerAccount().getLinuxAccount_username_id(),
@@ -437,7 +437,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 			String pid = FileUtils.readFileAsString(pidFile.getFile());
 			try {
 				int pidNum = Integer.parseInt(pid.trim());
-				UnixFile procDir = new UnixFile("/proc/"+pidNum);
+				PosixFile procDir = new PosixFile("/proc/"+pidNum);
 				if(!procDir.getStat().exists()) {
 					System.err.println("Warning: Deleting PID file for dead process: "+pidFile.getPath());
 					pidFile.delete();

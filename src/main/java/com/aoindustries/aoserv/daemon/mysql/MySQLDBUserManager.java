@@ -22,6 +22,9 @@
  */
 package com.aoindustries.aoserv.daemon.mysql;
 
+import com.aoapps.hodgepodge.util.Tuple2;
+import com.aoapps.lang.util.ErrorPrinter;
+import com.aoapps.lang.validation.ValidationException;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.mysql.Database;
@@ -32,9 +35,6 @@ import com.aoindustries.aoserv.client.mysql.UserServer;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
-import com.aoindustries.util.ErrorPrinter;
-import com.aoindustries.util.Tuple2;
-import com.aoindustries.validation.ValidationException;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;

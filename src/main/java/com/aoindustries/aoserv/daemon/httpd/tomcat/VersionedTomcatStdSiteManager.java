@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,6 +22,9 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.lang.io.IoUtils;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.aosh.Command;
 import com.aoindustries.aoserv.client.linux.UserServer;
@@ -38,9 +41,6 @@ import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.Copy;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.Generated;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.Mkdir;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.IoUtils;
-import com.aoindustries.io.unix.UnixFile;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -66,7 +66,7 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 	 * TODO: Support upgrades in-place
 	 */
 	@Override
-	protected void buildSiteDirectoryContents(String optSlash, UnixFile siteDirectory, boolean isUpgrade) throws IOException, SQLException {
+	protected void buildSiteDirectoryContents(String optSlash, PosixFile siteDirectory, boolean isUpgrade) throws IOException, SQLException {
 		// Resolve and allocate stuff used throughout the method
 		final UserServer lsa = httpdSite.getLinuxServerAccount();
 		final int uid = lsa.getUid().getId();
@@ -88,18 +88,18 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 		// daemon/
 		{
 			// TODO: Is this link updated elsewhere, thus this not needed here?
-			UnixFile daemon = new UnixFile(siteDirectory, "daemon", false);
+			PosixFile daemon = new PosixFile(siteDirectory, "daemon", false);
 			if (!httpdSite.isDisabled()) {
 				DaemonFileUtils.ln(
 					"../bin/tomcat",
-					new UnixFile(daemon, "tomcat", false), uid, gid
+					new PosixFile(daemon, "tomcat", false), uid, gid
 				);
 			}
 		}
 	}
 
 	@Override
-	protected byte[] buildServerXml(UnixFile siteDirectory, String autoWarning) throws IOException, SQLException {
+	protected byte[] buildServerXml(PosixFile siteDirectory, String autoWarning) throws IOException, SQLException {
 		final TC tomcatCommon = getTomcatCommon();
 		AOServConnector conn = AOServDaemon.getConnector();
 
@@ -223,7 +223,7 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 		return bout.toByteArray();
 	}
 
-	protected static byte[] generateTomcatScript(String optSlash, String apacheTomcatDir, UnixFile installDir) throws IOException {
+	protected static byte[] generateTomcatScript(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException {
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
 		try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
 			out.print("#!/bin/bash\n"
@@ -310,7 +310,7 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 	}
 
 	@Override
-	protected byte[] generateReadmeTxt(String optSlash, String apacheTomcatDir, UnixFile installDir) throws IOException, SQLException {
+	protected byte[] generateReadmeTxt(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException, SQLException {
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
 		try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
 			out.print(
@@ -355,9 +355,9 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 	 * Gets the set of files that are installed during install and upgrade/downgrade.
 	 * Each path is relative to CATALINA_HOME/CATALINA_BASE.
 	 *
-	 * @see  VersionedTomcatCommon#getInstallFiles(com.aoindustries.io.unix.UnixFile)
+	 * @see  VersionedTomcatCommon#getInstallFiles(com.aoapps.io.posix.PosixFile)
 	 */
-	protected List<Install> getInstallFiles(String optSlash, UnixFile installDir, boolean isUpgrade) throws IOException, SQLException {
+	protected List<Install> getInstallFiles(String optSlash, PosixFile installDir, boolean isUpgrade) throws IOException, SQLException {
 		List<Install> installFiles = new ArrayList<>();
 		installFiles.addAll(getTomcatCommon().getInstallFiles(optSlash, installDir, 0775)); // 0775 to allow Apache to read any passwd/group files in the conf/ directory
 		// bin/profile.sites is now bin/profile.d/httpd-sites.sh as of Tomcat 8.5
@@ -374,7 +374,7 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 	}
 
 	@Override
-	protected boolean upgradeSiteDirectoryContents(String optSlash, UnixFile siteDirectory) throws IOException, SQLException {
+	protected boolean upgradeSiteDirectoryContents(String optSlash, PosixFile siteDirectory) throws IOException, SQLException {
 		TC tomcatCommon = getTomcatCommon();
 		int uid = httpdSite.getLinuxServerAccount().getUid().getId();
 		int gid = httpdSite.getLinuxServerGroup().getGid().getId();
@@ -387,7 +387,7 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 			gid
 		);
 		// Verify RELEASE-NOTES, looking for any update that doesn't change symlinks
-		UnixFile newReleaseNotes = new UnixFile(siteDirectory, "RELEASE-NOTES", true);
+		PosixFile newReleaseNotes = new PosixFile(siteDirectory, "RELEASE-NOTES", true);
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
 		try (InputStream in = new FileInputStream("/opt/" + apacheTomcatDir + "/RELEASE-NOTES")) {
 			IoUtils.copy(in, bout);

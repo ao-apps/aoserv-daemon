@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2006-2013, 2015, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2006-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,6 +22,12 @@
  */
 package com.aoindustries.aoserv.daemon.monitor;
 
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.hodgepodge.io.stream.StreamableOutput;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.lang.Strings;
+import com.aoapps.lang.io.FileUtils;
+import com.aoapps.lang.util.BufferManager;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.Server;
@@ -31,14 +37,8 @@ import com.aoindustries.aoserv.client.web.HttpdServer;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.FileUtils;
-import com.aoindustries.io.stream.StreamableOutput;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.lang.Strings;
-import com.aoindustries.util.BufferManager;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -73,10 +73,10 @@ final public class MrtgManager extends BuilderThread {
 	private static final int TOTAL_GRAPH_WIDTH = GRAPH_WIDTH + 100;
 	private static final int TOTAL_GRAPH_HEIGHT = GRAPH_HEIGHT + 35;
 
-	private static final UnixFile centosCfgFile = new UnixFile("/etc/mrtg/mrtg.cfg");
-	private static final UnixFile centosCfgFileNew = new UnixFile("/etc/mrtg/mrtg.cfg.new");
-	private static final UnixFile centosStatsFile = new UnixFile("/var/www/mrtg/stats.html");
-	private static final UnixFile centosStatsFileNew = new UnixFile("/var/www/mrtg/stats.html.new");
+	private static final PosixFile centosCfgFile = new PosixFile("/etc/mrtg/mrtg.cfg");
+	private static final PosixFile centosCfgFileNew = new PosixFile("/etc/mrtg/mrtg.cfg.new");
+	private static final PosixFile centosStatsFile = new PosixFile("/var/www/mrtg/stats.html");
+	private static final PosixFile centosStatsFileNew = new PosixFile("/var/www/mrtg/stats.html.new");
 
 	private static MrtgManager mrtgManager;
 
@@ -129,10 +129,10 @@ final public class MrtgManager extends BuilderThread {
 
 			Server failoverServer = thisServer.getFailoverServer();
 			String aoservMrtgBin;
-			UnixFile cfgFile;
-			UnixFile cfgFileNew;
-			UnixFile statsFile;
-			UnixFile statsFileNew;
+			PosixFile cfgFile;
+			PosixFile cfgFileNew;
+			PosixFile statsFile;
+			PosixFile statsFileNew;
 			if(
 				osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 				|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
@@ -417,7 +417,7 @@ final public class MrtgManager extends BuilderThread {
 					}
 					byte[] newFile = bout.toByteArray();
 					if(!cfgFile.getStat().exists() || !cfgFile.contentEquals(newFile)) {
-						try (OutputStream fileOut = cfgFileNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true, uid_min, gid_min)) {
+						try (OutputStream fileOut = cfgFileNew.getSecureOutputStream(PosixFile.ROOT_UID, PosixFile.ROOT_GID, 0600, true, uid_min, gid_min)) {
 							fileOut.write(newFile);
 							fileOut.flush();
 						}
@@ -648,7 +648,7 @@ final public class MrtgManager extends BuilderThread {
 					}
 					byte[] newFile = bout.toByteArray();
 					if(!statsFile.getStat().exists() || !statsFile.contentEquals(newFile)) {
-						try (OutputStream fileOut = statsFileNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true, uid_min, gid_min)) {
+						try (OutputStream fileOut = statsFileNew.getSecureOutputStream(PosixFile.ROOT_UID, PosixFile.ROOT_GID, 0644, true, uid_min, gid_min)) {
 							fileOut.write(newFile);
 							fileOut.flush();
 						}

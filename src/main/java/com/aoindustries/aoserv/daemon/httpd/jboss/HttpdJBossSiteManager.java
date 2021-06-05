@@ -22,6 +22,8 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.jboss;
 
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.lang.validation.ValidationException;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.User;
@@ -31,8 +33,6 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.HttpdTomcatSiteManager;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.TomcatCommon;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.validation.ValidationException;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -63,8 +63,8 @@ public abstract class HttpdJBossSiteManager<TC extends TomcatCommon> extends Htt
 	}
 
 	@Override
-	public UnixFile getPidFile() throws IOException, SQLException {
-		return new UnixFile(
+	public PosixFile getPidFile() throws IOException, SQLException {
+		return new PosixFile(
 			HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
 			+ "/"
 			+ httpdSite.getName()

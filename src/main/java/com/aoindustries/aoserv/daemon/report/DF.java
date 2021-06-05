@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2000-2013, 2014, 2020  AO Industries, Inc.
+ * Copyright (C) 2000-2013, 2014, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,7 +22,7 @@
  */
 package com.aoindustries.aoserv.daemon.report;
 
-import com.aoindustries.lang.EmptyArrays;
+import com.aoapps.lang.EmptyArrays;
 
 /**
  * Encapsulates the output of the /bin/df command.

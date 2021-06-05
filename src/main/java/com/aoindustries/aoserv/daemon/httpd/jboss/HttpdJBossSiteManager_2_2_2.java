@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2007-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2007-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,6 +22,9 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.jboss;
 
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.net.InetAddress;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.linux.Group;
 import com.aoindustries.aoserv.client.linux.GroupServer;
@@ -39,12 +42,9 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.TomcatCommon_3_2_4;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.TomcatCommon_3_X;
-import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
+import com.aoindustries.aoserv.daemon.posix.linux.LinuxAccountManager;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.net.InetAddress;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -72,7 +72,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 	}
 
 	@Override
-	protected void buildSiteDirectoryContents(String optSlash, UnixFile siteDirectory, boolean isUpgrade) throws IOException, SQLException {
+	protected void buildSiteDirectoryContents(String optSlash, PosixFile siteDirectory, boolean isUpgrade) throws IOException, SQLException {
 		if(isUpgrade) throw new IllegalArgumentException("In-place upgrade not supported");
 		/*
 		 * Resolve and allocate stuff used throughout the method
@@ -93,7 +93,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		/*
 		 * Create the skeleton of the site, the directories and links.
 		 */
-		DaemonFileUtils.mkdir(new UnixFile(siteDirectory, "bin", false), 0770, uid, gid);
+		DaemonFileUtils.mkdir(new PosixFile(siteDirectory, "bin", false), 0770, uid, gid);
 		DaemonFileUtils.mkdir(siteDir+"/conf", 0775, uid, gid);
 		DaemonFileUtils.mkdir(siteDir+"/daemon", 0770, uid, gid);
 		DaemonFileUtils.ln("webapps/"+Context.ROOT_DOC_BASE, siteDir+"/htdocs", uid, gid);
@@ -196,7 +196,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		try (
 			ChainWriter out = new ChainWriter(
 				new BufferedOutputStream(
-					new UnixFile(confManifestServlet).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+					new PosixFile(confManifestServlet).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
 				)
 			)
 		) {
@@ -228,7 +228,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		try (
 			ChainWriter out = new ChainWriter(
 				new BufferedOutputStream(
-					new UnixFile(confServerDTD).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+					new PosixFile(confServerDTD).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
 				)
 			)
 		) {
@@ -283,7 +283,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		try (
 			ChainWriter out = new ChainWriter(
 				new BufferedOutputStream(
-					new UnixFile(confTomcatUsers).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+					new PosixFile(confTomcatUsers).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
 				)
 			)
 		) {
@@ -305,7 +305,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		 */
 		for (String tomcatLogFile : TomcatCommon_3_X.tomcatLogFiles) {
 			String filename = siteDir+"/var/log/" + tomcatLogFile;
-			new UnixFile(filename).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min).close();
+			new PosixFile(filename).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min).close();
 		}
 
 		/*
@@ -314,7 +314,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		String manifestFile=siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/META-INF/MANIFEST.MF";
 		try (
 			ChainWriter out = new ChainWriter(
-				new UnixFile(manifestFile).getSecureOutputStream(
+				new PosixFile(manifestFile).getSecureOutputStream(
 					uid,
 					gid,
 					0664,
@@ -331,7 +331,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		 * Write the cocoon.properties file.
 		 */
 		String cocoonProps=siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/conf/cocoon.properties";
-		try (OutputStream fileOut = new BufferedOutputStream(new UnixFile(cocoonProps).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min))) {
+		try (OutputStream fileOut = new BufferedOutputStream(new PosixFile(cocoonProps).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min))) {
 			tomcatCommon.copyCocoonProperties1(fileOut);
 			try (ChainWriter out = new ChainWriter(fileOut)) {
 				out.print("processor.xsp.repository = ").print(siteDir).print("/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/cocoon\n");
@@ -347,7 +347,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		try 
 			(ChainWriter out = new ChainWriter(
 				new BufferedOutputStream(
-					new UnixFile(webXML).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
+					new PosixFile(webXML).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
 				)
 			)
 		) {
@@ -400,9 +400,9 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 	}
 
 	@Override
-	protected void enableDisable(UnixFile siteDirectory) throws IOException, SQLException {
-		UnixFile daemonUF = new UnixFile(siteDirectory, "daemon", false);
-		UnixFile daemonSymlink = new UnixFile(daemonUF, "jboss", false);
+	protected void enableDisable(PosixFile siteDirectory) throws IOException, SQLException {
+		PosixFile daemonUF = new PosixFile(siteDirectory, "daemon", false);
+		PosixFile daemonSymlink = new PosixFile(daemonUF, "jboss", false);
 		if(!httpdSite.isDisabled()) {
 			// Enabled
 			if(!daemonSymlink.getStat().exists()) {
@@ -420,7 +420,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 	/**
 	 * Builds the server.xml file.
 	 */
-	protected byte[] buildServerXml(UnixFile siteDirectory, String autoWarning) throws IOException, SQLException {
+	protected byte[] buildServerXml(PosixFile siteDirectory, String autoWarning) throws IOException, SQLException {
 		final String siteDir = siteDirectory.getPath();
 		final AOServConnector conn = AOServDaemon.getConnector();
 		final Version htv = tomcatSite.getHttpdTomcatVersion();
@@ -486,7 +486,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 	}
 
 	@Override
-	protected boolean rebuildConfigFiles(UnixFile siteDirectory, Set<UnixFile> restorecon) throws IOException, SQLException {
+	protected boolean rebuildConfigFiles(PosixFile siteDirectory, Set<PosixFile> restorecon) throws IOException, SQLException {
 		final String siteDir = siteDirectory.getPath();
 		boolean needsRestart = false;
 		String autoWarning = getAutoWarningXml();
@@ -497,7 +497,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		int gid_min = thisServer.getGidMin().getId();
 
 		String confServerXML=siteDir+"/conf/server.xml";
-		UnixFile confServerXMLFile=new UnixFile(confServerXML);
+		PosixFile confServerXMLFile=new PosixFile(confServerXML);
 		if(!httpdSite.isManual() || !confServerXMLFile.getStat().exists()) {
 			// Only write to the actual file when missing or changed
 			if(
@@ -536,7 +536,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 	}
 
 	@Override
-	protected boolean upgradeSiteDirectoryContents(String optSlash, UnixFile siteDirectory) throws IOException, SQLException {
+	protected boolean upgradeSiteDirectoryContents(String optSlash, PosixFile siteDirectory) throws IOException, SQLException {
 		// Nothing to do
 		return false;
 	}
@@ -545,7 +545,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 	 * Does not use any README.txt for change detection.
 	 */
 	@Override
-	protected byte[] generateReadmeTxt(String optSlash, String apacheTomcatDir, UnixFile installDir) throws IOException, SQLException {
+	protected byte[] generateReadmeTxt(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException, SQLException {
 		return null;
 	}
 }

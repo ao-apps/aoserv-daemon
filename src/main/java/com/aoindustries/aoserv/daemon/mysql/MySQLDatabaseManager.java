@@ -22,6 +22,17 @@
  */
 package com.aoindustries.aoserv.daemon.mysql;
 
+import com.aoapps.concurrent.KeyedConcurrencyReducer;
+import com.aoapps.hodgepodge.io.stream.StreamableOutput;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.lang.concurrent.ExecutionExceptions;
+import com.aoapps.lang.util.BufferManager;
+import com.aoapps.lang.util.ErrorPrinter;
+import com.aoapps.lang.util.PropertiesUtils;
+import com.aoapps.lang.validation.ValidationException;
+import com.aoapps.net.Port;
+import com.aoapps.tempfiles.TempFile;
+import com.aoapps.tempfiles.TempFileContext;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.PosixPath;
@@ -32,19 +43,8 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
-import com.aoindustries.concurrent.KeyedConcurrencyReducer;
-import com.aoindustries.io.stream.StreamableOutput;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.net.Port;
-import com.aoindustries.tempfiles.TempFile;
-import com.aoindustries.tempfiles.TempFileContext;
-import com.aoindustries.util.BufferManager;
-import com.aoindustries.util.ErrorPrinter;
-import com.aoindustries.util.PropertiesUtils;
-import com.aoindustries.util.concurrent.ExecutionExceptions;
-import com.aoindustries.validation.ValidationException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -249,7 +249,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 				tempFile.getFile(),
 				gzip
 			);
-			long dumpSize = new UnixFile(tempFile.getFile()).getStat().getSize();
+			long dumpSize = new PosixFile(tempFile.getFile()).getStat().getSize();
 			if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0) >= 0) {
 				masterOut.writeLong(dumpSize);
 			}
@@ -400,7 +400,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 	 * Gets a connection to the MySQL server, this handles both master and slave scenarios.
 	 */
 	public static Connection getMySQLConnection(PosixPath failoverRoot, int nestedOperatingSystemVersion, Server.Name serverName, Port port) throws IOException, SQLException {
-		if(port.getProtocol() != com.aoindustries.net.Protocol.TCP) throw new IllegalArgumentException("Only TCP supported: " + port);
+		if(port.getProtocol() != com.aoapps.net.Protocol.TCP) throw new IllegalArgumentException("Only TCP supported: " + port);
 		String user, password;
 		if(failoverRoot == null) {
 			user = AOServDaemonConfiguration.getMySqlUser(serverName);

@@ -22,6 +22,19 @@
  */
 package com.aoindustries.aoserv.daemon.email;
 
+import com.aoapps.collections.AoCollections;
+import com.aoapps.cron.CronDaemon;
+import com.aoapps.cron.CronJob;
+import com.aoapps.cron.Schedule;
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
+import com.aoapps.lang.io.FileUtils;
+import com.aoapps.lang.validation.ValidationException;
+import com.aoapps.net.InetAddress;
+import com.aoapps.net.Port;
+import com.aoapps.tempfiles.TempFile;
+import com.aoapps.tempfiles.TempFileContext;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.email.SpamAssassinMode;
@@ -38,23 +51,10 @@ import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.server.ServerManager;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.collections.AoCollections;
-import com.aoindustries.cron.CronDaemon;
-import com.aoindustries.cron.CronJob;
-import com.aoindustries.cron.Schedule;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.FileUtils;
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.net.InetAddress;
-import com.aoindustries.net.Port;
-import com.aoindustries.tempfiles.TempFile;
-import com.aoindustries.tempfiles.TempFileContext;
-import com.aoindustries.validation.ValidationException;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -163,18 +163,18 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 	/**
 	 * The directory containing the spam and ham directories.
 	 */
-	private static final UnixFile incomingDirectory = new UnixFile("/var/spool/aoserv/spamassassin");
+	private static final PosixFile incomingDirectory = new PosixFile("/var/spool/aoserv/spamassassin");
 
 	private static SpamAssassinManager spamAssassinManager;
 
-	private static final UnixFile
-		configUnixFile = new UnixFile("/etc/sysconfig/spamassassin"),
-		localCfUnixFile = new UnixFile("/etc/mail/spamassassin/local.cf")
+	private static final PosixFile
+		configPosixFile = new PosixFile("/etc/sysconfig/spamassassin"),
+		localCfPosixFile = new PosixFile("/etc/mail/spamassassin/local.cf")
 	;
 
 	private static final File subsysLockFile = new File("/var/lock/subsys/spamassassin");
 
-	private static final UnixFile spamassassinRcFile = new UnixFile("/etc/rc.d/rc3.d/S78spamassassin");
+	private static final PosixFile spamassassinRcFile = new PosixFile("/etc/rc.d/rc3.d/S78spamassassin");
 
 	/**
 	 * The expected file permissions for IMAP Spool.
@@ -302,7 +302,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 				// Used on inner loop
 				List<File> deleteFileList = new ArrayList<>();
 				StringBuilder tempSB = new StringBuilder();
-				List<UnixFile> thisPass = new ArrayList<>(MAX_SALEARN_BATCH);
+				List<PosixFile> thisPass = new ArrayList<>(MAX_SALEARN_BATCH);
 
 				while(true) {
 					// End loop if no subdirectories
@@ -311,7 +311,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 
 					// Find the username that has the oldest timestamp that is also at least one minute old or one minute in the future
 					UserServer oldestLsa = null;
-					Map<UnixFile, Long> oldestReadyMap = null;
+					Map<PosixFile, Long> oldestReadyMap = null;
 					long oldestTimestamp = -1;
 
 					// The files will be backed-up before being deleted
@@ -319,7 +319,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 					long currentTime = System.currentTimeMillis();
 
 					for(String incomingDirectoryFilename : incomingDirectoryList) {
-						UnixFile userDirectoryUf = new UnixFile(incomingDirectory, incomingDirectoryFilename, false);
+						PosixFile userDirectoryUf = new PosixFile(incomingDirectory, incomingDirectoryFilename, false);
 						File userDirectoryFile = userDirectoryUf.getFile();
 
 						// Each filename should be a username
@@ -355,9 +355,9 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 							// Check each filename, searching if this lsa has the oldest timestamp (older or newer than one minute)
 							String[] userDirectoryList = userDirectoryUf.list();
 							if(userDirectoryList != null && userDirectoryList.length > 0) {
-								Map<UnixFile, Long> readyMap = AoCollections.newHashMap(userDirectoryList.length);
+								Map<PosixFile, Long> readyMap = AoCollections.newHashMap(userDirectoryList.length);
 								for(String userFilename : userDirectoryList) {
-									UnixFile userUf = new UnixFile(userDirectoryUf, userFilename, false);
+									PosixFile userUf = new PosixFile(userDirectoryUf, userFilename, false);
 									File userFile = userUf.getFile();
 									if(userFilename.startsWith("ham_") || userFilename.startsWith("spam_")) {
 										// Must be a regular file
@@ -380,9 +380,9 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 																logger.log(
 																	Level.WARNING,
 																	"Fixing permissions for \"" + userUf.getPath() + "\": "
-																	+ UnixFile.getModeString(mode)
+																	+ PosixFile.getModeString(mode)
 																	+ " → "
-																	+ UnixFile.getModeString(IMAP_SPOOL_MODE)
+																	+ PosixFile.getModeString(IMAP_SPOOL_MODE)
 																);
 																userUf.setMode(IMAP_SPOOL_MODE);
 															}
@@ -430,20 +430,20 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 					assert oldestReadyMap != null;
 
 					// Sort the list by oldest time first
-					final Map<UnixFile, Long> readyMap = oldestReadyMap;
-					List<UnixFile> readyList = new ArrayList<>(oldestReadyMap.keySet());
+					final Map<PosixFile, Long> readyMap = oldestReadyMap;
+					List<PosixFile> readyList = new ArrayList<>(oldestReadyMap.keySet());
 					Collections.sort(
 						readyList,
-						(UnixFile uf1, UnixFile uf2) -> readyMap.get(uf1).compareTo(readyMap.get(uf2))
+						(PosixFile uf1, PosixFile uf2) -> readyMap.get(uf1).compareTo(readyMap.get(uf2))
 					);
 
 					// Process the oldest file while batching as many spam or ham directories together as possible
 					thisPass.clear();
-					UnixFile firstUf = readyList.get(0);
+					PosixFile firstUf = readyList.get(0);
 					boolean firstIsHam = firstUf.getFile().getName().startsWith("ham_");
 					thisPass.add(firstUf);
 					for(int c = 1; c < readyList.size(); c++) {
-						UnixFile other = readyList.get(c);
+						PosixFile other = readyList.get(c);
 						boolean otherIsHam = other.getFile().getName().startsWith("ham_");
 						if(firstIsHam == otherIsHam) {
 							// If both spam or both ham, batch to one call and remove from later processing
@@ -468,7 +468,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 						boolean isNoSync = thisPass.size() >= SALEARN_NOSYNC_THRESHOLD;
 						if(isNoSync) tempSB.append(" --no-sync");
 						tempSB.append(firstIsHam ? " --ham" : " --spam");
-						for(UnixFile uf : thisPass) {
+						for(PosixFile uf : thisPass) {
 							tempSB.append(' ').append(uf.getPath());
 						}
 						String command = tempSB.toString();
@@ -495,7 +495,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 					}
 
 					// Remove the files processed (or not processed based on integration mode) in this pass
-					for(UnixFile uf : thisPass) {
+					for(PosixFile uf : thisPass) {
 						uf.delete();
 					}
 				}
@@ -546,7 +546,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 			ByteArrayOutputStream bout = new ByteArrayOutputStream();
 
 			synchronized(rebuildLock) {
-				Set<UnixFile> restorecon = new LinkedHashSet<>();
+				Set<PosixFile> restorecon = new LinkedHashSet<>();
 				try {
 					boolean hasSpecificAddress = false;
 
@@ -690,11 +690,11 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 						// Compare to existing
 						if(
 							DaemonFileUtils.atomicWrite(
-								configUnixFile,
+								configPosixFile,
 								bout.toByteArray(),
 								0644,
-								UnixFile.ROOT_UID,
-								UnixFile.ROOT_GID,
+								PosixFile.ROOT_UID,
+								PosixFile.ROOT_GID,
 								null,
 								restorecon
 							)
@@ -807,11 +807,11 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 						// Compare to existing
 						if(
 							DaemonFileUtils.atomicWrite(
-								localCfUnixFile,
+								localCfPosixFile,
 								bout.toByteArray(),
 								0644,
-								UnixFile.ROOT_UID,
-								UnixFile.ROOT_GID,
+								PosixFile.ROOT_UID,
+								PosixFile.ROOT_GID,
 								null,
 								restorecon
 							)
@@ -898,8 +898,8 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 								throw new SQLException("SpamAssassin integration enabled on a user with home directory outside /home: " + lsa + " at " + homePath);
 							}
 							if(spamdBind == null) throw new SQLException("Account has SpamAssassin integration enabled, but SpamAssassin is not configured in net_binds: " + lsa);
-							UnixFile homeDir = new UnixFile(homePath.toString());
-							UnixFile spamAssassinDir = new UnixFile(homeDir, ".spamassassin", false);
+							PosixFile homeDir = new PosixFile(homePath.toString());
+							PosixFile spamAssassinDir = new PosixFile(homeDir, ".spamassassin", false);
 							// Create the .spamassassin directory if it doesn't exist
 							if(!spamAssassinDir.getStat().exists()) {
 								spamAssassinDir.mkdir(
@@ -909,7 +909,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 									lsa.getPrimaryLinuxServerGroup().getGid().getId()
 								);
 							}
-							UnixFile userPrefs = new UnixFile(spamAssassinDir, "user_prefs", false);
+							PosixFile userPrefs = new PosixFile(spamAssassinDir, "user_prefs", false);
 							// Build the new file in RAM
 							byte[] newBytes;
 							{
@@ -930,7 +930,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 							// Compare to existing
 							if(!userPrefs.getStat().exists() || !userPrefs.contentEquals(newBytes)) {
 								// Replace when changed
-								UnixFile userPrefsNew = new UnixFile(spamAssassinDir, "user_prefs.new", false);
+								PosixFile userPrefsNew = new PosixFile(spamAssassinDir, "user_prefs.new", false);
 								try (FileOutputStream out = userPrefsNew.getSecureOutputStream(lsa.getUid().getId(), lsa.getPrimaryLinuxServerGroup().getGid().getId(), 0600, true, uid_min, gid_min)) {
 									out.write(newBytes);
 								}
@@ -991,7 +991,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 		@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 		public void run(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
 			try {
-				Set<UnixFile> restorecon = new LinkedHashSet<>();
+				Set<PosixFile> restorecon = new LinkedHashSet<>();
 				try {
 					Server thisServer = AOServDaemon.getThisServer();
 					int uid_min = thisServer.getUidMin().getId();
@@ -1001,9 +1001,9 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 						// Only clean razor for accounts under /home/
 						PosixPath homePath = lsa.getHome();
 						if(lsa.getLinuxAccount().getType().isEmail() && homePath.toString().startsWith("/home/")) {
-							UnixFile home = new UnixFile(homePath.toString());
-							UnixFile dotRazor = new UnixFile(home, ".razor", false);
-							UnixFile razorAgentLog = new UnixFile(dotRazor, "razor-agent.log", false);
+							PosixFile home = new PosixFile(homePath.toString());
+							PosixFile dotRazor = new PosixFile(home, ".razor", false);
+							PosixFile razorAgentLog = new PosixFile(dotRazor, "razor-agent.log", false);
 							if(razorAgentLog.getStat().exists()) {
 								try {
 									boolean removed = false;
@@ -1025,7 +1025,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 											TempFileContext tempFileContext = new TempFileContext(razorAgentLog.getFile().getParentFile());
 											TempFile tempFile = tempFileContext.createTempFile(razorAgentLog.getFile().getName())
 										) {
-											UnixFile tempUF = new UnixFile(tempFile.getFile());
+											PosixFile tempUF = new PosixFile(tempFile.getFile());
 											try (PrintWriter out = new PrintWriter(new BufferedOutputStream(tempUF.getSecureOutputStream(uid, gid, 0644, true, uid_min, gid_min)))) {
 												while(!queuedLines.isEmpty()) {
 													out.println(queuedLines.remove());

@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2008-2012, 2015, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2008-2012, 2015, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,9 +22,9 @@
  */
 package com.aoindustries.aoserv.daemon.util;
 
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.lang.NullArgumentException;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
+import com.aoapps.lang.NullArgumentException;
 import java.io.IOException;
 import java.util.Objects;
 
@@ -98,11 +98,11 @@ public class UpgradeSymlink {
 	 * @return  <code>true</code> if link modified.  UID and GID changes alone will not
 	 *          count as a change.
 	 */
-	public boolean upgradeLinkTarget(UnixFile baseDirectory, int uid, int gid) throws IOException {
+	public boolean upgradeLinkTarget(PosixFile baseDirectory, int uid, int gid) throws IOException {
 		boolean needsRestart = false;
-		UnixFile oldLink = new UnixFile(baseDirectory.getPath() + "/" + oldLinkPath);
+		PosixFile oldLink = new PosixFile(baseDirectory.getPath() + "/" + oldLinkPath);
 		Stat oldLinkStat = oldLink.getStat();
-		UnixFile newLink;
+		PosixFile newLink;
 		Stat newLinkStat;
 		if(newLinkPath == null) {
 			newLink = null;
@@ -111,7 +111,7 @@ public class UpgradeSymlink {
 			newLink = oldLink;
 			newLinkStat = oldLinkStat;
 		} else {
-			newLink = new UnixFile(baseDirectory.getPath() + "/" + newLinkPath);
+			newLink = new PosixFile(baseDirectory.getPath() + "/" + newLinkPath);
 			newLinkStat = newLink.getStat();
 		}
 		if(oldLinkTarget == null) {

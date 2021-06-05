@@ -22,7 +22,11 @@
  */
 package com.aoindustries.aoserv.daemon.backup;
 
-import com.aoindustries.aoserv.backup.UnixFileEnvironment;
+import com.aoapps.hodgepodge.io.FileExistsRule;
+import com.aoapps.hodgepodge.io.FilesystemIteratorRule;
+import com.aoapps.net.DomainName;
+import com.aoapps.net.InetAddress;
+import com.aoindustries.aoserv.backup.PosixFileEnvironment;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.backup.BackupPartition;
 import com.aoindustries.aoserv.client.backup.FileReplication;
@@ -34,10 +38,6 @@ import com.aoindustries.aoserv.client.scm.CvsRepository;
 import com.aoindustries.aoserv.client.web.HttpdServer;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.email.ImapManager;
-import com.aoindustries.io.FileExistsRule;
-import com.aoindustries.io.FilesystemIteratorRule;
-import com.aoindustries.net.DomainName;
-import com.aoindustries.net.InetAddress;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -66,7 +66,7 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-public class AOServerEnvironment extends UnixFileEnvironment {
+public class AOServerEnvironment extends PosixFileEnvironment {
 
 	private static final Logger logger = Logger.getLogger(AOServerEnvironment.class.getName());
 

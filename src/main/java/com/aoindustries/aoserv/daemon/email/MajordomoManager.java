@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2003-2013, 2015, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2003-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,6 +22,11 @@
  */
 package com.aoindustries.aoserv.daemon.email;
 
+import com.aoapps.collections.AoCollections;
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
+import com.aoapps.net.DomainName;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.email.MajordomoList;
@@ -33,13 +38,8 @@ import com.aoindustries.aoserv.client.linux.UserServer;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
-import com.aoindustries.collections.AoCollections;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.net.DomainName;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -77,7 +77,7 @@ final public class MajordomoManager extends BuilderThread {
 			int gid_min = thisServer.getGidMin().getId();
 
 			// Reused during processing below
-			final UnixFile serversUF=new UnixFile(MajordomoServer.MAJORDOMO_SERVER_DIRECTORY.toString());
+			final PosixFile serversUF=new PosixFile(MajordomoServer.MAJORDOMO_SERVER_DIRECTORY.toString());
 
 			synchronized(rebuildLock) {
 				final List<MajordomoServer> mss=thisServer.getMajordomoServers();
@@ -87,7 +87,7 @@ final public class MajordomoManager extends BuilderThread {
 					PackageManager.installPackage(PackageManager.PackageName.MAJORDOMO);
 
 					// Create the directory if needed
-					// Will have been created by RPM: if(!serversUF.getStat().exists()) serversUF.mkdir(false, 0755, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
+					// Will have been created by RPM: if(!serversUF.getStat().exists()) serversUF.mkdir(false, 0755, PosixFile.ROOT_UID, PosixFile.ROOT_GID);
 				}
 
 				// Resolve the GID for "mail"
@@ -124,13 +124,13 @@ final public class MajordomoManager extends BuilderThread {
 					int lsaUID=lsa.getUid().getId();
 					GroupServer lsg=ms.getLinuxServerGroup();
 					int lsgGID=lsg.getGid().getId();
-					UnixFile msUF=new UnixFile(msPath);
+					PosixFile msUF=new PosixFile(msPath);
 					Stat msUFStat = msUF.getStat();
-					UnixFile listsUF=new UnixFile(msUF, "lists", false);
+					PosixFile listsUF=new PosixFile(msUF, "lists", false);
 					if(
 						!msUFStat.exists()
-						|| msUFStat.getUid()==UnixFile.ROOT_UID
-						|| msUFStat.getGid()==UnixFile.ROOT_GID
+						|| msUFStat.getUid()==PosixFile.ROOT_UID
+						|| msUFStat.getGid()==PosixFile.ROOT_GID
 					) {
 						// Add a new install
 						String sharedPath;
@@ -140,12 +140,12 @@ final public class MajordomoManager extends BuilderThread {
 
 						if(!msUFStat.exists()) msUF.mkdir();
 						msUF.setMode(0750);
-						new UnixFile(msUF, "digests", false).mkdir().setMode(0700).chown(lsaUID, lsgGID);
+						new PosixFile(msUF, "digests", false).mkdir().setMode(0700).chown(lsaUID, lsgGID);
 						if(!listsUF.getStat().exists()) listsUF.mkdir();
 						listsUF.setMode(0750).chown(lsaUID, mailGID);
-						UnixFile LogUF=new UnixFile(msUF, "Log", false);
+						PosixFile LogUF=new PosixFile(msUF, "Log", false);
 						LogUF.getSecureOutputStream(lsaUID, lsgGID, 0600, false, uid_min, gid_min).close();
-						UnixFile majordomocfUF=new UnixFile(msUF, "majordomo.cf", false);
+						PosixFile majordomocfUF=new PosixFile(msUF, "majordomo.cf", false);
 						try (ChainWriter out = new ChainWriter(new BufferedOutputStream(majordomocfUF.getSecureOutputStream(lsaUID, lsgGID, 0600, false, uid_min, gid_min)))) {
 							out.print("#\n"
 									+ "# A sample configuration file for majordomo.  The defaults are set by\n"
@@ -512,24 +512,24 @@ final public class MajordomoManager extends BuilderThread {
 							"strip",
 							msPath+"/wrapper"
 						);
-						new UnixFile(msPath, "wrapper").chown(UnixFile.ROOT_UID, mailGID).setMode(04750);
+						new PosixFile(msPath, "wrapper").chown(PosixFile.ROOT_UID, mailGID).setMode(04750);
 
 						//  Make the symbolic links
-						new UnixFile(msPath, "Tools").symLink(sharedPath+"/Tools").chown(lsaUID, lsgGID);
-						new UnixFile(msPath, "archive2.pl").symLink(sharedPath+"/archive2.pl").chown(lsaUID, lsgGID);
-						new UnixFile(msPath, "bin").symLink(sharedPath+"/bin").chown(lsaUID, lsgGID);
-						new UnixFile(msPath, "bounce-remind").symLink(sharedPath+"/bounce-remind").chown(lsaUID, lsgGID);
-						new UnixFile(msPath, "config-test").symLink(sharedPath+"/config-test").chown(lsaUID, lsgGID);
-						new UnixFile(msPath, "config_parse.pl").symLink(sharedPath+"/config_parse.pl").chown(lsaUID, lsgGID);
-						new UnixFile(msPath, "digest").symLink(sharedPath+"/digest").chown(lsaUID, lsgGID);
-						new UnixFile(msPath, "majordomo").symLink(sharedPath+"/majordomo").chown(lsaUID, lsgGID);
-						new UnixFile(msPath, "majordomo.pl").symLink(sharedPath+"/majordomo.pl").chown(lsaUID, lsgGID);
-						new UnixFile(msPath, "majordomo_version.pl").symLink(sharedPath+"/majordomo_version.pl").chown(lsaUID, lsgGID);
-						new UnixFile(msPath, "man").symLink(sharedPath+"/man").chown(lsaUID, lsgGID);
-						new UnixFile(msPath, "request-answer").symLink(sharedPath+"/request-answer").chown(lsaUID, lsgGID);
-						new UnixFile(msPath, "resend").symLink(sharedPath+"/resend").chown(lsaUID, lsgGID);
-						new UnixFile(msPath, "sample.cf").symLink(sharedPath+"/sample.cf").chown(lsaUID, lsgGID);
-						new UnixFile(msPath, "shlock.pl").symLink(sharedPath+"/shlock.pl").chown(lsaUID, lsgGID);
+						new PosixFile(msPath, "Tools").symLink(sharedPath+"/Tools").chown(lsaUID, lsgGID);
+						new PosixFile(msPath, "archive2.pl").symLink(sharedPath+"/archive2.pl").chown(lsaUID, lsgGID);
+						new PosixFile(msPath, "bin").symLink(sharedPath+"/bin").chown(lsaUID, lsgGID);
+						new PosixFile(msPath, "bounce-remind").symLink(sharedPath+"/bounce-remind").chown(lsaUID, lsgGID);
+						new PosixFile(msPath, "config-test").symLink(sharedPath+"/config-test").chown(lsaUID, lsgGID);
+						new PosixFile(msPath, "config_parse.pl").symLink(sharedPath+"/config_parse.pl").chown(lsaUID, lsgGID);
+						new PosixFile(msPath, "digest").symLink(sharedPath+"/digest").chown(lsaUID, lsgGID);
+						new PosixFile(msPath, "majordomo").symLink(sharedPath+"/majordomo").chown(lsaUID, lsgGID);
+						new PosixFile(msPath, "majordomo.pl").symLink(sharedPath+"/majordomo.pl").chown(lsaUID, lsgGID);
+						new PosixFile(msPath, "majordomo_version.pl").symLink(sharedPath+"/majordomo_version.pl").chown(lsaUID, lsgGID);
+						new PosixFile(msPath, "man").symLink(sharedPath+"/man").chown(lsaUID, lsgGID);
+						new PosixFile(msPath, "request-answer").symLink(sharedPath+"/request-answer").chown(lsaUID, lsgGID);
+						new PosixFile(msPath, "resend").symLink(sharedPath+"/resend").chown(lsaUID, lsgGID);
+						new PosixFile(msPath, "sample.cf").symLink(sharedPath+"/sample.cf").chown(lsaUID, lsgGID);
+						new PosixFile(msPath, "shlock.pl").symLink(sharedPath+"/shlock.pl").chown(lsaUID, lsgGID);
 
 						// Flag as successful by ownership
 						msUF.chown(lsaUID, mailGID);
@@ -546,14 +546,14 @@ final public class MajordomoManager extends BuilderThread {
 						String listName=ml.getName();
 
 						// Make the list file
-						UnixFile listUF=new UnixFile(listsUF, listName, false);
+						PosixFile listUF=new PosixFile(listsUF, listName, false);
 						if(!listUF.getStat().exists()) {
 							listUF.getSecureOutputStream(lsaUID, lsgGID, 0644, false, uid_min, gid_min).close();
 						} else listUF.setMode(0644).chown(lsaUID, lsgGID);
 						existingListFiles.remove(listName);
 
 						// Make the .config file
-						UnixFile configUF=new UnixFile(listsUF, listName+".config", false);
+						PosixFile configUF=new PosixFile(listsUF, listName+".config", false);
 						if(!configUF.getStat().exists()) {
 							try (ChainWriter out = new ChainWriter(configUF.getSecureOutputStream(lsaUID, lsgGID, 0660, false, uid_min, gid_min))) {
 								out.print("# The configuration file for a majordomo mailing list.\n"
@@ -949,12 +949,12 @@ final public class MajordomoManager extends BuilderThread {
 						existingListFiles.remove(listName+".config");
 
 						// Make the .info file
-						UnixFile infoUF=new UnixFile(listsUF, listName+".info", false);
+						PosixFile infoUF=new PosixFile(listsUF, listName+".info", false);
 						if(!infoUF.getStat().exists()) infoUF.getSecureOutputStream(lsaUID, lsgGID, 0664, false, uid_min, gid_min).close();
 						existingListFiles.remove(listName+".info");
 
 						// Allow the .intro file
-						UnixFile introUF=new UnixFile(listsUF, listName+".intro", false);
+						PosixFile introUF=new PosixFile(listsUF, listName+".intro", false);
 						if(!introUF.getStat().exists()) introUF.getSecureOutputStream(lsaUID, lsgGID, 0664, false, uid_min, gid_min).close();
 						existingListFiles.remove(listName+".intro");
 

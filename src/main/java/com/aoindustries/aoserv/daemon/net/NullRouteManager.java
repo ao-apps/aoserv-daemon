@@ -22,6 +22,8 @@
  */
 package com.aoindustries.aoserv.daemon.net;
 
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.net.InetAddress;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.account.Administrator;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
@@ -30,11 +32,9 @@ import com.aoindustries.aoserv.client.master.User;
 import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.posix.linux.LinuxProcess;
 import com.aoindustries.aoserv.daemon.server.VirtualServerManager;
-import com.aoindustries.aoserv.daemon.unix.linux.LinuxProcess;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.net.InetAddress;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.StandardProtocolFamily;
@@ -78,7 +78,7 @@ final public class NullRouteManager {
 	 */
 	private static final long REDUCE_LEVEL_QUIET_TIME = 60L * 60L * 1000L; // 1 hour
 
-	private static final UnixFile BIRD_NULL_CONFIG = new UnixFile("/etc/opt/bird-1/bird-null-auto.conf");
+	private static final PosixFile BIRD_NULL_CONFIG = new PosixFile("/etc/opt/bird-1/bird-null-auto.conf");
 
 	// TODO: Get this from linux_server_groups, name="bird" once LinuxAccountManager enabled on CentOS 7.dom0
 	private static final int BIRD_GID = 95;
@@ -262,7 +262,7 @@ final public class NullRouteManager {
 												BIRD_NULL_CONFIG,
 												newBytes,
 												0640,
-												UnixFile.ROOT_UID,
+												PosixFile.ROOT_UID,
 												BIRD_GID, // TODO: Enable LinuxAccountManager on CentOS 7.dom0 and get this from the existing "bird" linux_server_group
 												null,
 												null // SELinux disabled on dom0

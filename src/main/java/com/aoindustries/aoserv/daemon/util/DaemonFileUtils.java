@@ -22,15 +22,15 @@
  */
 package com.aoindustries.aoserv.daemon.util;
 
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
+import com.aoapps.lang.io.FileUtils;
+import com.aoapps.lang.io.IoUtils;
+import com.aoapps.tempfiles.TempFile;
+import com.aoapps.tempfiles.TempFileContext;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
-import com.aoindustries.io.FileUtils;
-import com.aoindustries.io.IoUtils;
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.tempfiles.TempFile;
-import com.aoindustries.tempfiles.TempFileContext;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
@@ -74,7 +74,7 @@ public class DaemonFileUtils {
 	 * TODO: Copy to a temp file and rename into place.
 	 */
 	public static void copyResource(Class<?> clazz, String resource, String filename, int uid, int gid, int mode, int uid_min, int gid_min) throws IOException {
-		try (OutputStream out = new UnixFile(filename).getSecureOutputStream(uid, gid, mode, false, uid_min, gid_min)) {
+		try (OutputStream out = new PosixFile(filename).getSecureOutputStream(uid, gid, mode, false, uid_min, gid_min)) {
 			copyResource(clazz, resource, out);
 		}
 	}
@@ -87,7 +87,7 @@ public class DaemonFileUtils {
 	 * @return  {@code true} if any modification was made
 	 */
 	public static boolean ln(String target, String filename, int uid, int gid) throws IOException {
-		return ln(target, new UnixFile(filename), uid, gid, null);
+		return ln(target, new PosixFile(filename), uid, gid, null);
 	}
 
 	/**
@@ -99,8 +99,8 @@ public class DaemonFileUtils {
 	 *
 	 * @return  {@code true} if any modification was made
 	 */
-	public static boolean ln(String target, String filename, int uid, int gid, UnixFile backup) throws IOException {
-		return ln(target, new UnixFile(filename), uid, gid, backup);
+	public static boolean ln(String target, String filename, int uid, int gid, PosixFile backup) throws IOException {
+		return ln(target, new PosixFile(filename), uid, gid, backup);
 	}
 
 	/**
@@ -110,7 +110,7 @@ public class DaemonFileUtils {
 	 *
 	 * @return  {@code true} if any modification was made
 	 */
-	public static boolean ln(String target, UnixFile uf, int uid, int gid) throws IOException {
+	public static boolean ln(String target, PosixFile uf, int uid, int gid) throws IOException {
 		return ln(target, uf, uid, gid, null);
 	}
 
@@ -123,7 +123,7 @@ public class DaemonFileUtils {
 	 *
 	 * @return  {@code true} if any modification was made
 	 */
-	public static boolean ln(String target, UnixFile uf, int uid, int gid, UnixFile backup) throws IOException {
+	public static boolean ln(String target, PosixFile uf, int uid, int gid, PosixFile backup) throws IOException {
 		try {
 			boolean modified = false;
 			Stat ufStat = uf.getStat();
@@ -172,7 +172,7 @@ public class DaemonFileUtils {
 	 */
 	public static boolean lnAll(String targetBase, String srcBase, int uid, int gid) throws IOException {
 		boolean modified = false;
-		String[] destinations=new UnixFile(targetBase).list();
+		String[] destinations=new PosixFile(targetBase).list();
 		for (String destination : destinations) {
 			if(ln(targetBase + destination, srcBase + destination, uid, gid)) modified = true;
 		}
@@ -185,13 +185,13 @@ public class DaemonFileUtils {
 	 *
 	 * @return  {@code true} if any modification was made
 	 *
-	 * @see  #ln(java.lang.String, com.aoindustries.io.unix.UnixFile, int, int, com.aoindustries.io.unix.UnixFile)
+	 * @see  #ln(java.lang.String, com.aoapps.io.posix.PosixFile, int, int, com.aoapps.io.posix.PosixFile)
 	 */
-	public static boolean lnAll(String targetBase, UnixFile src, int uid, int gid, String backupSuffix, String backupSeparator, String backupExtension) throws IOException {
+	public static boolean lnAll(String targetBase, PosixFile src, int uid, int gid, String backupSuffix, String backupSeparator, String backupExtension) throws IOException {
 		boolean modified = false;
-		String[] destinations = new UnixFile(targetBase).list();
+		String[] destinations = new PosixFile(targetBase).list();
 		for (String destination : destinations) {
-			UnixFile symlink = new UnixFile(src, destination, false);
+			PosixFile symlink = new PosixFile(src, destination, false);
 			if(
 				ln(
 					targetBase + destination,
@@ -215,7 +215,7 @@ public class DaemonFileUtils {
 				}
 				// Skip if is an expected symlink
 				if(!found) {
-					UnixFile backmeup = new UnixFile(src, filename, false);
+					PosixFile backmeup = new PosixFile(src, filename, false);
 					backmeup.renameTo(
 						findUnusedBackup(backmeup + backupSuffix, backupSeparator, backupExtension)
 					);
@@ -233,7 +233,7 @@ public class DaemonFileUtils {
 	 * @return  {@code true} if any modification was made
 	 */
 	public static boolean mkdir(String dirName, int mode, int uid, int gid) throws IOException {
-		return mkdir(new UnixFile(dirName), mode, uid, gid, null);
+		return mkdir(new PosixFile(dirName), mode, uid, gid, null);
 	}
 
 	/**
@@ -245,7 +245,7 @@ public class DaemonFileUtils {
 	 * @return  {@code true} if any modification was made
 	 */
 	public static boolean mkdir(String dirName, int mode, int uid, int gid, String backupName) throws IOException {
-		return mkdir(new UnixFile(dirName), mode, uid, gid, (backupName == null) ? null : new UnixFile(backupName));
+		return mkdir(new PosixFile(dirName), mode, uid, gid, (backupName == null) ? null : new PosixFile(backupName));
 	}
 
 	/**
@@ -254,7 +254,7 @@ public class DaemonFileUtils {
 	 *
 	 * @return  {@code true} if any modification was made
 	 */
-	public static boolean mkdir(UnixFile uf, int mode, int uid, int gid) throws IOException {
+	public static boolean mkdir(PosixFile uf, int mode, int uid, int gid) throws IOException {
 		return mkdir(uf, mode, uid, gid, null);
 	}
 
@@ -266,7 +266,7 @@ public class DaemonFileUtils {
 	 *
 	 * @return  {@code true} if any modification was made
 	 */
-	public static boolean mkdir(UnixFile uf, int mode, int uid, int gid, UnixFile backup) throws IOException {
+	public static boolean mkdir(PosixFile uf, int mode, int uid, int gid, PosixFile backup) throws IOException {
 		boolean modified = false;
 		Stat ufStat = uf.getStat();
 		if(!ufStat.exists()) {
@@ -298,7 +298,7 @@ public class DaemonFileUtils {
 	 * If already exists makes sure it is a file.
 	 * Also sets or resets the ownership and permissions.
 	 */
-	public static void createEmptyFile(UnixFile uf, int mode, int uid, int gid) throws IOException {
+	public static void createEmptyFile(PosixFile uf, int mode, int uid, int gid) throws IOException {
 		Stat ufStat = uf.getStat();
 		if(!ufStat.exists()) {
 			new FileOutputStream(uf.getFile()).close();
@@ -313,7 +313,7 @@ public class DaemonFileUtils {
 	 * file.  A new temp file is created and then renamed over the old.
 	 */
 	@SuppressWarnings("try")
-	public static void stripFilePrefix(UnixFile uf, String prefix, int uid_min, int gid_min) throws IOException {
+	public static void stripFilePrefix(PosixFile uf, String prefix, int uid_min, int gid_min) throws IOException {
 		// Remove the auto warning if the site has recently become manual
 		int prefixLen=prefix.length();
 		Stat ufStat = uf.getStat();
@@ -330,7 +330,7 @@ public class DaemonFileUtils {
 						TempFile tempFile = tempFileContext.createTempFile(uf.getFile().getName())
 					) {
 						try (OutputStream out = new BufferedOutputStream(
-							new UnixFile(tempFile.getFile()).getSecureOutputStream(
+							new PosixFile(tempFile.getFile()).getSecureOutputStream(
 								ufStat.getUid(),
 								ufStat.getGid(),
 								ufStat.getMode(),
@@ -368,7 +368,7 @@ public class DaemonFileUtils {
 	 *
 	 * @return {@code true} when the file is replaced with new content, has ownership updated, or has permissions updated
 	 */
-	public static boolean atomicWrite(UnixFile file, byte[] newContents, long mode, int uid, int gid, UnixFile backupFile, Set<UnixFile> restorecon) throws IOException {
+	public static boolean atomicWrite(PosixFile file, byte[] newContents, long mode, int uid, int gid, PosixFile backupFile, Set<PosixFile> restorecon) throws IOException {
 		boolean updated;
 		Stat fileStat = file.getStat();
 		if(
@@ -386,10 +386,10 @@ public class DaemonFileUtils {
 			|| !file.contentEquals(newContents)
 		) {
 			try (TempFileContext tempFileContext = new TempFileContext(file.getFile().getParentFile())) {
-				UnixFile backupTemp;
+				PosixFile backupTemp;
 				if(backupFile != null && fileStat.exists()) {
 					// Create temp backup
-					backupTemp = new UnixFile(tempFileContext.createTempFile(backupFile.getFile().getName()).getFile());
+					backupTemp = new PosixFile(tempFileContext.createTempFile(backupFile.getFile().getName()).getFile());
 					if(logger.isLoggable(Level.FINE)) logger.fine("mktemp \"" + backupFile + "\" -> \"" + backupTemp + '"');
 					long numBytes = FileUtils.copy(file.getFile(), backupTemp.getFile());
 					if(logger.isLoggable(Level.FINE)) logger.fine("cp \"" + file + "\" \"" + backupTemp + "\", " + numBytes + " bytes copied");
@@ -422,7 +422,7 @@ public class DaemonFileUtils {
 					backupTemp = null;
 				}
 				// Write the new contents into a temp file
-				UnixFile fileTemp = new UnixFile(tempFileContext.createTempFile(file.getFile().getName()).getFile());
+				PosixFile fileTemp = new PosixFile(tempFileContext.createTempFile(file.getFile().getName()).getFile());
 				if(logger.isLoggable(Level.FINE)) logger.fine("mktemp \"" + file + "\" -> \"" + fileTemp + '"');
 				// TODO: Find some way to avoid race condition and redirects while not doing funny file permission changes
 				try (FileOutputStream out = new FileOutputStream(fileTemp.getFile())) {
@@ -475,7 +475,7 @@ public class DaemonFileUtils {
 	 * Calls "restorecon" on the given set of paths if this server is CentOS 7
 	 * and has selinux installed.
 	 */
-	public static void restorecon(Set<UnixFile> restorecon) throws IOException, SQLException {
+	public static void restorecon(Set<PosixFile> restorecon) throws IOException, SQLException {
 		int size = restorecon.size();
 		if(size > 0) {
 			OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
@@ -497,7 +497,7 @@ public class DaemonFileUtils {
 						int i = 0;
 						command[i++] = restoreconCommand;
 						command[i++] = "-R";
-						for(UnixFile uf : restorecon) {
+						for(PosixFile uf : restorecon) {
 							command[i++] = uf.getPath();
 						}
 						if(i != command.length) throw new ConcurrentModificationException();
@@ -516,10 +516,10 @@ public class DaemonFileUtils {
 	/**
 	 * Finds an unused file, adding separator and "2" for second try, "3" for third, ...
 	 */
-	public static UnixFile findUnusedBackup(String prefix, String separator, String extension) throws IOException {
+	public static PosixFile findUnusedBackup(String prefix, String separator, String extension) throws IOException {
 		int i = 0;
 		while(++i > 0) {
-			UnixFile uf = new UnixFile(
+			PosixFile uf = new PosixFile(
 				(i == 1)
 					? (prefix + extension)
 					: (prefix + separator + i + extension)

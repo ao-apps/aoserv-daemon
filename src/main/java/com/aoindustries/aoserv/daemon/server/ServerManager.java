@@ -22,10 +22,10 @@
  */
 package com.aoindustries.aoserv.daemon.server;
 
+import com.aoapps.lang.EmptyArrays;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
-import com.aoindustries.lang.EmptyArrays;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;

@@ -20,16 +20,16 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.aoindustries.aoserv.daemon.unix;
+package com.aoindustries.aoserv.daemon.posix;
 
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.lang.Strings;
+import com.aoapps.lang.validation.ValidationException;
 import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.client.linux.User.Gecos;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.lang.Strings;
-import com.aoindustries.validation.ValidationException;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
@@ -55,9 +55,9 @@ final public class PasswdFile {
 
 	private static final Logger logger = Logger.getLogger(PasswdFile.class.getName());
 
-	private static final UnixFile
-		passwdFile       = new UnixFile("/etc/passwd"),
-		backupPasswdFile = new UnixFile("/etc/passwd-")
+	private static final PosixFile
+		passwdFile       = new PosixFile("/etc/passwd"),
+		backupPasswdFile = new PosixFile("/etc/passwd-")
 	;
 
 	/**
@@ -365,14 +365,14 @@ final public class PasswdFile {
 	/**
 	 * Must hold {@link #passwdLock}
 	 */
-	public static void writePasswdFile(byte[] newContents, Set<UnixFile> restorecon) throws SQLException, IOException {
+	public static void writePasswdFile(byte[] newContents, Set<PosixFile> restorecon) throws SQLException, IOException {
 		assert Thread.holdsLock(passwdLock);
 		DaemonFileUtils.atomicWrite(
 			passwdFile,
 			newContents,
 			0644,
-			UnixFile.ROOT_UID,
-			UnixFile.ROOT_GID,
+			PosixFile.ROOT_UID,
+			PosixFile.ROOT_GID,
 			backupPasswdFile,
 			restorecon
 		);

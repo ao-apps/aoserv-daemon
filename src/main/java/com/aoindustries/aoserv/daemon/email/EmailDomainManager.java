@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2000-2013, 2015, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2000-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,17 +22,17 @@
  */
 package com.aoindustries.aoserv.daemon.email;
 
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.email.Domain;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.UnixFile;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -53,7 +53,7 @@ public final class EmailDomainManager extends BuilderThread {
 
 	private static final Logger logger = Logger.getLogger(EmailDomainManager.class.getName());
 
-	private static final UnixFile configFile = new UnixFile("/etc/mail/local-host-names");
+	private static final PosixFile configFile = new PosixFile("/etc/mail/local-host-names");
 
 	private static EmailDomainManager emailDomainManager;
 
@@ -73,7 +73,7 @@ public final class EmailDomainManager extends BuilderThread {
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 			synchronized(rebuildLock) {
-				Set<UnixFile> restorecon = new LinkedHashSet<>();
+				Set<PosixFile> restorecon = new LinkedHashSet<>();
 				try {
 					// Grab the list of domains from the database
 					List<Domain> domains = thisServer.getEmailDomains();
@@ -107,8 +107,8 @@ public final class EmailDomainManager extends BuilderThread {
 								configFile,
 								newBytes,
 								0644,
-								UnixFile.ROOT_UID,
-								UnixFile.ROOT_GID,
+								PosixFile.ROOT_UID,
+								PosixFile.ROOT_GID,
 								null,
 								restorecon
 							)

@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2018  AO Industries, Inc.
+ * Copyright (C) 2018, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,12 +22,12 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.lang.io.IoUtils;
 import static com.aoindustries.aoserv.daemon.httpd.tomcat.VersionedTomcatCommon.BACKUP_EXTENSION;
 import static com.aoindustries.aoserv.daemon.httpd.tomcat.VersionedTomcatCommon.BACKUP_SEPARATOR;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.IoUtils;
-import com.aoindustries.io.unix.UnixFile;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -52,7 +52,7 @@ public abstract class Install {
 		return path;
 	}
 
-	public abstract void install(String optSlash, String apacheTomcatDir, UnixFile installDir, int uid, int gid, String backupSuffix) throws IOException;
+	public abstract void install(String optSlash, String apacheTomcatDir, PosixFile installDir, int uid, int gid, String backupSuffix) throws IOException;
 
 	public static class Delete extends Install {
 
@@ -61,8 +61,8 @@ public abstract class Install {
 		}
 
 		@Override
-		public void install(String optSlash, String apacheTomcatDir, UnixFile installDir, int uid, int gid, String backupSuffix) throws IOException {
-			UnixFile uf = new UnixFile(installDir, path, true);
+		public void install(String optSlash, String apacheTomcatDir, PosixFile installDir, int uid, int gid, String backupSuffix) throws IOException {
+			PosixFile uf = new PosixFile(installDir, path, true);
 			if(uf.getStat().exists()) {
 				uf.renameTo(DaemonFileUtils.findUnusedBackup(uf + backupSuffix, BACKUP_SEPARATOR, BACKUP_EXTENSION));
 			}
@@ -83,8 +83,8 @@ public abstract class Install {
 		}
 
 		@Override
-		public void install(String optSlash, String apacheTomcatDir, UnixFile installDir, int uid, int gid, String backupSuffix) throws IOException {
-			UnixFile uf = new UnixFile(installDir, path, true);
+		public void install(String optSlash, String apacheTomcatDir, PosixFile installDir, int uid, int gid, String backupSuffix) throws IOException {
+			PosixFile uf = new PosixFile(installDir, path, true);
 			DaemonFileUtils.mkdir(
 				uf, mode, uid, gid,
 				DaemonFileUtils.findUnusedBackup(uf + backupSuffix, BACKUP_SEPARATOR, BACKUP_EXTENSION)
@@ -110,8 +110,8 @@ public abstract class Install {
 		}
 
 		@Override
-		public void install(String optSlash, String apacheTomcatDir, UnixFile installDir, int uid, int gid, String backupSuffix) throws IOException {
-			UnixFile uf = new UnixFile(installDir, path, true);
+		public void install(String optSlash, String apacheTomcatDir, PosixFile installDir, int uid, int gid, String backupSuffix) throws IOException {
+			PosixFile uf = new PosixFile(installDir, path, true);
 			DaemonFileUtils.ln(
 				(target == null)
 					? ("../" + optSlash + apacheTomcatDir + "/" + path)
@@ -129,8 +129,8 @@ public abstract class Install {
 		}
 
 		@Override
-		public void install(String optSlash, String apacheTomcatDir, UnixFile installDir, int uid, int gid, String backupSuffix) throws IOException {
-			UnixFile uf = new UnixFile(installDir, path, true);
+		public void install(String optSlash, String apacheTomcatDir, PosixFile installDir, int uid, int gid, String backupSuffix) throws IOException {
+			PosixFile uf = new PosixFile(installDir, path, true);
 			DaemonFileUtils.lnAll(
 				"../" + optSlash + apacheTomcatDir + "/" + path + "/",
 				uf, uid, gid,
@@ -153,8 +153,8 @@ public abstract class Install {
 		}
 
 		@Override
-		public void install(String optSlash, String apacheTomcatDir, UnixFile installDir, int uid, int gid, String backupSuffix) throws IOException {
-			UnixFile uf = new UnixFile(installDir, path, true);
+		public void install(String optSlash, String apacheTomcatDir, PosixFile installDir, int uid, int gid, String backupSuffix) throws IOException {
+			PosixFile uf = new PosixFile(installDir, path, true);
 			ByteArrayOutputStream bout = new ByteArrayOutputStream();
 			try (InputStream in = new FileInputStream("/opt/" + apacheTomcatDir + "/" + path)) {
 				IoUtils.copy(in, bout);
@@ -171,7 +171,7 @@ public abstract class Install {
 
 		@FunctionalInterface
 		public static interface ContentGenerator {
-			byte[] generateContent(String optSlash, String apacheTomcatDir, UnixFile installDir) throws IOException;
+			byte[] generateContent(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException;
 		}
 
 		protected final int mode;
@@ -193,8 +193,8 @@ public abstract class Install {
 		}
 
 		@Override
-		public void install(String optSlash, String apacheTomcatDir, UnixFile installDir, int uid, int gid, String backupSuffix) throws IOException {
-			UnixFile uf = new UnixFile(installDir, path, true);
+		public void install(String optSlash, String apacheTomcatDir, PosixFile installDir, int uid, int gid, String backupSuffix) throws IOException {
+			PosixFile uf = new PosixFile(installDir, path, true);
 			DaemonFileUtils.atomicWrite(
 				uf, contentGenerator.generateContent(optSlash, apacheTomcatDir, installDir), mode, uid, gid,
 				DaemonFileUtils.findUnusedBackup(uf + backupSuffix, BACKUP_SEPARATOR, BACKUP_EXTENSION),

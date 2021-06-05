@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2003-2013, 2015, 2017, 2018, 2019  AO Industries, Inc.
+ * Copyright (C) 2003-2013, 2015, 2017, 2018, 2019, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,12 +22,12 @@
  */
 package com.aoindustries.aoserv.daemon.net.xinetd;
 
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.net.InetAddress;
+import com.aoapps.net.Port;
 import com.aoindustries.aoserv.client.linux.GroupServer;
 import com.aoindustries.aoserv.client.linux.UserServer;
 import com.aoindustries.aoserv.client.net.IpAddress;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.net.InetAddress;
-import com.aoindustries.net.Port;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Objects;
@@ -44,7 +44,7 @@ public final class Service {
 	final private String banner_fail;
 	final private String flags;
 	final private String service;
-	final private com.aoindustries.net.Protocol socket_type;
+	final private com.aoapps.net.Protocol socket_type;
 	final private IpAddress bind;
 	final private Port port;
 	final private boolean wait;
@@ -67,7 +67,7 @@ public final class Service {
 		String banner_fail,
 		String flags,
 		String service,
-		com.aoindustries.net.Protocol socket_type,
+		com.aoapps.net.Protocol socket_type,
 		IpAddress bind,
 		Port port,
 		boolean wait,
@@ -137,8 +137,8 @@ public final class Service {
 		if(flags!=null) out.print("\tflags = ").print(flags).print('\n');
 
 		out.print("\tsocket_type = ");
-		if(socket_type == com.aoindustries.net.Protocol.TCP) out.print("stream");
-		else if(socket_type == com.aoindustries.net.Protocol.UDP) out.print("dgram");
+		if(socket_type == com.aoapps.net.Protocol.TCP) out.print("stream");
+		else if(socket_type == com.aoapps.net.Protocol.UDP) out.print("dgram");
 		else throw new SQLException("Unknown value for socket_type: "+socket_type);
 		out.print('\n');
 

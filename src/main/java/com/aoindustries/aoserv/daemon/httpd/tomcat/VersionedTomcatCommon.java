@@ -22,11 +22,11 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.lang.util.CalendarUtils;
 import com.aoindustries.aoserv.client.web.tomcat.ContextDataSource;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.util.CalendarUtils;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -130,7 +130,7 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 				+ "          />\n");
 	}
 
-	protected static byte[] generateProfileCatalinaSh(String optSlash, String apacheTomcatDir, UnixFile installDir) throws IOException {
+	protected static byte[] generateProfileCatalinaSh(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException {
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
 		try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
 			out.print("export CATALINA_BASE=\"").print(installDir).print("\"\n"
@@ -142,7 +142,7 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 		return bout.toByteArray();
 	}
 
-	protected static byte[] generateProfileJavaDisableUsageTrackingSh(String optSlash, String apacheTomcatDir, UnixFile installDir) throws IOException {
+	protected static byte[] generateProfileJavaDisableUsageTrackingSh(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException {
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
 		try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
 			out.print("export JAVA_OPTS=\"${JAVA_OPTS:-}${JAVA_OPTS+ }-Djdk.disableLastUsageTracking=true\"\n");
@@ -150,7 +150,7 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 		return bout.toByteArray();
 	}
 
-	protected static byte[] generateProfileJavaHeadlessSh(String optSlash, String apacheTomcatDir, UnixFile installDir) throws IOException {
+	protected static byte[] generateProfileJavaHeadlessSh(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException {
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
 		try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
 			out.print("export JAVA_OPTS=\"${JAVA_OPTS:-}${JAVA_OPTS+ }-Djava.awt.headless=true\"\n");
@@ -158,7 +158,7 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 		return bout.toByteArray();
 	}
 
-	protected static byte[] generateProfileJavaHeapsizeSh(String optSlash, String apacheTomcatDir, UnixFile installDir) throws IOException {
+	protected static byte[] generateProfileJavaHeapsizeSh(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException {
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
 		try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
 			out.print("export JAVA_OPTS=\"${JAVA_OPTS:-}${JAVA_OPTS+ }-Xmx128M\"\n");
@@ -166,7 +166,7 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 		return bout.toByteArray();
 	}
 
-	protected static byte[] generateProfileJavaServerSh(String optSlash, String apacheTomcatDir, UnixFile installDir) throws IOException {
+	protected static byte[] generateProfileJavaServerSh(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException {
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
 		try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
 			out.print("export JAVA_OPTS=\"${JAVA_OPTS:-}${JAVA_OPTS+ }-server\"\n");
@@ -181,14 +181,14 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 		return "../../" + optSlash + jdkProfileSh.substring("/opt/".length());
 	}
 
-	protected static byte[] generateProfileUmaskSh(String optSlash, String apacheTomcatDir, UnixFile installDir) throws IOException {
+	protected static byte[] generateProfileUmaskSh(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException {
 		return (
 			"umask 0027\n"
 			+ "export UMASK=0027\n"
 		).getBytes(StandardCharsets.UTF_8);
 	}
 
-	protected static byte[] generateShutdownSh(String optSlash, String apacheTomcatDir, UnixFile installDir) throws IOException {
+	protected static byte[] generateShutdownSh(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException {
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
 		try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
 			out.print("#!/bin/sh\n"
@@ -200,7 +200,7 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 		return bout.toByteArray();
 	}
 
-	protected static byte[] generateStartupSh(String optSlash, String apacheTomcatDir, UnixFile installDir) throws IOException {
+	protected static byte[] generateStartupSh(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException {
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
 		try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
 			out.print("#!/bin/sh\n"
@@ -216,12 +216,12 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 	 * Gets the set of files that are installed during install and upgrade/downgrade.
 	 * Each path is relative to CATALINA_HOME/CATALINA_BASE.
 	 */
-	protected abstract List<Install> getInstallFiles(String optSlash, UnixFile installDir, int confMode) throws IOException, SQLException;
+	protected abstract List<Install> getInstallFiles(String optSlash, PosixFile installDir, int confMode) throws IOException, SQLException;
 
 	/**
 	 * Upgrades the Tomcat installed in the provided directory.
 	 *
 	 * @param optSlash  Relative path from the CATALINA_HOME to /opt/, including trailing slash, such as <code>../../opt/</code>.
 	 */
-	protected abstract boolean upgradeTomcatDirectory(String optSlash, UnixFile tomcatDirectory, int uid, int gid) throws IOException, SQLException;
+	protected abstract boolean upgradeTomcatDirectory(String optSlash, PosixFile tomcatDirectory, int uid, int gid) throws IOException, SQLException;
 }

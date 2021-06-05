@@ -22,11 +22,11 @@
  */
 package com.aoindustries.aoserv.daemon.monitor;
 
+import com.aoapps.lang.io.FileUtils;
 import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.net.NullRouteManager;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
-import com.aoindustries.io.FileUtils;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.DataInputStream;

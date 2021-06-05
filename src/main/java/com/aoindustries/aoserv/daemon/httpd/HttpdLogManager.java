@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,6 +22,10 @@
  */
 package com.aoindustries.aoserv.daemon.httpd;
 
+import com.aoapps.collections.AoCollections;
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
 import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.linux.User;
@@ -30,12 +34,8 @@ import com.aoindustries.aoserv.client.web.HttpdServer;
 import com.aoindustries.aoserv.client.web.Site;
 import com.aoindustries.aoserv.client.web.VirtualHost;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.collections.AoCollections;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -72,12 +72,12 @@ class HttpdLogManager {
 	/**
 	 * The /var/log directory.
 	 */
-	private static final UnixFile varLogDir = new UnixFile("/var/log");
+	private static final PosixFile varLogDir = new PosixFile("/var/log");
 
 	/**
 	 * The directory that contains the per-apache-instance logs.
 	 */
-	private static final UnixFile serverLogDirOld = new UnixFile("/var/log/httpd");
+	private static final PosixFile serverLogDirOld = new PosixFile("/var/log/httpd");
 
 	private static final Pattern HTTPD_NAME_REGEXP = Pattern.compile("^httpd@.+$");
 
@@ -89,7 +89,7 @@ class HttpdLogManager {
 	static void doRebuild(
 		List<File> deleteFileList,
 		Set<HttpdServer> serversNeedingReloaded,
-		Set<UnixFile> restorecon
+		Set<PosixFile> restorecon
 	) throws IOException, SQLException {
 		// Used below
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
@@ -132,17 +132,17 @@ class HttpdLogManager {
 				logfileUID = awstatsLSA.getUid().getId();
 			} else {
 				// Allow access to root otherwise
-				logfileUID = UnixFile.ROOT_UID;
+				logfileUID = PosixFile.ROOT_UID;
 			}
 		}
 
 		// The log directories that exist but are not used will be removed
 		PosixPath logDir = thisServer.getHost().getOperatingSystemVersion().getHttpdSiteLogsDirectory();
 		if(logDir != null) {
-			UnixFile logDirUF = new UnixFile(logDir.toString());
+			PosixFile logDirUF = new PosixFile(logDir.toString());
 			// Create the logs directory if missing
 			if(!logDirUF.getStat().exists()) {
-				logDirUF.mkdir(true, 0755, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
+				logDirUF.mkdir(true, 0755, PosixFile.ROOT_UID, PosixFile.ROOT_GID);
 			}
 
 			Set<String> logDirectories;
@@ -165,7 +165,7 @@ class HttpdLogManager {
 
 				// Create the /logs/<site_name> or /var/log/httpd-sites/<site_name> directory
 				String siteName = httpdSite.getName();
-				UnixFile logDirectory = new UnixFile(logDirUF, siteName, true);
+				PosixFile logDirectory = new PosixFile(logDirUF, siteName, true);
 				Stat logStat = logDirectory.getStat();
 				if(!logStat.exists()) {
 					logDirectory.mkdir();
@@ -182,9 +182,9 @@ class HttpdLogManager {
 				for(VirtualHost hsb : hsbs) {
 					// access_log
 					PosixPath accessLog = hsb.getAccessLog();
-					UnixFile accessLogFile = new UnixFile(accessLog.toString());
+					PosixFile accessLogFile = new PosixFile(accessLog.toString());
 					Stat accessLogStat = accessLogFile.getStat();
-					UnixFile accessLogParent = accessLogFile.getParent();
+					PosixFile accessLogParent = accessLogFile.getParent();
 					if(!accessLogStat.exists()) {
 						// Make sure the parent directory exists
 						if(!accessLogParent.getStat().exists()) accessLogParent.mkdir(true, 0750, logfileUID, lsgGID);
@@ -204,8 +204,8 @@ class HttpdLogManager {
 
 					// error_log
 					PosixPath errorLog = hsb.getErrorLog();
-					UnixFile errorLogFile = new UnixFile(errorLog.toString());
-					UnixFile errorLogParent = errorLogFile.getParent();
+					PosixFile errorLogFile = new PosixFile(errorLog.toString());
+					PosixFile errorLogParent = errorLogFile.getParent();
 					Stat errorLogStat = errorLogFile.getStat();
 					if(!errorLogStat.exists()) {
 						// Make sure the parent directory exists
@@ -241,7 +241,7 @@ class HttpdLogManager {
 		Server thisServer,
 		List<File> deleteFileList,
 		ByteArrayOutputStream byteOut,
-		Set<UnixFile> restorecon
+		Set<PosixFile> restorecon
 	) throws IOException, SQLException {
 		final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 		final String siteLogRotationDir;
@@ -262,7 +262,7 @@ class HttpdLogManager {
 		int gid_min = thisServer.getGidMin().getId();
 
 		// Create directory if missing
-		DaemonFileUtils.mkdir(siteLogRotationDir, 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
+		DaemonFileUtils.mkdir(siteLogRotationDir, 0700, PosixFile.ROOT_UID, PosixFile.ROOT_GID);
 
 		// The log rotations that exist but are not used will be removed
 		Set<String> logRotationFiles = new HashSet<>(Arrays.asList(new File(siteLogRotationDir).list()));
@@ -304,10 +304,10 @@ class HttpdLogManager {
 
 				// Write to disk if file missing or doesn't match
 				DaemonFileUtils.atomicWrite(
-					new UnixFile(siteLogRotationDir, site.getName()),
+					new PosixFile(siteLogRotationDir, site.getName()),
 					byteOut.toByteArray(),
 					0640,
-					UnixFile.ROOT_UID,
+					PosixFile.ROOT_UID,
 					site.getLinuxServerGroup().getGid().getId(),
 					null,
 					restorecon
@@ -327,7 +327,7 @@ class HttpdLogManager {
 
 		if(serverLogRotationDir != null) {
 			// Create directory if missing
-			DaemonFileUtils.mkdir(serverLogRotationDir, 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
+			DaemonFileUtils.mkdir(serverLogRotationDir, 0700, PosixFile.ROOT_UID, PosixFile.ROOT_GID);
 
 			// The log rotations that exist but are not used will be removed
 			logRotationFiles.clear();
@@ -383,11 +383,11 @@ class HttpdLogManager {
 					}
 				}
 				DaemonFileUtils.atomicWrite(
-					new UnixFile(serverLogRotationDir+"/"+filename),
+					new PosixFile(serverLogRotationDir+"/"+filename),
 					byteOut.toByteArray(),
 					0600,
-					UnixFile.ROOT_UID,
-					UnixFile.ROOT_GID,
+					PosixFile.ROOT_UID,
+					PosixFile.ROOT_GID,
 					null,
 					restorecon
 				);
@@ -408,7 +408,7 @@ class HttpdLogManager {
 	private static void doRebuildVarLogHttpd(
 		Server thisServer,
 		List<File> deleteFileList,
-		Set<UnixFile> restorecon
+		Set<PosixFile> restorecon
 	) throws IOException, SQLException {
 		HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 		if(osConfig == HttpdOperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) {
@@ -418,7 +418,7 @@ class HttpdLogManager {
 			if(serverLogDirStat.exists() && serverLogDirStat.isSymLink()) serverLogDirOld.delete();
 
 			// Create /var/log/httpd if missing
-			DaemonFileUtils.mkdir(serverLogDirOld, 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
+			DaemonFileUtils.mkdir(serverLogDirOld, 0700, PosixFile.ROOT_UID, PosixFile.ROOT_GID);
 
 			// Create all /var/log/httpd/* directories
 			List<HttpdServer> hss = thisServer.getHttpdServers();
@@ -428,14 +428,14 @@ class HttpdLogManager {
 				int num = name==null ? 1 : Integer.parseInt(name);
 				String dirname = "httpd" + num;
 				keepFilenames.add(dirname);
-				DaemonFileUtils.mkdir(new UnixFile(serverLogDirOld, dirname, false), 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
+				DaemonFileUtils.mkdir(new PosixFile(serverLogDirOld, dirname, false), 0700, PosixFile.ROOT_UID, PosixFile.ROOT_GID);
 			}
 
 			// Remove any extra
 			for(String filename : serverLogDirOld.list()) {
 				if(!keepFilenames.contains(filename)) {
 					if(!filename.startsWith("suexec.log")) {
-						File toDelete = new UnixFile(serverLogDirOld, filename, false).getFile();
+						File toDelete = new PosixFile(serverLogDirOld, filename, false).getFile();
 						if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
 						deleteFileList.add(toDelete);
 					}
@@ -449,8 +449,8 @@ class HttpdLogManager {
 				String escapedName = hs.getSystemdEscapedName();
 				String dirname = escapedName == null ? "httpd" : ("httpd@" + escapedName);
 				keepFilenames.add(dirname);
-				UnixFile varLogDirUF = new UnixFile(varLogDir, dirname, true);
-				if(DaemonFileUtils.mkdir(varLogDirUF, 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID)) {
+				PosixFile varLogDirUF = new PosixFile(varLogDir, dirname, true);
+				if(DaemonFileUtils.mkdir(varLogDirUF, 0700, PosixFile.ROOT_UID, PosixFile.ROOT_GID)) {
 					restorecon.add(varLogDirUF);
 				}
 			}
@@ -462,7 +462,7 @@ class HttpdLogManager {
 					!keepFilenames.contains(filename)
 					&& HTTPD_NAME_REGEXP.matcher(filename).matches()
 				) {
-					File toDelete = new UnixFile(varLogDir, filename, false).getFile();
+					File toDelete = new PosixFile(varLogDir, filename, false).getFile();
 					if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
 					deleteFileList.add(toDelete);
 				}

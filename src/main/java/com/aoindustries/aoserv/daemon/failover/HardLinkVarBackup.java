@@ -22,12 +22,12 @@
  */
 package com.aoindustries.aoserv.daemon.failover;
 
-import com.aoindustries.collections.AoCollections;
-import com.aoindustries.io.FilesystemIterator;
-import com.aoindustries.io.FilesystemIteratorRule;
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.lang.Strings;
+import com.aoapps.collections.AoCollections;
+import com.aoapps.hodgepodge.io.FilesystemIterator;
+import com.aoapps.hodgepodge.io.FilesystemIteratorRule;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
+import com.aoapps.lang.Strings;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -123,7 +123,7 @@ final public class HardLinkVarBackup {
 							&& datesFilename.charAt(9)>='0' && datesFilename.charAt(9)<='9'
 						) {
 							String path = "/var/backup/"+serverDir+"/"+datesFilename;
-							UnixFile uf = new UnixFile(path);
+							PosixFile uf = new PosixFile(path);
 							try {
 								if(uf.getStat().isDirectory()) {
 									out.print("Scanning "); out.println(path);
@@ -143,7 +143,7 @@ final public class HardLinkVarBackup {
 			final int numIterators = iteratorList.size();
 			final FilesystemIterator[] iterators = iteratorList.toArray(new FilesystemIterator[numIterators]);
 			final String[] iteratorStarts = iteratorStartsList.toArray(new String[numIterators]);
-			final UnixFile[] unixFiles = new UnixFile[numIterators];
+			final PosixFile[] unixFiles = new PosixFile[numIterators];
 			final String[] relativePaths = new String[numIterators];
 			// For quicker comparisons, matches for lowest relative paths are cached here
 			final boolean[] isLowestRelativePaths = new boolean[numIterators];
@@ -157,7 +157,7 @@ final public class HardLinkVarBackup {
 			for(int c=0;c<numIterators;c++) {
 				try {
 					File file = iterators[c].getNextFile();
-					UnixFile uf = file==null ? null : new UnixFile(file);
+					PosixFile uf = file==null ? null : new PosixFile(file);
 					unixFiles[c]=uf;
 					relativePaths[c]=uf==null ? null : uf.getPath().substring(iteratorStarts[c].length());
 				} catch(IOException ioExc) {
@@ -195,7 +195,7 @@ final public class HardLinkVarBackup {
 				contentNotEquals.clear();
 
 				for(int c=0;c<numIterators;c++) {
-					UnixFile uf = unixFiles[c];
+					PosixFile uf = unixFiles[c];
 					if(uf!=null) {
 						if(isLowestRelativePaths[c]=(relativePaths[c].equals(lowestRelativePath))) {
 							// Keep stats
@@ -203,10 +203,10 @@ final public class HardLinkVarBackup {
 							try {
 								Stat ufStat = uf.getStat();
 								long statMode = ufStat.getRawMode();
-								long mode = statMode & UnixFile.PERMISSION_MASK;
-								if(UnixFile.isDirectory(statMode)) totalDirectories++;
-								else if(UnixFile.isSymLink(statMode)) totalSymlinks++;
-								else if(UnixFile.isRegularFile(statMode)) {
+								long mode = statMode & PosixFile.PERMISSION_MASK;
+								if(PosixFile.isDirectory(statMode)) totalDirectories++;
+								else if(PosixFile.isSymLink(statMode)) totalSymlinks++;
+								else if(PosixFile.isRegularFile(statMode)) {
 									totalFiles++;
 									long device = ufStat.getDevice();
 									long inode = ufStat.getInode();
@@ -219,7 +219,7 @@ final public class HardLinkVarBackup {
 
 									// Look for regular file up the list to link to
 									for(int d=(c-1);d>=0;d--) {
-										UnixFile otherUF = unixFiles[d];
+										PosixFile otherUF = unixFiles[d];
 										if(
 											otherUF!=null
 											// Have the same exact path relative to their /var/backup/hostname/####-##-## directories
@@ -266,10 +266,10 @@ final public class HardLinkVarBackup {
 															// Do hard link
 															// Make link in a temp path and then move into place atomically using renameTo
 															// Find any available filename
-															UnixFile tempUF = null;
+															PosixFile tempUF = null;
 															for(int e=0;e<Integer.MAX_VALUE;e++) {
 																String tempPath=uf.getPath()+'.'+e;
-																UnixFile temp = new UnixFile(tempPath);
+																PosixFile temp = new PosixFile(tempPath);
 																if(!temp.getStat().exists()) {
 																	tempUF=temp;
 																	break;
@@ -304,13 +304,13 @@ final public class HardLinkVarBackup {
 
 				// Iterate each to next file
 				for(int c=0;c<numIterators;c++) {
-					UnixFile uf = unixFiles[c];
+					PosixFile uf = unixFiles[c];
 					if(uf!=null) {
 						if(isLowestRelativePaths[c]) {
 						//if(relativePaths[c].equals(lowestRelativePath)) {
 							try {
 								File file = iterators[c].getNextFile();
-								UnixFile newUf = file==null ? null : new UnixFile(file);
+								PosixFile newUf = file==null ? null : new PosixFile(file);
 								unixFiles[c]=newUf;
 								relativePaths[c]=newUf==null ? null : newUf.getPath().substring(iteratorStarts[c].length());
 							} catch(IOException ioExc) {

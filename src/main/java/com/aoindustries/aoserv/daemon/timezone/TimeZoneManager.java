@@ -22,15 +22,15 @@
  */
 package com.aoindustries.aoserv.daemon.timezone;
 
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -50,7 +50,7 @@ public class TimeZoneManager extends BuilderThread {
 
 	private static TimeZoneManager timeZoneManager;
 
-	private static final UnixFile ETC_LOCALTIME = new UnixFile("/etc/localtime");
+	private static final PosixFile ETC_LOCALTIME = new PosixFile("/etc/localtime");
 
 	private TimeZoneManager() {
 	}
@@ -134,14 +134,14 @@ public class TimeZoneManager extends BuilderThread {
 					byte[] newBytes = bout.toByteArray();
 
 					// Only update the file when it has changed
-					UnixFile clockConfig = new UnixFile("/etc/sysconfig/clock");
+					PosixFile clockConfig = new PosixFile("/etc/sysconfig/clock");
 					if(!clockConfig.getStat().exists() || !clockConfig.contentEquals(newBytes)) {
 						// Write to temp file
-						UnixFile newClockConfig = new UnixFile("/etc/sysconfig/clock.new");
+						PosixFile newClockConfig = new PosixFile("/etc/sysconfig/clock.new");
 						try (
 							OutputStream newClockOut = newClockConfig.getSecureOutputStream(
-								UnixFile.ROOT_UID,
-								UnixFile.ROOT_GID,
+								PosixFile.ROOT_UID,
+								PosixFile.ROOT_GID,
 								0755,
 								true,
 								thisServer.getUidMin().getId(),

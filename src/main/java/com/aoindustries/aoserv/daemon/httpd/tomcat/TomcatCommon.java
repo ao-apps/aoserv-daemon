@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2008-2013, 2015, 2017, 2018, 2020  AO Industries, Inc.
+ * Copyright (C) 2008-2013, 2015, 2017, 2018, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,10 +22,10 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
+import com.aoapps.encoding.ChainWriter;
 import com.aoindustries.aoserv.client.web.tomcat.ContextDataSource;
 import com.aoindustries.aoserv.client.web.tomcat.ContextParameter;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
-import com.aoindustries.encoding.ChainWriter;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Set;

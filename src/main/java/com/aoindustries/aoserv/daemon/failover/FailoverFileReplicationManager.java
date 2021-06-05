@@ -22,6 +22,23 @@
  */
 package com.aoindustries.aoserv.daemon.failover;
 
+import com.aoapps.collections.AoCollections;
+import com.aoapps.cron.CronDaemon;
+import com.aoapps.cron.CronJob;
+import com.aoapps.cron.Schedule;
+import com.aoapps.hodgepodge.io.ParallelDelete;
+import com.aoapps.hodgepodge.io.stream.StreamableInput;
+import com.aoapps.hodgepodge.io.stream.StreamableOutput;
+import com.aoapps.hodgepodge.md5.MD5;
+import com.aoapps.io.filesystems.Path;
+import com.aoapps.io.filesystems.posix.DedupDataIndex;
+import com.aoapps.io.filesystems.posix.DefaultPosixFileSystem;
+import com.aoapps.io.filesystems.posix.PosixFileSystem;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
+import com.aoapps.lang.AutoCloseables;
+import com.aoapps.lang.Throwables;
+import com.aoapps.lang.math.SafeMath;
 import com.aoindustries.aoserv.backup.BackupDaemon;
 import com.aoindustries.aoserv.client.backup.BackupRetention;
 import com.aoindustries.aoserv.client.mysql.Server;
@@ -30,23 +47,6 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.backup.AOServerEnvironment;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
-import com.aoindustries.collections.AoCollections;
-import com.aoindustries.cron.CronDaemon;
-import com.aoindustries.cron.CronJob;
-import com.aoindustries.cron.Schedule;
-import com.aoindustries.io.ParallelDelete;
-import com.aoindustries.io.filesystems.Path;
-import com.aoindustries.io.filesystems.unix.DedupDataIndex;
-import com.aoindustries.io.filesystems.unix.DefaultUnixFileSystem;
-import com.aoindustries.io.filesystems.unix.UnixFileSystem;
-import com.aoindustries.io.stream.StreamableInput;
-import com.aoindustries.io.stream.StreamableOutput;
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.lang.AutoCloseables;
-import com.aoindustries.lang.Throwables;
-import com.aoindustries.math.SafeMath;
-import com.aoindustries.md5.MD5;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
@@ -494,7 +494,7 @@ final public class FailoverFileReplicationManager {
 		}
 	}
 
-	private static String readLink(Activity activity, UnixFile uf) throws IOException {
+	private static String readLink(Activity activity, PosixFile uf) throws IOException {
 		activity.update("file: readLink: ", uf);
 		return uf.readLink();
 	}
@@ -503,13 +503,13 @@ final public class FailoverFileReplicationManager {
 	 * Makes a temporary file based on the given file.
 	 */
 	// TODO: Use TempFileContext to automatically delete when interrupted?
-	private static UnixFile mktemp(Activity activity, UnixFile uf) throws IOException {
+	private static PosixFile mktemp(Activity activity, PosixFile uf) throws IOException {
 		File file = uf.getFile();
 		File dir = file.getParentFile();
 		String name = file.getName();
 		if(name.length() > 64) name = name.substring(0, 64);
 		activity.update("file: mktemp: ", new File(dir, name));
-		return new UnixFile(
+		return new PosixFile(
 			Files.createTempFile(
 				dir.toPath(),
 				name,
@@ -518,37 +518,37 @@ final public class FailoverFileReplicationManager {
 		);
 	}
 
-	private static void delete(Activity activity, UnixFile uf) throws IOException {
+	private static void delete(Activity activity, PosixFile uf) throws IOException {
 		activity.update("file: delete: ", uf);
 		uf.delete();
 	}
 
-	private static void deleteRecursive(Activity activity, UnixFile uf) throws IOException {
+	private static void deleteRecursive(Activity activity, PosixFile uf) throws IOException {
 		activity.update("file: deleteRecursive: ", uf);
 		uf.deleteRecursive();
 	}
 
-	private static Stat stat(Activity activity, UnixFile uf) throws IOException {
+	private static Stat stat(Activity activity, PosixFile uf) throws IOException {
 		activity.update("file: stat: ", uf);
 		return uf.getStat();
 	}
 
-	private static void link(Activity activity, UnixFile from, UnixFile to) throws IOException {
+	private static void link(Activity activity, PosixFile from, PosixFile to) throws IOException {
 		activity.update("file: link: ", from, " to ", to);
 		from.link(to);
 	}
 
-	private static void rename(Activity activity, UnixFile from, UnixFile to) throws IOException {
+	private static void rename(Activity activity, PosixFile from, PosixFile to) throws IOException {
 		activity.update("file: rename: ", from, " to ", to);
 		from.renameTo(to);
 	}
 
-	private static void mkdir(Activity activity, UnixFile uf) throws IOException {
+	private static void mkdir(Activity activity, PosixFile uf) throws IOException {
 		activity.update("file: mkdir: ", uf);
 		uf.mkdir();
 	}
 
-	private static void mkdir(Activity activity, UnixFile uf, boolean makeParents, long mode, int uid, int gid) throws IOException {
+	private static void mkdir(Activity activity, PosixFile uf, boolean makeParents, long mode, int uid, int gid) throws IOException {
 		activity.update("file: mkdir: ", uf);
 		uf.mkdir(
 			makeParents,
@@ -558,57 +558,57 @@ final public class FailoverFileReplicationManager {
 		);
 	}
 
-	private static String[] list(Activity activity, UnixFile uf) throws IOException {
+	private static String[] list(Activity activity, PosixFile uf) throws IOException {
 		activity.update("file: list: ", uf);
 		return uf.list();
 	}
 
-	private static void mknod(Activity activity, UnixFile uf, long mode, long device) throws IOException {
+	private static void mknod(Activity activity, PosixFile uf, long mode, long device) throws IOException {
 		activity.update("file: mknod: ", uf);
 		uf.mknod(mode, device);
 	}
 
-	private static void mkfifo(Activity activity, UnixFile uf, long mode) throws IOException {
+	private static void mkfifo(Activity activity, PosixFile uf, long mode) throws IOException {
 		activity.update("file: mkfifo: ", uf);
 		uf.mkfifo(mode);
 	}
 
-	private static void touch(Activity activity, UnixFile uf) throws IOException {
+	private static void touch(Activity activity, PosixFile uf) throws IOException {
 		activity.update("file: touch: ", uf);
 		new FileOutputStream(uf.getFile()).close();
 	}
 
-	private static FileInputStream openIn(Activity activity, UnixFile uf) throws IOException {
+	private static FileInputStream openIn(Activity activity, PosixFile uf) throws IOException {
 		activity.update("file: open: < ", uf);
 		return new FileInputStream(uf.getFile());
 	}
 
-	private static RandomAccessFile openInRaf(Activity activity, UnixFile uf) throws IOException {
+	private static RandomAccessFile openInRaf(Activity activity, PosixFile uf) throws IOException {
 		activity.update("file: open: < ", uf);
 		return new RandomAccessFile(uf.getFile(), "r");
 	}
 
-	private static FileOutputStream openOut(Activity activity, UnixFile uf) throws IOException {
+	private static FileOutputStream openOut(Activity activity, PosixFile uf) throws IOException {
 		activity.update("file: open: > ", uf);
 		return new FileOutputStream(uf.getFile());
 	}
 
-	private static void close(Activity activity, UnixFile uf, InputStream in) throws IOException {
+	private static void close(Activity activity, PosixFile uf, InputStream in) throws IOException {
 		activity.update("file: close: < ", uf);
 		in.close();
 	}
 
-	private static void close(Activity activity, UnixFile uf, RandomAccessFile raf) throws IOException {
+	private static void close(Activity activity, PosixFile uf, RandomAccessFile raf) throws IOException {
 		activity.update("file: close: < ", uf);
 		raf.close();
 	}
 
-	private static void close(Activity activity, UnixFile uf, OutputStream out) throws IOException {
+	private static void close(Activity activity, PosixFile uf, OutputStream out) throws IOException {
 		activity.update("file: close: > ", uf);
 		out.close();
 	}
 
-	private static void renameToNoExists(Logger logger, Activity activity, UnixFile from, UnixFile to) throws IOException {
+	private static void renameToNoExists(Logger logger, Activity activity, PosixFile from, PosixFile to) throws IOException {
 		boolean isFine = logger.isLoggable(Level.FINE);
 		if(isFine) logger.fine("Renaming \""+from+"\" to \""+to+'"');
 		if(stat(activity, to).exists()) throw new IOException("to exists: "+to);
@@ -624,7 +624,7 @@ final public class FailoverFileReplicationManager {
 		synchronized(dedupIndexes) {
 			DedupDataIndex dedupIndex = dedupIndexes.get(backupPartition);
 			if(dedupIndex == null) {
-				UnixFileSystem fileSystem = DefaultUnixFileSystem.getInstance();
+				PosixFileSystem fileSystem = DefaultPosixFileSystem.getInstance();
 				Path dataIndexDir = new Path(
 					fileSystem.parsePath(backupPartition),
 					DATA_INDEX_DIRECTORY_NAME
@@ -738,7 +738,7 @@ final public class FailoverFileReplicationManager {
 
 				// Create the server root if it doesn't exist
 				{
-					UnixFile toPathUF = new UnixFile(toPath);
+					PosixFile toPathUF = new PosixFile(toPath);
 					Stat dirStat = stat(activity, toPathUF);
 					if(!dirStat.exists()) {
 						mkdir(
@@ -746,8 +746,8 @@ final public class FailoverFileReplicationManager {
 							toPathUF,
 							true,
 							quota_gid==-1 ? 0700 : 0750,
-							UnixFile.ROOT_UID,
-							quota_gid==-1 ? UnixFile.ROOT_GID : quota_gid
+							PosixFile.ROOT_UID,
+							quota_gid==-1 ? PosixFile.ROOT_GID : quota_gid
 						);
 					} else if(!dirStat.isDirectory()) {
 						throw new IOException("toPath exists but is not a directory: "+toPath);
@@ -764,7 +764,7 @@ final public class FailoverFileReplicationManager {
 				final String recycledPartialMirrorRoot;
 				final String finalMirrorRoot;
 				String linkToRoot;
-				final UnixFile perDateRoot;
+				final PosixFile perDateRoot;
 				boolean isRecycling;
 				final DedupDataIndex dataIndex;
 				if(retention == 1) {
@@ -782,7 +782,7 @@ final public class FailoverFileReplicationManager {
 					dataIndex = getDedupDataIndex(activity, backupPartition);
 
 					// The directory that holds the different versions
-					perDateRoot = new UnixFile(toPath);
+					perDateRoot = new PosixFile(toPath);
 
 					// The directories including the date
 					StringBuilder SB = new StringBuilder(toPath);
@@ -821,21 +821,21 @@ final public class FailoverFileReplicationManager {
 					 */
 					// When the finalMirrorRoot exists, it is assumed to be complete and no linking to other directories will be performed.  This mode
 					// is used when multiple passes are performed in a single day, it is basically the same behavior as a failover replication.
-					UnixFile finalUF = new UnixFile(finalMirrorRoot);
+					PosixFile finalUF = new PosixFile(finalMirrorRoot);
 					if(stat(activity, finalUF).exists()) {
 						// See (1) above
-						UnixFile partialUF = new UnixFile(partialMirrorRoot);
+						PosixFile partialUF = new PosixFile(partialMirrorRoot);
 						renameToNoExists(logger, activity, finalUF, partialUF);
 						linkToRoot = null;
 						isRecycling = false;
 					} else {
 						{
-							UnixFile recycledPartialUF = new UnixFile(recycledPartialMirrorRoot);
+							PosixFile recycledPartialUF = new PosixFile(recycledPartialMirrorRoot);
 							if(stat(activity, recycledPartialUF).exists()) {
 								// See (2) above
 								isRecycling = true;
 							} else {
-								UnixFile partialUF = new UnixFile(partialMirrorRoot);
+								PosixFile partialUF = new PosixFile(partialMirrorRoot);
 								if(stat(activity, partialUF).exists()) {
 									// See (3) above
 									isRecycling = false;
@@ -856,7 +856,7 @@ final public class FailoverFileReplicationManager {
 												renameToNoExists(
 													logger,
 													activity,
-													new UnixFile(perDateRoot, filename, false),
+													new PosixFile(perDateRoot, filename, false),
 													isRecycling ? recycledPartialUF : partialUF
 												);
 												foundPartial = true;
@@ -872,7 +872,7 @@ final public class FailoverFileReplicationManager {
 													renameToNoExists(
 														logger,
 														activity,
-														new UnixFile(perDateRoot, filename, false),
+														new PosixFile(perDateRoot, filename, false),
 														recycledPartialUF
 													);
 													isRecycling = true;
@@ -972,10 +972,10 @@ final public class FailoverFileReplicationManager {
 
 				String[] paths = null;
 				boolean[] isLogDirs = null;
-				Map<UnixFile, ModifyTimeAndSizeCache> modifyTimeAndSizeCaches = new HashMap<>();
+				Map<PosixFile, ModifyTimeAndSizeCache> modifyTimeAndSizeCaches = new HashMap<>();
 
-				UnixFile[] tempNewFiles = null;
-				UnixFile[] chunkingFroms = null;
+				PosixFile[] tempNewFiles = null;
+				PosixFile[] chunkingFroms = null;
 				long[] chunkingSizes = null;
 				long[][] chunksMD5His = null;
 				long[][] chunksMD5Los = null;
@@ -985,16 +985,16 @@ final public class FailoverFileReplicationManager {
 				final byte[] chunkBuffer = new byte[AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE];
 				final MD5 md5 = useCompression ? new MD5() : null;
 				// The extra files in directories are cleaned once the directory is done
-				final Stack<UnixFile> directoryUFs = new Stack<>();
-				final Stack<UnixFile> directoryLinkToUFs = linkToRoot==null ? null : new Stack<>();
+				final Stack<PosixFile> directoryUFs = new Stack<>();
+				final Stack<PosixFile> directoryLinkToUFs = linkToRoot==null ? null : new Stack<>();
 				final Stack<String> directoryUFRelativePaths = new Stack<>();
 				final Stack<Long> directoryModifyTimes = new Stack<>();
 				final Stack<Set<String>> directoryContents = new Stack<>();
 
 				// The actual cleaning and modify time setting is delayed to the end of the batch by adding
 				// the lists of things to do here.
-				final List<UnixFile> directoryFinalizeUFs = new ArrayList<>();
-				final List<UnixFile> directoryFinalizeLinkToUFs = linkToRoot==null ? null : new ArrayList<>();
+				final List<PosixFile> directoryFinalizeUFs = new ArrayList<>();
+				final List<PosixFile> directoryFinalizeLinkToUFs = linkToRoot==null ? null : new ArrayList<>();
 				final List<String> directoryFinalizeUFRelativePaths = new ArrayList<>();
 				final List<Long> directoryFinalizeModifyTimes = new ArrayList<>();
 				final List<Set<String>> directoryFinalizeContents = new ArrayList<>();
@@ -1007,9 +1007,9 @@ final public class FailoverFileReplicationManager {
 					if(paths == null || paths.length < batchSize) {
 						paths = new String[batchSize];
 						isLogDirs = new boolean[batchSize];
-						tempNewFiles = new UnixFile[batchSize];
+						tempNewFiles = new PosixFile[batchSize];
 						if(useCompression) {
-							chunkingFroms = new UnixFile[batchSize];
+							chunkingFroms = new PosixFile[batchSize];
 							chunkingSizes = new long[batchSize];
 							chunksMD5His = new long[batchSize][];
 							chunksMD5Los = new long[batchSize][];
@@ -1034,16 +1034,16 @@ final public class FailoverFileReplicationManager {
 							isLogDirs[c] = relativePath.startsWith("/logs/") || relativePath.startsWith("/var/log/");
 							String path = (isRecycling ? recycledPartialMirrorRoot : partialMirrorRoot) + relativePath;
 							paths[c] = path;
-							UnixFile uf = new UnixFile(path);
+							PosixFile uf = new PosixFile(path);
 							Stat ufStat = stat(activity, uf);
-							UnixFile ufParent = uf.getParent();
+							PosixFile ufParent = uf.getParent();
 							//String linkToPath;
-							UnixFile linkToUF;
+							PosixFile linkToUF;
 							Stat linkToUFStat;
-							UnixFile linkToParent;
+							PosixFile linkToParent;
 							if(linkToRoot != null) {
 								String linkToPath = linkToRoot+relativePath;
-								linkToUF = new UnixFile(linkToPath);
+								linkToUF = new PosixFile(linkToPath);
 								linkToUFStat = stat(activity, linkToUF);
 								linkToParent = linkToUF.getParent();
 							} else {
@@ -1055,7 +1055,7 @@ final public class FailoverFileReplicationManager {
 							activity.update("socket: read: Reading mode ", batchPosObj, " of ", batchSizeObj);
 							long mode = in.readLong();
 							long length;
-							if(UnixFile.isRegularFile(mode)) {
+							if(PosixFile.isRegularFile(mode)) {
 								activity.update("socket: read: Reading length ", batchPosObj, " of ", batchSizeObj);
 								length = in.readLong();
 							} else {
@@ -1067,16 +1067,16 @@ final public class FailoverFileReplicationManager {
 							int gid = in.readCompressedInt();
 							long modifyTime;
 							// TODO: Once glibc >= 2.6 and kernel >= 2.6.22, can use lutimes call for symbolic links
-							if(UnixFile.isSymLink(mode)) {
+							if(PosixFile.isSymLink(mode)) {
 								modifyTime = -1;
 							} else {
 								activity.update("socket: read: Reading modifyTime ", batchPosObj, " of ", batchSizeObj);
 								modifyTime = in.readLong();
 							}
 							modifyTimes[c] = modifyTime;
-							//if(modifyTime<1000 && !UnixFile.isSymLink(mode) && log.isWarnEnabled()) log.warn("Non-symlink modifyTime<1000: "+relativePath+": "+modifyTime);
+							//if(modifyTime<1000 && !PosixFile.isSymLink(mode) && log.isWarnEnabled()) log.warn("Non-symlink modifyTime<1000: "+relativePath+": "+modifyTime);
 							String symlinkTarget;
-							if(UnixFile.isSymLink(mode)) {
+							if(PosixFile.isSymLink(mode)) {
 								activity.update("socket: read: Reading symlinkTarget ", batchPosObj, " of ", batchSizeObj);
 								symlinkTarget = in.readCompressedUTF();
 								checkSymlinkTarget(symlinkTarget);
@@ -1085,8 +1085,8 @@ final public class FailoverFileReplicationManager {
 							}
 							long deviceID;
 							if(
-								UnixFile.isBlockDevice(mode)
-								|| UnixFile.isCharacterDevice(mode)
+								PosixFile.isBlockDevice(mode)
+								|| PosixFile.isCharacterDevice(mode)
 							) {
 								activity.update("socket: read: Reading deviceID ", batchPosObj, " of ", batchSizeObj);
 								deviceID = in.readLong();
@@ -1097,7 +1097,7 @@ final public class FailoverFileReplicationManager {
 
 							// Cleanup extra entries in completed directories, setting modifyTime on the directories
 							while(!directoryUFs.isEmpty()) {
-								UnixFile dirUF = directoryUFs.peek();
+								PosixFile dirUF = directoryUFs.peek();
 								String dirPath = dirUF.getPath();
 								if(!dirPath.endsWith("/")) dirPath += '/';
 
@@ -1130,7 +1130,7 @@ final public class FailoverFileReplicationManager {
 								chunksMD5His[c] = null;
 								chunksMD5Los[c] = null;
 							}
-							if(UnixFile.isBlockDevice(mode)) {
+							if(PosixFile.isBlockDevice(mode)) {
 								if(
 									ufStat.exists()
 									&& (
@@ -1164,7 +1164,7 @@ final public class FailoverFileReplicationManager {
 										updated(retention, postPassChecklist, relativePath);
 									}
 								}
-							} else if(UnixFile.isCharacterDevice(mode)) {
+							} else if(PosixFile.isCharacterDevice(mode)) {
 								if(
 									ufStat.exists()
 									&& (
@@ -1198,7 +1198,7 @@ final public class FailoverFileReplicationManager {
 										updated(retention, postPassChecklist, relativePath);
 									}
 								}
-							} else if(UnixFile.isDirectory(mode)) {
+							} else if(PosixFile.isDirectory(mode)) {
 								if(
 									ufStat.exists()
 									&& !ufStat.isDirectory()
@@ -1236,7 +1236,7 @@ final public class FailoverFileReplicationManager {
 								directoryUFRelativePaths.push(relativePath);
 								directoryModifyTimes.push(modifyTime);
 								directoryContents.push(new HashSet<>());
-							} else if(UnixFile.isFifo(mode)) {
+							} else if(PosixFile.isFifo(mode)) {
 								if(
 									ufStat.exists()
 									&& !ufStat.isFifo()
@@ -1266,7 +1266,7 @@ final public class FailoverFileReplicationManager {
 										updated(retention, postPassChecklist, relativePath);
 									}
 								}
-							} else if(UnixFile.isRegularFile(mode)) {
+							} else if(PosixFile.isRegularFile(mode)) {
 								/* 
 								 * When receiving a regular file, we will always look in the current directory and the linkTo directory
 								 * for an exact match with the same filename (based on length and mtime only).  If the exact match is in the
@@ -1334,7 +1334,7 @@ final public class FailoverFileReplicationManager {
 											// If we are in a log directory, move the regular file out of the way into a temp file (for possible later reuse)
 											if(isLogDir) {
 												// Move to a new temp filename for later reuse
-												UnixFile tempUF = mktemp(activity, uf);
+												PosixFile tempUF = mktemp(activity, uf);
 												// Update the filesystem
 												rename(activity, uf, tempUF);
 												link(activity, uf, linkToUF);
@@ -1366,7 +1366,7 @@ final public class FailoverFileReplicationManager {
 										boolean linkedOldLogFile = false;
 										if(!isEncryptedLoopFile && isLogDir) {
 											// Look for another file with the same size and modify time in this partial directory
-											UnixFile oldLogUF = null;
+											PosixFile oldLogUF = null;
 											ModifyTimeAndSizeCache modifyTimeAndSizeCache =
 												// isEmpty checked first to avoid hashing for the common case of no caches
 												modifyTimeAndSizeCaches.isEmpty()
@@ -1379,7 +1379,7 @@ final public class FailoverFileReplicationManager {
 											}
 											List<String> matchedFilenames = modifyTimeAndSizeCache.getFilenamesByModifyTimeAndSize(modifyTimeAndSize);
 											if(matchedFilenames != null && !matchedFilenames.isEmpty()) {
-												oldLogUF = new UnixFile(ufParent, matchedFilenames.get(0), false);
+												oldLogUF = new PosixFile(ufParent, matchedFilenames.get(0), false);
 											}
 
 											if(oldLogUF == null && linkToUF != null) {
@@ -1400,21 +1400,21 @@ final public class FailoverFileReplicationManager {
 												}
 												List<String> matchedFilenames2 = modifyTimeAndSizeCache2.getFilenamesByModifyTimeAndSize(modifyTimeAndSize);
 												if(matchedFilenames2 != null && !matchedFilenames2.isEmpty()) {
-													oldLogUF = new UnixFile(linkToParent, matchedFilenames2.get(0), false);
+													oldLogUF = new PosixFile(linkToParent, matchedFilenames2.get(0), false);
 												}
 											}
 											if(oldLogUF != null) {
 												if(ufStat.exists()) {
 													assert ufStat.isRegularFile() : "All non-regular files should have been deleted";
 													// Move to a new temp filename for later reuse
-													UnixFile tempUF = mktemp(activity, uf);
+													PosixFile tempUF = mktemp(activity, uf);
 													// Update filesystem
 													if(retention == 1) {
 														// Failover mode does a more cautious link to temp and rename over to avoid
 														// any moment where there is no file in the path of uf
 														delete(activity, tempUF);
 														link(activity, tempUF, uf);
-														UnixFile tempUF2 = mktemp(activity, uf);
+														PosixFile tempUF2 = mktemp(activity, uf);
 														delete(activity, tempUF2);
 														link(activity, tempUF2, oldLogUF);
 														rename(activity, tempUF2, uf);
@@ -1449,7 +1449,7 @@ final public class FailoverFileReplicationManager {
 												)
 											) {
 												// Next we will try chunking.  For chunking, we will start by determining what we are chunking from.
-												UnixFile chunkingFrom;
+												PosixFile chunkingFrom;
 												Stat chunkingFromStat;
 												if(isRecycling) {
 													// When recycling, try linkToUF then uf
@@ -1500,7 +1500,7 @@ final public class FailoverFileReplicationManager {
 														|| (!isRecycling && linkToUF != null)
 													) {
 														// When uf exists, chunk to a temp file
-														UnixFile tempUF = mktemp(activity, uf);
+														PosixFile tempUF = mktemp(activity, uf);
 														tempNewFiles[c] = tempUF;
 														if(isTrace) logger.finer("Using temp file (chunked): "+tempUF.getPath());
 														// modifyTimeAndSizeCaches is not updated here, it will be updated below when the data is received
@@ -1575,7 +1575,7 @@ final public class FailoverFileReplicationManager {
 													ufStat = stat(activity, uf);
 												} else {
 													// Build new temp file
-													UnixFile tempUF = mktemp(activity, uf);
+													PosixFile tempUF = mktemp(activity, uf);
 													tempNewFiles[c] = tempUF;
 													if(isTrace) logger.finer("Using temp file (not chunked): "+tempUF.getPath());
 													// modifyTimeAndSizeCaches is not updated here, it will be updated below when the data is received
@@ -1584,7 +1584,7 @@ final public class FailoverFileReplicationManager {
 										}
 									}
 								}
-							} else if(UnixFile.isSymLink(mode)) {
+							} else if(PosixFile.isSymLink(mode)) {
 								if(
 									ufStat.exists()
 									&& (
@@ -1618,10 +1618,10 @@ final public class FailoverFileReplicationManager {
 										updated(retention, postPassChecklist, relativePath);
 									}
 								}
-							} else throw new IOException("Unknown mode type: "+Long.toOctalString(mode&UnixFile.TYPE_MASK));
+							} else throw new IOException("Unknown mode type: "+Long.toOctalString(mode&PosixFile.TYPE_MASK));
 
 							// Update the permissions (mode)
-							UnixFile effectiveUF;
+							PosixFile effectiveUF;
 							Stat effectiveUFStat;
 							if(tempNewFiles[c] == null) {
 								effectiveUF = uf;
@@ -1631,16 +1631,16 @@ final public class FailoverFileReplicationManager {
 								effectiveUFStat = stat(activity, effectiveUF);
 							}
 							if(
-								!UnixFile.isSymLink(mode)
+								!PosixFile.isSymLink(mode)
 								&& (
-									(effectiveUFStat.getRawMode() & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK))
-									!= (mode & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK))
+									(effectiveUFStat.getRawMode() & (PosixFile.TYPE_MASK|PosixFile.PERMISSION_MASK))
+									!= (mode & (PosixFile.TYPE_MASK|PosixFile.PERMISSION_MASK))
 								)
 							) {
 								//try {
 									if(retention!=1) copyIfHardLinked(activity, effectiveUF, effectiveUFStat);
 									activity.update("file: setMode: ", effectiveUF);
-									effectiveUF.setMode(mode & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK));
+									effectiveUF.setMode(mode & (PosixFile.TYPE_MASK|PosixFile.PERMISSION_MASK));
 									effectiveUFStat = stat(activity, effectiveUF);
 								//} catch(FileNotFoundException err) {
 									//logger.log(Level.WARNING, "path="+path+", mode="+Long.toOctalString(mode), err);
@@ -1651,8 +1651,8 @@ final public class FailoverFileReplicationManager {
 										linkToUFStat == null
 										|| !linkToUFStat.exists()
 										|| (
-											(linkToUFStat.getRawMode() & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK))
-											!= (mode & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK))
+											(linkToUFStat.getRawMode() & (PosixFile.TYPE_MASK|PosixFile.PERMISSION_MASK))
+											!= (mode & (PosixFile.TYPE_MASK|PosixFile.PERMISSION_MASK))
 										)
 									) {
 										result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
@@ -1689,9 +1689,9 @@ final public class FailoverFileReplicationManager {
 
 							// Update the modified time
 							if(
-								!UnixFile.isSymLink(mode)
-								&& !UnixFile.isRegularFile(mode) // Regular files will be re-transferred below when their modified times don't match, so no need to set the modified time here
-								&& !UnixFile.isDirectory(mode) // Directory modification times are set on the way out of the directories
+								!PosixFile.isSymLink(mode)
+								&& !PosixFile.isRegularFile(mode) // Regular files will be re-transferred below when their modified times don't match, so no need to set the modified time here
+								&& !PosixFile.isDirectory(mode) // Directory modification times are set on the way out of the directories
 								&& effectiveUFStat.getModifyTime() != modifyTime
 							) {
 								if(retention != 1) copyIfHardLinked(activity, effectiveUF, effectiveUFStat);
@@ -1753,12 +1753,12 @@ final public class FailoverFileReplicationManager {
 								|| result == AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED_REQUEST_DATA_CHUNKED
 							) {
 								// tempNewFiles[c] is only possibly set for the data transfer results
-								UnixFile tempUF = tempNewFiles[c];
-								UnixFile uf = new UnixFile(path);
-								UnixFile ufParent = uf.getParent();
+								PosixFile tempUF = tempNewFiles[c];
+								PosixFile uf = new PosixFile(path);
+								PosixFile ufParent = uf.getParent();
 
 								// Load into the temporary file or directly to the file (based on above calculations)
-								UnixFile fileOutUF = tempUF == null ? uf : tempUF;
+								PosixFile fileOutUF = tempUF == null ? uf : tempUF;
 								OutputStream fileOut = openOut(activity, fileOutUF);
 								boolean newFileComplete = false;
 								try {
@@ -1791,7 +1791,7 @@ final public class FailoverFileReplicationManager {
 									} else if(result == AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED_REQUEST_DATA_CHUNKED) {
 										if(!useCompression) throw new IOException("Not using compression, chunked transfer not supported");
 										assert chunkingFroms != null;
-										UnixFile chunkingFromUF = chunkingFroms[c];
+										PosixFile chunkingFromUF = chunkingFroms[c];
 										long chunkingSize = chunkingSizes[c];
 										RandomAccessFile chunkingFromRaf = openInRaf(activity, chunkingFromUF);
 										try {
@@ -1893,7 +1893,7 @@ final public class FailoverFileReplicationManager {
 										if(ufStat.isRegularFile()) {
 											if(isLogDirs[c]) {
 												// Move to a new temp filename for later reuse
-												UnixFile tempUFLog = mktemp(activity, uf);
+												PosixFile tempUFLog = mktemp(activity, uf);
 												// Update filesystem
 												if(retention==1) {
 													// Failover mode does a more cautious link to temp and rename over to avoid
@@ -1939,8 +1939,8 @@ final public class FailoverFileReplicationManager {
 
 					// For any directories that were completed during this batch, removeByValue caches, clean extra files and set its modify time
 					for(int c=0; c<directoryFinalizeUFs.size(); c++) {
-						UnixFile dirUF = directoryFinalizeUFs.get(c);
-						UnixFile dirLinkToUF = directoryFinalizeLinkToUFs==null ? null : directoryFinalizeLinkToUFs.get(c);
+						PosixFile dirUF = directoryFinalizeUFs.get(c);
+						PosixFile dirLinkToUF = directoryFinalizeLinkToUFs==null ? null : directoryFinalizeLinkToUFs.get(c);
 						String relativePath = directoryFinalizeUFRelativePaths.get(c);
 						long dirModifyTime = directoryFinalizeModifyTimes.get(c);
 						Set<String> dirContents = directoryFinalizeContents.get(c);
@@ -1958,7 +1958,7 @@ final public class FailoverFileReplicationManager {
 									if(deleteOnCleanup(fromServer, retention, relativePath+'/'+filename, replicatedMySQLServers, replicatedMySQLMinorVersions)) {
 										if(isTrace) logger.finer("Deleting extra file: "+fullpath);
 										try {
-											UnixFile deleteMe = new UnixFile(fullpath);
+											PosixFile deleteMe = new PosixFile(fullpath);
 											deleteRecursive(activity, deleteMe);
 										} catch(FileNotFoundException err) {
 											logger.log(Level.SEVERE, "fullpath="+fullpath, err);
@@ -1982,7 +1982,7 @@ final public class FailoverFileReplicationManager {
 
 				// Clean all remaining directories all the way to /, setting modifyTime on the directories
 				while(!directoryUFs.isEmpty()) {
-					UnixFile dirUF = directoryUFs.peek();
+					PosixFile dirUF = directoryUFs.peek();
 					String dirPath = dirUF.getPath();
 					if(!dirPath.endsWith("/")) dirPath += '/';
 
@@ -2000,7 +2000,7 @@ final public class FailoverFileReplicationManager {
 								if(deleteOnCleanup(fromServer, retention, relativePath+'/'+filename, replicatedMySQLServers, replicatedMySQLMinorVersions)) {
 									if(isTrace) logger.finer("Deleting final clean-up: "+fullpath);
 									try {
-										UnixFile deleteMe = new UnixFile(fullpath);
+										PosixFile deleteMe = new PosixFile(fullpath);
 										deleteRecursive(activity, deleteMe);
 									} catch(FileNotFoundException err) {
 										logger.log(Level.SEVERE, "fullpath="+fullpath, err);
@@ -2024,7 +2024,7 @@ final public class FailoverFileReplicationManager {
 				if(retention!=1) {
 					// The pass was successful, now rename partial to final
 					String from = isRecycling ? recycledPartialMirrorRoot : partialMirrorRoot;
-					renameToNoExists(logger, activity, new UnixFile(from), new UnixFile(finalMirrorRoot));
+					renameToNoExists(logger, activity, new PosixFile(from), new PosixFile(finalMirrorRoot));
 
 					// The pass was successful, now cleanup old directories based on retention settings
 					cleanAndRecycleBackups(activity, retention, perDateRoot, fromServerYear, fromServerMonth, fromServerDay);
@@ -2097,7 +2097,7 @@ final public class FailoverFileReplicationManager {
 	/**
 	 * Called before something is removed, to keep the cache in sync.
 	 */
-	private static void removing(Map<UnixFile, ModifyTimeAndSizeCache> modifyTimeAndSizeCaches, UnixFile uf, Stat ufStat, UnixFile ufParent) throws FileNotFoundException {
+	private static void removing(Map<PosixFile, ModifyTimeAndSizeCache> modifyTimeAndSizeCaches, PosixFile uf, Stat ufStat, PosixFile ufParent) throws FileNotFoundException {
 		if(!modifyTimeAndSizeCaches.isEmpty()) {
 			if(ufStat.isRegularFile()) {
 				// For a regular file, just removeByValue it from its parent, this is the fastest case
@@ -2112,10 +2112,10 @@ final public class FailoverFileReplicationManager {
 				// Remove any items that are this or are children of this
 				String prefix = uf.getPath();
 				if(!prefix.endsWith("/")) prefix += '/';
-				Iterator<Map.Entry<UnixFile, ModifyTimeAndSizeCache>> iter = modifyTimeAndSizeCaches.entrySet().iterator();
+				Iterator<Map.Entry<PosixFile, ModifyTimeAndSizeCache>> iter = modifyTimeAndSizeCaches.entrySet().iterator();
 				while(iter.hasNext()) {
-					Map.Entry<UnixFile, ModifyTimeAndSizeCache> entry = iter.next();
-					UnixFile key = entry.getKey();
+					Map.Entry<PosixFile, ModifyTimeAndSizeCache> entry = iter.next();
+					PosixFile key = entry.getKey();
 					if(
 						key.equals(uf)
 						|| key.getPath().startsWith(prefix)
@@ -2128,7 +2128,7 @@ final public class FailoverFileReplicationManager {
 	/**
 	 * Called after a file is added, to keep the cache in sync.
 	 */
-	private static void added(Activity activity, Map<UnixFile, ModifyTimeAndSizeCache> modifyTimeAndSizeCaches, UnixFile uf, UnixFile ufParent, ModifyTimeAndSize ufModifyTimeAndSize) throws IOException {
+	private static void added(Activity activity, Map<PosixFile, ModifyTimeAndSizeCache> modifyTimeAndSizeCaches, PosixFile uf, PosixFile ufParent, ModifyTimeAndSize ufModifyTimeAndSize) throws IOException {
 		if(!modifyTimeAndSizeCaches.isEmpty()) {
 			ModifyTimeAndSizeCache modifyTimeAndSizeCache = modifyTimeAndSizeCaches.get(ufParent);
 			if(modifyTimeAndSizeCache!=null) {
@@ -2143,7 +2143,7 @@ final public class FailoverFileReplicationManager {
 	/**
 	 * Called after a file is renamed, to keep the cache in sync.
 	 */
-	private static void renamed(Map<UnixFile, ModifyTimeAndSizeCache> modifyTimeAndSizeCaches, UnixFile oldUF, UnixFile newUF, UnixFile ufParent) {
+	private static void renamed(Map<PosixFile, ModifyTimeAndSizeCache> modifyTimeAndSizeCaches, PosixFile oldUF, PosixFile newUF, PosixFile ufParent) {
 		if(!modifyTimeAndSizeCaches.isEmpty()) {
 			ModifyTimeAndSizeCache modifyTimeAndSizeCache = modifyTimeAndSizeCaches.get(ufParent);
 			if(modifyTimeAndSizeCache!=null) {
@@ -2190,18 +2190,18 @@ final public class FailoverFileReplicationManager {
 	 */
 	final static class ModifyTimeAndSizeCache {
 
-		final private UnixFile directory;
+		final private PosixFile directory;
 		final private Map<String, ModifyTimeAndSize> filenameMap = new HashMap<>();
 		final private Map<ModifyTimeAndSize, List<String>> modifyTimeAndSizeMap = new HashMap<>();
 
-		ModifyTimeAndSizeCache(Activity activity, UnixFile directory) throws IOException {
+		ModifyTimeAndSizeCache(Activity activity, PosixFile directory) throws IOException {
 			this.directory = directory;
 			// Read all files in the directory to populate the caches
 			String[] list = list(activity, directory);
 			if(list != null) {
 				for(int d = 0, len = list.length; d < len; d++) {
 					String filename = list[d];
-					UnixFile file = new UnixFile(directory, filename, false);
+					PosixFile file = new PosixFile(directory, filename, false);
 					Stat stat = stat(activity, file);
 					if(
 						stat.exists()
@@ -2217,7 +2217,7 @@ final public class FailoverFileReplicationManager {
 			}
 		}
 
-		UnixFile getDirectory() {
+		PosixFile getDirectory() {
 			return directory;
 		}
 
@@ -2362,7 +2362,7 @@ final public class FailoverFileReplicationManager {
 	}
 
 	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
-	private static void cleanAndRecycleBackups(Activity activity, short retention, UnixFile serverRootUF, short fromServerYear, short fromServerMonth, short fromServerDay) throws IOException, SQLException {
+	private static void cleanAndRecycleBackups(Activity activity, short retention, PosixFile serverRootUF, short fromServerYear, short fromServerMonth, short fromServerDay) throws IOException, SQLException {
 		final boolean isFine = logger.isLoggable(Level.FINE);
 		try {
 			// Build the lists of directories based on age, skipping safe deleted and recycled directories
@@ -2550,14 +2550,14 @@ final public class FailoverFileReplicationManager {
 					&& !directory.endsWith(RECYCLED_EXTENSION)
 				) {
 					// 1) Flag all those that were completed as recycled
-					final UnixFile currentUF = new UnixFile(serverRootUF, directory, false);
-					final UnixFile newUF = new UnixFile(serverRootUF, directory+RECYCLED_EXTENSION, false);
+					final PosixFile currentUF = new PosixFile(serverRootUF, directory, false);
+					final PosixFile newUF = new PosixFile(serverRootUF, directory+RECYCLED_EXTENSION, false);
 					renameToNoExists(logger, activity, currentUF, newUF);
 				} else {
 					// 2) Flag all those that where not completed directly as .deleted, schedule for delete
 					if(!directory.endsWith(SAFE_DELETE_EXTENSION)) {
-						final UnixFile currentUF = new UnixFile(serverRootUF, directory, false);
-						final UnixFile newUF = new UnixFile(serverRootUF, directory+SAFE_DELETE_EXTENSION, false);
+						final PosixFile currentUF = new PosixFile(serverRootUF, directory, false);
+						final PosixFile newUF = new PosixFile(serverRootUF, directory+SAFE_DELETE_EXTENSION, false);
 						renameToNoExists(logger, activity, currentUF, newUF);
 					}
 				}
@@ -2579,8 +2579,8 @@ final public class FailoverFileReplicationManager {
 							} else {
 								// Rename to .deleted
 								String newFilename = directory.substring(0, directory.length()-RECYCLED_EXTENSION.length())+SAFE_DELETE_EXTENSION;
-								final UnixFile currentUF = new UnixFile(serverRootUF, directory, false);
-								final UnixFile newUF = new UnixFile(serverRootUF, newFilename, false);
+								final PosixFile currentUF = new PosixFile(serverRootUF, directory, false);
+								final PosixFile newUF = new PosixFile(serverRootUF, newFilename, false);
 								renameToNoExists(logger, activity, currentUF, newUF);
 							}
 						}
@@ -2597,7 +2597,7 @@ final public class FailoverFileReplicationManager {
 					for (String directory : list) {
 						if(directory.endsWith(SAFE_DELETE_EXTENSION)) {
 							//found=true;
-							UnixFile deleteUf = new UnixFile(serverRootUF, directory, false);
+							PosixFile deleteUf = new PosixFile(serverRootUF, directory, false);
 							if(isFine) logger.fine("Deleting: "+deleteUf.getPath());
 							directories.add(deleteUf.getFile());
 						}
@@ -2686,10 +2686,10 @@ final public class FailoverFileReplicationManager {
 	 * 
 	 * @return  true if any changes were made.  This could be combined with a restat if necessary
 	 */
-	private static boolean copyIfHardLinked(Activity activity, UnixFile uf, Stat ufStat) throws IOException {
+	private static boolean copyIfHardLinked(Activity activity, PosixFile uf, Stat ufStat) throws IOException {
 		if(ufStat.isRegularFile() && ufStat.getNumberLinks()>1) {
 			if(logger.isLoggable(Level.FINER)) logger.finer("Copying file due to hard link: "+uf);
-			UnixFile temp = mktemp(activity, uf);
+			PosixFile temp = mktemp(activity, uf);
 			activity.update("file: copy: ", uf, " to ", temp);
 			uf.copyTo(temp, true);
 			activity.update("file: chown: ", temp);

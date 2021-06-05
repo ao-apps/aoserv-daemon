@@ -22,8 +22,8 @@
  */
 package com.aoindustries.aoserv.daemon;
 
+import com.aoapps.hodgepodge.io.AOPool;
 import com.aoindustries.aoserv.client.net.AppProtocol;
-import com.aoindustries.io.AOPool;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -54,7 +54,7 @@ final public class AOServDaemonServer extends Thread {
 	/**
 	 * The address that this server will bind to.
 	 */
-	private final com.aoindustries.net.InetAddress serverBind;
+	private final com.aoapps.net.InetAddress serverBind;
 
 	/**
 	 * The port that this server will listen on.
@@ -69,7 +69,7 @@ final public class AOServDaemonServer extends Thread {
 	/**
 	 * Creates a new, running <code>AOServServer</code>.
 	 */
-	public AOServDaemonServer(com.aoindustries.net.InetAddress serverBind, int serverPort, String protocol) {
+	public AOServDaemonServer(com.aoapps.net.InetAddress serverBind, int serverPort, String protocol) {
 		super(AOServDaemonServer.class.getName()+"?address="+serverBind+"&port="+serverPort+"&protocol="+protocol);
 		this.serverBind = serverBind;
 		this.serverPort = serverPort;

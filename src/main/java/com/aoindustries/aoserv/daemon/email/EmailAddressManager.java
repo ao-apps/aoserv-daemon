@@ -22,6 +22,13 @@
  */
 package com.aoindustries.aoserv.daemon.email;
 
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.lang.Strings;
+import com.aoapps.lang.io.IoUtils;
+import com.aoapps.lang.io.NullOutputStream;
+import com.aoapps.net.DomainName;
+import com.aoapps.net.Email;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.email.Address;
@@ -38,16 +45,9 @@ import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.client.linux.UserServer;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.IoUtils;
-import com.aoindustries.io.NullOutputStream;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.lang.Strings;
-import com.aoindustries.net.DomainName;
-import com.aoindustries.net.Email;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -75,9 +75,9 @@ final public class EmailAddressManager extends BuilderThread {
 	/**
 	 * Sendmail files.
 	 */
-	private static final UnixFile
-		aliases = new UnixFile("/etc/aliases"),
-		userTable = new UnixFile("/etc/mail/virtusertable")
+	private static final PosixFile
+		aliases = new PosixFile("/etc/aliases"),
+		userTable = new PosixFile("/etc/mail/virtusertable")
 	;
 
 	/**
@@ -125,7 +125,7 @@ final public class EmailAddressManager extends BuilderThread {
 			Random random = AOServDaemon.getFastRandom();
 
 			synchronized(rebuildLock) {
-				Set<UnixFile> restorecon = new LinkedHashSet<>();
+				Set<PosixFile> restorecon = new LinkedHashSet<>();
 				try {
 					List<SystemAlias> seas = thisServer.getSystemEmailAliases();
 					List<Address> eas = thisServer.getEmailAddresses();
@@ -314,8 +314,8 @@ final public class EmailAddressManager extends BuilderThread {
 						userTable,
 						usersBOut.toByteArray(),
 						0644,
-						UnixFile.ROOT_UID,
-						UnixFile.ROOT_GID,
+						PosixFile.ROOT_UID,
+						PosixFile.ROOT_GID,
 						null,
 						restorecon
 					);
@@ -323,8 +323,8 @@ final public class EmailAddressManager extends BuilderThread {
 						aliases,
 						aliasesBOut.toByteArray(),
 						0644,
-						UnixFile.ROOT_UID,
-						UnixFile.ROOT_GID,
+						PosixFile.ROOT_UID,
+						PosixFile.ROOT_GID,
 						null,
 						restorecon
 					);

@@ -22,6 +22,10 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
+import com.aoapps.collections.AoCollections;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
+import com.aoapps.lang.io.FileUtils;
 import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.client.web.tomcat.Context;
@@ -35,12 +39,8 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.httpd.HttpdSiteManager;
 import com.aoindustries.aoserv.daemon.httpd.StopStartable;
 import com.aoindustries.aoserv.daemon.httpd.jboss.HttpdJBossSiteManager;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.collections.AoCollections;
-import com.aoindustries.io.FileUtils;
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -139,7 +139,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 
 	@Override
 	public boolean stop() throws IOException, SQLException {
-		UnixFile pidFile = getPidFile();
+		PosixFile pidFile = getPidFile();
 		if(pidFile.getStat().exists()) {
 			AOServDaemon.suexec(
 				getStartStopScriptUsername(),
@@ -156,7 +156,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 
 	@Override
 	public boolean start() throws IOException, SQLException {
-		UnixFile pidFile = getPidFile();
+		PosixFile pidFile = getPidFile();
 		if(!pidFile.getStat().exists()) {
 			AOServDaemon.suexec(
 				getStartStopScriptUsername(),
@@ -170,7 +170,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 			String pid = FileUtils.readFileAsString(pidFile.getFile());
 			try {
 				int pidNum = Integer.parseInt(pid.trim());
-				UnixFile procDir = new UnixFile("/proc/"+pidNum);
+				PosixFile procDir = new PosixFile("/proc/"+pidNum);
 				if(!procDir.getStat().exists()) {
 					System.err.println("Warning: Deleting PID file for dead process: "+pidFile.getPath());
 					pidFile.delete();
@@ -249,7 +249,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 	 * 
 	 * @return  the .pid file or <code>null</code> if should not be running
 	 */
-	public abstract UnixFile getPidFile() throws IOException, SQLException;
+	public abstract PosixFile getPidFile() throws IOException, SQLException;
 
 	/**
 	 * Gets the path to the start/stop script.
@@ -275,7 +275,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 	 * Every Tomcat site is built through the same overall set of steps.
 	 */
 	@Override
-	final protected void buildSiteDirectory(UnixFile siteDirectory, String optSlash, Set<com.aoindustries.aoserv.client.web.Site> sitesNeedingRestarted, Set<SharedTomcat> sharedTomcatsNeedingRestarted, Set<UnixFile> restorecon) throws IOException, SQLException {
+	final protected void buildSiteDirectory(PosixFile siteDirectory, String optSlash, Set<com.aoindustries.aoserv.client.web.Site> sitesNeedingRestarted, Set<SharedTomcat> sharedTomcatsNeedingRestarted, Set<PosixFile> restorecon) throws IOException, SQLException {
 		final int apacheUid = getApacheUid();
 		final int uid = httpdSite.getLinuxServerAccount().getUid().getId();
 		final int gid = httpdSite.getLinuxServerGroup().getGid().getId();
@@ -287,8 +287,8 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 		final TC tomcatCommon = getTomcatCommon();
 		final String apacheTomcatDir = tomcatCommon.getApacheTomcatDir();
 
-		final UnixFile rootDirectory = new UnixFile(siteDir+"/webapps/"+Context.ROOT_DOC_BASE);
-		final UnixFile cgibinDirectory = new UnixFile(rootDirectory, "cgi-bin", false);
+		final PosixFile rootDirectory = new PosixFile(siteDir+"/webapps/"+Context.ROOT_DOC_BASE);
+		final PosixFile cgibinDirectory = new PosixFile(rootDirectory, "cgi-bin", false);
 
 		boolean needsRestart = false;
 
@@ -296,12 +296,12 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 		Stat siteDirectoryStat = siteDirectory.getStat();
 		final boolean isInstall =
 			!siteDirectoryStat.exists()
-			|| siteDirectoryStat.getUid() == UnixFile.ROOT_UID;
+			|| siteDirectoryStat.getUid() == PosixFile.ROOT_UID;
 
 		// Perform upgrade in-place when not doing a full install and the README.txt file missing or changed
 		final byte[] readmeTxtContent = generateReadmeTxt(optSlash, apacheTomcatDir, siteDirectory);
 		// readmeTxt will be null when in-place upgrade not supported
-		final UnixFile readmeTxt = readmeTxtContent == null ? null : new UnixFile(siteDirectory, README_TXT, false);
+		final PosixFile readmeTxt = readmeTxtContent == null ? null : new PosixFile(siteDirectory, README_TXT, false);
 		final boolean isUpgrade;
 		{
 			final Stat readmeTxtStat;
@@ -329,7 +329,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 
 			if(isInstall) {
 				// index.html
-				UnixFile indexFile = new UnixFile(rootDirectory, "index.html", false);
+				PosixFile indexFile = new PosixFile(rootDirectory, "index.html", false);
 				createTestIndex(indexFile);
 			}
 
@@ -375,7 +375,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 	 *
 	 * @param optSlash  Relative path from the CATALINA_HOME to /opt/, including trailing slash, such as <code>../../opt/</code>.
 	 */
-	protected abstract void buildSiteDirectoryContents(String optSlash, UnixFile siteDirectory, boolean isUpgrade) throws IOException, SQLException;
+	protected abstract void buildSiteDirectoryContents(String optSlash, PosixFile siteDirectory, boolean isUpgrade) throws IOException, SQLException;
 
 	/**
 	 * Upgrades the site directory contents for an auto-upgrade.
@@ -384,7 +384,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 	 *
 	 * @return  <code>true</code> if the site needs to be restarted.
 	 */
-	protected abstract boolean upgradeSiteDirectoryContents(String optSlash, UnixFile siteDirectory) throws IOException, SQLException;
+	protected abstract boolean upgradeSiteDirectoryContents(String optSlash, PosixFile siteDirectory) throws IOException, SQLException;
 
 	/**
 	 * Rebuilds any config files that need updated.  This should not include any
@@ -392,13 +392,13 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 	 *
 	 * @return  <code>true</code> if the site needs to be restarted.
 	 */
-	protected abstract boolean rebuildConfigFiles(UnixFile siteDirectory, Set<UnixFile> restorecon) throws IOException, SQLException;
+	protected abstract boolean rebuildConfigFiles(PosixFile siteDirectory, Set<PosixFile> restorecon) throws IOException, SQLException;
 
 	/**
 	 * Enables/disables the site by adding/removing symlinks, if appropriate for
 	 * the type of site.
 	 */
-	protected abstract void enableDisable(UnixFile siteDirectory) throws IOException, SQLException;
+	protected abstract void enableDisable(PosixFile siteDirectory) throws IOException, SQLException;
 
 	/**
 	 * Flags that the site needs restarted.
@@ -412,7 +412,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 	 *
 	 * @return  The README.txt file contents or {@code null} if no README.txt used for change detection
 	 *
-	 * @see  VersionedSharedTomcatManager#generateReadmeTxt(java.lang.String, java.lang.String, com.aoindustries.io.unix.UnixFile)
+	 * @see  VersionedSharedTomcatManager#generateReadmeTxt(java.lang.String, java.lang.String, com.aoapps.io.posix.PosixFile)
 	 */
-	protected abstract byte[] generateReadmeTxt(String optSlash, String apacheTomcatDir, UnixFile installDir) throws IOException, SQLException;
+	protected abstract byte[] generateReadmeTxt(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException, SQLException;
 }

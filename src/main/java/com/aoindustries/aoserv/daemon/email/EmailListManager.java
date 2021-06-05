@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2000-2012, 2014, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2000-2012, 2014, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,15 +22,15 @@
  */
 package com.aoindustries.aoserv.daemon.email;
 
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.lang.io.FileUtils;
+import com.aoapps.tempfiles.TempFile;
+import com.aoapps.tempfiles.TempFileContext;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.email.MajordomoServer;
 import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.io.FileUtils;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.tempfiles.TempFile;
-import com.aoindustries.tempfiles.TempFileContext;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -117,10 +117,10 @@ final public class EmailListManager {
 		// If a majordomo list, add any new directories
 		if(path.toString().startsWith(MajordomoServer.MAJORDOMO_SERVER_DIRECTORY.toString() + '/')) {
 			// TODO: Create /etc/mail/majordomo when first needed
-			UnixFile pathUF=new UnixFile(path.toString());
-			UnixFile listDir=pathUF.getParent();
+			PosixFile pathUF=new PosixFile(path.toString());
+			PosixFile listDir=pathUF.getParent();
 			if(!listDir.getStat().exists()) {
-				UnixFile serverDir=listDir.getParent();
+				PosixFile serverDir=listDir.getParent();
 				if(!serverDir.getStat().exists()) {
 					serverDir.mkdir().setMode(0750);
 				}
@@ -138,7 +138,7 @@ final public class EmailListManager {
 		) {
 			try (
 				Writer out = new OutputStreamWriter(
-					new UnixFile(tempFile.getFile()).getSecureOutputStream(uid, gid, mode, true, uid_min, gid_min),
+					new PosixFile(tempFile.getFile()).getSecureOutputStream(uid, gid, mode, true, uid_min, gid_min),
 					ENCODING
 				)
 			) {

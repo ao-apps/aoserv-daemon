@@ -22,6 +22,10 @@
  */
 package com.aoindustries.aoserv.daemon.postgres;
 
+import com.aoapps.collections.AoCollections;
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.net.InetAddress;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.Group;
@@ -32,13 +36,9 @@ import com.aoindustries.aoserv.client.postgresql.UserServer;
 import com.aoindustries.aoserv.client.postgresql.Version;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.unix.linux.LinuxProcess;
+import com.aoindustries.aoserv.daemon.posix.linux.LinuxProcess;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.collections.AoCollections;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.net.InetAddress;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -107,7 +107,7 @@ public final class PgHbaManager extends BuilderThread {
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 			synchronized(rebuildLock) {
-				Set<UnixFile> restorecon = new LinkedHashSet<>();
+				Set<PosixFile> restorecon = new LinkedHashSet<>();
 				try {
 					for(Server ps : thisServer.getPostgresServers()) {
 						List<UserServer> users = ps.getPostgresServerUsers();
@@ -493,7 +493,7 @@ public final class PgHbaManager extends BuilderThread {
 
 								// Move the new file into place
 								boolean needsReload = DaemonFileUtils.atomicWrite(
-									new UnixFile(serverDir, "pg_hba.conf"),
+									new PosixFile(serverDir, "pg_hba.conf"),
 									bout.toByteArray(),
 									0600,
 									postgresUID,

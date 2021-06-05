@@ -22,6 +22,11 @@
  */
 package com.aoindustries.aoserv.daemon.net.fail2ban;
 
+import com.aoapps.collections.AoCollections;
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.lang.Strings;
+import com.aoapps.net.InetAddress;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.Server;
@@ -32,14 +37,9 @@ import com.aoindustries.aoserv.client.net.Host;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.email.ImapManager;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.collections.AoCollections;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.lang.Strings;
-import com.aoindustries.net.InetAddress;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -65,7 +65,7 @@ final public class Fail2banManager extends BuilderThread {
 
 	private static Fail2banManager fail2banManager;
 
-	private static final UnixFile JAIL_D = new UnixFile("/etc/fail2ban/jail.d");
+	private static final PosixFile JAIL_D = new PosixFile("/etc/fail2ban/jail.d");
 
 	private Fail2banManager() {
 	}
@@ -195,7 +195,7 @@ final public class Fail2banManager extends BuilderThread {
 			int osvId = osv.getPkey();
 
 			synchronized(rebuildLock) {
-				Set<UnixFile> restorecon = new LinkedHashSet<>();
+				Set<PosixFile> restorecon = new LinkedHashSet<>();
 				try {
 					if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
 						boolean firewalldInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.FIREWALLD) != null;
@@ -269,7 +269,7 @@ final public class Fail2banManager extends BuilderThread {
 							for(Jail jail : jails) {
 								PackageManager.PackageName filterPackage = jail.getFilterPackage();
 								if(filterPackage != null) allFilterPackages.add(filterPackage);
-								UnixFile jailUF = new UnixFile(JAIL_D, jail.getJaildFilename(), true);
+								PosixFile jailUF = new PosixFile(JAIL_D, jail.getJaildFilename(), true);
 								SortedSet<Integer> ports = jailPorts.get(jail);
 								if(ports == null) {
 									if(jailUF.getStat().exists()) {
@@ -310,8 +310,8 @@ final public class Fail2banManager extends BuilderThread {
 											jailUF,
 											bout.toByteArray(),
 											0644,
-											UnixFile.ROOT_UID,
-											UnixFile.ROOT_GID,
+											PosixFile.ROOT_UID,
+											PosixFile.ROOT_GID,
 											null,
 											restorecon
 										)
@@ -322,7 +322,7 @@ final public class Fail2banManager extends BuilderThread {
 								// Remove any old file that was at *.conf and now moved to *.local
 								String removeOldJaildFilename = jail.getRemoveOldJaildFilename();
 								if(removeOldJaildFilename != null) {
-									UnixFile oldJailUF = new UnixFile(JAIL_D, removeOldJaildFilename, true);
+									PosixFile oldJailUF = new PosixFile(JAIL_D, removeOldJaildFilename, true);
 									if(oldJailUF.getStat().exists()) {
 										oldJailUF.delete();
 										updated[0] = true;

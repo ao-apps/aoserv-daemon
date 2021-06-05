@@ -20,11 +20,22 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.aoindustries.aoserv.daemon.unix.linux;
+package com.aoindustries.aoserv.daemon.posix.linux;
 
+import com.aoapps.collections.AoCollections;
+import com.aoapps.hodgepodge.io.stream.StreamableInput;
+import com.aoapps.hodgepodge.io.stream.StreamableOutput;
+import com.aoapps.hodgepodge.util.Tuple2;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
+import com.aoapps.lang.SysExits;
+import com.aoapps.lang.util.BufferManager;
+import com.aoapps.lang.util.ErrorPrinter;
+import com.aoapps.lang.validation.ValidationException;
+import com.aoapps.tempfiles.TempFile;
+import com.aoapps.tempfiles.TempFileContext;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.ftp.GuestUser;
 import com.aoindustries.aoserv.client.linux.Group;
 import com.aoindustries.aoserv.client.linux.GroupServer;
 import com.aoindustries.aoserv.client.linux.LinuxId;
@@ -38,26 +49,13 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
-import com.aoindustries.aoserv.daemon.email.ImapManager;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
-import com.aoindustries.aoserv.daemon.unix.GShadowFile;
-import com.aoindustries.aoserv.daemon.unix.GroupFile;
-import com.aoindustries.aoserv.daemon.unix.PasswdFile;
-import com.aoindustries.aoserv.daemon.unix.ShadowFile;
+import com.aoindustries.aoserv.daemon.posix.GShadowFile;
+import com.aoindustries.aoserv.daemon.posix.GroupFile;
+import com.aoindustries.aoserv.daemon.posix.PasswdFile;
+import com.aoindustries.aoserv.daemon.posix.ShadowFile;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.collections.AoCollections;
-import com.aoindustries.io.stream.StreamableInput;
-import com.aoindustries.io.stream.StreamableOutput;
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.lang.SysExits;
-import com.aoindustries.tempfiles.TempFile;
-import com.aoindustries.tempfiles.TempFileContext;
-import com.aoindustries.util.BufferManager;
-import com.aoindustries.util.ErrorPrinter;
-import com.aoindustries.util.Tuple2;
-import com.aoindustries.validation.ValidationException;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -107,7 +105,7 @@ public class LinuxAccountManager extends BuilderThread {
 	 */
 	private static final File PWD_LOCK = new File("/etc/.pwd.lock");
 
-	private static final UnixFile SUDOERS_D = new UnixFile("/etc/sudoers.d");
+	private static final PosixFile SUDOERS_D = new PosixFile("/etc/sudoers.d");
 
 	private static final String BASHRC = ".bashrc";
 
@@ -128,7 +126,7 @@ public class LinuxAccountManager extends BuilderThread {
 			// Assume old-school DES
 			salt = crypted.substring(0, 2);
 		}
-		String newCrypted = UnixFile.crypt(password, salt);
+		String newCrypted = PosixFile.crypt(password, salt);
 		return crypted.equals(newCrypted);
 	}
 
@@ -181,7 +179,7 @@ public class LinuxAccountManager extends BuilderThread {
 			final Map<Group.Name, Set<User.Name>> groups;
 			final Map<Group.Name, GroupFile.Entry> groupEntries;
 
-			Set<UnixFile> restorecon = new LinkedHashSet<>();
+			Set<PosixFile> restorecon = new LinkedHashSet<>();
 			try {
 				try (
 					FileChannel fileChannel = FileChannel.open(PWD_LOCK.toPath(), StandardOpenOption.WRITE, StandardOpenOption.CREATE);
@@ -437,23 +435,23 @@ public class LinuxAccountManager extends BuilderThread {
 					boolean copySkel = false;
 
 					final PosixPath homePath = lsa.getHome();
-					final UnixFile homeDir = new UnixFile(homePath.toString());
+					final PosixFile homeDir = new PosixFile(homePath.toString());
 					if(!homeDir.getStat().exists()) {
 						// Make the parent of the home directory if it does not exist
-						UnixFile parent = homeDir.getParent();
+						PosixFile parent = homeDir.getParent();
 						if(!parent.getStat().exists()) {
 							if(logger.isLoggable(Level.INFO)) logger.info("mkdir \"" + parent + '"');
 							parent.mkdir(true, 0755);
 						}
 						// Look for home directory being moved
-						UnixFile oldHome;
+						PosixFile oldHome;
 						{
 							PosixPath defaultHome = UserServer.getDefaultHomeDirectory(username);
 							PosixPath hashedHome = UserServer.getHashedHomeDirectory(username);
 							if(homePath.equals(defaultHome)) {
-								oldHome = new UnixFile(hashedHome.toString());
+								oldHome = new PosixFile(hashedHome.toString());
 							} else if(homePath.equals(hashedHome)) {
-								oldHome = new UnixFile(defaultHome.toString());
+								oldHome = new PosixFile(defaultHome.toString());
 							} else {
 								oldHome = null;
 							}
@@ -496,11 +494,11 @@ public class LinuxAccountManager extends BuilderThread {
 							chownHome = (
 								!isWWWAndUser
 								&& (
-									homeDirStat.getUid() == UnixFile.ROOT_UID
-									|| homeDirStat.getGid() == UnixFile.ROOT_GID
+									homeDirStat.getUid() == PosixFile.ROOT_UID
+									|| homeDirStat.getGid() == PosixFile.ROOT_GID
 								)
 								// Do not set permissions for encrypted home directories
-								&& !(new UnixFile(homeStr + ".aes256.img").getStat().exists())
+								&& !(new PosixFile(homeStr + ".aes256.img").getStat().exists())
 							);
 							if(chownHome) copySkel = true;
 						}
@@ -514,9 +512,9 @@ public class LinuxAccountManager extends BuilderThread {
 							String[] skelList = skel.list();
 							if(skelList != null) {
 								for(String filename : skelList) {
-									UnixFile homeFile = new UnixFile(homeDir, filename, true);
+									PosixFile homeFile = new PosixFile(homeDir, filename, true);
 									if(!homeFile.getStat().exists()) {
-										UnixFile skelFile = new UnixFile(skel, filename);
+										PosixFile skelFile = new PosixFile(skel, filename);
 										if(logger.isLoggable(Level.INFO)) logger.info("cp \"" + skelFile + "\" \"" + homeFile + '"');
 										skelFile.copyTo(homeFile, false);
 										if(logger.isLoggable(Level.INFO)) logger.info("chown " + uid + ':' + gid + " \"" + homeFile + '"');
@@ -543,7 +541,7 @@ public class LinuxAccountManager extends BuilderThread {
 				 */
 				Set<String> keepHashDirs = new HashSet<>();
 				for(char ch='a'; ch<='z'; ch++) {
-					UnixFile hashDir = new UnixFile("/home/" + ch);
+					PosixFile hashDir = new PosixFile("/home/" + ch);
 					if(homeDirs.contains(hashDir.getPath())) {
 						if(logger.isLoggable(Level.FINE)) logger.fine("hashDir is a home directory, not cleaning: " + hashDir);
 					} else if(hashDir.getStat().exists()) {
@@ -552,7 +550,7 @@ public class LinuxAccountManager extends BuilderThread {
 						String[] homeList = hashDir.list();
 						if(homeList != null) {
 							for(String dirName : homeList) {
-								UnixFile dir = new UnixFile(hashDir, dirName, true);
+								PosixFile dir = new PosixFile(hashDir, dirName, true);
 								String dirPath = dir.getPath();
 								// Allow encrypted form of home directory
 								if(dirPath.endsWith(".aes256.img")) dirPath = dirPath.substring(0, dirPath.length() - ".aes256.img".length());
@@ -578,11 +576,11 @@ public class LinuxAccountManager extends BuilderThread {
 					}
 				}
 				// Direct children of /home
-				UnixFile homeDir = new UnixFile("/home");
+				PosixFile homeDir = new PosixFile("/home");
 				String[] homeList = homeDir.list();
 				if(homeList != null) {
 					for(String dirName : homeList) {
-						UnixFile dir = new UnixFile(homeDir, dirName, true);
+						PosixFile dir = new PosixFile(homeDir, dirName, true);
 						String dirPath = dir.getPath();
 						if(keepHashDirs.contains(dirPath)) {
 							if(logger.isLoggable(Level.FINE)) logger.fine("Keeping hashDir that is still used: " + dir);
@@ -663,11 +661,11 @@ public class LinuxAccountManager extends BuilderThread {
 								sudoersFilename = username;
 							}
 							DaemonFileUtils.atomicWrite(
-								new UnixFile(SUDOERS_D, sudoersFilename, true),
+								new PosixFile(SUDOERS_D, sudoersFilename, true),
 								bout.toByteArray(),
 								0440,
-								UnixFile.ROOT_UID,
-								UnixFile.ROOT_GID,
+								PosixFile.ROOT_UID,
+								PosixFile.ROOT_GID,
 								null,
 								restorecon
 							);
@@ -826,7 +824,7 @@ public class LinuxAccountManager extends BuilderThread {
 	}
 
 	public static String getAutoresponderContent(PosixPath path) throws IOException, SQLException {
-		UnixFile file = new UnixFile(path.toString());
+		PosixFile file = new PosixFile(path.toString());
 		String content;
 		if(file.getStat().exists()) {
 			StringBuilder SB = new StringBuilder();
@@ -882,7 +880,7 @@ public class LinuxAccountManager extends BuilderThread {
 		String profileLine = "[ -f '" + profile + "' ] && . '" + profile + "'";
 		String oldProfileLine = ". " + profile;
 
-		UnixFile profileFile = new UnixFile(lsa.getHome().toString(), BASHRC);
+		PosixFile profileFile = new PosixFile(lsa.getHome().toString(), BASHRC);
 
 		// Make sure the file exists
 		if(profileFile.getStat().exists()) {
@@ -929,7 +927,7 @@ public class LinuxAccountManager extends BuilderThread {
 				try (
 					PrintWriter out = new PrintWriter(
 						new BufferedOutputStream(
-							new UnixFile(file).getSecureOutputStream(uid, gid, 0600, true, uid_min, gid_min)
+							new PosixFile(file).getSecureOutputStream(uid, gid, 0600, true, uid_min, gid_min)
 						)
 					)
 				) {
@@ -951,8 +949,8 @@ public class LinuxAccountManager extends BuilderThread {
 				try (
 					PrintWriter out = new PrintWriter(
 						new BufferedOutputStream(
-							new UnixFile(cronFile).getSecureOutputStream(
-								UnixFile.ROOT_UID,
+							new PosixFile(cronFile).getSecureOutputStream(
+								PosixFile.ROOT_UID,
 								thisServer.getLinuxServerAccount(username).getPrimaryLinuxServerGroup().getGid().getId(),
 								0600,
 								true,
@@ -983,14 +981,14 @@ public class LinuxAccountManager extends BuilderThread {
 		Server linuxServer = AOServDaemon.getThisServer();
 		UserServer lsa = linuxServer.getLinuxServerAccount(username);
 		if(lsa == null) throw new SQLException("Unable to find UserServer: " + username + " on " + linuxServer);
-		UnixFile.CryptAlgorithm cryptAlgorithm;
+		PosixFile.CryptAlgorithm cryptAlgorithm;
 		OperatingSystemVersion osv = linuxServer.getHost().getOperatingSystemVersion();
 		switch(osv.getPkey()) {
 			case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
-				cryptAlgorithm = UnixFile.CryptAlgorithm.MD5;
+				cryptAlgorithm = PosixFile.CryptAlgorithm.MD5;
 				break;
 			case OperatingSystemVersion.CENTOS_7_X86_64 :
-				cryptAlgorithm = UnixFile.CryptAlgorithm.SHA512;
+				cryptAlgorithm = PosixFile.CryptAlgorithm.SHA512;
 				break;
 			default :
 				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);

@@ -22,10 +22,10 @@
  */
 package com.aoindustries.aoserv.daemon.iptables;
 
+import com.aoapps.collections.AoCollections;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.lang.ProcessResult;
 import com.aoindustries.aoserv.client.net.IpAddress;
-import com.aoindustries.collections.AoCollections;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.lang.ProcessResult;
 import java.io.BufferedReader;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -210,7 +210,7 @@ final public class Ipset {
 		Set<Integer> entries,
 		short networkPrefix,
 		String setName,
-		UnixFile setDir
+		PosixFile setDir
 	) throws IOException {
 		Set<Integer> unusedEntries;
 		if(entries.size()>MAX_IPSET_SIZE) {
@@ -282,14 +282,14 @@ final public class Ipset {
 		save = SAVE_COMMENT + save;
 
 		// Update on-disk storage if missing or changed
-		UnixFile setFile    = new UnixFile(setDir, setName+".ipset",     true);
+		PosixFile setFile    = new PosixFile(setDir, setName+".ipset",     true);
 		byte[] contents = save.getBytes(CHARSET.name());
 		if(
 			!setFile.getStat().exists()
 			|| !setFile.contentEquals(contents)
 		) {
 			// Create in new file
-			UnixFile newSetFile = new UnixFile(setDir, setName+".ipset.new", true);
+			PosixFile newSetFile = new PosixFile(setDir, setName+".ipset.new", true);
 			try (OutputStream out = new FileOutputStream(newSetFile.getFile())) {
 				out.write(contents);
 			} finally {

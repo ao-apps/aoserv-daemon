@@ -22,6 +22,8 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.lang.validation.ValidationException;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
@@ -35,8 +37,6 @@ import com.aoindustries.aoserv.client.web.tomcat.Worker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.validation.ValidationException;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -96,8 +96,8 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 	}
 
 	@Override
-	public UnixFile getPidFile() throws IOException, SQLException {
-		return new UnixFile(
+	public PosixFile getPidFile() throws IOException, SQLException {
+		return new PosixFile(
 			HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
 			+ "/"
 			+ httpdSite.getName()
@@ -144,9 +144,9 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 	}
 
 	@Override
-	protected void enableDisable(UnixFile siteDirectory) throws IOException, SQLException {
-		UnixFile daemonUF = new UnixFile(siteDirectory, "daemon", false);
-		UnixFile daemonSymlink = new UnixFile(daemonUF, "tomcat", false);
+	protected void enableDisable(PosixFile siteDirectory) throws IOException, SQLException {
+		PosixFile daemonUF = new PosixFile(siteDirectory, "daemon", false);
+		PosixFile daemonSymlink = new PosixFile(daemonUF, "tomcat", false);
 		if(!httpdSite.isDisabled()) {
 			// Enabled
 			if(!daemonSymlink.getStat().exists()) {
@@ -166,17 +166,17 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 	/**
 	 * Builds the server.xml file.
 	 */
-	protected abstract byte[] buildServerXml(UnixFile siteDirectory, String autoWarning) throws IOException, SQLException;
+	protected abstract byte[] buildServerXml(PosixFile siteDirectory, String autoWarning) throws IOException, SQLException;
 
 	@Override
-	protected boolean rebuildConfigFiles(UnixFile siteDirectory, Set<UnixFile> restorecon) throws IOException, SQLException {
+	protected boolean rebuildConfigFiles(PosixFile siteDirectory, Set<PosixFile> restorecon) throws IOException, SQLException {
 		final String siteDir = siteDirectory.getPath();
 		boolean needsRestart = false;
 		String autoWarning = getAutoWarningXml();
 		String autoWarningOld = getAutoWarningXmlOld();
 
 		String confServerXML=siteDir+"/conf/server.xml";
-		UnixFile confServerXMLFile=new UnixFile(confServerXML);
+		PosixFile confServerXMLFile=new PosixFile(confServerXML);
 		if(!httpdSite.isManual() || !confServerXMLFile.getStat().exists()) {
 			// Only write to the actual file when missing or changed
 			if(

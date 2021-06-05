@@ -20,18 +20,18 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.aoindustries.aoserv.daemon.unix;
+package com.aoindustries.aoserv.daemon.posix;
 
+import com.aoapps.collections.AoCollections;
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.lang.Strings;
+import com.aoapps.lang.validation.ValidationException;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.Group;
 import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.collections.AoCollections;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.lang.Strings;
-import com.aoindustries.validation.ValidationException;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
@@ -57,9 +57,9 @@ final public class GShadowFile {
 
 	private static final Logger logger = Logger.getLogger(GShadowFile.class.getName());
 
-	private static final UnixFile
-		gshadowFile       = new UnixFile("/etc/gshadow"),
-		backupGShadowFile = new UnixFile("/etc/gshadow-")
+	private static final PosixFile
+		gshadowFile       = new PosixFile("/etc/gshadow"),
+		backupGShadowFile = new PosixFile("/etc/gshadow-")
 	;
 
 	/**
@@ -276,7 +276,7 @@ final public class GShadowFile {
 	/**
 	 * Must hold {@link #gshadowLock}
 	 */
-	public static void writeGShadowFile(byte[] newContents, Set<UnixFile> restorecon) throws SQLException, IOException {
+	public static void writeGShadowFile(byte[] newContents, Set<PosixFile> restorecon) throws SQLException, IOException {
 		assert Thread.holdsLock(gshadowLock);
 		// Determine permissions
 		long mode;
@@ -297,8 +297,8 @@ final public class GShadowFile {
 			gshadowFile,
 			newContents,
 			mode,
-			UnixFile.ROOT_UID,
-			UnixFile.ROOT_GID,
+			PosixFile.ROOT_UID,
+			PosixFile.ROOT_GID,
 			backupGShadowFile,
 			restorecon
 		);

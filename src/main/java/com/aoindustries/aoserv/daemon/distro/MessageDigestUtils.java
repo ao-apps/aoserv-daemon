@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2017  AO Industries, Inc.
+ * Copyright (C) 2017, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,8 +22,8 @@
  */
 package com.aoindustries.aoserv.daemon.distro;
 
-import com.aoindustries.md5.MD5;
-import com.aoindustries.util.BufferManager;
+import com.aoapps.hodgepodge.md5.MD5;
+import com.aoapps.lang.util.BufferManager;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.MessageDigest;

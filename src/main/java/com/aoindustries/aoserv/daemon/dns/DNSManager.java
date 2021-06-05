@@ -22,6 +22,10 @@
  */
 package com.aoindustries.aoserv.daemon.dns;
 
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
+import com.aoapps.net.InetAddress;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.dns.Zone;
@@ -34,12 +38,8 @@ import com.aoindustries.aoserv.client.net.Host;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.ftp.FTPManager;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.net.InetAddress;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -106,12 +106,12 @@ final public class DNSManager extends BuilderThread {
 		//+ " 66.17.86.0/24;"
 	;
 
-	private static final UnixFile
-		newConfFile = new UnixFile("/etc/named.conf.new"),
-		confFile = new UnixFile("/etc/named.conf")
+	private static final PosixFile
+		newConfFile = new PosixFile("/etc/named.conf.new"),
+		confFile = new PosixFile("/etc/named.conf")
 	;
 
-	private static final UnixFile namedZoneDir = new UnixFile("/var/named");
+	private static final PosixFile namedZoneDir = new PosixFile("/var/named");
 
 	/**
 	 * Files and directories in /var/named that are never removed.
@@ -222,7 +222,7 @@ final public class DNSManager extends BuilderThread {
 						String file = zone.getFile();
 						long serial = zone.getSerial();
 						Long lastSerial = zoneSerials.get(zone);
-						UnixFile realFile = new UnixFile(namedZoneDir, file, false);
+						PosixFile realFile = new PosixFile(namedZoneDir, file, false);
 						Stat realFileStat = realFile.getStat();
 						if(
 							lastSerial == null
@@ -239,9 +239,9 @@ final public class DNSManager extends BuilderThread {
 								newContents = bout.toByteArray();
 							}
 							if(!realFileStat.exists() || !realFile.contentEquals(newContents)) {
-								UnixFile newFile = new UnixFile(namedZoneDir, file + ".new", false);
+								PosixFile newFile = new PosixFile(namedZoneDir, file + ".new", false);
 								try(OutputStream newOut = newFile.getSecureOutputStream(
-									UnixFile.ROOT_UID,
+									PosixFile.ROOT_UID,
 									namedGid,
 									0640,
 									true,
@@ -434,7 +434,7 @@ final public class DNSManager extends BuilderThread {
 					if(!confFile.getStat().exists() || !confFile.contentEquals(newContents)) {
 						needsRestart[0] = true;
 						try (OutputStream newOut = newConfFile.getSecureOutputStream(
-							UnixFile.ROOT_UID,
+							PosixFile.ROOT_UID,
 							namedGid,
 							0640,
 							true,

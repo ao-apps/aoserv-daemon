@@ -22,6 +22,12 @@
  */
 package com.aoindustries.aoserv.daemon.email;
 
+import com.aoapps.collections.AoCollections;
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
+import com.aoapps.net.DomainName;
+import com.aoapps.net.InetAddress;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.email.SendmailBind;
@@ -38,15 +44,9 @@ import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.email.jilter.JilterConfigurationWriter;
 import com.aoindustries.aoserv.daemon.httpd.HttpdServerManager;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.collections.AoCollections;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.net.DomainName;
-import com.aoindustries.net.InetAddress;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -119,7 +119,7 @@ final public class SendmailCFManager extends BuilderThread {
 	 * The directory that Let's Encrypt certificates are copied to.
 	 * Matches the path in sendmail-copy-certificates
 	 */
-	private static final UnixFile CERTIFICATE_COPY_DIRECTORY = new UnixFile("/etc/pki/sendmail/copy");
+	private static final PosixFile CERTIFICATE_COPY_DIRECTORY = new PosixFile("/etc/pki/sendmail/copy");
 
 	/**
 	 * The prefix of Let's Encrypt links generated from a copy directory.
@@ -133,38 +133,38 @@ final public class SendmailCFManager extends BuilderThread {
 	 */
 	private static final String SOURCE_SUFFIX = "-source";
 
-	private static final UnixFile
-		submitMc = new UnixFile("/etc/mail/submit.mc"),
-		submitCf = new UnixFile("/etc/mail/submit.cf")
+	private static final PosixFile
+		submitMc = new PosixFile("/etc/mail/submit.mc"),
+		submitCf = new PosixFile("/etc/mail/submit.cf")
 	;
 
 	/**
 	 * Gets the sendmail.mc file to use for the given SendmailServer instance.
 	 */
-	private static UnixFile getSendmailMc(SendmailServer sendmailServer) {
+	private static PosixFile getSendmailMc(SendmailServer sendmailServer) {
 		String systemdName = (sendmailServer == null) ? null : sendmailServer.getSystemdEscapedName();
 		if(systemdName == null) {
-			return new UnixFile("/etc/mail/sendmail.mc");
+			return new PosixFile("/etc/mail/sendmail.mc");
 		} else {
-			return new UnixFile("/etc/mail/sendmail@" + systemdName + ".mc");
+			return new PosixFile("/etc/mail/sendmail@" + systemdName + ".mc");
 		}
 	}
 
 	/**
 	 * Gets the sendmail.cf file to use for the given SendmailServer instance.
 	 */
-	private static UnixFile getSendmailCf(SendmailServer sendmailServer) {
+	private static PosixFile getSendmailCf(SendmailServer sendmailServer) {
 		String systemdName = (sendmailServer == null) ? null : sendmailServer.getSystemdEscapedName();
 		if(systemdName == null) {
-			return new UnixFile("/etc/mail/sendmail.cf");
+			return new PosixFile("/etc/mail/sendmail.cf");
 		} else {
-			return new UnixFile("/etc/mail/sendmail@" + systemdName + ".cf");
+			return new PosixFile("/etc/mail/sendmail@" + systemdName + ".cf");
 		}
 	}
 
 	private static final File subsysLockFile = new File("/var/lock/subsys/sendmail");
 
-	private static final UnixFile sendmailRcFile = new UnixFile("/etc/rc.d/rc3.d/S80sendmail");
+	private static final PosixFile sendmailRcFile = new PosixFile("/etc/rc.d/rc3.d/S80sendmail");
 
 	private SendmailCFManager() {
 	}
@@ -486,8 +486,8 @@ final public class SendmailCFManager extends BuilderThread {
 		List<SendmailBind> smtpsNetBinds,
 		List<SendmailBind> submissionNetBinds
 	) throws IOException, SQLException {
-		UnixFile sendmailMc = getSendmailMc(sendmailServer);
-		UnixFile sendmailCf = getSendmailCf(sendmailServer);
+		PosixFile sendmailMc = getSendmailMc(sendmailServer);
+		PosixFile sendmailCf = getSendmailCf(sendmailServer);
 		String systemdName = (sendmailServer == null) ? null : sendmailServer.getSystemdEscapedName();
 		out.print("divert(-1)dnl\n"
 				+ "dnl #\n"
@@ -583,10 +583,10 @@ final public class SendmailCFManager extends BuilderThread {
 				Certificate certificate = sendmailServer.getServerCertificate();
 				String certbotName = certificate.getCertbotName();
 				if(certbotName != null) {
-					UnixFile dir = new UnixFile(CERTIFICATE_COPY_DIRECTORY, certbotName, true);
-					serverCert = new UnixFile(dir, ImapManager.CERTIFICATE_COPY_CERT,  true).getPath();
-					serverKey  = new UnixFile(dir, ImapManager.CERTIFICATE_COPY_KEY,   true).getPath();
-					cacert     = new UnixFile(dir, ImapManager.CERTIFICATE_COPY_CHAIN, true).getPath();
+					PosixFile dir = new PosixFile(CERTIFICATE_COPY_DIRECTORY, certbotName, true);
+					serverCert = new PosixFile(dir, ImapManager.CERTIFICATE_COPY_CERT,  true).getPath();
+					serverKey  = new PosixFile(dir, ImapManager.CERTIFICATE_COPY_KEY,   true).getPath();
+					cacert     = new PosixFile(dir, ImapManager.CERTIFICATE_COPY_CHAIN, true).getPath();
 				} else {
 					serverCert = certificate.getCertFile().toString();
 					serverKey = certificate.getKeyFile().toString();
@@ -622,9 +622,9 @@ final public class SendmailCFManager extends BuilderThread {
 				Certificate certificate = sendmailServer.getClientCertificate();
 				String certbotName = certificate.getCertbotName();
 				if(certbotName != null) {
-					UnixFile dir = new UnixFile(CERTIFICATE_COPY_DIRECTORY, certbotName, true);
-					clientCert = new UnixFile(dir, ImapManager.CERTIFICATE_COPY_CERT,  true).getPath();
-					clientKey  = new UnixFile(dir, ImapManager.CERTIFICATE_COPY_KEY,   true).getPath();
+					PosixFile dir = new PosixFile(CERTIFICATE_COPY_DIRECTORY, certbotName, true);
+					clientCert = new PosixFile(dir, ImapManager.CERTIFICATE_COPY_CERT,  true).getPath();
+					clientKey  = new PosixFile(dir, ImapManager.CERTIFICATE_COPY_KEY,   true).getPath();
 				} else {
 					clientCert = certificate.getCertFile().toString();
 					clientKey = certificate.getKeyFile().toString();
@@ -1185,7 +1185,7 @@ final public class SendmailCFManager extends BuilderThread {
 					PackageManager.installPackage(PackageManager.PackageName.CA_TRUST_HASH);
 				}
 
-				Set<UnixFile> restorecon = new LinkedHashSet<>();
+				Set<PosixFile> restorecon = new LinkedHashSet<>();
 				try {
 					boolean hasSpecificAddress = false;
 
@@ -1230,22 +1230,22 @@ final public class SendmailCFManager extends BuilderThread {
 							boolean needCopy = false;
 							// Create any missing directories or links
 							for(String name : certbotNames) {
-								UnixFile dir = new UnixFile(CERTIFICATE_COPY_DIRECTORY, name, true);
+								PosixFile dir = new PosixFile(CERTIFICATE_COPY_DIRECTORY, name, true);
 								if(!dir.getStat().exists()) {
 									dir.mkdir();
 									needCopy = true;
 								}
-								UnixFile keySource = new UnixFile(dir, ImapManager.CERTIFICATE_COPY_KEY + SOURCE_SUFFIX, true);
+								PosixFile keySource = new PosixFile(dir, ImapManager.CERTIFICATE_COPY_KEY + SOURCE_SUFFIX, true);
 								if(!keySource.getStat().exists()) {
 									keySource.symLink(LETS_ENCRYPT_SYMLINK_PREFIX + name + ImapManager.LETS_ENCRYPT_KEY);
 									needCopy = true;
 								}
-								UnixFile certSource = new UnixFile(dir, ImapManager.CERTIFICATE_COPY_CERT + SOURCE_SUFFIX, true);
+								PosixFile certSource = new PosixFile(dir, ImapManager.CERTIFICATE_COPY_CERT + SOURCE_SUFFIX, true);
 								if(!certSource.getStat().exists()) {
 									certSource.symLink(LETS_ENCRYPT_SYMLINK_PREFIX + name + ImapManager.LETS_ENCRYPT_CERT);
 									needCopy = true;
 								}
-								UnixFile chainSource = new UnixFile(dir, ImapManager.CERTIFICATE_COPY_CHAIN + SOURCE_SUFFIX, true);
+								PosixFile chainSource = new PosixFile(dir, ImapManager.CERTIFICATE_COPY_CHAIN + SOURCE_SUFFIX, true);
 								if(!chainSource.getStat().exists()) {
 									chainSource.symLink(LETS_ENCRYPT_SYMLINK_PREFIX + name + ImapManager.LETS_ENCRYPT_CHAIN);
 									needCopy = true;
@@ -1259,7 +1259,7 @@ final public class SendmailCFManager extends BuilderThread {
 							: sendmailServers.toArray(new SendmailServer[sendmailServers.size()])
 						) {
 							// Build the new version of /etc/mail/sendmail[@*].mc in RAM
-							UnixFile sendmailMc = getSendmailMc(sendmailServer);
+							PosixFile sendmailMc = getSendmailMc(sendmailServer);
 							boolean sendmailMcUpdated;
 							{
 								bout.reset();
@@ -1291,8 +1291,8 @@ final public class SendmailCFManager extends BuilderThread {
 									sendmailMc,
 									bout.toByteArray(),
 									0644,
-									UnixFile.ROOT_UID,
-									UnixFile.ROOT_GID,
+									PosixFile.ROOT_UID,
+									PosixFile.ROOT_GID,
 									null,
 									restorecon
 								);
@@ -1300,7 +1300,7 @@ final public class SendmailCFManager extends BuilderThread {
 
 							// Rebuild the /etc/sendmail.cf file if doesn't exist or modified time is before sendmail.mc
 							if(sendmailCfInstalled) {
-								UnixFile sendmailCf = getSendmailCf(sendmailServer);
+								PosixFile sendmailCf = getSendmailCf(sendmailServer);
 								Stat sendmailMcStat = sendmailMc.getStat();
 								Stat sendmailCfStat = sendmailCf.getStat();
 								if(
@@ -1315,8 +1315,8 @@ final public class SendmailCFManager extends BuilderThread {
 											sendmailCf,
 											cfNewBytes,
 											0644,
-											UnixFile.ROOT_UID,
-											UnixFile.ROOT_GID,
+											PosixFile.ROOT_UID,
+											PosixFile.ROOT_GID,
 											null,
 											restorecon
 										)
@@ -1420,8 +1420,8 @@ final public class SendmailCFManager extends BuilderThread {
 								submitMc,
 								bout.toByteArray(),
 								0644,
-								UnixFile.ROOT_UID,
-								UnixFile.ROOT_GID,
+								PosixFile.ROOT_UID,
+								PosixFile.ROOT_GID,
 								null,
 								restorecon
 							);
@@ -1443,8 +1443,8 @@ final public class SendmailCFManager extends BuilderThread {
 										submitCf,
 										cfNewBytes,
 										0644,
-										UnixFile.ROOT_UID,
-										UnixFile.ROOT_GID,
+										PosixFile.ROOT_UID,
+										PosixFile.ROOT_GID,
 										null,
 										restorecon
 									)
@@ -1499,7 +1499,7 @@ final public class SendmailCFManager extends BuilderThread {
 								String escapedName = ss.getSystemdEscapedName();
 								String filename = (escapedName == null) ? "sendmail.service" : ("sendmail@" + escapedName + ".service");
 								dontDeleteFilenames.add(filename);
-								UnixFile link = new UnixFile(HttpdServerManager.MULTI_USER_WANTS_DIRECTORY, filename);
+								PosixFile link = new PosixFile(HttpdServerManager.MULTI_USER_WANTS_DIRECTORY, filename);
 								if(!link.getStat().exists()) {
 									// Make start at boot
 									AOServDaemon.exec(
@@ -1534,7 +1534,7 @@ final public class SendmailCFManager extends BuilderThread {
 											"disable",
 											filename
 										);
-										UnixFile link = new UnixFile(HttpdServerManager.MULTI_USER_WANTS_DIRECTORY, filename);
+										PosixFile link = new PosixFile(HttpdServerManager.MULTI_USER_WANTS_DIRECTORY, filename);
 										if(link.getStat().exists()) throw new AssertionError("Link exists after systemctl disable: " + link);
 									}
 								}
@@ -1684,7 +1684,7 @@ final public class SendmailCFManager extends BuilderThread {
 							List<File> deleteFileList = new ArrayList<>();
 							for(String filename : list) {
 								if(!certbotNames.contains(filename)) {
-									UnixFile uf = new UnixFile(CERTIFICATE_COPY_DIRECTORY, filename, true);
+									PosixFile uf = new PosixFile(CERTIFICATE_COPY_DIRECTORY, filename, true);
 									if(uf.getStat().isDirectory()) deleteFileList.add(uf.getFile());
 								}
 							}

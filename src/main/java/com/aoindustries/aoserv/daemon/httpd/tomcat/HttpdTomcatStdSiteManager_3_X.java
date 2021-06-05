@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2007-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2007-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,6 +22,9 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.net.DomainName;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.linux.UserServer;
@@ -31,11 +34,8 @@ import com.aoindustries.aoserv.client.web.tomcat.PrivateTomcatSite;
 import com.aoindustries.aoserv.client.web.tomcat.Worker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
-import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
+import com.aoindustries.aoserv.daemon.posix.linux.LinuxAccountManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.net.DomainName;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -72,7 +72,7 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
 	 * Builds a standard install for Tomcat 3.X
 	 */
 	@Override
-	protected void buildSiteDirectoryContents(String optSlash, UnixFile siteDirectory, boolean isUpgrade) throws IOException, SQLException {
+	protected void buildSiteDirectoryContents(String optSlash, PosixFile siteDirectory, boolean isUpgrade) throws IOException, SQLException {
 		if(isUpgrade) throw new IllegalArgumentException("In-place upgrade not supported");
 		// Resolve and allocate stuff used throughout the method
 		final TomcatCommon_3_X tomcatCommon = getTomcatCommon();
@@ -116,7 +116,7 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
 		try (
 			ChainWriter out = new ChainWriter(
 				new BufferedOutputStream(
-					new UnixFile(profileFile).getSecureOutputStream(uid, gid, 0750, false, uid_min, gid_min)
+					new PosixFile(profileFile).getSecureOutputStream(uid, gid, 0750, false, uid_min, gid_min)
 				)
 			)
 		) {
@@ -185,7 +185,7 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
 		try (
 			ChainWriter out = new ChainWriter(
 				new BufferedOutputStream(
-					new UnixFile(tomcatScript).getSecureOutputStream(
+					new PosixFile(tomcatScript).getSecureOutputStream(
 						uid,
 						gid,
 						0700,
@@ -248,7 +248,7 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
 		try (
 			ChainWriter out = new ChainWriter(
 				new BufferedOutputStream(
-					new UnixFile(confManifestServlet).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+					new PosixFile(confManifestServlet).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
 				)
 			)
 		) {
@@ -275,7 +275,7 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
 		try (
 			ChainWriter out = new ChainWriter(
 				new BufferedOutputStream(
-					new UnixFile(confServerDTD).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+					new PosixFile(confServerDTD).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
 				)
 			)
 		) {
@@ -320,7 +320,7 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
 		try (
 			ChainWriter out = new ChainWriter(
 				new BufferedOutputStream(
-					new UnixFile(siteDir+"/conf/tomcat-users.xml").getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+					new PosixFile(siteDir+"/conf/tomcat-users.xml").getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
 				)
 			)
 		) {
@@ -330,17 +330,17 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
 		tomcatCommon.createWebXml(siteDir+"/conf", uid, gid, 0660, uid_min, gid_min);
 		for (String tomcatLogFile : TomcatCommon_3_X.tomcatLogFiles) {
 			String filename = siteDir+"/var/log/" + tomcatLogFile;
-			new UnixFile(filename).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min).close();
+			new PosixFile(filename).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min).close();
 		}
 		final String manifestFile=siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/META-INF/MANIFEST.MF";
-		try (ChainWriter out = new ChainWriter(new UnixFile(manifestFile).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min))) {
+		try (ChainWriter out = new ChainWriter(new PosixFile(manifestFile).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min))) {
 			out.print("Manifest-Version: 1.0");
 		}
 
 		/*
 		 * Write the cocoon.properties file.
 		 */
-		try (OutputStream fileOut = new BufferedOutputStream(new UnixFile(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/conf/cocoon.properties").getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min))) {
+		try (OutputStream fileOut = new BufferedOutputStream(new PosixFile(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/conf/cocoon.properties").getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min))) {
 			tomcatCommon.copyCocoonProperties1(fileOut);
 			try (ChainWriter out = new ChainWriter(fileOut)) {
 				out.print("processor.xsp.repository = ").print(siteDir).print("/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/cocoon\n");
@@ -355,7 +355,7 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
 		try (
 			ChainWriter out = new ChainWriter(
 				new BufferedOutputStream(
-					new UnixFile(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/web.xml").getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
+					new PosixFile(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/web.xml").getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
 				)
 			)
 		) {
@@ -388,7 +388,7 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
 	}
 
 	@Override
-	protected boolean upgradeSiteDirectoryContents(String optSlash, UnixFile siteDirectory) throws IOException, SQLException {
+	protected boolean upgradeSiteDirectoryContents(String optSlash, PosixFile siteDirectory) throws IOException, SQLException {
 		// Nothing to do
 		return false;
 	}
@@ -397,7 +397,7 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
 	 * Does not use any README.txt for change detection.
 	 */
 	@Override
-	protected byte[] generateReadmeTxt(String optSlash, String apacheTomcatDir, UnixFile installDir) throws IOException, SQLException {
+	protected byte[] generateReadmeTxt(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException, SQLException {
 		return null;
 	}
 }

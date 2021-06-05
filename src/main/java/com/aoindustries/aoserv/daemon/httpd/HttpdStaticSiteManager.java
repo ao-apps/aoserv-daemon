@@ -22,14 +22,14 @@
  */
 package com.aoindustries.aoserv.daemon.httpd;
 
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
+import com.aoapps.lang.validation.ValidationException;
 import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.web.Site;
 import com.aoindustries.aoserv.client.web.StaticSite;
 import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.validation.ValidationException;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Set;
@@ -61,11 +61,11 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
 
 	@Override
 	protected void buildSiteDirectory(
-		UnixFile siteDirectory,
+		PosixFile siteDirectory,
 		String optSlash,
 		Set<Site> sitesNeedingRestarted,
 		Set<SharedTomcat> sharedTomcatsNeedingRestarted,
-		Set<UnixFile> restorecon
+		Set<PosixFile> restorecon
 	) throws IOException, SQLException {
 		final boolean isAuto = !httpdSite.isManual();
 		final int apacheUid = getApacheUid();
@@ -80,15 +80,15 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
 		} else if(!siteDirectoryStat.isDirectory()) throw new IOException("Not a directory: "+siteDirectory);
 
 		// New if still owned by root
-		final boolean isNew = siteDirectoryStat.getUid() == UnixFile.ROOT_UID;
+		final boolean isNew = siteDirectoryStat.getUid() == PosixFile.ROOT_UID;
 
 		// conf/
-		if(isNew || isAuto) DaemonFileUtils.mkdir(new UnixFile(siteDirectory, "conf", false), 0775, uid, gid);
+		if(isNew || isAuto) DaemonFileUtils.mkdir(new PosixFile(siteDirectory, "conf", false), 0775, uid, gid);
 		// htdocs/
-		UnixFile htdocsDirectory = new UnixFile(siteDirectory, "htdocs", false);
+		PosixFile htdocsDirectory = new PosixFile(siteDirectory, "htdocs", false);
 		if(isNew || isAuto) DaemonFileUtils.mkdir(htdocsDirectory, 0775, uid, gid);
 		// htdocs/index.html
-		if(isNew) createTestIndex(new UnixFile(htdocsDirectory, "index.html", false));
+		if(isNew) createTestIndex(new PosixFile(htdocsDirectory, "index.html", false));
 
 		// Complete, set permission and ownership
 		siteDirectoryStat = siteDirectory.getStat();

@@ -22,6 +22,12 @@
  */
 package com.aoindustries.aoserv.daemon.httpd;
 
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
+import com.aoapps.lang.validation.ValidationException;
+import com.aoapps.tempfiles.TempFile;
+import com.aoapps.tempfiles.TempFileContext;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.aosh.Command;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
@@ -39,14 +45,8 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.ftp.FTPManager;
 import static com.aoindustries.aoserv.daemon.httpd.HttpdServerManager.PHP_SESSION;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.HttpdTomcatSiteManager;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.tempfiles.TempFile;
-import com.aoindustries.tempfiles.TempFileContext;
-import com.aoindustries.validation.ValidationException;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -145,7 +145,7 @@ public abstract class HttpdSiteManager {
 		Set<Site> sitesNeedingRestarted,
 		Set<SharedTomcat> sharedTomcatsNeedingRestarted,
 		Set<PackageManager.PackageName> usedPackages,
-		Set<UnixFile> restorecon
+		Set<PosixFile> restorecon
 	) throws IOException, SQLException {
 		try {
 			// Get values used in the rest of the method.
@@ -154,7 +154,7 @@ public abstract class HttpdSiteManager {
 			Server thisServer = AOServDaemon.getThisServer();
 
 			// The www directories that exist but are not used will be removed
-			UnixFile wwwDirectory = new UnixFile(osConfig.getHttpdSitesDirectory().toString());
+			PosixFile wwwDirectory = new PosixFile(osConfig.getHttpdSitesDirectory().toString());
 			Set<String> wwwRemoveList = new HashSet<>();
 			{
 				String[] list = wwwDirectory.list();
@@ -175,7 +175,7 @@ public abstract class HttpdSiteManager {
 
 				// Create and fill in any incomplete installations.
 				final String siteName = httpdSite.getName();
-				UnixFile siteDirectory = new UnixFile(wwwDirectory, siteName, false);
+				PosixFile siteDirectory = new PosixFile(wwwDirectory, siteName, false);
 				manager.buildSiteDirectory(
 					siteDirectory,
 					optSlash,
@@ -188,7 +188,7 @@ public abstract class HttpdSiteManager {
 
 			// Stop, disable, and mark files for deletion
 			for(String siteName : wwwRemoveList) {
-				UnixFile removeFile = new UnixFile(wwwDirectory, siteName, false);
+				PosixFile removeFile = new PosixFile(wwwDirectory, siteName, false);
 				// Stop and disable any daemons
 				stopAndDisableDaemons(removeFile);
 				// Only remove the directory when not used by a home directory
@@ -271,8 +271,8 @@ public abstract class HttpdSiteManager {
 	 * 
 	 * @see  #doRebuild
 	 */
-	public static void stopAndDisableDaemons(UnixFile siteDirectory) throws IOException, SQLException {
-		UnixFile daemonDirectory = new UnixFile(siteDirectory, "daemon", false);
+	public static void stopAndDisableDaemons(PosixFile siteDirectory) throws IOException, SQLException {
+		PosixFile daemonDirectory = new PosixFile(siteDirectory, "daemon", false);
 		Stat daemonDirectoryStat = daemonDirectory.getStat();
 		if(daemonDirectoryStat.exists()) {
 			int daemonUid=daemonDirectoryStat.getUid();
@@ -287,9 +287,9 @@ public abstract class HttpdSiteManager {
 				String[] list = daemonDirectory.list();
 				if(list!=null) {
 					for(String scriptName : list) {
-						final UnixFile scriptFile = new UnixFile(daemonDirectory, scriptName, false);
+						final PosixFile scriptFile = new PosixFile(daemonDirectory, scriptName, false);
 						// Call stop with a one-minute time-out if not owned by root
-						if(daemonUid!=UnixFile.ROOT_UID) {
+						if(daemonUid!=PosixFile.ROOT_UID) {
 							final User.Name username = daemonLsa.getLinuxAccount_username_id();
 							try {
 								Future<Object> stopFuture = AOServDaemon.executorService.submit(() -> {
@@ -474,7 +474,7 @@ public abstract class HttpdSiteManager {
 	 *   <li>Otherwise, make necessary config changes or upgrades while adhering to the manual flag</li>
 	 * </ol>
 	 */
-	protected abstract void buildSiteDirectory(UnixFile siteDirectory, String optSlash, Set<Site> sitesNeedingRestarted, Set<SharedTomcat> sharedTomcatsNeedingRestarted, Set<UnixFile> restorecon) throws IOException, SQLException;
+	protected abstract void buildSiteDirectory(PosixFile siteDirectory, String optSlash, Set<Site> sitesNeedingRestarted, Set<SharedTomcat> sharedTomcatsNeedingRestarted, Set<PosixFile> restorecon) throws IOException, SQLException;
 
 	/**
 	 * Determines if should have anonymous FTP area.
@@ -493,10 +493,10 @@ public abstract class HttpdSiteManager {
 	 * @see  #enableAnonymousFtp()
 	 * @see  FTPManager#doRebuildSharedFtpDirectory()
 	 */
-	public void configureFtpDirectory(UnixFile ftpDirectory, Set<UnixFile> restorecon) throws IOException, SQLException {
+	public void configureFtpDirectory(PosixFile ftpDirectory, Set<PosixFile> restorecon) throws IOException, SQLException {
 		if(httpdSite.isDisabled()) {
 			// Disabled
-			if(DaemonFileUtils.mkdir(ftpDirectory, 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID)) {
+			if(DaemonFileUtils.mkdir(ftpDirectory, 0700, PosixFile.ROOT_UID, PosixFile.ROOT_GID)) {
 				restorecon.add(ftpDirectory);
 			}
 		} else {
@@ -533,8 +533,8 @@ public abstract class HttpdSiteManager {
 	 * If CGI is disabled or PHP is disabled, removes any php script.
 	 * Any existing file will be overwritten, even when in manual mode.
 	 */
-	protected void createCgiPhpScript(UnixFile siteDirectory, UnixFile cgibinDirectory, Set<UnixFile> restorecon) throws IOException, SQLException {
-		UnixFile phpFile = new UnixFile(cgibinDirectory, "php", false);
+	protected void createCgiPhpScript(PosixFile siteDirectory, PosixFile cgibinDirectory, Set<PosixFile> restorecon) throws IOException, SQLException {
+		PosixFile phpFile = new PosixFile(cgibinDirectory, "php", false);
 		// TODO: If every server this site runs as uses mod_php, then don't make the script? (and the config that refers to this script)
 		if(enableCgi() && enablePhp()) {
 			Server thisServer = AOServDaemon.getThisServer();
@@ -543,10 +543,10 @@ public abstract class HttpdSiteManager {
 
 			PackageManager.PackageName requiredPackage;
 			String phpVersion = httpdSite.getPhpVersion().getVersion();
-			UnixFile phpD;
-			UnixFile varDir;
-			UnixFile varPhpDir;
-			UnixFile sessionDir;
+			PosixFile phpD;
+			PosixFile varDir;
+			PosixFile varPhpDir;
+			PosixFile sessionDir;
 			// Build to RAM first
 			ByteArrayOutputStream bout = new ByteArrayOutputStream();
 			try (ChainWriter out = new ChainWriter(bout)) {
@@ -620,12 +620,12 @@ public abstract class HttpdSiteManager {
 						phpMinorVersion = HttpdServerManager.getMinorPhpVersion(phpVersion);
 						requiredPackage = PackageManager.PackageName.valueOf("PHP_" + phpMinorVersion.replace('.', '_'));
 						// Support PHP_INI_SCAN_DIR
-						phpD = new UnixFile(cgibinDirectory, CGI_PHP_D, true);
+						phpD = new PosixFile(cgibinDirectory, CGI_PHP_D, true);
 						out.print("export PHP_INI_SCAN_DIR='").print(phpD.getPath()).print("'\n");
 					}
-					varDir = new UnixFile(siteDirectory, VAR, true);
-					varPhpDir = new UnixFile(varDir, VAR_PHP, true);
-					sessionDir = new UnixFile(varPhpDir, PHP_SESSION, true);
+					varDir = new PosixFile(siteDirectory, VAR, true);
+					varPhpDir = new PosixFile(varDir, VAR_PHP, true);
+					sessionDir = new PosixFile(varPhpDir, PHP_SESSION, true);
 				} else {
 					throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 				}
@@ -644,7 +644,7 @@ public abstract class HttpdSiteManager {
 			int gid = httpdSite.getLinuxServerGroup().getGid().getId();
 			int mode = 0755;
 			// Create parent if missing
-			UnixFile parent = cgibinDirectory.getParent();
+			PosixFile parent = cgibinDirectory.getParent();
 			if(!parent.getStat().exists()) parent.mkdir(true, 0775, uid, gid);
 			// Create cgi-bin if missing
 			if(DaemonFileUtils.mkdir(cgibinDirectory, 0755, uid, gid)) {
@@ -699,7 +699,7 @@ public abstract class HttpdSiteManager {
 		} else {
 			if(phpFile.getStat().exists()) phpFile.delete();
 			// Remove any php.ini, too
-			UnixFile phpIniFile = new UnixFile(cgibinDirectory, "php.ini", false);
+			PosixFile phpIniFile = new PosixFile(cgibinDirectory, "php.ini", false);
 			if(phpIniFile.getStat().exists()) {
 				// TODO: Backup-and-delete?
 				phpIniFile.delete();
@@ -713,7 +713,7 @@ public abstract class HttpdSiteManager {
 	 * TODO: Generate proper disabled page automatically.
 	 *       Or, better, put into logic of static site rebuild.
 	 */
-	protected void createTestIndex(UnixFile indexFile) throws IOException, SQLException {
+	protected void createTestIndex(PosixFile indexFile) throws IOException, SQLException {
 		if(!indexFile.getStat().exists()) {
 			VirtualHostName primaryHsu = httpdSite.getPrimaryHttpdSiteURL();
 			String primaryUrl = primaryHsu==null ? httpdSite.getName() : primaryHsu.getHostname().toString();
@@ -731,7 +731,7 @@ public abstract class HttpdSiteManager {
 							+ "</html>\n");
 				}
 				// Set permissions and ownership
-				UnixFile tempUF = new UnixFile(tempFile.getFile());
+				PosixFile tempUF = new PosixFile(tempFile.getFile());
 				tempUF.setMode(0664);
 				tempUF.chown(httpdSite.getLinuxServerAccount().getUid().getId(), httpdSite.getLinuxServerGroup().getGid().getId());
 				// Move into place

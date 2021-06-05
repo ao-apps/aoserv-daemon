@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2013, 2015, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2001-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,6 +22,10 @@
  */
 package com.aoindustries.aoserv.daemon.net.ssh;
 
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.net.InetAddress;
+import com.aoapps.net.Port;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.Server;
@@ -29,13 +33,9 @@ import com.aoindustries.aoserv.client.net.AppProtocol;
 import com.aoindustries.aoserv.client.net.Bind;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.net.InetAddress;
-import com.aoindustries.net.Port;
 import com.aoindustries.selinux.SEManagePort;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -372,7 +372,7 @@ final public class SshdManager extends BuilderThread {
 
 			AOServConnector conn = AOServDaemon.getConnector();
 			synchronized(rebuildLock) {
-				Set<UnixFile> restorecon = new LinkedHashSet<>();
+				Set<PosixFile> restorecon = new LinkedHashSet<>();
 				try {
 					// Find all the ports that should be bound to
 					List<Bind> nbs = new ArrayList<>();
@@ -382,8 +382,8 @@ final public class SshdManager extends BuilderThread {
 						if(sshProtocol == null) throw new SQLException("AppProtocol not found: " + AppProtocol.SSH);
 						for(Bind nb : thisServer.getHost().getNetBinds(sshProtocol)) {
 							if(nb.getNetTcpRedirect() == null) {
-								com.aoindustries.net.Protocol netProtocol = nb.getPort().getProtocol();
-								if(netProtocol != com.aoindustries.net.Protocol.TCP) {
+								com.aoapps.net.Protocol netProtocol = nb.getPort().getProtocol();
+								if(netProtocol != com.aoapps.net.Protocol.TCP) {
 									throw new IOException("Unsupported protocol for SSH: " + netProtocol);
 								}
 								nbs.add(nb);
@@ -447,11 +447,11 @@ final public class SshdManager extends BuilderThread {
 						// Write the new file only when file changed
 						if(
 							DaemonFileUtils.atomicWrite(
-								new UnixFile("/etc/ssh/sshd_config"),
+								new PosixFile("/etc/ssh/sshd_config"),
 								newConfig,
 								0600,
-								UnixFile.ROOT_UID,
-								UnixFile.ROOT_GID,
+								PosixFile.ROOT_UID,
+								PosixFile.ROOT_GID,
 								null,
 								restorecon
 							)

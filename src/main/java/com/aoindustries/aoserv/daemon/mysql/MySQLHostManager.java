@@ -22,6 +22,8 @@
  */
 package com.aoindustries.aoserv.daemon.mysql;
 
+import com.aoapps.lang.util.ErrorPrinter;
+import com.aoapps.net.InetAddress;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.mysql.Server;
@@ -30,8 +32,6 @@ import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
-import com.aoindustries.net.InetAddress;
-import com.aoindustries.util.ErrorPrinter;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;

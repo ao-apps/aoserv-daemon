@@ -22,6 +22,11 @@
  */
 package com.aoindustries.aoserv.daemon.email.jilter;
 
+import com.aoapps.collections.AoCollections;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
+import com.aoapps.net.DomainName;
+import com.aoapps.net.InetAddress;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.account.Account;
 import com.aoindustries.aoserv.client.billing.Package;
@@ -39,15 +44,10 @@ import com.aoindustries.aoserv.client.net.Host;
 import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.jilter.config.EmailLimit;
 import com.aoindustries.aoserv.jilter.config.JilterConfiguration;
-import com.aoindustries.collections.AoCollections;
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.net.DomainName;
-import com.aoindustries.net.InetAddress;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -247,13 +247,13 @@ public class JilterConfigurationWriter extends BuilderThread {
 							if(aoservJilterLsg == null) throw new SQLException("Unable to find GroupServer: " + Group.AOSERV_JILTER);
 							aoservJilterGid = aoservJilterLsg.getGid().getId();
 						}
-						UnixFile propsUF = new UnixFile(JilterConfiguration.PROPS_FILE);
+						PosixFile propsUF = new PosixFile(JilterConfiguration.PROPS_FILE);
 						Stat propsStat = propsUF.getStat();
 						if(
-							propsStat.getUid() != UnixFile.ROOT_UID
+							propsStat.getUid() != PosixFile.ROOT_UID
 							|| propsStat.getGid() != aoservJilterGid
 						) {
-							propsUF.chown(UnixFile.ROOT_UID, aoservJilterGid);
+							propsUF.chown(PosixFile.ROOT_UID, aoservJilterGid);
 						}
 						if(propsStat.getMode() != 0640) propsUF.setMode(0640);
 					}

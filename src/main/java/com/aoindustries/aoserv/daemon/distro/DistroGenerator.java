@@ -22,6 +22,16 @@
  */
 package com.aoindustries.aoserv.daemon.distro;
 
+import com.aoapps.encoding.TextInPsqlEncoder;
+import com.aoapps.hodgepodge.io.ByteCountInputStream;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
+import com.aoapps.lang.EmptyArrays;
+import com.aoapps.lang.Strings;
+import com.aoapps.lang.SysExits;
+import com.aoapps.lang.Throwables;
+import com.aoapps.lang.exception.WrappedException;
+import com.aoapps.lang.io.IoUtils;
 import static com.aoindustries.aoserv.client.distribution.Architecture.I686_AND_X86_64;
 import static com.aoindustries.aoserv.client.distribution.Architecture.X86_64;
 import static com.aoindustries.aoserv.client.distribution.OperatingSystem.CENTOS;
@@ -35,16 +45,6 @@ import static com.aoindustries.aoserv.client.distribution.OperatingSystemVersion
 import static com.aoindustries.aoserv.client.distribution.OperatingSystemVersion.VERSION_7_DOM0;
 import com.aoindustries.aoserv.client.distribution.management.DistroFileType;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.encoding.TextInPsqlEncoder;
-import com.aoindustries.exception.WrappedException;
-import com.aoindustries.io.ByteCountInputStream;
-import com.aoindustries.io.IoUtils;
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.lang.EmptyArrays;
-import com.aoindustries.lang.Strings;
-import com.aoindustries.lang.SysExits;
-import com.aoindustries.lang.Throwables;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -350,7 +350,7 @@ final public class DistroGenerator {
 					new InputStreamReader(
 						new BufferedInputStream(
 							new FileInputStream(
-								new UnixFile(
+								new PosixFile(
 									root + '/' + osFilename.getOSName() + '/' + osFilename.getOSVersion() + '/' + osFilename.getOSArchitecture() + "/etc/passwd"
 								).getFile()
 							)
@@ -384,7 +384,7 @@ final public class DistroGenerator {
 					new InputStreamReader(
 						new BufferedInputStream(
 							new FileInputStream(
-								new UnixFile(
+								new PosixFile(
 									root + '/' + osFilename.getOSName() + '/' + osFilename.getOSVersion() + '/' + osFilename.getOSArchitecture() + "/etc/group"
 								).getFile()
 							)
@@ -580,11 +580,11 @@ final public class DistroGenerator {
 					// Recurse for directories
 					OSFilename osFilename = new OSFilename(filename);
 					try {
-						UnixFile unixFile = new UnixFile(root + filename);
+						PosixFile unixFile = new PosixFile(root + filename);
 						long statMode = unixFile.getStat().getRawMode();
 						if(
-							!UnixFile.isSymLink(statMode)
-							&& UnixFile.isDirectory(statMode)
+							!PosixFile.isSymLink(statMode)
+							&& PosixFile.isDirectory(statMode)
 							&& (
 								osFilename.filename == null
 								|| (
@@ -673,7 +673,7 @@ final public class DistroGenerator {
 		for(Map.Entry<OSFilename, Boolean> entry : runState.nevers.entrySet()) {
 			OSFilename osFilename = entry.getKey();
 			String path = osFilename.getFullPath();
-			UnixFile uf = new UnixFile(path);
+			PosixFile uf = new PosixFile(path);
 			if(uf.getStat().exists()) {
 				foundNevers.add(path);
 			}
@@ -800,10 +800,10 @@ final public class DistroGenerator {
 					;
 
 					// Decide if the size should be stored
-					UnixFile file = new UnixFile(fullPath);
+					PosixFile file = new PosixFile(fullPath);
 					Stat fileStat = file.getStat();
 					long statMode = fileStat.getRawMode();
-					boolean isRegularFile = UnixFile.isRegularFile(statMode);
+					boolean isRegularFile = PosixFile.isRegularFile(statMode);
 					boolean storeSize = isRegularFile && !runState.isConfig(osFilename);
 
 					// Only hash system regular files
@@ -888,7 +888,7 @@ final public class DistroGenerator {
 							SB.append(", null, null, null, null");
 						}
 						SB.append(", ");
-						if(UnixFile.isSymLink(statMode)) {
+						if(PosixFile.isSymLink(statMode)) {
 							TextInPsqlEncoder.textInPsqlEncoder.writePrefixTo(SB);
 							TextInPsqlEncoder.textInPsqlEncoder.append(file.readLink(), SB);
 							TextInPsqlEncoder.textInPsqlEncoder.writeSuffixTo(SB);

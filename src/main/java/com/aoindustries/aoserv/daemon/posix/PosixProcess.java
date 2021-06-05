@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2000-2009, 2017, 2018, 2020  AO Industries, Inc.
+ * Copyright (C) 2000-2009, 2017, 2018, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -20,7 +20,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.aoindustries.aoserv.daemon.unix;
+package com.aoindustries.aoserv.daemon.posix;
 
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import java.io.IOException;
@@ -28,44 +28,44 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * A <code>UnixProcess</code> represents a process
- * running on any Unix machine.
+ * A <code>PosixProcess</code> represents a process
+ * running on any POSIX machine.
  *
  * @author  AO Industries, Inc.
  */
-abstract public class UnixProcess {
+abstract public class PosixProcess {
 
-	private static final Logger logger = Logger.getLogger(UnixProcess.class.getName());
+	private static final Logger logger = Logger.getLogger(PosixProcess.class.getName());
 
 	protected int pid;
 
 	/**
-	 * Constructs a Unix process given its process ID.
+	 * Constructs a POSIX process given its process ID.
 	 */
-	public UnixProcess(int pid) {
+	public PosixProcess(int pid) {
 		this.pid=pid;
 	}
 
 	/**
 	 * Determines the group ID of a process.  The subclasses of
-	 * <code>UnixProcess</code> must implement this functionality.  Calling
-	 * the method on a <code>UnixProcess</code> will result in an
+	 * <code>PosixProcess</code> must implement this functionality.  Calling
+	 * the method on a <code>PosixProcess</code> will result in an
 	 * <code>IOException</code>.
 	 */
 	abstract public int getGid() throws IOException;
 
 	/**
 	 * Determines the user ID of a process.  The subclasses of
-	 * <code>UnixProcess</code> must implement this functionality.  Calling
-	 * the method on a <code>UnixProcess</code> will result in an
+	 * <code>PosixProcess</code> must implement this functionality.  Calling
+	 * the method on a <code>PosixProcess</code> will result in an
 	 * <code>IOException</code>.
 	 */
 	abstract public int getUid() throws IOException;
 
 	/**
 	 * Determines if the process is currently running.  The subclasses of
-	 * <code>UnixProcess</code> must implement this functionality.  Calling
-	 * the method on a <code>UnixProcess</code> will result in an
+	 * <code>PosixProcess</code> must implement this functionality.  Calling
+	 * the method on a <code>PosixProcess</code> will result in an
 	 * <code>IOException</code>.
 	 */
 	abstract public boolean isRunning() throws IOException;

@@ -22,6 +22,16 @@
  */
 package com.aoindustries.aoserv.daemon.httpd;
 
+import com.aoapps.collections.AoCollections;
+import com.aoapps.concurrent.KeyedConcurrencyReducer;
+import com.aoapps.encoding.ChainWriter;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
+import com.aoapps.lang.Strings;
+import com.aoapps.lang.concurrent.ExecutionExceptions;
+import com.aoapps.lang.io.FileUtils;
+import com.aoapps.net.InetAddress;
+import com.aoapps.net.Port;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.distribution.SoftwareVersion;
@@ -51,20 +61,10 @@ import com.aoindustries.aoserv.client.web.tomcat.Worker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
-import com.aoindustries.aoserv.daemon.unix.linux.LinuxProcess;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
+import com.aoindustries.aoserv.daemon.posix.linux.LinuxProcess;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.collections.AoCollections;
-import com.aoindustries.concurrent.KeyedConcurrencyReducer;
-import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.FileUtils;
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.lang.Strings;
-import com.aoindustries.net.InetAddress;
-import com.aoindustries.net.Port;
 import com.aoindustries.selinux.SEManagePort;
-import com.aoindustries.util.concurrent.ExecutionExceptions;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -207,7 +207,7 @@ public class HttpdServerManager {
 	/**
 	 * The directory that contains PHP variable files.
 	 */
-	private static final UnixFile VAR_LIB_PHP_DIRECTORY = new UnixFile("/var/lib/php");
+	private static final PosixFile VAR_LIB_PHP_DIRECTORY = new PosixFile("/var/lib/php");
 
 	/**
 	 * The name of the PHP session folder for the default Apache instance
@@ -288,7 +288,7 @@ public class HttpdServerManager {
 	static void doRebuild(
 		List<File> deleteFileList,
 		Set<HttpdServer> serversNeedingReloaded,
-		Set<UnixFile> restorecon
+		Set<PosixFile> restorecon
 	) throws IOException, SQLException {
 		// Used below
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
@@ -322,7 +322,7 @@ public class HttpdServerManager {
 		ByteArrayOutputStream bout,
 		List<File> deleteFileList,
 		Set<HttpdServer> serversNeedingReloaded,
-		Set<UnixFile> restorecon
+		Set<PosixFile> restorecon
 	) throws IOException, SQLException {
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
@@ -346,14 +346,14 @@ public class HttpdServerManager {
 					extraFiles.remove(siteName);
 
 					// The shared config part
-					final UnixFile sharedFile = new UnixFile(CONF_HOSTS, siteName);
+					final PosixFile sharedFile = new PosixFile(CONF_HOSTS, siteName);
 					if(!manager.httpdSite.isManual() || !sharedFile.getStat().exists()) {
 						if(
 							DaemonFileUtils.atomicWrite(
 								sharedFile,
 								buildHttpdSiteSharedFile(manager, bout, restorecon),
 								0640,
-								UnixFile.ROOT_UID,
+								PosixFile.ROOT_UID,
 								lsgGID,
 								null,
 								restorecon
@@ -385,7 +385,7 @@ public class HttpdServerManager {
 								bindFilename = siteName+"_"+nb.getIpAddress().getInetAddress()+"_"+nb.getPort().getPort()+"_"+bindEscapedName;
 							}
 						}
-						final UnixFile bindFile = new UnixFile(CONF_HOSTS, bindFilename);
+						final PosixFile bindFile = new PosixFile(CONF_HOSTS, bindFilename);
 						final boolean exists = bindFile.getStat().exists();
 
 						// Remove from delete list
@@ -424,7 +424,7 @@ public class HttpdServerManager {
 									bindFile,
 									newContent,
 									0640,
-									UnixFile.ROOT_UID,
+									PosixFile.ROOT_UID,
 									lsgGID,
 									null,
 									restorecon
@@ -469,14 +469,14 @@ public class HttpdServerManager {
 					extraFiles.remove(sharedFilename);
 
 					// The shared config part
-					final UnixFile sharedFile = new UnixFile(SITES_AVAILABLE, sharedFilename);
+					final PosixFile sharedFile = new PosixFile(SITES_AVAILABLE, sharedFilename);
 					if(!manager.httpdSite.isManual() || !sharedFile.getStat().exists()) {
 						if(
 							DaemonFileUtils.atomicWrite(
 								sharedFile,
 								buildHttpdSiteSharedFile(manager, bout, restorecon),
 								0640,
-								UnixFile.ROOT_UID,
+								PosixFile.ROOT_UID,
 								lsgGID,
 								null,
 								restorecon
@@ -509,7 +509,7 @@ public class HttpdServerManager {
 								bindFilename = siteName+"_"+nb.getIpAddress().getInetAddress()+"_"+nb.getPort().getPort()+"_"+bindEscapedName+".conf";
 							}
 						}
-						final UnixFile bindFile = new UnixFile(SITES_AVAILABLE, bindFilename);
+						final PosixFile bindFile = new PosixFile(SITES_AVAILABLE, bindFilename);
 						final boolean exists = bindFile.getStat().exists();
 
 						// Remove from delete list
@@ -548,7 +548,7 @@ public class HttpdServerManager {
 									bindFile,
 									newContent,
 									0640,
-									UnixFile.ROOT_UID,
+									PosixFile.ROOT_UID,
 									lsgGID,
 									null,
 									restorecon
@@ -603,7 +603,7 @@ public class HttpdServerManager {
 						}
 						final String symlinkTarget = "../sites-available/" + bindFilename;
 
-						final UnixFile symlinkFile = new UnixFile(SITES_ENABLED, bindFilename);
+						final PosixFile symlinkFile = new PosixFile(SITES_ENABLED, bindFilename);
 						final Stat symlinkStat = symlinkFile.getStat();
 
 						// Remove from delete list
@@ -642,7 +642,7 @@ public class HttpdServerManager {
 	/**
 	 * Builds the contents for the shared part of a Site config.
 	 */
-	private static byte[] buildHttpdSiteSharedFile(HttpdSiteManager manager, ByteArrayOutputStream bout, Set<UnixFile> restorecon) throws IOException, SQLException {
+	private static byte[] buildHttpdSiteSharedFile(HttpdSiteManager manager, ByteArrayOutputStream bout, Set<PosixFile> restorecon) throws IOException, SQLException {
 		final Site httpdSite = manager.httpdSite;
 		final UserServer lsa = httpdSite.getLinuxServerAccount();
 		final int uid = lsa.getUid().getId();
@@ -881,9 +881,9 @@ public class HttpdServerManager {
 
 					// Configure per-site PHP sessions for mod_php
 					if(!modPhpMajorVersions.isEmpty()) {
-						UnixFile varDir = new UnixFile(HttpdOperatingSystemConfiguration.CENTOS_7_X86_64.getHttpdSitesDirectory().toString() + "/" + httpdSite.getName() + "/" + HttpdSiteManager.VAR);
-						UnixFile varPhpDir = new UnixFile(varDir, HttpdSiteManager.VAR_PHP, true);
-						UnixFile sessionDir = new UnixFile(varPhpDir, PHP_SESSION, true);
+						PosixFile varDir = new PosixFile(HttpdOperatingSystemConfiguration.CENTOS_7_X86_64.getHttpdSitesDirectory().toString() + "/" + httpdSite.getName() + "/" + HttpdSiteManager.VAR);
+						PosixFile varPhpDir = new PosixFile(varDir, HttpdSiteManager.VAR_PHP, true);
+						PosixFile sessionDir = new PosixFile(varPhpDir, PHP_SESSION, true);
 						out.print("\n"
 								+ "# Use per-site PHP session directory when using mod_php\n");
 						for(int modPhpMajorVersion : modPhpMajorVersions) {
@@ -1255,7 +1255,7 @@ public class HttpdServerManager {
 		List<File> deleteFileList,
 		Set<HttpdServer> serversNeedingReloaded,
 		Set<Port> enabledAjpPorts,
-		Set<UnixFile> restorecon,
+		Set<PosixFile> restorecon,
 		boolean[] hasAnyCgi,
 		boolean[] hasAnyModPhp
 	) throws IOException, SQLException {
@@ -1278,7 +1278,7 @@ public class HttpdServerManager {
 		for(HttpdServer hs : hss) {
 			List<Site> sites = hs.getHttpdSites();
 			String httpdConfFilename = getHttpdConfFile(hs);
-			UnixFile httpdConf = new UnixFile(CONF_DIRECTORY, httpdConfFilename);
+			PosixFile httpdConf = new PosixFile(CONF_DIRECTORY, httpdConfFilename);
 			httpdConfFilenames.add(httpdConfFilename);
 			// Rebuild the httpd.conf file
 			if(
@@ -1286,8 +1286,8 @@ public class HttpdServerManager {
 					httpdConf,
 					buildHttpdConf(hs, sites, httpdConfFilenames, varLibPhpFilenames, bout, restorecon, hasAnyCgi, hasAnyModPhp),
 					0644,
-					UnixFile.ROOT_UID,
-					UnixFile.ROOT_GID,
+					PosixFile.ROOT_UID,
+					PosixFile.ROOT_GID,
 					null,
 					restorecon
 				)
@@ -1318,15 +1318,15 @@ public class HttpdServerManager {
 			}
 			if(hasJkSettings) {
 				String workersFilename = getWorkersFile(hs);
-				UnixFile workersFile = new UnixFile(CONF_DIRECTORY, workersFilename);
+				PosixFile workersFile = new PosixFile(CONF_DIRECTORY, workersFilename);
 				httpdConfFilenames.add(workersFilename);
 				if(
 					DaemonFileUtils.atomicWrite(
 						workersFile,
 						buildWorkersFile(hs, bout, enabledAjpPorts),
 						0644,
-						UnixFile.ROOT_UID,
-						UnixFile.ROOT_GID,
+						PosixFile.ROOT_UID,
+						PosixFile.ROOT_GID,
 						null,
 						restorecon
 					)
@@ -1373,14 +1373,14 @@ public class HttpdServerManager {
 						}
 						newContent = bout.toByteArray();
 					}
-					UnixFile tmpFilesUF = new UnixFile(ETC_TMPFILES_D, tmpFilesFilename);
+					PosixFile tmpFilesUF = new PosixFile(ETC_TMPFILES_D, tmpFilesFilename);
 					if(
 						DaemonFileUtils.atomicWrite(
 							tmpFilesUF,
 							newContent,
 							0644,
-							UnixFile.ROOT_UID,
-							UnixFile.ROOT_GID,
+							PosixFile.ROOT_UID,
+							PosixFile.ROOT_GID,
 							null,
 							restorecon
 						)
@@ -1390,18 +1390,18 @@ public class HttpdServerManager {
 				}
 				// Create/update /run/httpd[@<name>](/.*)?
 				runFilenames.add(runFilename);
-				UnixFile runDirUF = new UnixFile("/run", runFilename);
+				PosixFile runDirUF = new PosixFile("/run", runFilename);
 				if(
 					DaemonFileUtils.mkdir(
 						runDirUF,
 						0710,
-						UnixFile.ROOT_UID,
+						PosixFile.ROOT_UID,
 						gid
 					)
 				) {
 					serversNeedingReloaded.add(hs);
 				}
-				UnixFile htcachecleanDirUF = new UnixFile(runDirUF, "htcacheclean", false);
+				PosixFile htcachecleanDirUF = new PosixFile(runDirUF, "htcacheclean", false);
 				if(
 					DaemonFileUtils.mkdir(
 						htcachecleanDirUF,
@@ -1820,7 +1820,7 @@ public class HttpdServerManager {
 		Set<String> httpdConfFilenames,
 		Set<String> varLibPhpFilenames,
 		ByteArrayOutputStream bout,
-		Set<UnixFile> restorecon,
+		Set<PosixFile> restorecon,
 		boolean[] hasAnyCgi,
 		boolean[] hasAnyModPhp
 	) throws IOException, SQLException {
@@ -2466,30 +2466,30 @@ public class HttpdServerManager {
 				String version = phpVersion.getVersion();
 				String phpMinorVersion = getMinorPhpVersion(version);
 				// Create initial PHP config directory
-				UnixFile phpIniDir;
+				PosixFile phpIniDir;
 				if(escapedName == null) {
-					phpIniDir = new UnixFile(CONF_DIRECTORY + "/php");
+					phpIniDir = new PosixFile(CONF_DIRECTORY + "/php");
 					httpdConfFilenames.add("php");
 				} else {
-					phpIniDir = new UnixFile(CONF_DIRECTORY + "/php@" + escapedName);
+					phpIniDir = new PosixFile(CONF_DIRECTORY + "/php@" + escapedName);
 					httpdConfFilenames.add("php@" + escapedName);
 				}
 				int gid = hs.getLinuxServerGroup().getGid().getId();
-				if(DaemonFileUtils.mkdir(phpIniDir, 0750, UnixFile.ROOT_UID, gid)) {
+				if(DaemonFileUtils.mkdir(phpIniDir, 0750, PosixFile.ROOT_UID, gid)) {
 					restorecon.add(phpIniDir);
 				}
 				// Create the conf.d config directory for PHP 7+
 				String expectedTarget;
-				UnixFile confD;
+				PosixFile confD;
 				if(phpVersion.getVersion().startsWith("5.")) {
 					expectedTarget = "../../../../opt/php-" + phpMinorVersion + "/lib/php.ini";
 					confD = null;
 				} else {
 					expectedTarget = "../../../opt/php-" + phpMinorVersion + "/php.ini";
-					confD = new UnixFile(phpIniDir, MOD_PHP_CONF_D, true);
+					confD = new PosixFile(phpIniDir, MOD_PHP_CONF_D, true);
 				}
 				if(confD != null) {
-					if(DaemonFileUtils.mkdir(confD, 0750, UnixFile.ROOT_UID, gid)) {
+					if(DaemonFileUtils.mkdir(confD, 0750, PosixFile.ROOT_UID, gid)) {
 						restorecon.add(confD);
 					}
 					// TODO: Create and update symlinks in conf.d matching an AOServ-configured set of extensions
@@ -2498,7 +2498,7 @@ public class HttpdServerManager {
 					// TODO: Remove conf.d is then empty
 				}
 				// Create or update php.ini symbolic link
-				UnixFile phpIni = new UnixFile(phpIniDir, "php.ini", true);
+				PosixFile phpIni = new PosixFile(phpIniDir, "php.ini", true);
 				Stat phpIniStat = phpIni.getStat();
 				if(!phpIniStat.exists()) {
 					phpIni.symLink(expectedTarget);
@@ -2522,7 +2522,7 @@ public class HttpdServerManager {
 					}
 				}
 				// Create session directory, if needed
-				UnixFile sessionDir;
+				PosixFile sessionDir;
 				{
 					String sessionDirName;
 					if(escapedName == null) {
@@ -2530,11 +2530,11 @@ public class HttpdServerManager {
 					} else {
 						sessionDirName = PHP_SESSION + "@" + escapedName;
 					}
-					sessionDir = new UnixFile(VAR_LIB_PHP_DIRECTORY, sessionDirName, true);
+					sessionDir = new PosixFile(VAR_LIB_PHP_DIRECTORY, sessionDirName, true);
 					varLibPhpFilenames.add(sessionDirName);
 				}
 				int uid = hs.getLinuxServerAccount().getUid().getId();
-				if(DaemonFileUtils.mkdir(VAR_LIB_PHP_DIRECTORY, 0755, UnixFile.ROOT_UID, UnixFile.ROOT_GID)) {
+				if(DaemonFileUtils.mkdir(VAR_LIB_PHP_DIRECTORY, 0755, PosixFile.ROOT_UID, PosixFile.ROOT_GID)) {
 					restorecon.add(VAR_LIB_PHP_DIRECTORY);
 				}
 				if(DaemonFileUtils.mkdir(sessionDir, 0700, uid, gid)) {
@@ -2633,7 +2633,7 @@ public class HttpdServerManager {
 		Set<String> httpdConfFilenames,
 		Set<String> varLibPhpFilenames,
 		ByteArrayOutputStream bout,
-		Set<UnixFile> restorecon,
+		Set<PosixFile> restorecon,
 		boolean[] hasAnyCgi,
 		boolean[] hasAnyModPhp
 	) throws IOException, SQLException {
@@ -3173,32 +3173,32 @@ public class HttpdServerManager {
 		return pos == -1 ? version : version.substring(0, pos);
 	}
 
-	private static final UnixFile[] centOs5AlwaysDelete = {
-		new UnixFile("/etc/httpd/conf/httpd1.conf.old"),
-		new UnixFile("/etc/httpd/conf/httpd2.conf.old"),
-		new UnixFile("/etc/httpd/conf/httpd3.conf.old"),
-		new UnixFile("/etc/httpd/conf/httpd4.conf.old"),
-		new UnixFile("/etc/httpd/conf/httpd5.conf.old"),
-		new UnixFile("/etc/httpd/conf/httpd6.conf.old"),
-		new UnixFile("/etc/httpd/conf/httpd7.conf.old"),
-		new UnixFile("/etc/httpd/conf/httpd8.conf.old"),
-		new UnixFile("/etc/httpd/conf/workers1.properties.old"),
-		new UnixFile("/etc/httpd/conf/workers2.properties.old"),
-		new UnixFile("/etc/httpd/conf/workers3.properties.old"),
-		new UnixFile("/etc/httpd/conf/workers4.properties.old"),
-		new UnixFile("/etc/httpd/conf/workers5.properties.old"),
-		new UnixFile("/etc/httpd/conf/workers6.properties.old"),
-		new UnixFile("/etc/httpd/conf/workers7.properties.old"),
-		new UnixFile("/etc/httpd/conf/workers8.properties.old"),
-		new UnixFile("/etc/rc.d/init.d/httpd"),
-		new UnixFile("/opt/aoserv-daemon/init.d/httpd1"),
-		new UnixFile("/opt/aoserv-daemon/init.d/httpd2"),
-		new UnixFile("/opt/aoserv-daemon/init.d/httpd3"),
-		new UnixFile("/opt/aoserv-daemon/init.d/httpd4"),
-		new UnixFile("/opt/aoserv-daemon/init.d/httpd5"),
-		new UnixFile("/opt/aoserv-daemon/init.d/httpd6"),
-		new UnixFile("/opt/aoserv-daemon/init.d/httpd7"),
-		new UnixFile("/opt/aoserv-daemon/init.d/httpd8")
+	private static final PosixFile[] centOs5AlwaysDelete = {
+		new PosixFile("/etc/httpd/conf/httpd1.conf.old"),
+		new PosixFile("/etc/httpd/conf/httpd2.conf.old"),
+		new PosixFile("/etc/httpd/conf/httpd3.conf.old"),
+		new PosixFile("/etc/httpd/conf/httpd4.conf.old"),
+		new PosixFile("/etc/httpd/conf/httpd5.conf.old"),
+		new PosixFile("/etc/httpd/conf/httpd6.conf.old"),
+		new PosixFile("/etc/httpd/conf/httpd7.conf.old"),
+		new PosixFile("/etc/httpd/conf/httpd8.conf.old"),
+		new PosixFile("/etc/httpd/conf/workers1.properties.old"),
+		new PosixFile("/etc/httpd/conf/workers2.properties.old"),
+		new PosixFile("/etc/httpd/conf/workers3.properties.old"),
+		new PosixFile("/etc/httpd/conf/workers4.properties.old"),
+		new PosixFile("/etc/httpd/conf/workers5.properties.old"),
+		new PosixFile("/etc/httpd/conf/workers6.properties.old"),
+		new PosixFile("/etc/httpd/conf/workers7.properties.old"),
+		new PosixFile("/etc/httpd/conf/workers8.properties.old"),
+		new PosixFile("/etc/rc.d/init.d/httpd"),
+		new PosixFile("/opt/aoserv-daemon/init.d/httpd1"),
+		new PosixFile("/opt/aoserv-daemon/init.d/httpd2"),
+		new PosixFile("/opt/aoserv-daemon/init.d/httpd3"),
+		new PosixFile("/opt/aoserv-daemon/init.d/httpd4"),
+		new PosixFile("/opt/aoserv-daemon/init.d/httpd5"),
+		new PosixFile("/opt/aoserv-daemon/init.d/httpd6"),
+		new PosixFile("/opt/aoserv-daemon/init.d/httpd7"),
+		new PosixFile("/opt/aoserv-daemon/init.d/httpd8")
 	};
 
 	/**
@@ -3209,7 +3209,7 @@ public class HttpdServerManager {
 		if(osConfig==HttpdOperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) {
 			// Make sure these files don't exist.  They may be due to upgrades or a
 			// result of RPM installs.
-			for(UnixFile uf : centOs5AlwaysDelete) {
+			for(PosixFile uf : centOs5AlwaysDelete) {
 				if(uf.getStat().exists()) {
 					File toDelete = uf.getFile();
 					if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
@@ -3229,7 +3229,7 @@ public class HttpdServerManager {
 		ByteArrayOutputStream bout,
 		List<File> deleteFileList,
 		Set<HttpdServer> serversNeedingReloaded,
-		Set<UnixFile> restorecon
+		Set<PosixFile> restorecon
 	) throws IOException, SQLException {
 		List<HttpdServer> hss = thisServer.getHttpdServers();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
@@ -3310,11 +3310,11 @@ public class HttpdServerManager {
 					dontDeleteFilenames.add(filename);
 					if(
 						DaemonFileUtils.atomicWrite(
-							new UnixFile(INIT_DIRECTORY, filename),
+							new PosixFile(INIT_DIRECTORY, filename),
 							bout.toByteArray(),
 							0700,
-							UnixFile.ROOT_UID,
-							UnixFile.ROOT_GID,
+							PosixFile.ROOT_UID,
+							PosixFile.ROOT_GID,
 							null,
 							restorecon
 						)
@@ -3373,7 +3373,7 @@ public class HttpdServerManager {
 					} else {
 						String filename = (escapedName == null) ? "httpd.service" : ("httpd@" + escapedName + ".service");
 						dontDeleteFilenames.add(filename);
-						UnixFile link = new UnixFile(MULTI_USER_WANTS_DIRECTORY, filename);
+						PosixFile link = new PosixFile(MULTI_USER_WANTS_DIRECTORY, filename);
 						if(!link.getStat().exists()) {
 							// Make start at boot
 							AOServDaemon.exec(
@@ -3410,7 +3410,7 @@ public class HttpdServerManager {
 								"disable",
 								filename
 							);
-							UnixFile link = new UnixFile(MULTI_USER_WANTS_DIRECTORY, filename);
+							PosixFile link = new PosixFile(MULTI_USER_WANTS_DIRECTORY, filename);
 							if(link.getStat().exists()) throw new AssertionError("Link exists after systemctl disable: " + link);
 						}
 					}

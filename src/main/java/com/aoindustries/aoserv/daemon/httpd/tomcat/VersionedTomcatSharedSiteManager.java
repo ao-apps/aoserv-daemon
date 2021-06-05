@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2018, 2019  AO Industries, Inc.
+ * Copyright (C) 2018, 2019, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,13 +22,13 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.lang.io.IoUtils;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.web.tomcat.Context;
 import com.aoindustries.aoserv.client.web.tomcat.SharedTomcatSite;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.io.IoUtils;
-import com.aoindustries.io.unix.UnixFile;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,7 +51,7 @@ abstract class VersionedTomcatSharedSiteManager<TC extends VersionedTomcatCommon
 	 * TODO: Support upgrades in-place
 	 */
 	@Override
-	protected void buildSiteDirectoryContents(String optSlash, UnixFile siteDirectory, boolean isUpgrade) throws IOException, SQLException {
+	protected void buildSiteDirectoryContents(String optSlash, PosixFile siteDirectory, boolean isUpgrade) throws IOException, SQLException {
 		if(isUpgrade) throw new IllegalArgumentException("In-place upgrade not supported");
 		/*
 		 * Resolve and allocate stuff used throughout the method
@@ -87,20 +87,20 @@ abstract class VersionedTomcatSharedSiteManager<TC extends VersionedTomcatCommon
 		String webXML = siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/web.xml";
 		try (
 			InputStream in = new FileInputStream("/opt/" + apacheTomcatDir + "/webapps/ROOT/WEB-INF/web.xml");
-			OutputStream out = new UnixFile(webXML).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+			OutputStream out = new PosixFile(webXML).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
 		) {
 			IoUtils.copy(in, out);
 		}
 	}
 
 	@Override
-	protected boolean rebuildConfigFiles(UnixFile siteDirectory, Set<UnixFile> restorecon) {
+	protected boolean rebuildConfigFiles(PosixFile siteDirectory, Set<PosixFile> restorecon) {
 		// No configs to rebuild
 		return false;
 	}
 
 	@Override
-	protected boolean upgradeSiteDirectoryContents(String optSlash, UnixFile siteDirectory) throws IOException, SQLException {
+	protected boolean upgradeSiteDirectoryContents(String optSlash, PosixFile siteDirectory) throws IOException, SQLException {
 		// Nothing to do
 		return false;
 	}

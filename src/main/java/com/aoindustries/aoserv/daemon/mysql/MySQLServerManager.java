@@ -22,6 +22,8 @@
  */
 package com.aoindustries.aoserv.daemon.mysql;
 
+import com.aoapps.net.Port;
+import com.aoapps.sql.pool.AOConnectionPool;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.mysql.Database;
@@ -30,12 +32,10 @@ import com.aoindustries.aoserv.client.net.AppProtocol;
 import com.aoindustries.aoserv.client.net.Bind;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.server.ServerManager;
-import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
-import com.aoindustries.net.Port;
 import com.aoindustries.selinux.SEManagePort;
-import com.aoindustries.sql.pool.AOConnectionPool;
 import java.io.File;
 import java.io.IOException;
 import java.net.URLEncoder;

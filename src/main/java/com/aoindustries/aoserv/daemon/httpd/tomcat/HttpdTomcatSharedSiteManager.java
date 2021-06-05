@@ -22,6 +22,8 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.lang.validation.ValidationException;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.User;
@@ -32,8 +34,6 @@ import com.aoindustries.aoserv.client.web.tomcat.Version;
 import com.aoindustries.aoserv.client.web.tomcat.Worker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.validation.ValidationException;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -84,8 +84,8 @@ abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends Htt
 	}
 
 	@Override
-	public UnixFile getPidFile() throws IOException, SQLException {
-		return new UnixFile(
+	public PosixFile getPidFile() throws IOException, SQLException {
+		return new PosixFile(
 			HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSharedTomcatsDirectory()
 			+ "/"
 			+ tomcatSharedSite.getHttpdSharedTomcat().getName()
@@ -141,7 +141,7 @@ abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends Htt
 	 * and restart to take care of this.
 	 */
 	@Override
-	protected void enableDisable(UnixFile siteDirectory) {
+	protected void enableDisable(PosixFile siteDirectory) {
 		// Do nothing
 	}
 
@@ -149,7 +149,7 @@ abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends Htt
 	 * Does not use any README.txt for change detection.
 	 */
 	@Override
-	protected byte[] generateReadmeTxt(String optSlash, String apacheTomcatDir, UnixFile installDir) throws IOException, SQLException {
+	protected byte[] generateReadmeTxt(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException, SQLException {
 		return null;
 	}
 }
