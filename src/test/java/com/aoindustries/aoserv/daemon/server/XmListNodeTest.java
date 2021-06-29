@@ -47,13 +47,10 @@ public class XmListNodeTest extends TestCase {
 
 	public void testXmListNode() throws IOException, ParseException {
 		String parseme;
-		Reader in = new InputStreamReader(XmListNodeTest.class.getResourceAsStream("XmListNode-test1.txt"));
-		try {
+		try (Reader in = new InputStreamReader(XmListNodeTest.class.getResourceAsStream("XmListNode-test1.txt"))) {
 			StringBuilder sb = new StringBuilder();
 			IoUtils.copy(in, sb);
 			parseme = sb.toString();
-		} finally {
-			in.close();
 		}
 		XmListNode.parseResult(parseme);
 	}

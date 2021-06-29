@@ -70,7 +70,7 @@ public class DaemonFileUtils {
 
 	/**
 	 * Copies a resource to the provided filename, will not overwrite any existing file.
-	 * 
+	 *
 	 * TODO: Copy to a temp file and rename into place.
 	 */
 	public static void copyResource(Class<?> clazz, String resource, String filename, int uid, int gid, int mode, int uid_min, int gid_min) throws IOException {
@@ -156,7 +156,6 @@ public class DaemonFileUtils {
 				modified = true;
 			}
 			return modified;
-		
 		} catch (IOException e) {
 			System.err.println("ln: filename: "+uf.getPath()+"   destination: "+target);
 			throw e;

@@ -58,7 +58,12 @@ final public class AOServDaemonConfiguration {
 			String propName = "aoserv.daemon." + name;
 			String value;
 			synchronized(AOServDaemonConfiguration.class) {
-				if(props == null) props = PropertiesUtils.loadFromResource(AOServDaemonConfiguration.class, "aoserv-daemon.properties");
+				if(props == null) {
+					props = PropertiesUtils.loadFromResource(
+						AOServDaemonConfiguration.class,
+						"/com/aoindustries/aoserv/daemon/aoserv-daemon.properties"
+					);
+				}
 				value = props.getProperty(propName);
 			}
 			if(value != null && templateSkip != null) value = value.replace(templateSkip, "");

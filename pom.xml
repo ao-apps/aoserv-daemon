@@ -33,6 +33,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 	<packaging>bundle</packaging>
 
 	<properties>
+		<module.name>com.aoindustries.aoserv.daemon</module.name>
 		<!-- TODO: Java 11 once CentOS 5 is gone -->
 		<!-- Java 1.8 -->
 		<javase.version>1.8</javase.version>
@@ -114,6 +115,36 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 
 	<build>
 		<plugins>
+			<!-- Java 1.8: see https://maven.apache.org/plugins/maven-compiler-plugin/examples/module-info.html -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId>
+				<executions>
+					<!-- compile everything to ensure module-info contains right entries -->
+					<execution>
+						<id>default-compile</id>
+						<configuration>
+							<release>9</release>
+						</configuration>
+					</execution>
+					<!-- recompile everything for target VM except the module-info.java -->
+					<execution>
+						<id>base-compile</id><goals><goal>compile</goal></goals>
+						<configuration>
+							<excludes>
+								<exclude>module-info.java</exclude>
+							</excludes>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId><artifactId>maven-javadoc-plugin</artifactId>
+				<configuration>
+					<!-- Java 1.8: generate future-proof modular javadocs -->
+					<source>11</source>
+					<release>11</release>
+				</configuration>
+			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId><artifactId>maven-dependency-plugin</artifactId>
 				<configuration>
@@ -356,12 +387,10 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 									<url>https://javadoc.io/doc/org.apache.commons/commons-lang3/${commons-lang3.version}/</url>
 									<location>${project.build.directory}/offlineLinks/org.apache.commons/commons-lang3</location>
 								</offlineLink>
-								<!-- TODO: Add this once building with Java 12+ or using modules, due to: "javadoc: error - The code being documented uses packages in the unnamed module, but the packages defined in … are in named modules."
 								<offlineLink>
 									<url>https://javadoc.io/doc/com.google.code.gson/gson/${gson.version}/</url>
 									<location>${project.build.directory}/offlineLinks/com.google.code.gson/gson</location>
 								</offlineLink>
-								-->
 								<offlineLink>
 									<url>${javadoc.link.javamail}</url>
 									<location>${project.build.directory}/offlineLinks/com/aoapps/javadoc/offline/com.sun.mail/javax.mail</location>
