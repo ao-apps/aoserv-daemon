@@ -523,7 +523,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 				<groupId>org.checkerframework</groupId><artifactId>checker-qual</artifactId><version>3.13.0</version>
 			</dependency>
 			<dependency>
-				<groupId>com.google.protobuf</groupId><artifactId>protobuf-java</artifactId><version>3.17.1</version>
+				<groupId>com.google.protobuf</groupId><artifactId>protobuf-java</artifactId><version>3.17.3</version>
 			</dependency>
 			<!-- Test Direct -->
 			<dependency>
