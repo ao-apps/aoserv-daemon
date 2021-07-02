@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		shortTitle="Changelog"
 		tocLevels="1"
 		datePublished="2020-04-16T21:06:03-05:00"
-		dateModified="2021-06-27T16:13:41-05:00"
+		dateModified="2021-07-02T03:01:25-05:00"
 	>
 		<c:if test="${fn:endsWith('@{project.version}', '-SNAPSHOT') and !fn:endsWith('@{project.version}', '-POST-SNAPSHOT')}">
 			<changelog:release
@@ -54,6 +54,10 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 						Updated MySQL JDBC Drivers to 8.0.25.  Please note, our internal packaging may still use older
 						drivers for compatibility with legacy applications that are not yet on MySQL 5.6 or newer.
 					</li>
+					<li>Added support for in-place Tomcat downgrades within the range of supported versions.</li>
+					<li>Updated to Apache Tomcat 8.5.68 with MySQL JDBC 8.0.25 and PostgreSQL JDBC 42.2.22.</li>
+					<li>Updated to Apache Tomcat 9.0.48 with MySQL JDBC 8.0.25 and PostgreSQL JDBC 42.2.22.</li>
+					<li>Updated to Apache Tomcat 10.0.7 with MySQL JDBC 8.0.25 and PostgreSQL JDBC 42.2.22.</li>
 				</ul>
 			</changelog:release>
 		</c:if>

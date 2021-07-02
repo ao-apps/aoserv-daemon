@@ -451,6 +451,13 @@ public class PackageManager {
 			}
 			return 0;
 		}
+
+		/**
+		 * Parses the version then calls {@link #compareTo(com.aoindustries.aoserv.daemon.posix.linux.PackageManager.Version)}.
+		 */
+		public int compareTo(String other) {
+			return compareTo(new Version(other));
+		}
 	}
 
 	public enum Architecture {
@@ -704,7 +711,7 @@ public class PackageManager {
 	 * If the package is already installed, no action is taken.
 	 * The package is installed with "yum -q -y install $NAME".
 	 * If multiple packages are already installed, the highest version is returned.
-	 * 
+	 *
 	 * @return  the highest version of RPM that is installed
 	 */
 	public static RPM installPackage(PackageName name) throws IOException {
@@ -750,7 +757,7 @@ public class PackageManager {
 	 * Installs all of the packages that are not currently installed.
 	 * If a package is already installed, no action is taken for that package.
 	 *
-	 * @see  #installPackage(com.aoindustries.aoserv.daemon.unix.linux.PackageManager.PackageName) 
+	 * @see  #installPackage(com.aoindustries.aoserv.daemon.unix.linux.PackageManager.PackageName)
 	 */
 	public static void installPackages(Iterable<PackageName> packageNames) throws IOException {
 		synchronized(packagesLock) {
@@ -762,7 +769,7 @@ public class PackageManager {
 	 * Installs all of the packages that are not currently installed.
 	 * If a package is already installed, no action is taken for that package.
 	 *
-	 * @see  #installPackage(com.aoindustries.aoserv.daemon.unix.linux.PackageManager.PackageName) 
+	 * @see  #installPackage(com.aoindustries.aoserv.daemon.unix.linux.PackageManager.PackageName)
 	 */
 	public static void installPackages(PackageName ... packageNames) throws IOException {
 		synchronized(packagesLock) {

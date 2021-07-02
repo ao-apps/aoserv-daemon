@@ -145,43 +145,35 @@ class TomcatCommon_10_0_X extends VersionedTomcatCommon {
 		boolean needsRestart = false;
 		OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
 		if(osConfig == OperatingSystemConfiguration.CENTOS_7_X86_64) {
-			String rpmVersion = PackageManager.getInstalledPackage(PackageManager.PackageName.APACHE_TOMCAT_10_0).getVersion().toString();
-			if(
-				rpmVersion.equals("10.0.4")
-				|| rpmVersion.equals("10.0.5")
-			) {
-				UpgradeSymlink[] upgradeSymlinks_10_0_5 = {
-					// mysql-connector-java-8.0.23.jar -> mysql-connector-java-8.0.24.jar
+			PackageManager.RPM rpm = PackageManager.getInstalledPackage(PackageManager.PackageName.APACHE_TOMCAT_10_0);
+			PackageManager.Version version = rpm.getVersion();
+			PackageManager.Version release = rpm.getRelease();
+			// Downgrade support
+			if(version.compareTo("10.0.7") < 0) {
+				UpgradeSymlink[] downgradeSymlinks_10_0_7 = {
+					// postgresql-42.2.22.jar -> postgresql-42.2.20.jar
 					new UpgradeSymlink(
-						"lib/mysql-connector-java-8.0.23.jar",
-						"/dev/null",
-						"lib/mysql-connector-java-8.0.24.jar",
-						"/dev/null"
-					),
-					new UpgradeSymlink(
-						"lib/mysql-connector-java-8.0.23.jar",
-						"../" + optSlash + "apache-tomcat-10.0/lib/mysql-connector-java-8.0.23.jar",
-						"lib/mysql-connector-java-8.0.24.jar",
-						"../" + optSlash + "apache-tomcat-10.0/lib/mysql-connector-java-8.0.24.jar"
-					),
-					// postgresql-42.2.19.jar -> postgresql-42.2.20.jar
-					new UpgradeSymlink(
-						"lib/postgresql-42.2.19.jar",
+						"lib/postgresql-42.2.22.jar",
 						"/dev/null",
 						"lib/postgresql-42.2.20.jar",
 						"/dev/null"
 					),
 					new UpgradeSymlink(
-						"lib/postgresql-42.2.19.jar",
-						"../" + optSlash + "apache-tomcat-10.0/lib/postgresql-42.2.19.jar",
+						"lib/postgresql-42.2.22.jar",
+						"../" + optSlash + "apache-tomcat-10.0/lib/postgresql-42.2.22.jar",
 						"lib/postgresql-42.2.20.jar",
 						"../" + optSlash + "apache-tomcat-10.0/lib/postgresql-42.2.20.jar"
 					),
 				};
-				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_10_0_5) {
-					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				for(UpgradeSymlink symlink : downgradeSymlinks_10_0_7) {
+					if(symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
-			} else if(rpmVersion.equals("10.0.6")) {
+			}
+			if(version.compareTo("10.0.6") < 0) {
+				throw new IllegalStateException("Version of Tomcat older than expected: " + version);
+			}
+			// Upgrade support
+			if(version.compareTo("10.0.6") >= 0) {
 				UpgradeSymlink[] upgradeSymlinks_10_0_6 = {
 					// jakartaee-migration-0.2.0-shaded.jar.jar -> jakartaee-migration-1.0.0-shaded.jar
 					new UpgradeSymlink(
@@ -204,11 +196,32 @@ class TomcatCommon_10_0_X extends VersionedTomcatCommon {
 						"../" + optSlash + "apache-tomcat-10.0/lib/mysql-connector-java-8.0.25.jar"
 					),
 				};
-				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_10_0_6) {
-					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				for(UpgradeSymlink symlink : upgradeSymlinks_10_0_6) {
+					if(symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
-			} else {
-				throw new IllegalStateException("Unexpected version of Tomcat: " + rpmVersion);
+			}
+			if(version.compareTo("10.0.7") >= 0) {
+				UpgradeSymlink[] upgradeSymlinks_10_0_7 = {
+					// postgresql-42.2.20.jar -> postgresql-42.2.22.jar
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.20.jar",
+						"/dev/null",
+						"lib/postgresql-42.2.22.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.20.jar",
+						"../" + optSlash + "apache-tomcat-10.0/lib/postgresql-42.2.20.jar",
+						"lib/postgresql-42.2.22.jar",
+						"../" + optSlash + "apache-tomcat-10.0/lib/postgresql-42.2.22.jar"
+					),
+				};
+				for(UpgradeSymlink symlink : upgradeSymlinks_10_0_7) {
+					if(symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
+			}
+			if(version.compareTo("10.0.7") > 0) {
+				throw new IllegalStateException("Version of Tomcat newer than expected: " + version);
 			}
 		}
 		return needsRestart;
