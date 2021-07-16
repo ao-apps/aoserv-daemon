@@ -51,7 +51,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 				<li><a target="${javadoc.target}" href="https://aoindustries.com/aoserv/daemon/client/">AOServ Daemon Client</a></li>
 			</ul>
 		</div>]]></javadoc.modules>
-		<!-- SonarCloud.io -->
+		<!-- SonarQube -->
 		<sonar.projectKey>com.aoapps.platform:aoapps-daemon<!-- TODO: ${project.groupId}:${project.artifactId} --></sonar.projectKey>
 		<sonar.organization>aoindustries</sonar.organization>
 		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
