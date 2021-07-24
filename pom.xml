@@ -29,7 +29,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		<relativePath>../../oss/parent/pom.xml</relativePath>
 	</parent>
 
-	<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon</artifactId><version>1.85.0-SNAPSHOT</version>
+	<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon</artifactId><version>1.85.0</version>
 	<packaging>bundle</packaging>
 
 	<properties>
@@ -96,7 +96,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		<connection>scm:git:git://github.com/aoindustries/aoserv-daemon.git</connection>
 		<developerConnection>scm:git:git@github.com:aoindustries/aoserv-daemon.git</developerConnection>
 		<url>https://github.com/aoindustries/aoserv-daemon</url>
-		<tag>HEAD</tag>
+		<tag>aoserv-daemon-1.85.0</tag>
 	</scm>
 
 	<issueManagement>
