@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		shortTitle="Changelog"
 		tocLevels="1"
 		datePublished="2020-04-16T21:06:03-05:00"
-		dateModified="2021-07-24T02:33:16-05:00"
+		dateModified="2021-07-24T14:22:52-05:00"
 	>
 		<c:if test="${fn:endsWith('@{project.version}', '-SNAPSHOT') and !fn:endsWith('@{project.version}', '-POST-SNAPSHOT')}">
 			<changelog:release
@@ -47,20 +47,29 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 				artifactId="@{documented.artifactId}"
 				repository="@{nexusUrl}content/repositories/snapshots/"
 				scmUrl="@{project.scm.url}"
-			>
-				<ul>
-					<li>Now supports Java 9+ modules with included <code>module-info.class</code>.</li>
-					<li>
-						Updated MySQL JDBC Drivers to 8.0.26.  Please note, our internal packaging may still use older
-						drivers for compatibility with legacy applications that are not yet on MySQL 5.6 or newer.
-					</li>
-					<li>Added support for in-place Tomcat downgrades within the range of supported versions.</li>
-					<li>Updated to Apache Tomcat 8.5.69 with MySQL JDBC 8.0.26 and PostgreSQL JDBC 42.2.23.</li>
-					<li>Updated to Apache Tomcat 9.0.50 with MySQL JDBC 8.0.26 and PostgreSQL JDBC 42.2.23.</li>
-					<li>Updated to Apache Tomcat 10.0.8 with MySQL JDBC 8.0.26 and PostgreSQL JDBC 42.2.23.</li>
-				</ul>
-			</changelog:release>
+			/>
 		</c:if>
+
+		<changelog:release
+			projectName="@{documented.name}"
+			version="1.85.0"
+			datePublished="2021-07-24T14:22:52-05:00"
+			groupId="@{project.groupId}"
+			artifactId="@{documented.artifactId}"
+			scmUrl="@{project.scm.url}"
+		>
+			<ul>
+				<li>Now supports Java 9+ modules with included <code>module-info.class</code>.</li>
+				<li>
+					Updated MySQL JDBC Drivers to 8.0.26.  Please note, our internal packaging may still use older
+					drivers for compatibility with legacy applications that are not yet on MySQL 5.6 or newer.
+				</li>
+				<li>Added support for in-place Tomcat downgrades within the range of supported versions.</li>
+				<li>Updated to Apache Tomcat 8.5.69 with MySQL JDBC 8.0.26 and PostgreSQL JDBC 42.2.23.</li>
+				<li>Updated to Apache Tomcat 9.0.50 with MySQL JDBC 8.0.26 and PostgreSQL JDBC 42.2.23.</li>
+				<li>Updated to Apache Tomcat 10.0.8 with MySQL JDBC 8.0.26 and PostgreSQL JDBC 42.2.23.</li>
+			</ul>
+		</changelog:release>
 
 		<changelog:release
 			projectName="@{documented.name}"
