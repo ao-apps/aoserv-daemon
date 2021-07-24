@@ -317,7 +317,7 @@ final public class AOServDaemonConfiguration {
 	}
 
 	public static boolean isPackageManagerUninstallEnabled() throws ConfigurationException {
-		final String key = "unix.linux.PackageManager.uninstallEnabled";
+		final String key = "posix.linux.PackageManager.uninstallEnabled";
 		String value = getProperty(key, null);
 		if(
 			value == null
