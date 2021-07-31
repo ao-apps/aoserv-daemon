@@ -312,7 +312,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId><artifactId>maven-javadoc-plugin</artifactId>
 						<configuration>
-							<offlineLinks>
+							<offlineLinks combine.children="append">
 								<!-- Direct -->
 								<offlineLink>
 									<url>https://oss.aoapps.com/collections/apidocs/</url>
@@ -402,10 +402,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 									<url>https://javadoc.io/doc/com.google.code.gson/gson/${gson.version}/</url>
 									<location>${project.build.directory}/offlineLinks/com.google.code.gson/gson</location>
 								</offlineLink>
-								<offlineLink>
-									<url>${javadoc.link.javamail}</url>
-									<location>${project.build.directory}/offlineLinks/com/aoapps/javadoc/offline/com.sun.mail/javax.mail</location>
-								</offlineLink>
+								<!-- ao-javadoc-offline: <groupId>com.sun.mail</groupId><artifactId>javax.mail</artifactId> -->
 								<offlineLink>
 									<url>https://aoindustries.com/noc/monitor/portmon/apidocs/</url>
 									<location>${project.build.directory}/offlineLinks/com.aoindustries/noc-monitor-portmon</location>
@@ -414,11 +411,6 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 								<offlineLink>
 									<url>https://junit.org/junit4/javadoc/latest/</url>
 									<location>${project.build.directory}/offlineLinks/junit/junit</location>
-								</offlineLink>
-								<!-- Java SE -->
-								<offlineLink>
-									<url>${javadoc.link.javase}</url>
-									<location>${project.build.directory}/offlineLinks/com/aoapps/javadoc/offline/javase/${javase.release}</location>
 								</offlineLink>
 							</offlineLinks>
 						</configuration>
