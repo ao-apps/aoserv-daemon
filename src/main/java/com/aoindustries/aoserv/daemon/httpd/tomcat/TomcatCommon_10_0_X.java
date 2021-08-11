@@ -149,6 +149,9 @@ class TomcatCommon_10_0_X extends VersionedTomcatCommon {
 			PackageManager.Version version = rpm.getVersion();
 			PackageManager.Version release = rpm.getRelease();
 			// Downgrade support
+			if(version.compareTo("10.0.10") < 0) {
+				// 10.0.10 has same files as 10.0.8
+			}
 			if(version.compareTo("10.0.8") < 0) {
 				UpgradeSymlink[] downgradeSymlinks_10_0_8 = {
 					// ecj-4.20.jar -> ecj-4.18.jar
@@ -300,7 +303,10 @@ class TomcatCommon_10_0_X extends VersionedTomcatCommon {
 					if(symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			}
-			if(version.compareTo("10.0.8") > 0) {
+			if(version.compareTo("10.0.10") >= 0) {
+				// 10.0.10 has same files as 10.0.8
+			}
+			if(version.compareTo("10.0.10") > 0) {
 				throw new IllegalStateException("Version of Tomcat newer than expected: " + version);
 			}
 		}
