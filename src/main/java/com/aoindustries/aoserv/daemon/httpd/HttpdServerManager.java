@@ -912,69 +912,6 @@ public class HttpdServerManager {
 							+ "    SuexecUserGroup ${site.user} ${site.group}\n"
 							+ "</IfModule>\n");
 
-					if(
-						manager.blockAllTraceAndTrackRequests()
-						|| httpdSite.getBlockScm()
-						|| httpdSite.getBlockCoreDumps()
-						|| httpdSite.getBlockEditorBackups()
-					) {
-						out.print("\n"
-								+ "# Site options\n");
-						if(manager.blockAllTraceAndTrackRequests()) {
-							out.print("Include site-options/block_trace_track.inc\n");
-						}
-						if(httpdSite.getBlockScm()) {
-							out.print("Include site-options/block_scm.inc\n");
-						}
-						if(httpdSite.getBlockCoreDumps()) {
-							out.print("Include site-options/block_core_dumps.inc\n");
-						}
-						if(httpdSite.getBlockEditorBackups()) {
-							out.print("Include site-options/block_editor_backups.inc\n");
-						}
-					}
-
-					// Rejected URLs
-					Map<String, List<HttpdSiteManager.Location>> rejectedLocations = manager.getRejectedLocations();
-					for(Map.Entry<String, List<HttpdSiteManager.Location>> entry : rejectedLocations.entrySet()) {
-						out.print("\n"
-								+ "# ").print(entry.getKey()).print('\n'
-								+ "<IfModule authz_core_module>\n");
-						for(HttpdSiteManager.Location location : entry.getValue()) {
-							if(location.isRegularExpression()) {
-								out.print("    <LocationMatch ").print(escape(dollarVariable, location.getLocation())).print(">\n"
-										+ "        Require all denied\n"
-										+ "    </LocationMatch>\n");
-							} else {
-								out.print("    <Location ").print(escape(dollarVariable, location.getLocation())).print(">\n"
-										+ "        Require all denied\n"
-										+ "    </Location>\n");
-							}
-						}
-						out.print("</IfModule>\n");
-					}
-
-					// Rewrite rules
-					List<HttpdSiteManager.PermanentRewriteRule> permanentRewrites = manager.getPermanentRewriteRules();
-					if(!permanentRewrites.isEmpty()) {
-						// Write the standard restricted URL patterns
-						out.print("\n"
-								+ "# Rewrite rules\n"
-								+ "<IfModule rewrite_module>\n"
-								+ "    RewriteEngine on\n");
-						for(HttpdSiteManager.PermanentRewriteRule permanentRewrite : permanentRewrites) {
-							out
-								.print("    RewriteRule ")
-								.print(escape(dollarVariable, permanentRewrite.pattern))
-								.print(' ')
-								.print(escape(dollarVariable, permanentRewrite.substitution))
-								.print(" [END");
-							if(permanentRewrite.noEscape) out.print(",NE");
-							out.print(",R=permanent]\n");
-						}
-						out.print("</IfModule>\n");
-					}
-
 					// Write the authenticated locations
 					List<Location> hsals = httpdSite.getHttpdSiteAuthenticatedLocations();
 					if(!hsals.isEmpty()) {
@@ -1044,6 +981,69 @@ public class HttpdServerManager {
 								out.print("</IfModule>\n");
 							}
 						}
+					}
+
+					if(
+						manager.blockAllTraceAndTrackRequests()
+						|| httpdSite.getBlockScm()
+						|| httpdSite.getBlockCoreDumps()
+						|| httpdSite.getBlockEditorBackups()
+					) {
+						out.print("\n"
+								+ "# Site options\n");
+						if(manager.blockAllTraceAndTrackRequests()) {
+							out.print("Include site-options/block_trace_track.inc\n");
+						}
+						if(httpdSite.getBlockScm()) {
+							out.print("Include site-options/block_scm.inc\n");
+						}
+						if(httpdSite.getBlockCoreDumps()) {
+							out.print("Include site-options/block_core_dumps.inc\n");
+						}
+						if(httpdSite.getBlockEditorBackups()) {
+							out.print("Include site-options/block_editor_backups.inc\n");
+						}
+					}
+
+					// Rejected URLs
+					Map<String, List<HttpdSiteManager.Location>> rejectedLocations = manager.getRejectedLocations();
+					for(Map.Entry<String, List<HttpdSiteManager.Location>> entry : rejectedLocations.entrySet()) {
+						out.print("\n"
+								+ "# ").print(entry.getKey()).print('\n'
+								+ "<IfModule authz_core_module>\n");
+						for(HttpdSiteManager.Location location : entry.getValue()) {
+							if(location.isRegularExpression()) {
+								out.print("    <LocationMatch ").print(escape(dollarVariable, location.getLocation())).print(">\n"
+										+ "        Require all denied\n"
+										+ "    </LocationMatch>\n");
+							} else {
+								out.print("    <Location ").print(escape(dollarVariable, location.getLocation())).print(">\n"
+										+ "        Require all denied\n"
+										+ "    </Location>\n");
+							}
+						}
+						out.print("</IfModule>\n");
+					}
+
+					// Rewrite rules
+					List<HttpdSiteManager.PermanentRewriteRule> permanentRewrites = manager.getPermanentRewriteRules();
+					if(!permanentRewrites.isEmpty()) {
+						// Write the standard restricted URL patterns
+						out.print("\n"
+								+ "# Rewrite rules\n"
+								+ "<IfModule rewrite_module>\n"
+								+ "    RewriteEngine on\n");
+						for(HttpdSiteManager.PermanentRewriteRule permanentRewrite : permanentRewrites) {
+							out
+								.print("    RewriteRule ")
+								.print(escape(dollarVariable, permanentRewrite.pattern))
+								.print(' ')
+								.print(escape(dollarVariable, permanentRewrite.substitution))
+								.print(" [END");
+							if(permanentRewrite.noEscape) out.print(",NE");
+							out.print(",R=permanent]\n");
+						}
+						out.print("</IfModule>\n");
 					}
 
 					// Error if no root webapp found
@@ -1708,7 +1708,7 @@ public class HttpdServerManager {
 
 						// TODO: *.phar is not found in SELinux "sudo semanage fcontext -l", enable when first needed
 						//       by a client application, and as a default-off per-site option.
-						//+ "<FilesMatch \\.(php|phar)$>\n" 
+						//+ "<FilesMatch \\.(php|phar)$>\n"
 						+ "<FilesMatch \\.php$>\n"
 						+ "    SetHandler application/x-httpd-php\n"
 						+ "</FilesMatch>\n");
@@ -2005,7 +2005,7 @@ public class HttpdServerManager {
 			out.print("LoadModule authn_core_module modules/mod_authn_core.so\n"
 					+ "# LoadModule authn_dbd_module modules/mod_authn_dbd.so\n"
 					+ "# LoadModule authn_dbm_module modules/mod_authn_dbm.so\n");
-			
+
 			Boolean mod_authn_file = hs.getModAuthnFile();
 			if(mod_authn_file == null) {
 				// Enabled when has any httpd_site_authenticated_locations.auth_user_file (for AuthUserFile)
@@ -2014,7 +2014,7 @@ public class HttpdServerManager {
 			if(!mod_authn_file) out.print("# ");
 			out.print("LoadModule authn_file_module modules/mod_authn_file.so\n"
 					+ "# LoadModule authn_socache_module modules/mod_authn_socache.so\n");
-			
+
 			Boolean mod_authz_core = hs.getModAuthzCore();
 			if(mod_authz_core == null) {
 				// Enabled by default (for Require all denied, Require all granted in aoserv.conf.d/*.conf and per-site/bind configs)
@@ -2559,7 +2559,7 @@ public class HttpdServerManager {
 
 							// TODO: *.phar is not found in SELinux "sudo semanage fcontext -l", enable when first needed
 							//       by a client application, and as a default-off per-site option.
-							//+ "    <FilesMatch \\.(php|phar)$>\n" 
+							//+ "    <FilesMatch \\.(php|phar)$>\n"
 							+ "    <FilesMatch \\.php$>\n"
 							+ "        SetHandler application/x-httpd-php\n"
 							+ "    </FilesMatch>\n"

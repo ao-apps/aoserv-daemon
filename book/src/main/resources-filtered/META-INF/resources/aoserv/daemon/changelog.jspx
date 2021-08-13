@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		shortTitle="Changelog"
 		tocLevels="1"
 		datePublished="2020-04-16T21:06:03-05:00"
-		dateModified="2021-08-11T13:08:08-05:00"
+		dateModified="2021-08-13T06:30:44-05:00"
 	>
 		<c:if test="${fn:endsWith('@{project.version}', '-SNAPSHOT') and !fn:endsWith('@{project.version}', '-POST-SNAPSHOT')}">
 			<changelog:release
@@ -51,6 +51,11 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 				<ul>
 					<li>Updated to Apache Tomcat 9.0.52 with MySQL JDBC 8.0.26 and PostgreSQL JDBC 42.2.23.</li>
 					<li>Updated to Apache Tomcat 10.0.10 with MySQL JDBC 8.0.26 and PostgreSQL JDBC 42.2.23.</li>
+					<li>
+						Moved "Authenticated Locations" above "Site options" in Apache config builder.
+						Apache applies the last matching "Require", so this order correctly blocks URLs even when
+						password-protected.
+					</li>
 				</ul>
 			</changelog:release>
 		</c:if>
