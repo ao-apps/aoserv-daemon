@@ -149,6 +149,9 @@ class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 			PackageManager.Version version = rpm.getVersion();
 			PackageManager.Version release = rpm.getRelease();
 			// Downgrade support
+			if(version.compareTo("8.5.70") < 0) {
+				// 8.5.70 has same files as 8.5.69
+			}
 			if(version.compareTo("8.5.69") < 0) {
 				UpgradeSymlink[] downgradeSymlinks_8_5_69 = {
 					// mysql-connector-java-8.0.26.jar -> mysql-connector-java-8.0.25.jar
@@ -279,7 +282,10 @@ class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 					if(symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			}
-			if(version.compareTo("8.5.69") > 0) {
+			if(version.compareTo("8.5.70") >= 0) {
+				// 8.5.70 has same files as 8.5.69
+			}
+			if(version.compareTo("8.5.70") > 0) {
 				throw new IllegalStateException("Version of Tomcat newer than expected: " + version);
 			}
 		}
