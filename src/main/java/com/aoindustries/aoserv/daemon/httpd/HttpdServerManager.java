@@ -859,9 +859,13 @@ public class HttpdServerManager {
 						if(!modPhpMajorVersions.isEmpty()) out.print(" when not using mod_php");
 						out.print('\n');
 						String indent = "";
+						Set<String> phpModules = new HashSet<>();
 						for(int modPhpMajorVersion : modPhpMajorVersions) {
-							out.print(indent).print("<IfModule !php").print(modPhpMajorVersion == 8 ? "" : Integer.toString(modPhpMajorVersion)).print("_module>\n"); // TODO: PHP 9: Avoid duplicates of just "php_module" here
-							indent += "    ";
+							String phpModule = getPhpModule(Integer.toString(modPhpMajorVersion));
+							if(phpModules.add(phpModule)) {
+								out.print(indent).print("<IfModule ").print(escape(dollarVariable, "!" + phpModule)).print(">\n");
+								indent += "    ";
+							}
 						}
 						out
 							.print(indent).print("<IfModule actions_module>\n")
@@ -886,10 +890,14 @@ public class HttpdServerManager {
 						PosixFile sessionDir = new PosixFile(varPhpDir, PHP_SESSION, true);
 						out.print("\n"
 								+ "# Use per-site PHP session directory when using mod_php\n");
+						Set<String> phpModules = new HashSet<>();
 						for(int modPhpMajorVersion : modPhpMajorVersions) {
-							out.print("<IfModule php").print(modPhpMajorVersion == 8 ? "" : Integer.toString(modPhpMajorVersion)).print("_module>\n" // TODO: PHP 9: Avoid duplicates of just "php_module" here
-									+ "    php_value session.save_path ").print(escape(dollarVariable, sessionDir.toString())).print("\n"
-									+ "</IfModule>\n");
+							String phpModule = getPhpModule(Integer.toString(modPhpMajorVersion));
+							if(phpModules.add(phpModule)) {
+								out.print("<IfModule ").print(escape(dollarVariable, phpModule)).print(">\n"
+										+ "    php_value session.save_path ").print(escape(dollarVariable, sessionDir.toString())).print("\n"
+										+ "</IfModule>\n");
+							}
 						}
 						// Create var directory if missing
 						if(DaemonFileUtils.mkdir(varDir, 0770, uid, gid)) {
@@ -1527,6 +1535,34 @@ public class HttpdServerManager {
 	}
 
 	/**
+	 * Gets the PHP module name, which is per-major version for php &lt;= 7, or just "php_module" for PHP 8.
+	 */
+	private static String getPhpModule(String phpMajorVersion) {
+		if(
+			"5".equals(phpMajorVersion)
+			|| "7".equals(phpMajorVersion)
+		) {
+			return "php" + phpMajorVersion + "_module";
+		} else {
+			return "php_module";
+		}
+	}
+
+	/**
+	 * Gets the libphp.so filename, which is per-major version for php &lt;= 7, or just "libphp.so" for PHP 8.
+	 */
+	private static String getLibPhpSo(String phpMajorVersion) {
+		if(
+			"5".equals(phpMajorVersion)
+			|| "7".equals(phpMajorVersion)
+		) {
+			return "libphp" + phpMajorVersion + ".so";
+		} else {
+			return "libphp.so";
+		}
+	}
+
+	/**
 	 * Builds the httpd#.conf file for CentOS 5
 	 */
 	private static byte[] buildHttpdConfCentOs5(
@@ -1701,7 +1737,7 @@ public class HttpdServerManager {
 				String phpMajorVersion = getMajorPhpVersion(version);
 				out.print("\n"
 						+ "# Enable mod_php\n"
-						+ "LoadModule ").print(escape(dollarVariable, "php" + phpMajorVersion + "_module")).print(" ").print(escape(dollarVariable, "/opt/php-" + phpMinorVersion + "-i686/lib/apache/libphp" + phpMajorVersion + ".so")).print("\n"
+						+ "LoadModule ").print(escape(dollarVariable, getPhpModule(phpMajorVersion))).print(" ").print(escape(dollarVariable, "/opt/php-" + phpMinorVersion + "-i686/lib/apache/" + getLibPhpSo(phpMajorVersion))).print("\n"
 						// Avoid *.php.txt going to PHP: https://www.php.net/manual/en/install.unix.apache2.php
 						//+ "AddType application/x-httpd-php .php\n"
 						//+ "AddType application/x-httpd-php-source .phps\n");
@@ -2547,8 +2583,8 @@ public class HttpdServerManager {
 							+ "#\n"
 							+ "# Enable mod_php\n"
 							+ "#\n"
-							+ "LoadModule ").print(escape(dollarVariable, "php" + (phpMajorVersion.equals("8") ? "" : phpMajorVersion) + "_module")).print(' ').print(escape(dollarVariable, "/opt/php-" + phpMinorVersion + "/lib/apache/libphp" + phpMajorVersion + ".so")).print("\n" // TODO: PHP 9: Avoid duplicates of just "php_module" here
-							+ "<IfModule php").print(phpMajorVersion.equals("8") ? "" : phpMajorVersion).print("_module>\n" // TODO: PHP 9: Avoid duplicates of just "php_module" here
+							+ "LoadModule ").print(escape(dollarVariable, getPhpModule(phpMajorVersion))).print(' ').print(escape(dollarVariable, "/opt/php-" + phpMinorVersion + "/lib/apache/" + getLibPhpSo(phpMajorVersion))).print("\n"
+							+ "<IfModule ").print(escape(dollarVariable, getPhpModule(phpMajorVersion))).print(">\n"
 							+ "    PHPIniDir ").print(escape(dollarVariable, phpIniDir.toString())).print("\n"
 							+ "    php_value session.save_path ").print(escape(dollarVariable, sessionDir.toString())).print("\n"
 							// Avoid *.php.txt going to PHP: https://www.php.net/manual/en/install.unix.apache2.php

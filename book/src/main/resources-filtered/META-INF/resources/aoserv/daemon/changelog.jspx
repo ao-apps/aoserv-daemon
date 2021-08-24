@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		shortTitle="Changelog"
 		tocLevels="1"
 		datePublished="2020-04-16T21:06:03-05:00"
-		dateModified="2021-08-23T11:15:06-05:00"
+		dateModified="2021-08-23T20:22:03-05:00"
 	>
 		<c:if test="${fn:endsWith('@{project.version}', '-SNAPSHOT') and !fn:endsWith('@{project.version}', '-POST-SNAPSHOT')}">
 			<changelog:release
@@ -57,6 +57,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 						Apache applies the last matching "Require", so this order correctly blocks URLs even when
 						password-protected.
 					</li>
+					<li>Apache PHP config builder now correctly uses "libphp.so" for <![CDATA[PHP &gt;= 8.0]]>.</li>
 				</ul>
 			</changelog:release>
 		</c:if>
