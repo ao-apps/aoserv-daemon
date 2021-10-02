@@ -146,17 +146,16 @@ class TomcatCommon_10_0_X extends VersionedTomcatCommon {
 		OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
 		if(osConfig == OperatingSystemConfiguration.CENTOS_7_X86_64) {
 			PackageManager.RPM rpm = PackageManager.getInstalledPackage(PackageManager.PackageName.APACHE_TOMCAT_10_0);
-			PackageManager.Version version = rpm.getVersion();
-			PackageManager.Version release = rpm.getRelease();
+			Version version = new Version(rpm.getVersion(), rpm.getRelease());
 			// Downgrade support
-			if(version.compareTo("10.0.11") < 0) {
-				// 10.0.11 has same files as 10.0.10
+			if(version.compareTo("10.0.11-1") < 0) {
+				// 10.0.11-1 has same files as 10.0.10-1
 			}
-			if(version.compareTo("10.0.10") < 0) {
-				// 10.0.10 has same files as 10.0.8
+			if(version.compareTo("10.0.10-1") < 0) {
+				// 10.0.10-1 has same files as 10.0.8-1
 			}
-			if(version.compareTo("10.0.8") < 0) {
-				UpgradeSymlink[] downgradeSymlinks_10_0_8 = {
+			if(version.compareTo("10.0.8-1") < 0) {
+				UpgradeSymlink[] downgradeSymlinks_10_0_8_1 = {
 					// ecj-4.20.jar -> ecj-4.18.jar
 					new UpgradeSymlink(
 						"lib/ecj-4.20.jar",
@@ -191,12 +190,12 @@ class TomcatCommon_10_0_X extends VersionedTomcatCommon {
 						"../" + optSlash + "apache-tomcat-10.0/lib/postgresql-42.2.22.jar"
 					),
 				};
-				for(UpgradeSymlink symlink : downgradeSymlinks_10_0_8) {
+				for(UpgradeSymlink symlink : downgradeSymlinks_10_0_8_1) {
 					if(symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			}
-			if(version.compareTo("10.0.7") < 0) {
-				UpgradeSymlink[] downgradeSymlinks_10_0_7 = {
+			if(version.compareTo("10.0.7-1") < 0) {
+				UpgradeSymlink[] downgradeSymlinks_10_0_7_1 = {
 					// postgresql-42.2.22.jar -> postgresql-42.2.20.jar
 					new UpgradeSymlink(
 						"lib/postgresql-42.2.22.jar",
@@ -211,16 +210,16 @@ class TomcatCommon_10_0_X extends VersionedTomcatCommon {
 						"../" + optSlash + "apache-tomcat-10.0/lib/postgresql-42.2.20.jar"
 					),
 				};
-				for(UpgradeSymlink symlink : downgradeSymlinks_10_0_7) {
+				for(UpgradeSymlink symlink : downgradeSymlinks_10_0_7_1) {
 					if(symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			}
-			if(version.compareTo("10.0.6") < 0) {
+			if(version.compareTo("10.0.6-1") < 0) {
 				throw new IllegalStateException("Version of Tomcat older than expected: " + version);
 			}
 			// Upgrade support
-			if(version.compareTo("10.0.6") >= 0) {
-				UpgradeSymlink[] upgradeSymlinks_10_0_6 = {
+			if(version.compareTo("10.0.6-1") >= 0) {
+				UpgradeSymlink[] upgradeSymlinks_10_0_6_1 = {
 					// jakartaee-migration-0.2.0-shaded.jar.jar -> jakartaee-migration-1.0.0-shaded.jar
 					new UpgradeSymlink(
 						"lib/jakartaee-migration-0.2.0-shaded.jar",
@@ -242,12 +241,12 @@ class TomcatCommon_10_0_X extends VersionedTomcatCommon {
 						"../" + optSlash + "apache-tomcat-10.0/lib/mysql-connector-java-8.0.25.jar"
 					),
 				};
-				for(UpgradeSymlink symlink : upgradeSymlinks_10_0_6) {
+				for(UpgradeSymlink symlink : upgradeSymlinks_10_0_6_1) {
 					if(symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			}
-			if(version.compareTo("10.0.7") >= 0) {
-				UpgradeSymlink[] upgradeSymlinks_10_0_7 = {
+			if(version.compareTo("10.0.7-1") >= 0) {
+				UpgradeSymlink[] upgradeSymlinks_10_0_7_1 = {
 					// postgresql-42.2.20.jar -> postgresql-42.2.22.jar
 					new UpgradeSymlink(
 						"lib/postgresql-42.2.20.jar",
@@ -262,12 +261,12 @@ class TomcatCommon_10_0_X extends VersionedTomcatCommon {
 						"../" + optSlash + "apache-tomcat-10.0/lib/postgresql-42.2.22.jar"
 					),
 				};
-				for(UpgradeSymlink symlink : upgradeSymlinks_10_0_7) {
+				for(UpgradeSymlink symlink : upgradeSymlinks_10_0_7_1) {
 					if(symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			}
-			if(version.compareTo("10.0.8") >= 0) {
-				UpgradeSymlink[] upgradeSymlinks_10_0_8 = {
+			if(version.compareTo("10.0.8-1") >= 0) {
+				UpgradeSymlink[] upgradeSymlinks_10_0_8_1 = {
 					// ecj-4.18.jar -> ecj-4.20.jar
 					new UpgradeSymlink(
 						"lib/ecj-4.18.jar",
@@ -302,17 +301,17 @@ class TomcatCommon_10_0_X extends VersionedTomcatCommon {
 						"../" + optSlash + "apache-tomcat-10.0/lib/postgresql-42.2.23.jar"
 					),
 				};
-				for(UpgradeSymlink symlink : upgradeSymlinks_10_0_8) {
+				for(UpgradeSymlink symlink : upgradeSymlinks_10_0_8_1) {
 					if(symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			}
-			if(version.compareTo("10.0.10") >= 0) {
-				// 10.0.10 has same files as 10.0.8
+			if(version.compareTo("10.0.10-1") >= 0) {
+				// 10.0.10-1 has same files as 10.0.8-1
 			}
-			if(version.compareTo("10.0.11") >= 0) {
-				// 10.0.11 has same files as 10.0.10
+			if(version.compareTo("10.0.11-1") >= 0) {
+				// 10.0.11-1 has same files as 10.0.10-1
 			}
-			if(version.compareTo("10.0.11") > 0) {
+			if(version.compareTo("10.0.11-1") > 0) {
 				throw new IllegalStateException("Version of Tomcat newer than expected: " + version);
 			}
 		}

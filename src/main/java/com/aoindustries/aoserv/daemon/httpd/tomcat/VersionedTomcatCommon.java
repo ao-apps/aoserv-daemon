@@ -23,10 +23,12 @@
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 import com.aoapps.encoding.ChainWriter;
+import com.aoapps.hodgepodge.util.Tuple2;
 import com.aoapps.io.posix.PosixFile;
 import com.aoapps.lang.util.CalendarUtils;
 import com.aoindustries.aoserv.client.web.tomcat.ContextDataSource;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -83,7 +85,7 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 	 * </li>
 	 * </ol>
 	 */
-	@Override 
+	@Override
 	public void writeHttpdTomcatDataSource(ContextDataSource dataSource, ChainWriter out) throws IOException, SQLException {
 		int maxActive = dataSource.getMaxActive();
 		out.print("          <Resource\n"
@@ -120,7 +122,7 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 		} else {
 			numTestsPerEvictionRun = 50;
 		}
-		
+
 		out.print("            timeBetweenEvictionRunsMillis=\"").textInXmlAttribute(timeBetweenEvictionRunsMillis).print("\"\n"
 				+ "            numTestsPerEvictionRun=\"").textInXmlAttribute(numTestsPerEvictionRun).print("\"\n"
 				+ "            removeAbandonedOnMaintenance=\"true\"\n"
@@ -217,6 +219,37 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 	 * Each path is relative to CATALINA_HOME/CATALINA_BASE.
 	 */
 	protected abstract List<Install> getInstallFiles(String optSlash, PosixFile installDir, int confMode) throws IOException, SQLException;
+
+	/**
+	 * Combines version and release for simpler comparison.
+	 */
+	static class Version extends Tuple2<PackageManager.Version, PackageManager.Version> implements Comparable<Version> {
+
+		Version(PackageManager.Version version, PackageManager.Version release) {
+			super(version, release);
+		}
+
+		@Override
+		public int compareTo(Version o) {
+			int diff = getElement1().compareTo(o.getElement1());
+			if(diff != 0) return diff;
+			return getElement2().compareTo(o.getElement2());
+		}
+
+		/**
+		 * Compares to the given version and release, separated by last "-".
+		 */
+		public int compareTo(String versionAndRelase) {
+			int last = versionAndRelase.lastIndexOf('-');
+			if(last == -1) throw new IllegalArgumentException("No hyphen in combined version and release: " + versionAndRelase);
+			return compareTo(
+				new Version(
+					new PackageManager.Version(versionAndRelase.substring(0, last)),
+					new PackageManager.Version(versionAndRelase.substring(last + 1))
+				)
+			);
+		}
+	}
 
 	/**
 	 * Upgrades the Tomcat installed in the provided directory.
