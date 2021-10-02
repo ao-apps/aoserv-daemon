@@ -148,6 +148,26 @@ class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 			PackageManager.RPM rpm = PackageManager.getInstalledPackage(PackageManager.PackageName.APACHE_TOMCAT_8_5);
 			Version version = new Version(rpm.getVersion(), rpm.getRelease());
 			// Downgrade support
+			if(version.compareTo("8.5.71-2") < 0) {
+				UpgradeSymlink[] downgradeSymlinks_8_5_71_2 = {
+					// postgresql-42.2.24.jar -> postgresql-42.2.23.jar
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.24.jar",
+						"/dev/null",
+						"lib/postgresql-42.2.23.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.24.jar",
+						"../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.24.jar",
+						"lib/postgresql-42.2.23.jar",
+						"../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.23.jar"
+					),
+				};
+				for(UpgradeSymlink symlink : downgradeSymlinks_8_5_71_2) {
+					if(symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
+			}
 			if(version.compareTo("8.5.71-1") < 0) {
 				// 8.5.71-1 has same files as 8.5.70-1
 			}
@@ -290,7 +310,27 @@ class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 			if(version.compareTo("8.5.71-1") >= 0) {
 				// 8.5.71-1 has same files as 8.5.70-1
 			}
-			if(version.compareTo("8.5.71-1") > 0) {
+			if(version.compareTo("8.5.71-2") >= 0) {
+				UpgradeSymlink[] upgradeSymlinks_8_5_71_2 = {
+					// postgresql-42.2.23.jar -> postgresql-42.2.24.jar
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.23.jar",
+						"/dev/null",
+						"lib/postgresql-42.2.24.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.23.jar",
+						"../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.23.jar",
+						"lib/postgresql-42.2.24.jar",
+						"../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.24.jar"
+					),
+				};
+				for(UpgradeSymlink symlink : upgradeSymlinks_8_5_71_2) {
+					if(symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
+			}
+			if(version.compareTo("8.5.71-2") > 0) {
 				throw new IllegalStateException("Version of Tomcat newer than expected: " + version);
 			}
 		}
