@@ -147,8 +147,9 @@ class TomcatCommon_10_0_X extends VersionedTomcatCommon {
 		if(osConfig == OperatingSystemConfiguration.CENTOS_7_X86_64) {
 			PackageManager.RPM rpm = PackageManager.getInstalledPackage(PackageManager.PackageName.APACHE_TOMCAT_10_0);
 			Version version = new Version(rpm.getVersion(), rpm.getRelease());
+			String suffix = osConfig.getPackageReleaseSuffix();
 			// Downgrade support
-			if(version.compareTo("10.0.11-2") < 0) {
+			if(version.compareTo("10.0.11-2" + suffix) < 0) {
 				UpgradeSymlink[] downgradeSymlinks_10_0_11_2 = {
 					// postgresql-42.2.24.jar -> postgresql-42.2.23.jar
 					new UpgradeSymlink(
@@ -168,13 +169,13 @@ class TomcatCommon_10_0_X extends VersionedTomcatCommon {
 					if(symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			}
-			if(version.compareTo("10.0.11-1") < 0) {
+			if(version.compareTo("10.0.11-1" + suffix) < 0) {
 				// 10.0.11-1 has same files as 10.0.10-1
 			}
-			if(version.compareTo("10.0.10-1") < 0) {
+			if(version.compareTo("10.0.10-1" + suffix) < 0) {
 				// 10.0.10-1 has same files as 10.0.8-1
 			}
-			if(version.compareTo("10.0.8-1") < 0) {
+			if(version.compareTo("10.0.8-1" + suffix) < 0) {
 				UpgradeSymlink[] downgradeSymlinks_10_0_8_1 = {
 					// ecj-4.20.jar -> ecj-4.18.jar
 					new UpgradeSymlink(
@@ -214,7 +215,7 @@ class TomcatCommon_10_0_X extends VersionedTomcatCommon {
 					if(symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			}
-			if(version.compareTo("10.0.7-1") < 0) {
+			if(version.compareTo("10.0.7-1" + suffix) < 0) {
 				UpgradeSymlink[] downgradeSymlinks_10_0_7_1 = {
 					// postgresql-42.2.22.jar -> postgresql-42.2.20.jar
 					new UpgradeSymlink(
@@ -234,11 +235,11 @@ class TomcatCommon_10_0_X extends VersionedTomcatCommon {
 					if(symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			}
-			if(version.compareTo("10.0.6-1") < 0) {
+			if(version.compareTo("10.0.6-1" + suffix) < 0) {
 				throw new IllegalStateException("Version of Tomcat older than expected: " + version);
 			}
 			// Upgrade support
-			if(version.compareTo("10.0.6-1") >= 0) {
+			if(version.compareTo("10.0.6-1" + suffix) >= 0) {
 				UpgradeSymlink[] upgradeSymlinks_10_0_6_1 = {
 					// jakartaee-migration-0.2.0-shaded.jar.jar -> jakartaee-migration-1.0.0-shaded.jar
 					new UpgradeSymlink(
@@ -265,7 +266,7 @@ class TomcatCommon_10_0_X extends VersionedTomcatCommon {
 					if(symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			}
-			if(version.compareTo("10.0.7-1") >= 0) {
+			if(version.compareTo("10.0.7-1" + suffix) >= 0) {
 				UpgradeSymlink[] upgradeSymlinks_10_0_7_1 = {
 					// postgresql-42.2.20.jar -> postgresql-42.2.22.jar
 					new UpgradeSymlink(
@@ -285,7 +286,7 @@ class TomcatCommon_10_0_X extends VersionedTomcatCommon {
 					if(symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			}
-			if(version.compareTo("10.0.8-1") >= 0) {
+			if(version.compareTo("10.0.8-1" + suffix) >= 0) {
 				UpgradeSymlink[] upgradeSymlinks_10_0_8_1 = {
 					// ecj-4.18.jar -> ecj-4.20.jar
 					new UpgradeSymlink(
@@ -325,13 +326,13 @@ class TomcatCommon_10_0_X extends VersionedTomcatCommon {
 					if(symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			}
-			if(version.compareTo("10.0.10-1") >= 0) {
+			if(version.compareTo("10.0.10-1" + suffix) >= 0) {
 				// 10.0.10-1 has same files as 10.0.8-1
 			}
-			if(version.compareTo("10.0.11-1") >= 0) {
+			if(version.compareTo("10.0.11-1" + suffix) >= 0) {
 				// 10.0.11-1 has same files as 10.0.10-1
 			}
-			if(version.compareTo("10.0.11-2") >= 0) {
+			if(version.compareTo("10.0.11-2" + suffix) >= 0) {
 				UpgradeSymlink[] upgradeSymlinks_10_0_11_2 = {
 					// postgresql-42.2.23.jar -> postgresql-42.2.24.jar
 					new UpgradeSymlink(
@@ -351,7 +352,7 @@ class TomcatCommon_10_0_X extends VersionedTomcatCommon {
 					if(symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			}
-			if(version.compareTo("10.0.11-2") > 0) {
+			if(version.compareTo("10.0.11-2" + suffix) > 0) {
 				throw new IllegalStateException("Version of Tomcat newer than expected: " + version);
 			}
 		}

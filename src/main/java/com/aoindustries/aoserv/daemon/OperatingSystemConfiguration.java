@@ -109,6 +109,10 @@ public enum OperatingSystemConfiguration {
 		public PackageManager.PackageName getJdk17PackageName() {
 			return PackageManager.PackageName.JDK17_I686;
 		}
+		@Override
+		public String getPackageReleaseSuffix() {
+			return ".ao";
+		}
 	},
 	CENTOS_5DOM0_I686 {
 		@Override
@@ -153,6 +157,10 @@ public enum OperatingSystemConfiguration {
 		public PackageManager.PackageName getJdk17PackageName() {
 			return CENTOS_5_I686_AND_X86_64.getJdk17PackageName();
 		}
+		@Override
+		public String getPackageReleaseSuffix() {
+			return CENTOS_5_I686_AND_X86_64.getPackageReleaseSuffix();
+		}
 	},
 	CENTOS_5DOM0_X86_64 {
 		@Override
@@ -196,6 +204,10 @@ public enum OperatingSystemConfiguration {
 		@Override
 		public PackageManager.PackageName getJdk17PackageName() {
 			return CENTOS_5_I686_AND_X86_64.getJdk17PackageName();
+		}
+		@Override
+		public String getPackageReleaseSuffix() {
+			return CENTOS_5_I686_AND_X86_64.getPackageReleaseSuffix();
 		}
 	},
 	CENTOS_7_X86_64 {
@@ -270,6 +282,10 @@ public enum OperatingSystemConfiguration {
 		public PackageManager.PackageName getJdk17PackageName() {
 			return PackageManager.PackageName.JDK17;
 		}
+		@Override
+		public String getPackageReleaseSuffix() {
+			return ".el7.ao";
+		}
 	},
 	CENTOS_7DOM0_X86_64 {
 		@Override
@@ -314,6 +330,10 @@ public enum OperatingSystemConfiguration {
 		@Override
 		public PackageManager.PackageName getJdk17PackageName() {
 			return CENTOS_7_X86_64.getJdk17PackageName();
+		}
+		@Override
+		public String getPackageReleaseSuffix() {
+			return CENTOS_7_X86_64.getPackageReleaseSuffix();
 		}
 	};
 
@@ -405,4 +425,9 @@ public enum OperatingSystemConfiguration {
 	 * Gets the package that provides JDK 1.7.
 	 */
 	public abstract PackageManager.PackageName getJdk17PackageName();
+
+	/**
+	 * Gets the expected suffix on RPM release numbers.
+	 */
+	public abstract String getPackageReleaseSuffix();
 }

@@ -230,6 +230,11 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 		}
 
 		@Override
+		public String toString() {
+			return getElement1() + "_" + getElement2();
+		}
+
+		@Override
 		public int compareTo(Version o) {
 			int diff = getElement1().compareTo(o.getElement1());
 			if(diff != 0) return diff;
