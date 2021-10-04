@@ -43,7 +43,7 @@ import java.sql.SQLException;
 /**
  * @author  AO Industries, Inc.
  */
-final public class EmailListManager {
+public final class EmailListManager {
 
 	private static final Charset ENCODING = StandardCharsets.UTF_8;
 
@@ -86,7 +86,7 @@ final public class EmailListManager {
 	/**
 	 * Writes the address list to the file system.
 	 */
-	public synchronized static void setEmailListFile(
+	public static synchronized void setEmailListFile(
 		PosixPath path,
 		String file,
 		int uid,

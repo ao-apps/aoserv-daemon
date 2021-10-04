@@ -55,7 +55,7 @@ import org.apache.commons.lang3.NotImplementedException;
  *
  * @author  AO Industries, Inc.
  */
-final public class PostgresUserManager extends BuilderThread {
+public final class PostgresUserManager extends BuilderThread {
 
 	private static final Logger logger = Logger.getLogger(PostgresUserManager.class.getName());
 

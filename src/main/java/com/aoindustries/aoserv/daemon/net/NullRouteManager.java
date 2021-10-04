@@ -51,7 +51,7 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-final public class NullRouteManager {
+public final class NullRouteManager {
 
 	private static final Logger logger = Logger.getLogger(NullRouteManager.class.getName());
 
@@ -83,7 +83,7 @@ final public class NullRouteManager {
 	// TODO: Get this from linux_server_groups, name="bird" once LinuxAccountManager enabled on CentOS 7.dom0
 	private static final int BIRD_GID = 95;
 
-	volatile private static NullRouteManager instance;
+	private static volatile NullRouteManager instance;
 
 	public static void start() throws IOException, SQLException {
 		Server thisServer = AOServDaemon.getThisServer();

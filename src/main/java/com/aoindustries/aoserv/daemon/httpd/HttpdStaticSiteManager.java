@@ -52,7 +52,7 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
 		return new HttpdStaticSiteManager(staticSite);
 	}
 
-	final protected StaticSite staticSite;
+	protected final StaticSite staticSite;
 
 	private HttpdStaticSiteManager(StaticSite staticSite) throws SQLException, IOException {
 		super(staticSite.getHttpdSite());

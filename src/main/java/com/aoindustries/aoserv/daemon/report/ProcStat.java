@@ -38,7 +38,7 @@ import java.util.List;
  *
  * @author  AO Industries, Inc.
  */
-final public class ProcStat {
+public final class ProcStat {
 
 	public final long[]
 		userCPUTimes,

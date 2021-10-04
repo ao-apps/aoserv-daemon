@@ -47,7 +47,7 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-final public class NetworkMonitor {
+public final class NetworkMonitor {
 
 	private static final Logger logger = Logger.getLogger(NetworkMonitor.class.getName());
 
@@ -313,7 +313,7 @@ final public class NetworkMonitor {
 		return Math.multiplyExact(packets, MICROS_PER_SECOND) / timeSpanMicros;
 	}
 
-	synchronized private void startThread() {
+	private synchronized void startThread() {
 		if(thread==null) {
 			final String threadName = NetworkMonitor.class.getName()+"("+device+", "+direction+")";
 			final String errorInThreadName = threadName+".errorIn";

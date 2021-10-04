@@ -33,7 +33,7 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-abstract public class PosixProcess {
+public abstract class PosixProcess {
 
 	private static final Logger logger = Logger.getLogger(PosixProcess.class.getName());
 
@@ -52,7 +52,7 @@ abstract public class PosixProcess {
 	 * the method on a <code>PosixProcess</code> will result in an
 	 * <code>IOException</code>.
 	 */
-	abstract public int getGid() throws IOException;
+	public abstract int getGid() throws IOException;
 
 	/**
 	 * Determines the user ID of a process.  The subclasses of
@@ -60,7 +60,7 @@ abstract public class PosixProcess {
 	 * the method on a <code>PosixProcess</code> will result in an
 	 * <code>IOException</code>.
 	 */
-	abstract public int getUid() throws IOException;
+	public abstract int getUid() throws IOException;
 
 	/**
 	 * Determines if the process is currently running.  The subclasses of
@@ -68,7 +68,7 @@ abstract public class PosixProcess {
 	 * the method on a <code>PosixProcess</code> will result in an
 	 * <code>IOException</code>.
 	 */
-	abstract public boolean isRunning() throws IOException;
+	public abstract boolean isRunning() throws IOException;
 
 	/**
 	 * Kills this process.  Sends a term signal once, waits two seconds,

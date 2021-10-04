@@ -57,7 +57,7 @@ import java.util.regex.Pattern;
  *
  * @author  AO Industries, Inc.
  */
-final public class VirtualServerManager {
+public final class VirtualServerManager {
 
 	private static final Logger logger = Logger.getLogger(VirtualServerManager.class.getName());
 

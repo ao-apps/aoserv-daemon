@@ -36,7 +36,7 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-abstract public class BuilderThread implements TableListener, PackageManager.PackageListener {
+public abstract class BuilderThread implements TableListener, PackageManager.PackageListener {
 
 	private static final Logger logger = Logger.getLogger(BuilderThread.class.getName());
 
@@ -186,7 +186,7 @@ abstract public class BuilderThread implements TableListener, PackageManager.Pac
 		return getProcessTimerDescription()+" is taking too long";
 	}
 
-	abstract public String getProcessTimerDescription();
+	public abstract String getProcessTimerDescription();
 
 	public long getProcessTimerMaximumTime() {
 		return DEFAULT_PROCESS_TIMER_MAXIMUM_TIME;
@@ -196,7 +196,7 @@ abstract public class BuilderThread implements TableListener, PackageManager.Pac
 		return DEFAULT_PROCESS_TIMER_REMINDER_INTERVAL;
 	}
 
-	final public int getRandomDelay() {
+	public final int getRandomDelay() {
 		int min=getMinimumDelay();
 		int max=getMaximumDelay();
 		if(min>max) throw new RuntimeException("getMinimumDelay() is greater than getMaximumDelay()");

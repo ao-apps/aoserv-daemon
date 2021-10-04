@@ -35,12 +35,12 @@ import java.sql.SQLException;
  *
  * @author  AO Industries, Inc.
  */
-final public class Uptime {
+public final class Uptime {
 
 	private static final String[] cmd={"/usr/bin/uptime"};
 
-	final public int numUsers;
-	final public float load;
+	public final int numUsers;
+	public final float load;
 
 	public Uptime() throws IOException, SQLException {
 		String line = AOServDaemon.execCall(

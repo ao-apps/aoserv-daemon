@@ -78,7 +78,7 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-final public class MySQLDatabaseManager extends BuilderThread {
+public final class MySQLDatabaseManager extends BuilderThread {
 
 	private static final Logger logger = Logger.getLogger(MySQLDatabaseManager.class.getName());
 

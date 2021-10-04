@@ -56,7 +56,7 @@ import java.util.logging.Logger;
 /**
  * Handles the building of SSHD configs and files.
  */
-final public class SshdManager extends BuilderThread {
+public final class SshdManager extends BuilderThread {
 
 	private static final Logger logger = Logger.getLogger(SshdManager.class.getName());
 

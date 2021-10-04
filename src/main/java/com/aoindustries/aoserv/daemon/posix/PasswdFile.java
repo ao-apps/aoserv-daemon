@@ -51,7 +51,7 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-final public class PasswdFile {
+public final class PasswdFile {
 
 	private static final Logger logger = Logger.getLogger(PasswdFile.class.getName());
 
@@ -63,7 +63,7 @@ final public class PasswdFile {
 	/**
 	 * Represents one line of the <code>/etc/passwd</code> file on a POSIX server.
 	 */
-	final public static class Entry {
+	public static final class Entry {
 
 		/**
 		 * @see  #getUsername()

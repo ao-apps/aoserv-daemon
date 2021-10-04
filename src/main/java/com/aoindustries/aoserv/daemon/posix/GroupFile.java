@@ -50,7 +50,7 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-final public class GroupFile {
+public final class GroupFile {
 
 	private static final Logger logger = Logger.getLogger(GroupFile.class.getName());
 
@@ -62,7 +62,7 @@ final public class GroupFile {
 	/**
 	 * Represents one line of the <code>/etc/group</code> file on a POSIX server.
 	 */
-	final public static class Entry {
+	public static final class Entry {
 
 		/**
 		 * @see  #getGroupName()

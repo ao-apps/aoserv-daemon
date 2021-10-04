@@ -74,7 +74,7 @@ import java.util.Set;
  * </ul>
  * @author  AO Industries, Inc.
  */
-final public class HardLinkVarBackup {
+public final class HardLinkVarBackup {
 
 	private static final int DISPLAY_INTERVAL = 10000;
 

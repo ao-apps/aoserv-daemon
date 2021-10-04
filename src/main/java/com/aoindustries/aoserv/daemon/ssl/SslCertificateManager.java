@@ -83,7 +83,7 @@ import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
 import org.apache.commons.lang3.StringUtils;
 
-final public class SslCertificateManager {
+public final class SslCertificateManager {
 
 	private static PosixFile getPosixFile(PosixPath path) {
 		return (path == null) ? null : new PosixFile(path.toString());

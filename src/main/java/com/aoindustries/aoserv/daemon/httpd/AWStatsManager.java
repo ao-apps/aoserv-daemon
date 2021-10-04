@@ -70,7 +70,7 @@ import java.util.regex.Pattern;
  *
  * @author  AO Industries, Inc.
  */
-final public class AWStatsManager extends BuilderThread {
+public final class AWStatsManager extends BuilderThread {
 
 	private static final Logger logger = Logger.getLogger(AWStatsManager.class.getName());
 

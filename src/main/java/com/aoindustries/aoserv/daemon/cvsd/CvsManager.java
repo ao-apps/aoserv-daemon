@@ -52,7 +52,7 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-final public class CvsManager extends BuilderThread {
+public final class CvsManager extends BuilderThread {
 
 	private static final Logger logger = Logger.getLogger(CvsManager.class.getName());
 

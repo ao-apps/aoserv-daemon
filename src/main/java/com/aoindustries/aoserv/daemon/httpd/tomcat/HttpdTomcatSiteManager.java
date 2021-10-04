@@ -86,7 +86,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 	 */
 	private static final String README_TXT = "README.txt";
 
-	final protected Site tomcatSite;
+	protected final Site tomcatSite;
 
 	protected HttpdTomcatSiteManager(Site tomcatSite) throws IOException, SQLException {
 		super(tomcatSite.getHttpdSite());
@@ -275,7 +275,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 	 * Every Tomcat site is built through the same overall set of steps.
 	 */
 	@Override
-	final protected void buildSiteDirectory(PosixFile siteDirectory, String optSlash, Set<com.aoindustries.aoserv.client.web.Site> sitesNeedingRestarted, Set<SharedTomcat> sharedTomcatsNeedingRestarted, Set<PosixFile> restorecon) throws IOException, SQLException {
+	protected final void buildSiteDirectory(PosixFile siteDirectory, String optSlash, Set<com.aoindustries.aoserv.client.web.Site> sitesNeedingRestarted, Set<SharedTomcat> sharedTomcatsNeedingRestarted, Set<PosixFile> restorecon) throws IOException, SQLException {
 		final int apacheUid = getApacheUid();
 		final int uid = httpdSite.getLinuxServerAccount().getUid().getId();
 		final int gid = httpdSite.getLinuxServerGroup().getGid().getId();

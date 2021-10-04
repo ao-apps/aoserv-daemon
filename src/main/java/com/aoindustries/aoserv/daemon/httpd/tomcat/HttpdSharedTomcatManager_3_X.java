@@ -370,5 +370,5 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 	/**
 	 * Gets the package's directory name under /opt, not including /opt itself.
 	 */
-	abstract protected String getOptDir();
+	protected abstract String getOptDir();
 }

@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2000-2013, 2020  AO Industries, Inc.
+ * Copyright (C) 2000-2013, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -29,7 +29,7 @@ package com.aoindustries.aoserv.daemon.report;
  */
 public final class ProcSys {
 
-	final public int
+	public final int
 		files_allocated,
 		files_used,
 		files_max,

@@ -61,7 +61,7 @@ import java.util.logging.Logger;
 /**
  * Handles the configuration of firewalld.
  */
-final public class FirewalldManager extends BuilderThread {
+public final class FirewalldManager extends BuilderThread {
 
 	private static final Logger logger = Logger.getLogger(FirewalldManager.class.getName());
 

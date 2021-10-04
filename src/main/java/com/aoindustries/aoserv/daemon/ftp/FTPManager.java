@@ -58,7 +58,7 @@ import java.util.logging.Logger;
 /**
  * Handles the building of FTP configs and files.
  */
-final public class FTPManager extends BuilderThread {
+public final class FTPManager extends BuilderThread {
 
 	private static final Logger logger = Logger.getLogger(FTPManager.class.getName());
 

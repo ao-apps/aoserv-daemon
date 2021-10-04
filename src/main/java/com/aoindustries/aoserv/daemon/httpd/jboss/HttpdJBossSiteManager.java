@@ -55,7 +55,7 @@ public abstract class HttpdJBossSiteManager<TC extends TomcatCommon> extends Htt
 		throw new SQLException("Unsupported version of standard JBoss: "+jbossVersion+" on "+jbossSite);
 	}
 
-	final protected Site jbossSite;
+	protected final Site jbossSite;
 
 	HttpdJBossSiteManager(Site jbossSite) throws SQLException, IOException {
 		super(jbossSite.getHttpdTomcatSite());

@@ -51,7 +51,7 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-final public class MySQLUserManager extends BuilderThread {
+public final class MySQLUserManager extends BuilderThread {
 
 	private static final Logger logger = Logger.getLogger(MySQLUserManager.class.getName());
 

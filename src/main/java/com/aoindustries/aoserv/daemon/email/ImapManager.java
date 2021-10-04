@@ -159,7 +159,7 @@ import javax.mail.StoreClosedException;
  *
  * @author  AO Industries, Inc.
  */
-final public class ImapManager extends BuilderThread {
+public final class ImapManager extends BuilderThread {
 
 	private static final Logger logger = Logger.getLogger(ImapManager.class.getName());
 

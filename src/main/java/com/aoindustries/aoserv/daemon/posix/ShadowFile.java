@@ -52,7 +52,7 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-final public class ShadowFile {
+public final class ShadowFile {
 
 	private static final Logger logger = Logger.getLogger(ShadowFile.class.getName());
 
@@ -64,7 +64,7 @@ final public class ShadowFile {
 	/**
 	 * Represents one line of the <code>/etc/shadow</code> file on a POSIX server.
 	 */
-	final public static class Entry {
+	public static final class Entry {
 
 		/**
 		 * @see  #getUsername()

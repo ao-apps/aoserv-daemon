@@ -287,7 +287,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 		return true;
 	}
 
-	private synchronized static void processIncomingMessages() throws IOException, SQLException {
+	private static synchronized void processIncomingMessages() throws IOException, SQLException {
 		try {
 			// Only process incoming messages when the incoming directory exists
 			if(incomingDirectory.getStat().exists()) {

@@ -73,7 +73,7 @@ import java.util.regex.Pattern;
  *
  * @author  AO Industries, Inc.
  */
-final public class SendmailCFManager extends BuilderThread {
+public final class SendmailCFManager extends BuilderThread {
 
 	private static final Logger logger = Logger.getLogger(SendmailCFManager.class.getName());
 

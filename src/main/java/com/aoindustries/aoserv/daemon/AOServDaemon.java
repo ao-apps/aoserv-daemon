@@ -105,7 +105,7 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-final public class AOServDaemon {
+public final class AOServDaemon {
 
 	private static final Logger logger = Logger.getLogger(AOServDaemon.class.getName());
 
@@ -135,7 +135,7 @@ final public class AOServDaemon {
 	/**
 	 * An unbounded executor for daemon-wide tasks.
 	 */
-	public final static ExecutorService executorService = Executors.newCachedThreadPool();
+	public static final ExecutorService executorService = Executors.newCachedThreadPool();
 
 	/**
 	 * Create no instances.

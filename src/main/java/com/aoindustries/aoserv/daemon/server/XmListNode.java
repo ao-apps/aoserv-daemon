@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2012, 2013, 2018, 2020  AO Industries, Inc.
+ * Copyright (C) 2012, 2013, 2018, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -31,7 +31,7 @@ import java.util.List;
  *
  * @author  AO Industries, Inc.
  */
-final public class XmListNode {
+public final class XmListNode {
 
 	/**
 	 * Parses the result of xm list -l into a tree of objects that have a name

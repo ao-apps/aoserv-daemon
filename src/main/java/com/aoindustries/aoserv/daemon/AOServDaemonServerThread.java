@@ -86,7 +86,7 @@ import javax.net.ssl.SSLHandshakeException;
  *
  * @author  AO Industries, Inc.
  */
-final public class AOServDaemonServerThread extends Thread {
+public final class AOServDaemonServerThread extends Thread {
 
 	private static final Logger logger = Logger.getLogger(AOServDaemonServerThread.class.getName());
 

@@ -36,7 +36,7 @@ import java.sql.SQLException;
  *
  * @author  AO Industries, Inc.
  */
-final public class ProcMemory {
+public final class ProcMemory {
 
 	public final int
 		mem_total,

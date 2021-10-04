@@ -39,7 +39,7 @@ import java.util.logging.Logger;
 /**
  * Watches the IP address of the server and tells the master when the IP address changes.
  */
-final public class DhcpManager implements Runnable {
+public final class DhcpManager implements Runnable {
 
 	private static final Logger logger = Logger.getLogger(DhcpManager.class.getName());
 

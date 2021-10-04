@@ -69,7 +69,7 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 		throw new SQLException("Unsupported version of standard Tomcat: " + htv.getTechnologyVersion(connector).getVersion() + " on " + stdSite);
 	}
 
-	final protected PrivateTomcatSite tomcatStdSite;
+	protected final PrivateTomcatSite tomcatStdSite;
 
 	HttpdTomcatStdSiteManager(PrivateTomcatSite tomcatStdSite) throws SQLException, IOException {
 		super(tomcatStdSite.getHttpdTomcatSite());

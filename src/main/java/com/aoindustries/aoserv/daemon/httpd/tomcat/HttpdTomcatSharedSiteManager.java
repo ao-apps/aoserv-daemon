@@ -66,7 +66,7 @@ abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends Htt
 		throw new SQLException("Unsupported version of shared Tomcat: "+htv.getTechnologyVersion(connector).getVersion()+" on "+shrSite);
 	}
 
-	final protected SharedTomcatSite tomcatSharedSite;
+	protected final SharedTomcatSite tomcatSharedSite;
 
 	HttpdTomcatSharedSiteManager(SharedTomcatSite tomcatSharedSite) throws SQLException, IOException {
 		super(tomcatSharedSite.getHttpdTomcatSite());

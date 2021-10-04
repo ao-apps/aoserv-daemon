@@ -59,7 +59,7 @@ import java.util.logging.Logger;
 /**
  * Handles the configuration of Fail2ban.
  */
-final public class Fail2banManager extends BuilderThread {
+public final class Fail2banManager extends BuilderThread {
 
 	private static final Logger logger = Logger.getLogger(Fail2banManager.class.getName());
 

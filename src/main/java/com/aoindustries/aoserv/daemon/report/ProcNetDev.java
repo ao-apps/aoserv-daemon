@@ -31,8 +31,8 @@ import com.aoapps.lang.EmptyArrays;
  */
 public final class ProcNetDev {
 
-	final public String[] deviceIDs;
-	final public long[]
+	public final String[] deviceIDs;
+	public final long[]
 		rxBytes,
 		rxPackets,
 		rxErrors,

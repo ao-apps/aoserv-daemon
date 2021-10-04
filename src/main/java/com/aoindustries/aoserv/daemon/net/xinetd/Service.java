@@ -37,27 +37,27 @@ import java.util.Objects;
  */
 public final class Service {
 
-	final private String type;
-	final private int instances;
-	final private int per_source;
-	final private String cps;
-	final private String banner_fail;
-	final private String flags;
-	final private String service;
-	final private com.aoapps.net.Protocol socket_type;
-	final private IpAddress bind;
-	final private Port port;
-	final private boolean wait;
-	final private UserServer user;
-	final private GroupServer group;
-	final private String server;
-	final private String env;
-	final private String server_args;
-	final private String log_on_success;
-	final private String log_on_failure;
-	final private int nice;
-	final private String rlimit_as;
-	final private String redirect;
+	private final String type;
+	private final int instances;
+	private final int per_source;
+	private final String cps;
+	private final String banner_fail;
+	private final String flags;
+	private final String service;
+	private final com.aoapps.net.Protocol socket_type;
+	private final IpAddress bind;
+	private final Port port;
+	private final boolean wait;
+	private final UserServer user;
+	private final GroupServer group;
+	private final String server;
+	private final String env;
+	private final String server_args;
+	private final String log_on_success;
+	private final String log_on_failure;
+	private final int nice;
+	private final String rlimit_as;
+	private final String redirect;
 
 	public Service(
 		String type,

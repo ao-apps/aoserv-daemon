@@ -50,7 +50,7 @@ import java.util.logging.Logger;
  */
 public class DaemonFileUtils {
 
-	private final static Logger logger = Logger.getLogger(DaemonFileUtils.class.getName());
+	private static final Logger logger = Logger.getLogger(DaemonFileUtils.class.getName());
 
 	/**
 	 * Make no instances.

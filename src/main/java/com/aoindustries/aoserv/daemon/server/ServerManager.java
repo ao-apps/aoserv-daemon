@@ -43,7 +43,7 @@ import java.util.Map;
  *
  * @author  AO Industries, Inc.
  */
-final public class ServerManager {
+public final class ServerManager {
 
 	private ServerManager() {
 	}

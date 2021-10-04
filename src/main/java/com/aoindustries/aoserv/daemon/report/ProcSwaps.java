@@ -29,9 +29,9 @@ import com.aoapps.lang.EmptyArrays;
  *
  * @author  AO Industries, Inc.
  */
-final public class ProcSwaps {
+public final class ProcSwaps {
 
-	final public int[]
+	public final int[]
 		device_majors,
 		device_minors,
 		totals,

@@ -68,7 +68,7 @@ import java.util.logging.Logger;
 /**
  * @author  AO Industries, Inc.
  */
-final public class EmailAddressManager extends BuilderThread {
+public final class EmailAddressManager extends BuilderThread {
 
 	private static final Logger logger = Logger.getLogger(EmailAddressManager.class.getName());
 

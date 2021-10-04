@@ -377,7 +377,7 @@ public abstract class HttpdSiteManager {
 		}
 	}
 
-	final protected Site httpdSite;
+	protected final Site httpdSite;
 
 	protected HttpdSiteManager(Site httpdSite) {
 		this.httpdSite = httpdSite;
@@ -813,8 +813,8 @@ public abstract class HttpdSiteManager {
 
 	public static class Location implements Comparable<Location> {
 
-		final private boolean isRegularExpression;
-		final private String location;
+		private final boolean isRegularExpression;
+		private final String location;
 
 		public Location(boolean isRegularExpression, String location) {
 			this.isRegularExpression = isRegularExpression;
@@ -967,9 +967,9 @@ public abstract class HttpdSiteManager {
 
 	public static class JkSetting implements Comparable<JkSetting> {
 
-		final private boolean isMount;
-		final private String path;
-		final private String jkCode;
+		private final boolean isMount;
+		private final String path;
+		private final String jkCode;
 
 		public JkSetting(boolean isMount, String path, String jkCode) {
 			this.isMount = isMount;

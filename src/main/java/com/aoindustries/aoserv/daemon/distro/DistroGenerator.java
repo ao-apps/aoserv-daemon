@@ -71,7 +71,7 @@ import java.util.TreeSet;
  *
  * @author  AO Industries, Inc.
  */
-final public class DistroGenerator {
+public final class DistroGenerator {
 
 	private static final String DEFAULT_ROOT = "/distro";
 
@@ -763,9 +763,9 @@ final public class DistroGenerator {
 
 	private class DistroGeneratorThread extends Thread {
 
-		final private RunState runState;
+		private final RunState runState;
 
-		final private int threadNum;
+		private final int threadNum;
 
 		// synchronizing on threads may conflict with join method, using explicit lock for exceptions
 		private final Object exceptionLock = new Object();

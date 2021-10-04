@@ -35,7 +35,7 @@ import java.sql.SQLException;
  *
  * @author  AO Industries, Inc.
  */
-final public class PostgresCount extends DBReportData {
+public final class PostgresCount extends DBReportData {
 
 	private static final File proc = new File("/proc");
 

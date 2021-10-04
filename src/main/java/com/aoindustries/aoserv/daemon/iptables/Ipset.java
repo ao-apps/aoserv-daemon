@@ -44,7 +44,7 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-final public class Ipset {
+public final class Ipset {
 
 	private static final Logger logger = Logger.getLogger(Ipset.class.getName());
 

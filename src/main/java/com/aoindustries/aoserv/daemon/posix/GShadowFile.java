@@ -53,7 +53,7 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-final public class GShadowFile {
+public final class GShadowFile {
 
 	private static final Logger logger = Logger.getLogger(GShadowFile.class.getName());
 
@@ -65,7 +65,7 @@ final public class GShadowFile {
 	/**
 	 * Represents one line of the <code>/etc/gshadow</code> file on a POSIX server.
 	 */
-	final public static class Entry {
+	public static final class Entry {
 
 		/**
 		 * @see  #getGroupName()

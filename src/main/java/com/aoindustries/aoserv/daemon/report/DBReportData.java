@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2000-2009, 2017, 2020  AO Industries, Inc.
+ * Copyright (C) 2000-2009, 2017, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -25,7 +25,7 @@ package com.aoindustries.aoserv.daemon.report;
 /**
  * @author  AO Industries, Inc.
  */
-abstract public class DBReportData {
+public abstract class DBReportData {
 
 	public int numUsers;
 

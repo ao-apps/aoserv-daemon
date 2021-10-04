@@ -45,7 +45,7 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-final public class SaslauthdManager extends BuilderThread {
+public final class SaslauthdManager extends BuilderThread {
 
 	private static final Logger logger = Logger.getLogger(SaslauthdManager.class.getName());
 

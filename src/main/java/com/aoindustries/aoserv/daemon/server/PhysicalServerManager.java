@@ -30,7 +30,7 @@ import java.io.IOException;
  *
  * @author  AO Industries, Inc.
  */
-final public class PhysicalServerManager {
+public final class PhysicalServerManager {
 
 	private PhysicalServerManager() {
 	}

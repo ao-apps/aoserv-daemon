@@ -41,7 +41,7 @@ import java.util.Properties;
  *
  * @author  AO Industries, Inc.
  */
-final public class AOServDaemonConfiguration {
+public final class AOServDaemonConfiguration {
 
 	private AOServDaemonConfiguration() {
 	}

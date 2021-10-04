@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2000-2013, 2020  AO Industries, Inc.
+ * Copyright (C) 2000-2013, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -27,9 +27,9 @@ package com.aoindustries.aoserv.daemon.report;
  *
  * @author  AO Industries, Inc.
  */
-final public class NetStatS {
+public final class NetStatS {
 
-	final public long
+	public final long
 		icmp_in_message,
 		icmp_in_fail,
 		icmp_in_unreachable,
@@ -46,7 +46,7 @@ final public class NetStatS {
 		icmp_out_echo_reply
 	;
 
-	final public long
+	public final long
 		ip_packet,
 		ip_invalid_headers,
 		ip_forward,
@@ -61,7 +61,7 @@ final public class NetStatS {
 		ip_ra_fail
 	;
 
-	final public long
+	public final long
 		tcp_active_connect,
 		tcp_passive_connect,
 		tcp_fail_connect,
@@ -74,7 +74,7 @@ final public class NetStatS {
 		tcp_out_reset
 	;
 
-	final public long
+	public final long
 		udp_receive,
 		udp_unknown,
 		udp_error,

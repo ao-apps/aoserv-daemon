@@ -73,7 +73,7 @@ import java.util.stream.IntStream;
  *
  * @author  AO Industries, Inc.
  */
-final public class DistroManager implements Runnable {
+public final class DistroManager implements Runnable {
 
 	private static final Logger logger = Logger.getLogger(DistroManager.class.getName());
 

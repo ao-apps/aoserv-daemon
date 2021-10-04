@@ -54,7 +54,7 @@ import java.util.logging.Logger;
 /**
  * @author  AO Industries, Inc.
  */
-final public class MajordomoManager extends BuilderThread {
+public final class MajordomoManager extends BuilderThread {
 
 	private static final Logger logger = Logger.getLogger(MajordomoManager.class.getName());
 

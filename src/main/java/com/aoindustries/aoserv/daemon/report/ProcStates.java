@@ -41,7 +41,7 @@ import java.sql.SQLException;
  *
  * @author  AO Industries, Inc.
  */
-final public class ProcStates {
+public final class ProcStates {
 
 	private static final File proc=new File("/proc");
 

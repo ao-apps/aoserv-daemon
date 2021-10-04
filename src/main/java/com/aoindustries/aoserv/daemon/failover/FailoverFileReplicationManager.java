@@ -200,7 +200,7 @@ Maximum number of chunks per file: 2 ^ (44 - 20): 2 ^ 24
  *
  * @author  AO Industries, Inc.
  */
-final public class FailoverFileReplicationManager {
+public final class FailoverFileReplicationManager {
 
 	private static final Logger logger = Logger.getLogger(FailoverFileReplicationManager.class.getName());
 
@@ -2158,7 +2158,7 @@ final public class FailoverFileReplicationManager {
 	/**
 	 * Encapsulates a modified time and size.  Is immutable and may be used a as Map key.
 	 */
-	final static class ModifyTimeAndSize {
+	static final class ModifyTimeAndSize {
 
 		final long modifyTime;
 		final long size;
@@ -2188,11 +2188,11 @@ final public class FailoverFileReplicationManager {
 	/**
 	 * Caches the directory.
 	 */
-	final static class ModifyTimeAndSizeCache {
+	static final class ModifyTimeAndSizeCache {
 
-		final private PosixFile directory;
-		final private Map<String, ModifyTimeAndSize> filenameMap = new HashMap<>();
-		final private Map<ModifyTimeAndSize, List<String>> modifyTimeAndSizeMap = new HashMap<>();
+		private final PosixFile directory;
+		private final Map<String, ModifyTimeAndSize> filenameMap = new HashMap<>();
+		private final Map<ModifyTimeAndSize, List<String>> modifyTimeAndSizeMap = new HashMap<>();
 
 		ModifyTimeAndSizeCache(Activity activity, PosixFile directory) throws IOException {
 			this.directory = directory;

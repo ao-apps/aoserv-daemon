@@ -47,7 +47,7 @@ import javax.net.ssl.SSLServerSocketFactory;
  * </p>
  * @author  AO Industries, Inc.
  */
-final public class AOServDaemonServer extends Thread {
+public final class AOServDaemonServer extends Thread {
 
 	private static final Logger logger = Logger.getLogger(AOServDaemonServer.class.getName());
 

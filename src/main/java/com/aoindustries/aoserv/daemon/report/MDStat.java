@@ -29,12 +29,12 @@ import com.aoapps.lang.EmptyArrays;
  *
  * @author  AO Industries, Inc.
  */
-final public class MDStat {
+public final class MDStat {
 
-	final public int[] device_majors;       // *** In data
-	final public int[] device_minors;       // *** In data
-	final public int[] total_partitions;    // *** In data
-	final public int[] active_partitions;   // *** In data
+	public final int[] device_majors;       // *** In data
+	public final int[] device_minors;       // *** In data
+	public final int[] total_partitions;    // *** In data
+	public final int[] active_partitions;   // *** In data
 
 	public MDStat() {
 		device_majors=device_minors=total_partitions=active_partitions = EmptyArrays.EMPTY_INT_ARRAY;

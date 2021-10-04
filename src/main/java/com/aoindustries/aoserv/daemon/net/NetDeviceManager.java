@@ -70,7 +70,7 @@ import java.util.logging.Logger;
 /**
  * Handles the building of IP address configs and files.
  */
-final public class NetDeviceManager extends BuilderThread {
+public final class NetDeviceManager extends BuilderThread {
 
 	private static final Logger logger = Logger.getLogger(NetDeviceManager.class.getName());
 
@@ -742,7 +742,7 @@ final public class NetDeviceManager extends BuilderThread {
 		return tempSB.toString();
 	}
 
-	private final static List<Integer> privilegedPorts = new ArrayList<>();
+	private static final List<Integer> privilegedPorts = new ArrayList<>();
 
 	/**
 	 * Gets the next privileged source port in the range 1 &lt;= port &lt;= 1023.  Will never return

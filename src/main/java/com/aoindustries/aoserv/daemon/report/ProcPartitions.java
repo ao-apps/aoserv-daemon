@@ -29,11 +29,11 @@ import com.aoapps.lang.EmptyArrays;
  *
  * @author  AO Industries, Inc.
  */
-final public class ProcPartitions {
+public final class ProcPartitions {
 
-	final public int[] device_majors;
-	final public int[] device_minors;
-	final public long[]
+	public final int[] device_majors;
+	public final int[] device_minors;
+	public final long[]
 		blocks,
 		rios,
 		rmerges,
@@ -44,8 +44,8 @@ final public class ProcPartitions {
 		wsect,
 		wuse
 	;
-	final public int[] runnings;
-	final public long[]
+	public final int[] runnings;
+	public final long[]
 		uses,
 		aveq
 	;

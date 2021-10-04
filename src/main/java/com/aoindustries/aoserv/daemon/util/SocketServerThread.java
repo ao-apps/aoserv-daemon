@@ -35,7 +35,7 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-abstract public class SocketServerThread extends Thread {
+public abstract class SocketServerThread extends Thread {
 
 	private static final Logger logger = Logger.getLogger(SocketServerThread.class.getName());
 
@@ -89,7 +89,7 @@ abstract public class SocketServerThread extends Thread {
 		}
 	}
 
-	final public void close() {
+	public final void close() {
 		runMore=false;
 		try {
 			SS.close();

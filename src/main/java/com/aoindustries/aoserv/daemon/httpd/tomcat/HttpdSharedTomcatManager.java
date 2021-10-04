@@ -235,7 +235,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 		HttpdSiteManager.stopAndDisableDaemons(sharedTomcatDirectory);
 	}
 
-	final protected SharedTomcat sharedTomcat;
+	protected final SharedTomcat sharedTomcat;
 
 	HttpdSharedTomcatManager(SharedTomcat sharedTomcat) {
 		this.sharedTomcat = sharedTomcat;

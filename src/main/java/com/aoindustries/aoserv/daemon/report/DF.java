@@ -29,7 +29,7 @@ import com.aoapps.lang.EmptyArrays;
  *
  * @author  AO Industries, Inc.
  */
-final public class DF {
+public final class DF {
 
 	public final int[] device_majors;
 	public final int[] device_minors;

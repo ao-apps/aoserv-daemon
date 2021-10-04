@@ -29,10 +29,10 @@ import com.aoapps.lang.EmptyArrays;
  *
  * @author  AO Industries, Inc.
  */
-final public class NetStatLN {
+public final class NetStatLN {
 
-	final public String[] deviceIDs;
-	final public int[] listens;
+	public final String[] deviceIDs;
+	public final int[] listens;
 
 	public NetStatLN() {
 		deviceIDs = EmptyArrays.EMPTY_STRING_ARRAY;

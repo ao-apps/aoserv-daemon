@@ -35,14 +35,14 @@ import java.io.InputStreamReader;
  *
  * @author  AO Industries, Inc.
  */
-final public class MySQLAdmin extends DBReportData {
+public final class MySQLAdmin extends DBReportData {
 
-	final public int questions;
-	final public int slow_queries;
-	final public int opens;
-	final public int flush_tables;
-	final public int open_tables;
-	final public float queries_per_second;
+	public final int questions;
+	public final int slow_queries;
+	public final int opens;
+	public final int flush_tables;
+	public final int open_tables;
+	public final float queries_per_second;
 
 	public MySQLAdmin() throws IOException {
 		// TODO: Do once per MySQLServer instance

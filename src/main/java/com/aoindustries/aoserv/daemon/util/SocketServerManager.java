@@ -37,7 +37,7 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-abstract public class SocketServerManager {
+public abstract class SocketServerManager {
 
 	private static final Logger logger = Logger.getLogger(SocketServerManager.class.getName());
 
@@ -48,7 +48,7 @@ abstract public class SocketServerManager {
 	}
 
 	private boolean started=false;
-	final public void start() throws IOException, SQLException {
+	public final void start() throws IOException, SQLException {
 		if(!started) {
 			synchronized(System.out) {
 				if(!started) {
