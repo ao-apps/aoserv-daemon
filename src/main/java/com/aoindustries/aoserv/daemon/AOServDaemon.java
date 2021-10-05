@@ -148,7 +148,7 @@ public final class AOServDaemon {
 	 * the provided list.  If an unowned file is found and is a directory,
 	 * its contents are not searched.  To avoid infinite recursion, symbolic
 	 * links are not followed but may be deleted.
-	 * 
+	 *
 	 * @param  file  the <code>File</code> to search from
 	 * @param  uids  the <code>IntList</code> containing the list of uids
 	 */
@@ -340,7 +340,7 @@ public final class AOServDaemon {
 	 * </p>
 	 */
 	// TODO: First parameter as PosixPath object?
-	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch", "UseOfSystemOutOrSystemErr","overloads"})
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch", "UseOfSystemOutOrSystemErr", "overloads"})
 	public static <V> V execCall(
 		ConsumerE<? super OutputStream, ? extends IOException> stdin,
 		FunctionE<? super InputStream, V, ? extends IOException> stdout,
@@ -718,7 +718,7 @@ public final class AOServDaemon {
 
 	/**
 	 * Switches to the specified user and executes a command.
-	 * 
+	 *
 	 * @param  nice  a nice level passed to /bin/nice, a value of zero (0) will cause nice to not be called
 	 */
 	// TODO: Use ao-encoding to escape command

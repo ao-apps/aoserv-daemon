@@ -606,7 +606,7 @@ public final class DistroManager implements Runnable {
 								byte[] sha256;
 								long fileLen;
 								{
-									Tuple2<byte[],Long> result = AOServDaemon.execCall(
+									Tuple2<byte[], Long> result = AOServDaemon.execCall(
 										stdout -> {
 											try (ByteCountInputStream countIn = new ByteCountInputStream(stdout)) {
 												return new Tuple2<>(
@@ -663,7 +663,7 @@ public final class DistroManager implements Runnable {
 											DistroReportType.DIGEST,
 											file,
 											MessageDigestUtils.getHexChars(file_sha256_0, file_sha256_1, file_sha256_2, file_sha256_3),
-											MessageDigestUtils.getHexChars(distro_sha256_0,distro_sha256_1, distro_sha256_2, distro_sha256_3)
+											MessageDigestUtils.getHexChars(distro_sha256_0, distro_sha256_1, distro_sha256_2, distro_sha256_3)
 										);
 									}
 								}
@@ -730,7 +730,7 @@ public final class DistroManager implements Runnable {
 											DistroReportType.DIGEST,
 											file,
 											MessageDigestUtils.getHexChars(file_sha256_0, file_sha256_1, file_sha256_2, file_sha256_3),
-											MessageDigestUtils.getHexChars(distro_sha256_0,distro_sha256_1, distro_sha256_2, distro_sha256_3)
+											MessageDigestUtils.getHexChars(distro_sha256_0, distro_sha256_1, distro_sha256_2, distro_sha256_3)
 										);
 									}
 

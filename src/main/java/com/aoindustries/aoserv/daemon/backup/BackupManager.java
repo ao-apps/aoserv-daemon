@@ -139,7 +139,7 @@ public final class BackupManager {
 								id.backup();
 							} catch(Error | RuntimeException err) {
 								logger.log(
-									Level.SEVERE, 
+									Level.SEVERE,
 									err,
 									new Object[] {"id="+id}
 								);
@@ -180,7 +180,7 @@ public final class BackupManager {
 								md.backup();
 							} catch(Error | RuntimeException err) {
 								logger.log(
-									Level.SEVERE, 
+									Level.SEVERE,
 									err,
 									new Object[] {"md="+md}
 								);
@@ -222,7 +222,7 @@ public final class BackupManager {
 								pd.backup();
 							} catch(Error | RuntimeException err) {
 								logger.log(
-									Level.SEVERE, 
+									Level.SEVERE,
 									err,
 									new Object[] {"pd="+pd}
 								);
@@ -255,12 +255,12 @@ public final class BackupManager {
 					// Construct the Calendar from the filename
 					// Not y10k compatible ;)
 					GregorianCalendar fileCal = new GregorianCalendar();
-					fileCal.set(Calendar.YEAR, Integer.parseInt(filename.substring(0,4)));
-					fileCal.set(Calendar.MONTH, Integer.parseInt(filename.substring(4,6))-1);
-					fileCal.set(Calendar.DAY_OF_MONTH, Integer.parseInt(filename.substring(6,8)));
-					fileCal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(filename.substring(9,11)));
-					fileCal.set(Calendar.MINUTE, Integer.parseInt(filename.substring(11,13)));
-					fileCal.set(Calendar.SECOND, Integer.parseInt(filename.substring(13,15)));
+					fileCal.set(Calendar.YEAR, Integer.parseInt(filename.substring(0, 4)));
+					fileCal.set(Calendar.MONTH, Integer.parseInt(filename.substring(4, 6))-1);
+					fileCal.set(Calendar.DAY_OF_MONTH, Integer.parseInt(filename.substring(6, 8)));
+					fileCal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(filename.substring(9, 11)));
+					fileCal.set(Calendar.MINUTE, Integer.parseInt(filename.substring(11, 13)));
+					fileCal.set(Calendar.SECOND, Integer.parseInt(filename.substring(13, 15)));
 
 					// If more than double the max age, we might have a system time problem or an extended down time
 					long age = (System.currentTimeMillis() - fileCal.getTime().getTime());

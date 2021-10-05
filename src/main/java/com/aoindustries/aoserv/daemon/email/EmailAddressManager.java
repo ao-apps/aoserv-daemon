@@ -492,7 +492,7 @@ public final class EmailAddressManager extends BuilderThread {
 			for(InboxAddress laa : laas) {
 				if(done) aliasesOut.print(",\n\t");
 				else done = true;
-				aliasesOut.print('\\').print(Strings.replace(laa.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername().toString(),'@',"\\@"));
+				aliasesOut.print('\\').print(Strings.replace(laa.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername().toString(), '@', "\\@"));
 			}
 			aliasesOut.println();
 		} else {
