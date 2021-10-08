@@ -42,7 +42,7 @@ public abstract class SocketServerThread extends Thread {
 	final InetAddress ipAddress;
 	final int port;
 
-	public SocketServerThread(String name, InetAddress ipAddress, int port) {
+	protected SocketServerThread(String name, InetAddress ipAddress, int port) {
 		super(name+" on "+ipAddress.toBracketedString()+":"+port);
 		this.ipAddress=ipAddress;
 		this.port=port;

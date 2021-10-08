@@ -44,7 +44,7 @@ public abstract class Install {
 
 	protected final String path;
 
-	public Install(String path) {
+	protected Install(String path) {
 		this.path = path;
 	}
 

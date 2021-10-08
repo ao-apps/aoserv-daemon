@@ -54,7 +54,7 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
 	private long lastRebuild;
 	private volatile boolean isSleeping=false;
 
-	public BuilderThread() {
+	protected BuilderThread() {
 		// Always rebuild the configs after start-up
 		delayAndRebuild();
 	}

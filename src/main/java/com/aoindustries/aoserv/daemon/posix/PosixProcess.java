@@ -42,7 +42,7 @@ public abstract class PosixProcess {
 	/**
 	 * Constructs a POSIX process given its process ID.
 	 */
-	public PosixProcess(int pid) {
+	protected PosixProcess(int pid) {
 		this.pid=pid;
 	}
 
