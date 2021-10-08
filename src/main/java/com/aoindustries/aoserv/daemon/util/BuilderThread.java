@@ -121,7 +121,7 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
 										lastBuilt = buildStart;
 										synchronized(BuilderThread.this) {
 											lastRebuild=buildStart;
-											BuilderThread.this.notify();
+											BuilderThread.this.notifyAll();
 										}
 									}
 								} catch(ThreadDeath TD) {
@@ -177,7 +177,7 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
 				}
 			} finally {
 				waitForBuildCount--;
-				notify();
+				notifyAll();
 			}
 		}
 	}

@@ -347,7 +347,7 @@ public final class NullRouteManager {
 				}
 			}
 			if(nullRoute==null) nullRoutes.put(ipObj, new NullRoute(nullingIp, currentTime));
-			nullRoutes.notify();
+			nullRoutes.notify(); // notifyAll() not needed: only a single thread waiting
 		}
 	}
 }
