@@ -149,6 +149,9 @@ class TomcatCommon_10_0_X extends VersionedTomcatCommon {
 			Version version = new Version(rpm.getVersion(), rpm.getRelease());
 			String suffix = osConfig.getPackageReleaseSuffix();
 			// Downgrade support
+			if(version.compareTo("10.0.12-1" + suffix) < 0) {
+				// 10.0.12-1 has same files as 10.0.11-2
+			}
 			if(version.compareTo("10.0.11-2" + suffix) < 0) {
 				UpgradeSymlink[] downgradeSymlinks_10_0_11_2 = {
 					// postgresql-42.2.24.jar -> postgresql-42.2.23.jar
@@ -352,7 +355,10 @@ class TomcatCommon_10_0_X extends VersionedTomcatCommon {
 					if(symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			}
-			if(version.compareTo("10.0.11-2" + suffix) > 0) {
+			if(version.compareTo("10.0.12-1" + suffix) >= 0) {
+				// 10.0.12-1 has same files as 10.0.11-2
+			}
+			if(version.compareTo("10.0.12-1" + suffix) > 0) {
 				throw new IllegalStateException("Version of Tomcat newer than expected: " + version);
 			}
 		}
