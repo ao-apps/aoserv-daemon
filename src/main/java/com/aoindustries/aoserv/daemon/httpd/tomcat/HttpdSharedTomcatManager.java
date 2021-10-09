@@ -140,7 +140,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 					deleteFileList,
 					sharedTomcatsNeedingRestarted
 				);
-				if(manager.upgradeSharedTomcatDirectory(optSlash, sharedTomcatDirectory)) {
+				if(!sharedTomcat.isManual() && manager.upgradeSharedTomcatDirectory(optSlash, sharedTomcatDirectory)) {
 					sharedTomcatsNeedingRestarted.add(sharedTomcat);
 				}
 				wwwgroupRemoveList.remove(tomcatName);
@@ -167,7 +167,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 	 * Stops any daemons that should not be running.
 	 * Restarts any sites that need restarted.
 	 * Starts any daemons that should be running.
-	 * 
+	 *
 	 * Makes calls with a one-minute time-out.
 	 * Logs errors on calls as warnings, continues to next site.
 	 *
@@ -346,7 +346,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 	 * If this shared tomcat or other shared tomcats needs to be restarted due to changes in the files, add to <code>sharedTomcatsNeedingRestarted</code>.
 	 * Any files under sharedTomcatDirectory that need to be updated to enable/disable this site should be changed.
 	 * Actual process start/stop will be performed later in <code>disableEnableAndRestart</code>.
-	 * 
+	 *
 	 * <ol>
 	 *   <li>If <code>sharedTomcatDirectory</code> doesn't exist, create it as root with mode 0700</li>
 	 *   <li>If <code>sharedTomcatDirectory</code> owned by root, do full pass (this implies manual=false regardless of setting)</li>

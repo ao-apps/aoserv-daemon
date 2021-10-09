@@ -246,7 +246,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 	 * script is assumed to be running.  This PID file may be shared between
 	 * multiple sites in the case of a shared Tomcat.  Also, it is possible
 	 * that the JVM may be disabled while the site overall is not.
-	 * 
+	 *
 	 * @return  the .pid file or <code>null</code> if should not be running
 	 */
 	public abstract PosixFile getPidFile() throws IOException, SQLException;
@@ -307,6 +307,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 			final Stat readmeTxtStat;
 			isUpgrade =
 				!isInstall
+				&& !httpdSite.isManual()
 				&& readmeTxt != null
 				&& !(
 					(readmeTxtStat = readmeTxt.getStat()).exists()
@@ -346,7 +347,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 		}
 
 		// Perform any necessary upgrades
-		if(upgradeSiteDirectoryContents(optSlash, siteDirectory)) needsRestart = true;
+		if(!httpdSite.isManual() && upgradeSiteDirectoryContents(optSlash, siteDirectory)) needsRestart = true;
 
 		// CGI-based PHP
 		createCgiPhpScript(siteDirectory, cgibinDirectory, restorecon);

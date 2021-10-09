@@ -290,6 +290,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 			final Stat readmeTxtStat;
 			isUpgrade =
 				!isInstall
+				&& !sharedTomcat.isManual()
 				&& !(
 					(readmeTxtStat = readmeTxt.getStat()).exists()
 					&& readmeTxtStat.isRegularFile()
@@ -354,7 +355,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 		) {
 			needRestart = true;
 		}
-		
+
 		// make work directories and remove extra work dirs
 		List<String> workFiles = new SortedArrayList<>();
 		String[] wlist = workCatalina.getFile().list();
