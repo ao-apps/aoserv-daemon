@@ -207,7 +207,7 @@ public abstract class HttpdSiteManager {
 	 * Stops any daemons that should not be running.
 	 * Restarts any sites that need restarted.
 	 * Starts any daemons that should be running.
-	 * 
+	 *
 	 * Makes calls with a one-minute time-out.
 	 * Logs errors on calls as warnings, continues to next site.
 	 *
@@ -223,14 +223,17 @@ public abstract class HttpdSiteManager {
 					// Enabled, start or restart
 					if(sitesNeedingRestarted.contains(httpdSite)) {
 						commandCallable = () -> {
-							if(stopStartRestartable.stop()) {
-								try {
-									Thread.sleep(5000);
-								} catch(InterruptedException err) {
-									logger.log(Level.WARNING, null, err);
+							Boolean stopped = stopStartRestartable.stop();
+							if(stopped != null) {
+								if(stopped) {
+									try {
+										Thread.sleep(5000);
+									} catch(InterruptedException err) {
+										logger.log(Level.WARNING, null, err);
+									}
 								}
+								stopStartRestartable.start();
 							}
-							stopStartRestartable.start();
 							return null;
 						};
 					} else {
@@ -268,7 +271,7 @@ public abstract class HttpdSiteManager {
 	 * to shutdown processes that should no longer be running.  It is assumed
 	 * that all types of sites will use the "daemon" directory with symbolic
 	 * links that accept "start" and "stop" parameters.
-	 * 
+	 *
 	 * @see  #doRebuild
 	 */
 	public static void stopAndDisableDaemons(PosixFile siteDirectory) throws IOException, SQLException {
@@ -318,7 +321,7 @@ public abstract class HttpdSiteManager {
 
 	/**
 	 * Starts the site if it is not running.  Restarts it if it is running.
-	 * 
+	 *
 	 * @return  <code>null</code> if successful or a user-readable reason if not successful
 	 */
 	public static String startHttpdSite(int sitePKey) throws IOException, SQLException {
@@ -332,28 +335,32 @@ public abstract class HttpdSiteManager {
 		if(manager instanceof StopStartable) {
 			StopStartable stopStartable = (StopStartable)manager;
 			if(stopStartable.isStartable()) {
-				if(stopStartable.stop()) {
+				Boolean stopped = stopStartable.stop();
+				if(stopped == null) {
+					return "Site stop status is unknown";
+				} else if(stopped) {
 					try {
 						Thread.sleep(5000);
 					} catch(InterruptedException err) {
 						logger.log(Level.WARNING, null, err);
 					}
 				}
-				stopStartable.start();
-
-				// Null means all went well
-				return null;
+				Boolean started = stopStartable.start();
+				return (started == null)
+					? "Site start status is unknown"
+					// Null means all went well
+					: null;
 			} else {
-				return "Site #"+sitePKey+" is not currently startable";
+				return "Site #" + sitePKey + " is not currently startable";
 			}
 		} else {
-			return "Site #"+sitePKey+" is not a type of site that can be stopped and started";
+			return "Site #" + sitePKey + " is not a type of site that can be stopped and started";
 		}
 	}
 
 	/**
 	 * Stops the site if it is running.  Will return a message if already stopped.
-	 * 
+	 *
 	 * @return  <code>null</code> if successful or a user-readable reason if not success.
 	 */
 	public static String stopHttpdSite(int sitePKey) throws IOException, SQLException {
@@ -366,7 +373,10 @@ public abstract class HttpdSiteManager {
 		HttpdSiteManager manager = getInstance(httpdSite);
 		if(manager instanceof StopStartable) {
 			StopStartable stopStartable = (StopStartable)manager;
-			if(stopStartable.stop()) {
+			Boolean stopped = stopStartable.stop();
+			if(stopped == null) {
+				return "Site stop status is unknown";
+			} else if(stopped) {
 				// Null means all went well
 				return null;
 			} else {
@@ -467,7 +477,7 @@ public abstract class HttpdSiteManager {
 	 * If any shared Tomcat needs to be restarted due to changes in the files, add to <code>sharedTomcatsNeedingRestarted</code>.
 	 * Any files under siteDirectory that need to be updated to enable/disable this site should be changed.
 	 * Actual process start/stop will be performed later in <code>stopStartAndRestart</code>.
-	 * 
+	 *
 	 * <ol>
 	 *   <li>If <code>siteDirectory</code> doesn't exist, create it as root with mode 0700</li>
 	 *   <li>If <code>siteDirectory</code> owned by root, do full pass (this implies manual=false regardless of setting)</li>
@@ -709,7 +719,7 @@ public abstract class HttpdSiteManager {
 
 	/**
 	 * Creates the test index.html file if it is missing.
-	 * 
+	 *
 	 * TODO: Generate proper disabled page automatically.
 	 *       Or, better, put into logic of static site rebuild.
 	 */
@@ -1026,9 +1036,9 @@ public abstract class HttpdSiteManager {
 
 	/**
 	 * Gets the JkMount and JkUnmounts for this site.
-	 * 
+	 *
 	 * This default implementation returns an empty set.
-	 * 
+	 *
 	 * @return  An empty set if no Jk enabled.
 	 */
 	public SortedSet<JkSetting> getJkSettings() throws IOException, SQLException {

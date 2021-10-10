@@ -50,7 +50,7 @@ import java.util.logging.Logger;
 
 /**
  * Manages SharedTomcat version 3.X configurations.
- * 
+ *
  * TODO: Replace all uses of "replace" with a read file then call replace only if one of the "from" values is found.  Should be faster
  *       be eliminating unnecessary subprocesses.
  *
@@ -81,6 +81,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 		final GroupServer lsg = sharedTomcat.getLinuxServerGroup();
 		final int lsgGID = lsg.getGid().getId();
 		final String wwwGroupDir = sharedTomcatDirectory.getPath();
+		final PosixFile tomcatUF = new PosixFile(wwwGroupDir + "/bin/tomcat");
 		final PosixPath wwwDirectory = httpdConfig.getHttpdSitesDirectory();
 		final PosixFile daemonUF = new PosixFile(sharedTomcatDirectory, "daemon", false);
 		// Create and fill in the directory if it does not exist or is owned by root.
@@ -188,7 +189,6 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 
 			// 004
 
-			PosixFile tomcatUF = new PosixFile(wwwGroupDir + "/bin/tomcat");
 			try (
 				ChainWriter out = new ChainWriter(
 					new BufferedOutputStream(
@@ -323,7 +323,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 					workDir
 						.mkdir()
 						.chown(
-							lsaUID, 
+							lsaUID,
 							hs.getLinuxServerGroup().getGid().getId()
 						)
 						.setMode(0750)
@@ -346,7 +346,15 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 			}
 		}
 		PosixFile daemonSymlink = new PosixFile(daemonUF, "tomcat", false);
-		if(!sharedTomcat.isDisabled() && hasEnabledSite) {
+		if(
+			!sharedTomcat.isDisabled()
+			&& hasEnabledSite
+			&& (
+				!sharedTomcat.isManual()
+				// Script may not exist while in manual mode
+				|| tomcatUF.getStat().exists()
+			)
+		) {
 			// Enabled
 			if(!daemonSymlink.getStat().exists()) {
 				daemonSymlink

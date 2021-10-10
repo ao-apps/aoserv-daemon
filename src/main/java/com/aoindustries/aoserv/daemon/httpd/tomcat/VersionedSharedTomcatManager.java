@@ -430,8 +430,17 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 				break;
 			}
 		}
+		PosixFile tomcatUF = new PosixFile(bin, "tomcat", false);
 		PosixFile daemonSymlink = new PosixFile(daemon, "tomcat", false);
-		if(!sharedTomcat.isDisabled() && hasEnabledSite) {
+		if(
+			!sharedTomcat.isDisabled()
+			&& hasEnabledSite
+			&& (
+				!sharedTomcat.isManual()
+				// Script may not exist while in manual mode
+				|| tomcatUF.getStat().exists()
+			)
+		) {
 			// Enabled
 			if(!daemonSymlink.getStat().exists()) {
 				daemonSymlink

@@ -73,8 +73,14 @@ public abstract class HttpdJBossSiteManager<TC extends TomcatCommon> extends Htt
 	}
 
 	@Override
-	public boolean isStartable() {
-		return !httpdSite.isDisabled();
+	public boolean isStartable() throws IOException, SQLException {
+		return
+			!httpdSite.isDisabled()
+			&& (
+				!httpdSite.isManual()
+				// Script may not exist while in manual mode
+				|| new PosixFile(getStartStopScriptPath().toString()).getStat().exists()
+			);
 	}
 
 	@Override

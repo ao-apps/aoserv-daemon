@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2008, 2009, 2017  AO Industries, Inc.
+ * Copyright (C) 2008, 2009, 2017, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -39,15 +39,17 @@ public interface StopStartable {
 
 	/**
 	 * Stops all processes for this website if it is running.
-	 * 
+	 *
 	 * @return  <code>true</code> if actually stopped or <code>false</code> if was already stopped
+	 *          or {@code null} when unknown
 	 */
-	boolean stop() throws IOException, SQLException;
+	Boolean stop() throws IOException, SQLException;
 
 	/**
 	 * Starts all processes for this website if it is not running.
-	 * 
+	 *
 	 * @return  <code>true</code> if actually started or <code>false</code> if was already started
+	 *          or {@code null} when unknown
 	 */
-	boolean start() throws IOException, SQLException;
+	Boolean start() throws IOException, SQLException;
 }

@@ -138,54 +138,74 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 	protected abstract Worker getHttpdWorker() throws IOException, SQLException;
 
 	@Override
-	public boolean stop() throws IOException, SQLException {
-		PosixFile pidFile = getPidFile();
-		if(pidFile.getStat().exists()) {
-			AOServDaemon.suexec(
-				getStartStopScriptUsername(),
-				getStartStopScriptWorkingDirectory(),
-				getStartStopScriptPath() + " stop",
-				0
-			);
-			if(pidFile.getStat().exists()) pidFile.delete();
-			return true;
+	public Boolean stop() throws IOException, SQLException {
+		PosixPath scriptPath = getStartStopScriptPath();
+		if(
+			!httpdSite.isManual()
+			// Script may not exist while in manual mode
+			|| new PosixFile(scriptPath.toString()).getStat().exists()
+		) {
+			PosixFile pidFile = getPidFile();
+			if(pidFile.getStat().exists()) {
+				AOServDaemon.suexec(
+					getStartStopScriptUsername(),
+					getStartStopScriptWorkingDirectory(),
+					scriptPath + " stop",
+					0
+				);
+				if(pidFile.getStat().exists()) pidFile.delete();
+				return true;
+			} else {
+				return false;
+			}
 		} else {
-			return false;
+			// No script, status unknown
+			return null;
 		}
 	}
 
 	@Override
-	public boolean start() throws IOException, SQLException {
-		PosixFile pidFile = getPidFile();
-		if(!pidFile.getStat().exists()) {
-			AOServDaemon.suexec(
-				getStartStopScriptUsername(),
-				getStartStopScriptWorkingDirectory(),
-				getStartStopScriptPath() + " start",
-				0
-			);
-			return true;
-		} else {
-			// Read the PID file and make sure the process is still running
-			String pid = FileUtils.readFileAsString(pidFile.getFile());
-			try {
-				int pidNum = Integer.parseInt(pid.trim());
-				PosixFile procDir = new PosixFile("/proc/"+pidNum);
-				if(!procDir.getStat().exists()) {
-					System.err.println("Warning: Deleting PID file for dead process: "+pidFile.getPath());
-					pidFile.delete();
-					AOServDaemon.suexec(
-						getStartStopScriptUsername(),
-						getStartStopScriptWorkingDirectory(),
-						getStartStopScriptPath() + " start",
-						0
-					);
-					return true;
+	public Boolean start() throws IOException, SQLException {
+		PosixPath scriptPath = getStartStopScriptPath();
+		if(
+			!httpdSite.isManual()
+			// Script may not exist while in manual mode
+			|| new PosixFile(scriptPath.toString()).getStat().exists()
+		) {
+			PosixFile pidFile = getPidFile();
+			if(!pidFile.getStat().exists()) {
+				AOServDaemon.suexec(
+					getStartStopScriptUsername(),
+					getStartStopScriptWorkingDirectory(),
+					scriptPath + " start",
+					0
+				);
+				return true;
+			} else {
+				// Read the PID file and make sure the process is still running
+				String pid = FileUtils.readFileAsString(pidFile.getFile());
+				try {
+					int pidNum = Integer.parseInt(pid.trim());
+					PosixFile procDir = new PosixFile("/proc/" + pidNum);
+					if(!procDir.getStat().exists()) {
+						System.err.println("Warning: Deleting PID file for dead process: " + pidFile.getPath());
+						pidFile.delete();
+						AOServDaemon.suexec(
+							getStartStopScriptUsername(),
+							getStartStopScriptWorkingDirectory(),
+							scriptPath + " start",
+							0
+						);
+						return true;
+					}
+				} catch(NumberFormatException err) {
+					logger.log(Level.WARNING, null, err);
 				}
-			} catch(NumberFormatException err) {
-				logger.log(Level.WARNING, null, err);
+				return false;
 			}
-			return false;
+		} else {
+			// No script, status unknown
+			return null;
 		}
 	}
 

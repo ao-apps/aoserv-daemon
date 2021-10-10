@@ -97,9 +97,14 @@ abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends Htt
 	public boolean isStartable() throws IOException, SQLException {
 		if(httpdSite.isDisabled()) return false;
 		SharedTomcat sharedTomcat = tomcatSharedSite.getHttpdSharedTomcat();
-		if(sharedTomcat.isDisabled()) return false;
 		// Has at least one enabled site: this one
-		return true;
+		return
+			!sharedTomcat.isDisabled()
+			&& (
+				!sharedTomcat.isManual()
+				// Script may not exist while in manual mode
+				|| new PosixFile(HttpdSharedTomcatManager.getInstance(sharedTomcat).getStartStopScriptPath().toString()).getStat().exists()
+			);
 	}
 
 	@Override

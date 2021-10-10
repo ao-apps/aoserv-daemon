@@ -91,6 +91,7 @@ class HttpdSharedTomcatManager_7_0_X extends HttpdSharedTomcatManager<TomcatComm
 		final GroupServer lsg = sharedTomcat.getLinuxServerGroup();
 		final int lsgGID = lsg.getGid().getId();
 		final String wwwGroupDir = sharedTomcatDirectory.getPath();
+		final PosixFile tomcatUF = new PosixFile(wwwGroupDir + "/bin/tomcat");
 		final PosixPath wwwDirectory = httpdConfig.getHttpdSitesDirectory();
 		final PosixFile daemonUF = new PosixFile(sharedTomcatDirectory, "daemon", false);
 		final PosixFile confUF = new PosixFile(sharedTomcatDirectory, "conf", false);
@@ -162,7 +163,6 @@ class HttpdSharedTomcatManager_7_0_X extends HttpdSharedTomcatManager<TomcatComm
 						+ "done\n");
 			}
 
-			PosixFile tomcatUF = new PosixFile(wwwGroupDir + "/bin/tomcat");
 			try (
 				ChainWriter out = new ChainWriter(
 					new BufferedOutputStream(
@@ -507,7 +507,15 @@ class HttpdSharedTomcatManager_7_0_X extends HttpdSharedTomcatManager<TomcatComm
 			}
 		}
 		PosixFile daemonSymlink = new PosixFile(daemonUF, "tomcat", false);
-		if(!sharedTomcat.isDisabled() && hasEnabledSite) {
+		if(
+			!sharedTomcat.isDisabled()
+			&& hasEnabledSite
+			&& (
+				!sharedTomcat.isManual()
+				// Script may not exist while in manual mode
+				|| tomcatUF.getStat().exists()
+			)
+		) {
 			// Enabled
 			if(!daemonSymlink.getStat().exists()) {
 				daemonSymlink

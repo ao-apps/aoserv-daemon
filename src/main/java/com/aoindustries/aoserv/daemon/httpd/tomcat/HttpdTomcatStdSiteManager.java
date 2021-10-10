@@ -106,8 +106,14 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 	}
 
 	@Override
-	public boolean isStartable() {
-		return !httpdSite.isDisabled();
+	public boolean isStartable() throws IOException, SQLException {
+		return
+			!httpdSite.isDisabled()
+			&& (
+				!httpdSite.isManual()
+				// Script may not exist while in manual mode
+				|| new PosixFile(getStartStopScriptPath().toString()).getStat().exists()
+			);
 	}
 
 	@Override
@@ -145,9 +151,18 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 
 	@Override
 	protected void enableDisable(PosixFile siteDirectory) throws IOException, SQLException {
+		PosixFile binUF = new PosixFile(siteDirectory, "bin", false);
+		PosixFile tomcatUF = new PosixFile(binUF, "tomcat", false);
 		PosixFile daemonUF = new PosixFile(siteDirectory, "daemon", false);
 		PosixFile daemonSymlink = new PosixFile(daemonUF, "tomcat", false);
-		if(!httpdSite.isDisabled()) {
+		if(
+			!httpdSite.isDisabled()
+			&& (
+				!httpdSite.isManual()
+				// Script may not exist while in manual mode
+				|| tomcatUF.getStat().exists()
+			)
+		) {
 			// Enabled
 			if(!daemonSymlink.getStat().exists()) {
 				daemonSymlink

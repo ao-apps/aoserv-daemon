@@ -190,14 +190,17 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 				// Enabled and has at least one enabled site, start or restart
 				if(sharedTomcatsNeedingRestarted.contains(sharedTomcat)) {
 					commandCallable = () -> {
-						if(manager.stop()) {
-							try {
-								Thread.sleep(5000);
-							} catch(InterruptedException err) {
-								logger.log(Level.WARNING, null, err);
+						Boolean stopped = manager.stop();
+						if(stopped != null) {
+							if(stopped) {
+								try {
+									Thread.sleep(5000);
+								} catch(InterruptedException err) {
+									logger.log(Level.WARNING, null, err);
+								}
 							}
+							manager.start();
 						}
-						manager.start();
 						return null;
 					};
 				} else {
@@ -378,22 +381,33 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 	public boolean isStartable() throws IOException, SQLException {
 		if(sharedTomcat.isDisabled()) return false;
 		// Must also have at least one enabled site
+		boolean hasEnabledSite = false;
 		for(SharedTomcatSite htss : sharedTomcat.getHttpdTomcatSharedSites()) {
 			if(!htss.getHttpdTomcatSite().getHttpdSite().isDisabled()) {
-				return true;
+				hasEnabledSite = true;
+				break;
 			}
 		}
-		// Does not have any enabled sites
-		return false;
+		return
+			hasEnabledSite
+			&& (
+				!sharedTomcat.isManual()
+				// Script may not exist while in manual mode
+				|| new PosixFile(getStartStopScriptPath().toString()).getStat().exists()
+			);
 	}
 
-	public String getStartStopScriptPath() throws IOException, SQLException {
-		return
-			HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSharedTomcatsDirectory()
-			+ "/"
-			+ sharedTomcat.getName()
-			+ "/bin/tomcat"
-		;
+	public PosixPath getStartStopScriptPath() throws IOException, SQLException {
+		try {
+			return PosixPath.valueOf(
+				HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSharedTomcatsDirectory()
+				+ "/"
+				+ sharedTomcat.getName()
+				+ "/bin/tomcat"
+			);
+		} catch(ValidationException e) {
+			throw new IOException(e);
+		}
 	}
 
 	public File getStartStopScriptWorkingDirectory() throws IOException, SQLException {
@@ -405,54 +419,74 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 	}
 
 	@Override
-	public boolean stop() throws IOException, SQLException {
-		PosixFile pidFile = getPidFile();
-		if(pidFile.getStat().exists()) {
-			AOServDaemon.suexec(
-				sharedTomcat.getLinuxServerAccount().getLinuxAccount_username_id(),
-				getStartStopScriptWorkingDirectory(),
-				getStartStopScriptPath()+" stop",
-				0
-			);
-			if(pidFile.getStat().exists()) pidFile.delete();
-			return true;
+	public Boolean stop() throws IOException, SQLException {
+		PosixPath scriptPath = getStartStopScriptPath();
+		if(
+			!sharedTomcat.isManual()
+			// Script may not exist while in manual mode
+			|| new PosixFile(scriptPath.toString()).getStat().exists()
+		) {
+			PosixFile pidFile = getPidFile();
+			if(pidFile.getStat().exists()) {
+				AOServDaemon.suexec(
+					sharedTomcat.getLinuxServerAccount().getLinuxAccount_username_id(),
+					getStartStopScriptWorkingDirectory(),
+					scriptPath + " stop",
+					0
+				);
+				if(pidFile.getStat().exists()) pidFile.delete();
+				return true;
+			} else {
+				return false;
+			}
 		} else {
-			return false;
+			// No script, status unknown
+			return null;
 		}
 	}
 
 	@Override
-	public boolean start() throws IOException, SQLException {
-		PosixFile pidFile = getPidFile();
-		if(!pidFile.getStat().exists()) {
-			AOServDaemon.suexec(
-				sharedTomcat.getLinuxServerAccount().getLinuxAccount_username_id(),
-				getStartStopScriptWorkingDirectory(),
-				getStartStopScriptPath()+" start",
-				0
-			);
-			return true;
-		} else {
-			// Read the PID file and make sure the process is still running
-			String pid = FileUtils.readFileAsString(pidFile.getFile());
-			try {
-				int pidNum = Integer.parseInt(pid.trim());
-				PosixFile procDir = new PosixFile("/proc/"+pidNum);
-				if(!procDir.getStat().exists()) {
-					System.err.println("Warning: Deleting PID file for dead process: "+pidFile.getPath());
-					pidFile.delete();
-					AOServDaemon.suexec(
-						sharedTomcat.getLinuxServerAccount().getLinuxAccount_username_id(),
-						getStartStopScriptWorkingDirectory(),
-						getStartStopScriptPath()+" start",
-						0
-					);
-					return true;
+	public Boolean start() throws IOException, SQLException {
+		PosixPath scriptPath = getStartStopScriptPath();
+		if(
+			!sharedTomcat.isManual()
+			// Script may not exist while in manual mode
+			|| new PosixFile(scriptPath.toString()).getStat().exists()
+		) {
+			PosixFile pidFile = getPidFile();
+			if(!pidFile.getStat().exists()) {
+				AOServDaemon.suexec(
+					sharedTomcat.getLinuxServerAccount().getLinuxAccount_username_id(),
+					getStartStopScriptWorkingDirectory(),
+					scriptPath + " start",
+					0
+				);
+				return true;
+			} else {
+				// Read the PID file and make sure the process is still running
+				String pid = FileUtils.readFileAsString(pidFile.getFile());
+				try {
+					int pidNum = Integer.parseInt(pid.trim());
+					PosixFile procDir = new PosixFile("/proc/" + pidNum);
+					if(!procDir.getStat().exists()) {
+						System.err.println("Warning: Deleting PID file for dead process: " + pidFile.getPath());
+						pidFile.delete();
+						AOServDaemon.suexec(
+							sharedTomcat.getLinuxServerAccount().getLinuxAccount_username_id(),
+							getStartStopScriptWorkingDirectory(),
+							scriptPath + " start",
+							0
+						);
+						return true;
+					}
+				} catch(NumberFormatException err) {
+					logger.log(Level.WARNING, null, err);
 				}
-			} catch(NumberFormatException err) {
-				logger.log(Level.WARNING, null, err);
+				return false;
 			}
-			return false;
+		} else {
+			// No script, status unknown
+			return null;
 		}
 	}
 

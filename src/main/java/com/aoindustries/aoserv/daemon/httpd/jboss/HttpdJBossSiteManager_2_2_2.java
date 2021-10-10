@@ -172,7 +172,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, uid, gid);
 		DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/cocoon", 0770, uid, gid);
 		DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/conf", 0770, uid, gid);
-		DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, uid, gid);	
+		DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, uid, gid);
 		DaemonFileUtils.mkdir(siteDir+"/work", 0750, uid, gid);
 
 		/*
@@ -344,8 +344,8 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		 * Write the ROOT/WEB-INF/web.xml file.
 		 */
 		String webXML=siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/web.xml";
-		try 
-			(ChainWriter out = new ChainWriter(
+		try (
+			ChainWriter out = new ChainWriter(
 				new BufferedOutputStream(
 					new PosixFile(webXML).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
 				)
@@ -401,9 +401,18 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 
 	@Override
 	protected void enableDisable(PosixFile siteDirectory) throws IOException, SQLException {
+		PosixFile binUF = new PosixFile(siteDirectory, "bin", false);
+		PosixFile jbossUF = new PosixFile(binUF, "jboss", false);
 		PosixFile daemonUF = new PosixFile(siteDirectory, "daemon", false);
 		PosixFile daemonSymlink = new PosixFile(daemonUF, "jboss", false);
-		if(!httpdSite.isDisabled()) {
+		if(
+			!httpdSite.isDisabled()
+			&& (
+				!httpdSite.isManual()
+				// Script may not exist while in manual mode
+				|| jbossUF.getStat().exists()
+			)
+		) {
 			// Enabled
 			if(!daemonSymlink.getStat().exists()) {
 				daemonSymlink.symLink("../bin/jboss").chown(

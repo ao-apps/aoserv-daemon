@@ -88,8 +88,17 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 		// daemon/
 		{
 			// TODO: Is this link updated elsewhere, thus this not needed here?
+			PosixFile bin = new PosixFile(siteDirectory, "bin", false);
+			PosixFile tomcatUF = new PosixFile(bin, "tomcat", false);
 			PosixFile daemon = new PosixFile(siteDirectory, "daemon", false);
-			if (!httpdSite.isDisabled()) {
+			if (
+				!httpdSite.isDisabled()
+				&& (
+					!httpdSite.isManual()
+					// Script may not exist while in manual mode
+					|| tomcatUF.getStat().exists()
+				)
+			) {
 				DaemonFileUtils.ln(
 					"../bin/tomcat",
 					new PosixFile(daemon, "tomcat", false), uid, gid
