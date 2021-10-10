@@ -318,31 +318,37 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 		} else newSitesFileUF.delete();
 
 		// make work directories and remove extra work dirs
-		List<String> workFiles = new SortedArrayList<>();
-		String[] wlist = innerWorkUF.getFile().list();
-		if(wlist!=null) workFiles.addAll(Arrays.asList(wlist));
-		for (SharedTomcatSite site : sites) {
-			com.aoindustries.aoserv.client.web.Site hs = site.getHttpdTomcatSite().getHttpdSite();
-			if(!hs.isDisabled()) {
-				String subwork = hs.getPrimaryHttpdSiteURL().getHostname().toString();
-				workFiles.remove(subwork);
-				PosixFile workDir = new PosixFile(innerWorkUF, subwork, false);
-				if (!workDir.getStat().exists()) {
-					workDir
-						.mkdir()
-						.chown(
-							lsaUID,
-							hs.getLinuxServerGroup().getGid().getId()
-						)
-						.setMode(0750)
-					;
+		if(
+			!sharedTomcat.isManual()
+			// work directory may not exist while in manual mode
+			|| innerWorkUF.getStat().exists()
+		) {
+			List<String> workFiles = new SortedArrayList<>();
+			String[] wlist = innerWorkUF.getFile().list();
+			if(wlist!=null) workFiles.addAll(Arrays.asList(wlist));
+			for (SharedTomcatSite site : sites) {
+				com.aoindustries.aoserv.client.web.Site hs = site.getHttpdTomcatSite().getHttpdSite();
+				if(!hs.isDisabled()) {
+					String subwork = hs.getPrimaryHttpdSiteURL().getHostname().toString();
+					workFiles.remove(subwork);
+					PosixFile workDir = new PosixFile(innerWorkUF, subwork, false);
+					if (!workDir.getStat().exists()) {
+						workDir
+							.mkdir()
+							.chown(
+								lsaUID,
+								hs.getLinuxServerGroup().getGid().getId()
+							)
+							.setMode(0750)
+						;
+					}
 				}
 			}
-		}
-		for (String workFile : workFiles) {
-			File toDelete = new File(innerWorkUF.getFile(), workFile);
-			if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
-			deleteFileList.add(toDelete);
+			for (String workFile : workFiles) {
+				File toDelete = new File(innerWorkUF.getFile(), workFile);
+				if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+				deleteFileList.add(toDelete);
+			}
 		}
 
 		// Rebuild the server.xml for Tomcat 4 and Tomcat 5 JVMs

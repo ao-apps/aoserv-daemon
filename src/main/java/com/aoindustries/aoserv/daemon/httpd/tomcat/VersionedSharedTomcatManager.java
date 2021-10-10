@@ -357,29 +357,35 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 		}
 
 		// make work directories and remove extra work dirs
-		List<String> workFiles = new SortedArrayList<>();
-		String[] wlist = workCatalina.getFile().list();
-		if(wlist != null) {
-			workFiles.addAll(Arrays.asList(wlist));
-		}
-		for (SharedTomcatSite site : sites) {
-			com.aoindustries.aoserv.client.web.Site hs = site.getHttpdTomcatSite().getHttpdSite();
-			if(!hs.isDisabled()) {
-				String subwork = hs.getPrimaryHttpdSiteURL().getHostname().toString();
-				workFiles.remove(subwork);
-				if(
-					DaemonFileUtils.mkdir(
-						new PosixFile(workCatalina, subwork, false), 0750, lsaUID, hs.getLinuxServerGroup().getGid().getId()
-					)
-				) {
-					needRestart = true;
+		if(
+			!sharedTomcat.isManual()
+			// work directory may not exist while in manual mode
+			|| workCatalina.getStat().exists()
+		) {
+			List<String> workFiles = new SortedArrayList<>();
+			String[] wlist = workCatalina.getFile().list();
+			if(wlist != null) {
+				workFiles.addAll(Arrays.asList(wlist));
+			}
+			for (SharedTomcatSite site : sites) {
+				com.aoindustries.aoserv.client.web.Site hs = site.getHttpdTomcatSite().getHttpdSite();
+				if(!hs.isDisabled()) {
+					String subwork = hs.getPrimaryHttpdSiteURL().getHostname().toString();
+					workFiles.remove(subwork);
+					if(
+						DaemonFileUtils.mkdir(
+							new PosixFile(workCatalina, subwork, false), 0750, lsaUID, hs.getLinuxServerGroup().getGid().getId()
+						)
+					) {
+						needRestart = true;
+					}
 				}
 			}
-		}
-		for(String workFile : workFiles) {
-			File toDelete = new File(workCatalina.getFile(), workFile);
-			if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
-			deleteFileList.add(toDelete);
+			for(String workFile : workFiles) {
+				File toDelete = new File(workCatalina.getFile(), workFile);
+				if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+				deleteFileList.add(toDelete);
+			}
 		}
 
 		// always rebuild conf/server.xml

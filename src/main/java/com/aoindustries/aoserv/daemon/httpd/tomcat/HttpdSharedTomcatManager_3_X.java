@@ -310,31 +310,37 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 		} else newSitesFileUF.delete();
 
 		// make work directories and remove extra work dirs
-		List<String> workFiles = new SortedArrayList<>();
-		String[] wlist = workUF.getFile().list();
-		if(wlist!=null) workFiles.addAll(Arrays.asList(wlist));
-		for (SharedTomcatSite site : sites) {
-			Site hs = site.getHttpdTomcatSite().getHttpdSite();
-			if(!hs.isDisabled()) {
-				String subwork = hs.getName();
-				workFiles.remove(subwork);
-				PosixFile workDir = new PosixFile(workUF, subwork, false);
-				if (!workDir.getStat().exists()) {
-					workDir
-						.mkdir()
-						.chown(
-							lsaUID,
-							hs.getLinuxServerGroup().getGid().getId()
-						)
-						.setMode(0750)
-					;
+		if(
+			!sharedTomcat.isManual()
+			// work directory may not exist while in manual mode
+			|| workUF.getStat().exists()
+		) {
+			List<String> workFiles = new SortedArrayList<>();
+			String[] wlist = workUF.getFile().list();
+			if(wlist!=null) workFiles.addAll(Arrays.asList(wlist));
+			for (SharedTomcatSite site : sites) {
+				Site hs = site.getHttpdTomcatSite().getHttpdSite();
+				if(!hs.isDisabled()) {
+					String subwork = hs.getName();
+					workFiles.remove(subwork);
+					PosixFile workDir = new PosixFile(workUF, subwork, false);
+					if (!workDir.getStat().exists()) {
+						workDir
+							.mkdir()
+							.chown(
+								lsaUID,
+								hs.getLinuxServerGroup().getGid().getId()
+							)
+							.setMode(0750)
+						;
+					}
 				}
 			}
-		}
-		for(String workFile : workFiles) {
-			File toDelete = new File(workUF.getFile(), workFile);
-			if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
-			deleteFileList.add(toDelete);
+			for(String workFile : workFiles) {
+				File toDelete = new File(workUF.getFile(), workFile);
+				if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+				deleteFileList.add(toDelete);
+			}
 		}
 
 		// Enable/Disable
