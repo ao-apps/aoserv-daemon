@@ -327,8 +327,8 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 		List<SharedTomcatSite> sites = sharedTomcat.getHttpdTomcatSharedSites();
 		if(
 			!sharedTomcat.isManual()
-			// bin directory may not exist while in manual mode
-			|| bin.getStat().exists()
+			// bin/profile.d directory may not exist while in manual mode
+			|| binProfileD.getStat().exists()
 		) {
 			bout.reset();
 			try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
