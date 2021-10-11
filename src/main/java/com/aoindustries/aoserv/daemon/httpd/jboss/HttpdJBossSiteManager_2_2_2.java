@@ -498,47 +498,54 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 	protected boolean rebuildConfigFiles(PosixFile siteDirectory, Set<PosixFile> restorecon) throws IOException, SQLException {
 		final String siteDir = siteDirectory.getPath();
 		boolean needsRestart = false;
-		String autoWarning = getAutoWarningXml();
-		String autoWarningOld = getAutoWarningXmlOld();
+		PosixFile conf = new PosixFile(siteDir + "/conf");
+		if(
+			!httpdSite.isManual()
+			// conf directory may not exist while in manual mode
+			|| conf.getStat().exists()
+		) {
+			// Rebuild the server.xml
+			String autoWarning = getAutoWarningXml();
+			String autoWarningOld = getAutoWarningXmlOld();
 
-		Server thisServer = AOServDaemon.getThisServer();
-		int uid_min = thisServer.getUidMin().getId();
-		int gid_min = thisServer.getGidMin().getId();
+			Server thisServer = AOServDaemon.getThisServer();
+			int uid_min = thisServer.getUidMin().getId();
+			int gid_min = thisServer.getGidMin().getId();
 
-		String confServerXML=siteDir+"/conf/server.xml";
-		PosixFile confServerXMLFile=new PosixFile(confServerXML);
-		if(!httpdSite.isManual() || !confServerXMLFile.getStat().exists()) {
-			// Only write to the actual file when missing or changed
-			if(
-				DaemonFileUtils.atomicWrite(
-					confServerXMLFile,
-					buildServerXml(siteDirectory, autoWarning),
-					0660,
-					httpdSite.getLinuxServerAccount().getUid().getId(),
-					httpdSite.getLinuxServerGroup().getGid().getId(),
-					null,
-					restorecon
-				)
-			) {
-				// Flag as needing restarted
-				needsRestart = true;
-			}
-		} else {
-			try {
-				DaemonFileUtils.stripFilePrefix(
-					confServerXMLFile,
-					autoWarningOld,
-					uid_min,
-					gid_min
-				);
-				DaemonFileUtils.stripFilePrefix(
-					confServerXMLFile,
-					autoWarning,
-					uid_min,
-					gid_min
-				);
-			} catch(IOException err) {
-				// Errors OK because this is done in manual mode and they might have symbolic linked stuff
+			PosixFile confServerXML = new PosixFile(conf, "server.xml", false);
+			if(!httpdSite.isManual() || !confServerXML.getStat().exists()) {
+				// Only write to the actual file when missing or changed
+				if(
+					DaemonFileUtils.atomicWrite(
+						confServerXML,
+						buildServerXml(siteDirectory, autoWarning),
+						0660,
+						httpdSite.getLinuxServerAccount().getUid().getId(),
+						httpdSite.getLinuxServerGroup().getGid().getId(),
+						null,
+						restorecon
+					)
+				) {
+					// Flag as needing restarted
+					needsRestart = true;
+				}
+			} else {
+				try {
+					DaemonFileUtils.stripFilePrefix(
+						confServerXML,
+						autoWarningOld,
+						uid_min,
+						gid_min
+					);
+					DaemonFileUtils.stripFilePrefix(
+						confServerXML,
+						autoWarning,
+						uid_min,
+						gid_min
+					);
+				} catch(IOException err) {
+					// Errors OK because this is done in manual mode and they might have symbolic linked stuff
+				}
 			}
 		}
 		return needsRestart;

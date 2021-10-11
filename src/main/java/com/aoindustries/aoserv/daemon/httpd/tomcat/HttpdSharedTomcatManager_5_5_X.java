@@ -365,165 +365,170 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 			}
 		}
 
-		// Rebuild the server.xml for Tomcat 4 and Tomcat 5 JVMs
-		String autoWarning = getAutoWarningXml();
-		String autoWarningOld = getAutoWarningXmlOld();
-		String confServerXML=wwwGroupDir+"/conf/server.xml";
-		PosixFile confServerXMLUF=new PosixFile(confServerXML);
-		if(!sharedTomcat.isManual() || !confServerXMLUF.getStat().exists()) {
-			String newConfServerXML=wwwGroupDir+"/conf/server.xml.new";
-			PosixFile newConfServerXMLUF=new PosixFile(newConfServerXML);
-			try (
-				ChainWriter out = new ChainWriter(
-					new BufferedOutputStream(
-						newConfServerXMLUF.getSecureOutputStream(lsaUID, lsgGID, 0660, true, uid_min, gid_min)
+		PosixFile conf = new PosixFile(wwwGroupDir + "/conf");
+		if(
+			!sharedTomcat.isManual()
+			// conf directory may not exist while in manual mode
+			|| conf.getStat().exists()
+		) {
+			// Rebuild the server.xml
+			String autoWarning = getAutoWarningXml();
+			String autoWarningOld = getAutoWarningXmlOld();
+			PosixFile confServerXML = new PosixFile(conf, "server.xml", false);
+			if(!sharedTomcat.isManual() || !confServerXML.getStat().exists()) {
+				PosixFile newConfServerXML = new PosixFile(conf, "server.xml.new", false);
+				try (
+					ChainWriter out = new ChainWriter(
+						new BufferedOutputStream(
+							newConfServerXML.getSecureOutputStream(lsaUID, lsgGID, 0660, true, uid_min, gid_min)
+						)
 					)
-				)
-			) {
-				Worker hw=sharedTomcat.getTomcat4Worker();
-				if(!sharedTomcat.isManual()) out.print(autoWarning);
-				Bind shutdownPort = sharedTomcat.getTomcat4ShutdownPort();
-				if(shutdownPort==null) throw new SQLException("Unable to find shutdown key for SharedTomcat: "+sharedTomcat);
-				String shutdownKey=sharedTomcat.getTomcat4ShutdownKey();
-				if(shutdownKey==null) throw new SQLException("Unable to find shutdown key for SharedTomcat: "+sharedTomcat);
-				out.print("<Server port=\"").textInXmlAttribute(shutdownPort.getPort().getPort()).print("\" shutdown=\"").textInXmlAttribute(shutdownKey).print("\" debug=\"0\">\n");
-				out.print("  <GlobalNamingResources>\n"
-						+ "    <Resource name=\"UserDatabase\" auth=\"Container\"\n"
-						+ "              type=\"org.apache.catalina.UserDatabase\"\n"
-						+ "       description=\"User database that can be updated and saved\"\n"
-						+ "           factory=\"org.apache.catalina.users.MemoryUserDatabaseFactory\"\n"
-						+ "          pathname=\"conf/tomcat-users.xml\" />\n"
-						+ "   </GlobalNamingResources>\n"
-						+ "  <Service name=\"Catalina\">\n"
-						+ "    <Connector\n"
-						//+ "      className=\"org.apache.coyote.tomcat4.CoyoteConnector\"\n"
-						//+ "      port=\"").print(hw.getNetBind().getPort().getPort()).print("\"\n"
-						//+ "      minProcessors=\"2\"\n"
-						//+ "      maxProcessors=\"200\"\n"
-						//+ "      enableLookups=\"true\"\n"
-						//+ "      redirectPort=\"443\"\n"
-						//+ "      acceptCount=\"10\"\n"
-						//+ "      debug=\"0\"\n"
-						//+ "      connectionTimeout=\"20000\"\n"
-						//+ "      useURIValidationHack=\"false\"\n"
-						//+ "      protocolHandlerClassName=\"org.apache.jk.server.JkCoyoteHandler\"\n"
-						+ "      port=\"").textInXmlAttribute(hw.getBind().getPort().getPort()).print("\"\n"
-						+ "      enableLookups=\"false\"\n"
-						+ "      minProcessors=\"2\"\n"
-						+ "      maxProcessors=\"200\"\n"
-						+ "      address=\"").textInXmlAttribute(IpAddress.LOOPBACK_IP).print("\"\n"
-						+ "      acceptCount=\"10\"\n"
-						+ "      debug=\"0\"\n"
-						+ "      maxPostSize=\"").textInXmlAttribute(sharedTomcat.getMaxPostSize()).print("\"\n"
-						+ "      protocol=\"AJP/1.3\"\n");
-				// Do not include when is default "true"
-				if(!sharedTomcat.getTomcatAuthentication()) {
-					out.print("      tomcatAuthentication=\"false\"\n");
-				}
-				out.print("    />\n"
-						+ "    <Engine name=\"Catalina\" defaultHost=\"localhost\" debug=\"0\">\n"
-						+ "      <Realm className=\"org.apache.catalina.realm.UserDatabaseRealm\"\n"
-						+ "          resourceName=\"UserDatabase\" />\"\n");
-				for (SharedTomcatSite site : sites) {
-					com.aoindustries.aoserv.client.web.Site hs = site.getHttpdTomcatSite().getHttpdSite();
-					if(!hs.isDisabled()) {
-						String primaryHostname=hs.getPrimaryHttpdSiteURL().getHostname().toString();
-						out.print("      <Host\n"
-								+ "        name=\"").textInXmlAttribute(primaryHostname).print("\"\n"
-								+ "        debug=\"0\"\n"
-								+ "        appBase=\"").textInXmlAttribute(wwwDirectory).print('/').textInXmlAttribute(hs.getName()).print("/webapps\"\n"
-								+ "        unpackWARs=\"").textInXmlAttribute(sharedTomcat.getUnpackWARs()).print("\"\n"
-								+ "        autoDeploy=\"").textInXmlAttribute(sharedTomcat.getAutoDeploy()).print("\"\n"
-								+ "        xmlValidation=\"false\"\n"
-								+ "        xmlNamespaceAware=\"false\"\n"
-								+ "      >\n");
-						List<String> usedHostnames=new SortedArrayList<>();
-						usedHostnames.add(primaryHostname);
-						List<VirtualHost> binds=hs.getHttpdSiteBinds();
-						for (VirtualHost bind : binds) {
-							List<VirtualHostName> urls=bind.getHttpdSiteURLs();
-							for (VirtualHostName url : urls) {
-								String hostname = url.getHostname().toString();
-								if(!usedHostnames.contains(hostname)) {
-									out.print("        <Alias>").textInXhtml(hostname).print("</Alias>\n");
-									usedHostnames.add(hostname);
-								}
-							}
-							// When listed first, also include the IP addresses as aliases
-							if(hs.getListFirst()) {
-								String ip=bind.getHttpdBind().getNetBind().getIpAddress().getInetAddress().toString();
-								if(!usedHostnames.contains(ip)) {
-									out.print("        <Alias>").textInXhtml(ip).print("</Alias>\n");
-									usedHostnames.add(ip);
-								}
-							}
-						}
-						Site tomcatSite=hs.getHttpdTomcatSite();
-						for(Context htc : tomcatSite.getHttpdTomcatContexts()) {
-							if(!htc.isServerXmlConfigured()) out.print("        <!--\n");
-							out.print("        <Context\n");
-							if(htc.getClassName()!=null) out.print("          className=\"").textInXmlAttribute(htc.getClassName()).print("\"\n");
-							out.print("          cookies=\"").textInXmlAttribute(htc.useCookies()).print("\"\n"
-									+ "          crossContext=\"").textInXmlAttribute(htc.allowCrossContext()).print("\"\n"
-									+ "          docBase=\"").textInXmlAttribute(htc.getDocBase()).print("\"\n"
-									+ "          override=\"").textInXmlAttribute(htc.allowOverride()).print("\"\n"
-									+ "          path=\"").textInXmlAttribute(htc.getPath()).print("\"\n"
-									+ "          privileged=\"").textInXmlAttribute(htc.isPrivileged()).print("\"\n"
-									+ "          reloadable=\"").textInXmlAttribute(htc.isReloadable()).print("\"\n"
-									+ "          useNaming=\"").textInXmlAttribute(htc.useNaming()).print("\"\n");
-							if(htc.getWrapperClass()!=null) out.print("          wrapperClass=\"").textInXmlAttribute(htc.getWrapperClass()).print("\"\n");
-							out.print("          debug=\"").textInXmlAttribute(htc.getDebugLevel()).print("\"\n");
-							if(htc.getWorkDir()!=null) out.print("          workDir=\"").textInXmlAttribute(htc.getWorkDir()).print("\"\n");
-							List<ContextParameter> parameters=htc.getHttpdTomcatParameters();
-							List<ContextDataSource> dataSources=htc.getHttpdTomcatDataSources();
-							if(parameters.isEmpty() && dataSources.isEmpty()) {
-								out.print("        />\n");
-							} else {
-								out.print("        >\n");
-								// Parameters
-								for(ContextParameter parameter : parameters) {
-									tomcatCommon.writeHttpdTomcatParameter(parameter, out);
-								}
-								// Data Sources
-								for(ContextDataSource dataSource : dataSources) {
-									tomcatCommon.writeHttpdTomcatDataSource(dataSource, out);
-								}
-								out.print("        </Context>\n");
-							}
-							if(!htc.isServerXmlConfigured()) out.print("        -->\n");
-						}
-						out.print("      </Host>\n");
+				) {
+					Worker hw=sharedTomcat.getTomcat4Worker();
+					if(!sharedTomcat.isManual()) out.print(autoWarning);
+					Bind shutdownPort = sharedTomcat.getTomcat4ShutdownPort();
+					if(shutdownPort==null) throw new SQLException("Unable to find shutdown key for SharedTomcat: "+sharedTomcat);
+					String shutdownKey=sharedTomcat.getTomcat4ShutdownKey();
+					if(shutdownKey==null) throw new SQLException("Unable to find shutdown key for SharedTomcat: "+sharedTomcat);
+					out.print("<Server port=\"").textInXmlAttribute(shutdownPort.getPort().getPort()).print("\" shutdown=\"").textInXmlAttribute(shutdownKey).print("\" debug=\"0\">\n");
+					out.print("  <GlobalNamingResources>\n"
+							+ "    <Resource name=\"UserDatabase\" auth=\"Container\"\n"
+							+ "              type=\"org.apache.catalina.UserDatabase\"\n"
+							+ "       description=\"User database that can be updated and saved\"\n"
+							+ "           factory=\"org.apache.catalina.users.MemoryUserDatabaseFactory\"\n"
+							+ "          pathname=\"conf/tomcat-users.xml\" />\n"
+							+ "   </GlobalNamingResources>\n"
+							+ "  <Service name=\"Catalina\">\n"
+							+ "    <Connector\n"
+							//+ "      className=\"org.apache.coyote.tomcat4.CoyoteConnector\"\n"
+							//+ "      port=\"").print(hw.getNetBind().getPort().getPort()).print("\"\n"
+							//+ "      minProcessors=\"2\"\n"
+							//+ "      maxProcessors=\"200\"\n"
+							//+ "      enableLookups=\"true\"\n"
+							//+ "      redirectPort=\"443\"\n"
+							//+ "      acceptCount=\"10\"\n"
+							//+ "      debug=\"0\"\n"
+							//+ "      connectionTimeout=\"20000\"\n"
+							//+ "      useURIValidationHack=\"false\"\n"
+							//+ "      protocolHandlerClassName=\"org.apache.jk.server.JkCoyoteHandler\"\n"
+							+ "      port=\"").textInXmlAttribute(hw.getBind().getPort().getPort()).print("\"\n"
+							+ "      enableLookups=\"false\"\n"
+							+ "      minProcessors=\"2\"\n"
+							+ "      maxProcessors=\"200\"\n"
+							+ "      address=\"").textInXmlAttribute(IpAddress.LOOPBACK_IP).print("\"\n"
+							+ "      acceptCount=\"10\"\n"
+							+ "      debug=\"0\"\n"
+							+ "      maxPostSize=\"").textInXmlAttribute(sharedTomcat.getMaxPostSize()).print("\"\n"
+							+ "      protocol=\"AJP/1.3\"\n");
+					// Do not include when is default "true"
+					if(!sharedTomcat.getTomcatAuthentication()) {
+						out.print("      tomcatAuthentication=\"false\"\n");
 					}
+					out.print("    />\n"
+							+ "    <Engine name=\"Catalina\" defaultHost=\"localhost\" debug=\"0\">\n"
+							+ "      <Realm className=\"org.apache.catalina.realm.UserDatabaseRealm\"\n"
+							+ "          resourceName=\"UserDatabase\" />\"\n");
+					for (SharedTomcatSite site : sites) {
+						com.aoindustries.aoserv.client.web.Site hs = site.getHttpdTomcatSite().getHttpdSite();
+						if(!hs.isDisabled()) {
+							String primaryHostname=hs.getPrimaryHttpdSiteURL().getHostname().toString();
+							out.print("      <Host\n"
+									+ "        name=\"").textInXmlAttribute(primaryHostname).print("\"\n"
+									+ "        debug=\"0\"\n"
+									+ "        appBase=\"").textInXmlAttribute(wwwDirectory).print('/').textInXmlAttribute(hs.getName()).print("/webapps\"\n"
+									+ "        unpackWARs=\"").textInXmlAttribute(sharedTomcat.getUnpackWARs()).print("\"\n"
+									+ "        autoDeploy=\"").textInXmlAttribute(sharedTomcat.getAutoDeploy()).print("\"\n"
+									+ "        xmlValidation=\"false\"\n"
+									+ "        xmlNamespaceAware=\"false\"\n"
+									+ "      >\n");
+							List<String> usedHostnames=new SortedArrayList<>();
+							usedHostnames.add(primaryHostname);
+							List<VirtualHost> binds=hs.getHttpdSiteBinds();
+							for (VirtualHost bind : binds) {
+								List<VirtualHostName> urls=bind.getHttpdSiteURLs();
+								for (VirtualHostName url : urls) {
+									String hostname = url.getHostname().toString();
+									if(!usedHostnames.contains(hostname)) {
+										out.print("        <Alias>").textInXhtml(hostname).print("</Alias>\n");
+										usedHostnames.add(hostname);
+									}
+								}
+								// When listed first, also include the IP addresses as aliases
+								if(hs.getListFirst()) {
+									String ip=bind.getHttpdBind().getNetBind().getIpAddress().getInetAddress().toString();
+									if(!usedHostnames.contains(ip)) {
+										out.print("        <Alias>").textInXhtml(ip).print("</Alias>\n");
+										usedHostnames.add(ip);
+									}
+								}
+							}
+							Site tomcatSite=hs.getHttpdTomcatSite();
+							for(Context htc : tomcatSite.getHttpdTomcatContexts()) {
+								if(!htc.isServerXmlConfigured()) out.print("        <!--\n");
+								out.print("        <Context\n");
+								if(htc.getClassName()!=null) out.print("          className=\"").textInXmlAttribute(htc.getClassName()).print("\"\n");
+								out.print("          cookies=\"").textInXmlAttribute(htc.useCookies()).print("\"\n"
+										+ "          crossContext=\"").textInXmlAttribute(htc.allowCrossContext()).print("\"\n"
+										+ "          docBase=\"").textInXmlAttribute(htc.getDocBase()).print("\"\n"
+										+ "          override=\"").textInXmlAttribute(htc.allowOverride()).print("\"\n"
+										+ "          path=\"").textInXmlAttribute(htc.getPath()).print("\"\n"
+										+ "          privileged=\"").textInXmlAttribute(htc.isPrivileged()).print("\"\n"
+										+ "          reloadable=\"").textInXmlAttribute(htc.isReloadable()).print("\"\n"
+										+ "          useNaming=\"").textInXmlAttribute(htc.useNaming()).print("\"\n");
+								if(htc.getWrapperClass()!=null) out.print("          wrapperClass=\"").textInXmlAttribute(htc.getWrapperClass()).print("\"\n");
+								out.print("          debug=\"").textInXmlAttribute(htc.getDebugLevel()).print("\"\n");
+								if(htc.getWorkDir()!=null) out.print("          workDir=\"").textInXmlAttribute(htc.getWorkDir()).print("\"\n");
+								List<ContextParameter> parameters=htc.getHttpdTomcatParameters();
+								List<ContextDataSource> dataSources=htc.getHttpdTomcatDataSources();
+								if(parameters.isEmpty() && dataSources.isEmpty()) {
+									out.print("        />\n");
+								} else {
+									out.print("        >\n");
+									// Parameters
+									for(ContextParameter parameter : parameters) {
+										tomcatCommon.writeHttpdTomcatParameter(parameter, out);
+									}
+									// Data Sources
+									for(ContextDataSource dataSource : dataSources) {
+										tomcatCommon.writeHttpdTomcatDataSource(dataSource, out);
+									}
+									out.print("        </Context>\n");
+								}
+								if(!htc.isServerXmlConfigured()) out.print("        -->\n");
+							}
+							out.print("      </Host>\n");
+						}
+					}
+					out.print("    </Engine>\n"
+							+ "  </Service>\n"
+							+ "</Server>\n");
 				}
-				out.print("    </Engine>\n"
-						+ "  </Service>\n"
-						+ "</Server>\n");
-			}
 
-			// Must restart JVM if this file has changed
-			if(
-				!confServerXMLUF.getStat().exists()
-				|| !newConfServerXMLUF.contentEquals(confServerXMLUF)
-			) {
-				needRestart=true;
-				newConfServerXMLUF.renameTo(confServerXMLUF);
-			} else newConfServerXMLUF.delete();
-		} else {
-			try {
-				DaemonFileUtils.stripFilePrefix(
-					confServerXMLUF,
-					autoWarningOld,
-					uid_min,
-					gid_min
-				);
-				DaemonFileUtils.stripFilePrefix(
-					confServerXMLUF,
-					autoWarning,
-					uid_min,
-					gid_min
-				);
-			} catch(IOException err) {
-				// Errors OK because this is done in manual mode and they might have symbolic linked stuff
+				// Must restart JVM if this file has changed
+				if(
+					!confServerXML.getStat().exists()
+					|| !newConfServerXML.contentEquals(confServerXML)
+				) {
+					needRestart=true;
+					newConfServerXML.renameTo(confServerXML);
+				} else newConfServerXML.delete();
+			} else {
+				try {
+					DaemonFileUtils.stripFilePrefix(
+						confServerXML,
+						autoWarningOld,
+						uid_min,
+						gid_min
+					);
+					DaemonFileUtils.stripFilePrefix(
+						confServerXML,
+						autoWarning,
+						uid_min,
+						gid_min
+					);
+				} catch(IOException err) {
+					// Errors OK because this is done in manual mode and they might have symbolic linked stuff
+				}
 			}
 		}
 

@@ -90,6 +90,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 	 * @param out  Is in UTF-8 encoding.
 	 */
 	protected void writeServerXml(
+		String autoWarning,
 		ChainWriter out,
 		SharedTomcat sharedTomcat,
 		List<SharedTomcatSite> sites
@@ -98,7 +99,6 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 		final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
 		final HttpdOperatingSystemConfiguration httpdConfig = osConfig.getHttpdOperatingSystemConfiguration();
 		final PosixPath wwwDirectory = httpdConfig.getHttpdSitesDirectory();
-		String autoWarning = getAutoWarningXml();
 
 		Worker hw = sharedTomcat.getTomcat4Worker();
 		Bind shutdownPort = sharedTomcat.getTomcat4ShutdownPort();
@@ -388,43 +388,49 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 			}
 		}
 
-		// always rebuild conf/server.xml
-		String autoWarning = getAutoWarningXml();
-		String autoWarningOld = getAutoWarningXmlOld();
-		if(!sharedTomcat.isManual() || !serverXml.getStat().exists()) {
-			bout.reset();
-			try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
-				writeServerXml(out, sharedTomcat, sites);
-			}
-			if(
-				DaemonFileUtils.atomicWrite(
-					serverXml, bout.toByteArray(), 0640, lsaUID, lsgGID,
-					DaemonFileUtils.findUnusedBackup(serverXml + backupSuffix, BACKUP_SEPARATOR, BACKUP_EXTENSION),
-					null
-				)
-			) {
-				// Must restart JVM if this file has changed
-				needRestart = true;
-			}
-		} else {
-			try {
-				Server thisServer = AOServDaemon.getThisServer();
-				int uid_min = thisServer.getUidMin().getId();
-				int gid_min = thisServer.getGidMin().getId();
-				DaemonFileUtils.stripFilePrefix(
-					serverXml,
-					autoWarningOld,
-					uid_min,
-					gid_min
-				);
-				DaemonFileUtils.stripFilePrefix(
-					serverXml,
-					"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + autoWarning,
-					uid_min,
-					gid_min
-				);
-			} catch(IOException err) {
-				// Errors OK because this is done in manual mode and they might have symbolic linked stuff
+		if(
+			!sharedTomcat.isManual()
+			// conf directory may not exist while in manual mode
+			|| conf.getStat().exists()
+		) {
+			// Rebuild the server.xml
+			String autoWarning = getAutoWarningXml();
+			String autoWarningOld = getAutoWarningXmlOld();
+			if(!sharedTomcat.isManual() || !serverXml.getStat().exists()) {
+				bout.reset();
+				try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
+					writeServerXml(autoWarning, out, sharedTomcat, sites);
+				}
+				if(
+					DaemonFileUtils.atomicWrite(
+						serverXml, bout.toByteArray(), 0640, lsaUID, lsgGID,
+						DaemonFileUtils.findUnusedBackup(serverXml + backupSuffix, BACKUP_SEPARATOR, BACKUP_EXTENSION),
+						null
+					)
+				) {
+					// Must restart JVM if this file has changed
+					needRestart = true;
+				}
+			} else {
+				try {
+					Server thisServer = AOServDaemon.getThisServer();
+					int uid_min = thisServer.getUidMin().getId();
+					int gid_min = thisServer.getGidMin().getId();
+					DaemonFileUtils.stripFilePrefix(
+						serverXml,
+						autoWarningOld,
+						uid_min,
+						gid_min
+					);
+					DaemonFileUtils.stripFilePrefix(
+						serverXml,
+						"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + autoWarning,
+						uid_min,
+						gid_min
+					);
+				} catch(IOException err) {
+					// Errors OK because this is done in manual mode and they might have symbolic linked stuff
+				}
 			}
 		}
 
