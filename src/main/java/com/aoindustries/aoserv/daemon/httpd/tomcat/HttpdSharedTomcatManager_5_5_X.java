@@ -90,8 +90,11 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 		final GroupServer lsg = sharedTomcat.getLinuxServerGroup();
 		final int lsgGID = lsg.getGid().getId();
 		final String wwwGroupDir = sharedTomcatDirectory.getPath();
-		final PosixFile tomcatUF = new PosixFile(wwwGroupDir + "/bin/tomcat");
+		final PosixFile bin = new PosixFile(sharedTomcatDirectory, "bin", false);
+		final PosixFile tomcatUF = new PosixFile(bin, "tomcat", false);
 		final PosixPath wwwDirectory = httpdConfig.getHttpdSitesDirectory();
+		final PosixFile sitesFile = new PosixFile(bin, "profile.sites", false);
+		final PosixFile conf = new PosixFile(sharedTomcatDirectory, "conf", false);
 		final PosixFile daemonUF = new PosixFile(sharedTomcatDirectory, "daemon", false);
 
 		// Create and fill in the directory if it does not exist or is owned by root.
@@ -107,8 +110,8 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 			// 001
 			if (!sharedTomcatStat.exists()) sharedTomcatDirectory.mkdir();
 			sharedTomcatDirectory.setMode(0770);
-			new PosixFile(sharedTomcatDirectory, "bin", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
-			new PosixFile(sharedTomcatDirectory, "conf", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
+			bin.mkdir().chown(lsaUID, lsgGID).setMode(0770);
+			conf.mkdir().chown(lsaUID, lsgGID).setMode(0770);
 			daemonUF.mkdir().chown(lsaUID, lsgGID).setMode(0770);
 			DaemonFileUtils.ln("var/log", wwwGroupDir+"/logs", lsaUID, lsgGID);
 			DaemonFileUtils.mkdir(wwwGroupDir+"/temp", 0770, lsaUID, lsgGID);
@@ -125,10 +128,9 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 			DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-5.5/bin/commons-logging-api.jar", wwwGroupDir+"/bin/commons-logging-api.jar", lsaUID, lsgGID);
 			DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-5.5/bin/digest.sh", wwwGroupDir+"/bin/digest.sh", lsaUID, lsgGID);
 
-			String profileFile = wwwGroupDir + "/bin/profile";
-			LinuxAccountManager.setBashProfile(lsa, profileFile);
+			PosixFile profileUF = new PosixFile(bin, "profile", false);
+			LinuxAccountManager.setBashProfile(lsa, profileUF.getPath());
 
-			PosixFile profileUF = new PosixFile(profileFile);
 			try (
 				ChainWriter out = new ChainWriter(
 					new BufferedOutputStream(
@@ -147,11 +149,11 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 						+ "export CATALINA_HOME=\"").print(wwwGroupDir).print("\"\n"
 						+ "export CATALINA_TEMP=\"").print(wwwGroupDir).print("/temp\"\n"
 						+ "\n"
-						+ "export PATH=\"${PATH}:").print(wwwGroupDir).print("/bin\"\n"
+						+ "export PATH=\"${PATH}:").print(bin).print("\"\n"
 						+ "\n"
 						+ "export JAVA_OPTS='-server -Djava.awt.headless=true -Xmx128M -Djdk.disableLastUsageTracking=true'\n"
 						+ "\n"
-						+ ". ").print(wwwGroupDir).print("/bin/profile.sites\n"
+						+ ". ").print(sitesFile).print("\n"
 						+ "\n"
 						+ "for SITE in $SITES\n"
 						+ "do\n"
@@ -219,16 +221,16 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 
 			DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-5.5/bin/setclasspath.sh", wwwGroupDir+"/bin/setclasspath.sh", lsaUID, lsgGID);
 
-			PosixFile shutdown=new PosixFile(wwwGroupDir+"/bin/shutdown.sh");
+			PosixFile shutdown = new PosixFile(bin, "shutdown.sh", false);
 			try (ChainWriter out = new ChainWriter(shutdown.getSecureOutputStream(lsaUID, lsgGID, 0700, true, uid_min, gid_min))) {
 				out.print("#!/bin/sh\n"
-						+ "exec \"").print(wwwGroupDir).print("/bin/tomcat\" stop\n");
+						+ "exec \"").print(tomcatUF).print("\" stop\n");
 			}
 
-			PosixFile startup=new PosixFile(wwwGroupDir+"/bin/startup.sh");
+			PosixFile startup = new PosixFile(bin, "startup.sh", false);
 			try (ChainWriter out = new ChainWriter(startup.getSecureOutputStream(lsaUID, lsgGID, 0700, true, uid_min, gid_min))) {
 				out.print("#!/bin/sh\n"
-						+ "exec \"").print(wwwGroupDir).print("/bin/tomcat\" start\n");
+						+ "exec \"").print(tomcatUF).print("\" start\n");
 			}
 
 			DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-5.5/bin/tomcat-juli.jar", wwwGroupDir+"/bin/tomcat-juli.jar", lsaUID, lsgGID);
@@ -245,37 +247,37 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 			DaemonFileUtils.mkdir(wwwGroupDir+"/common/lib", 0770, lsaUID, lsgGID);
 			DaemonFileUtils.lnAll("../../" + optSlash + "apache-tomcat-5.5/common/lib/", wwwGroupDir+"/common/lib/", lsaUID, lsgGID);
 
-			// Write the conf/catalina.policy file
+			// Write the conf/ files
 			{
-				PosixFile cp=new PosixFile(wwwGroupDir+"/conf/catalina.policy");
+				PosixFile cp = new PosixFile(conf, "catalina.policy", false);
 				new PosixFile("/opt/apache-tomcat-5.5/conf/catalina.policy").copyTo(cp, false);
 				cp.chown(lsaUID, lsgGID).setMode(0660);
 			}
 			{
-				PosixFile cp=new PosixFile(wwwGroupDir+"/conf/catalina.properties");
+				PosixFile cp = new PosixFile(conf, "catalina.properties", false);
 				new PosixFile("/opt/apache-tomcat-5.5/conf/catalina.properties").copyTo(cp, false);
 				cp.chown(lsaUID, lsgGID).setMode(0660);
 			}
 			{
-				PosixFile cp=new PosixFile(wwwGroupDir+"/conf/context.xml");
+				PosixFile cp = new PosixFile(conf, "context.xml", false);
 				new PosixFile("/opt/apache-tomcat-5.5/conf/context.xml").copyTo(cp, false);
 				cp.chown(lsaUID, lsgGID).setMode(0660);
 			}
 			{
-				PosixFile cp=new PosixFile(wwwGroupDir+"/conf/logging.properties");
+				PosixFile cp = new PosixFile(conf, "logging.properties", false);
 				new PosixFile("/opt/apache-tomcat-5.5/conf/logging.properties").copyTo(cp, false);
 				cp.chown(lsaUID, lsgGID).setMode(0660);
 			}
-
-			// Create the tomcat-users.xml file
-			PosixFile tuUF=new PosixFile(wwwGroupDir+"/conf/tomcat-users.xml");
-			new PosixFile("/opt/apache-tomcat-5.5/conf/tomcat-users.xml").copyTo(tuUF, false);
-			tuUF.chown(lsaUID, lsgGID).setMode(0660);
-
-			// Create the web.xml file.
-			PosixFile webUF=new PosixFile(wwwGroupDir+"/conf/web.xml");
-			new PosixFile("/opt/apache-tomcat-5.5/conf/web.xml").copyTo(webUF, false);
-			webUF.chown(lsaUID, lsgGID).setMode(0660);
+			{
+				PosixFile tuUF = new PosixFile(conf, "tomcat-users.xml", false);
+				new PosixFile("/opt/apache-tomcat-5.5/conf/tomcat-users.xml").copyTo(tuUF, false);
+				tuUF.chown(lsaUID, lsgGID).setMode(0660);
+			}
+			{
+				PosixFile webUF = new PosixFile(conf, "web.xml", false);
+				new PosixFile("/opt/apache-tomcat-5.5/conf/web.xml").copyTo(webUF, false);
+				webUF.chown(lsaUID, lsgGID).setMode(0660);
+			}
 
 			DaemonFileUtils.mkdir(wwwGroupDir+"/server", 0770, lsaUID, lsgGID);
 			DaemonFileUtils.mkdir(wwwGroupDir+"/server/classes", 0770, lsaUID, lsgGID);
@@ -297,37 +299,42 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 
 		// always rebuild profile.sites file
 		List<SharedTomcatSite> sites = sharedTomcat.getHttpdTomcatSharedSites();
-		PosixFile newSitesFileUF = new PosixFile(sharedTomcatDirectory, "bin/profile.sites.new", false);
-		try (
-			ChainWriter out = new ChainWriter(
-				new BufferedOutputStream(
-					newSitesFileUF.getSecureOutputStream(lsaUID, lsgGID, 0750, true, uid_min, gid_min)
-				)
-			)
+		if(
+			!sharedTomcat.isManual()
+			// bin directory may not exist while in manual mode
+			|| bin.getStat().exists()
 		) {
-			out.print("export SITES=\"");
-			boolean didOne=false;
-			for(SharedTomcatSite site : sites) {
-				com.aoindustries.aoserv.client.web.Site hs = site.getHttpdTomcatSite().getHttpdSite();
-				if(!hs.isDisabled()) {
-					if(didOne) out.print(' ');
-					else didOne=true;
-					out.print(hs.getName());
+			PosixFile newSitesFile = new PosixFile(bin, "profile.sites.new", false);
+			try (
+				ChainWriter out = new ChainWriter(
+					new BufferedOutputStream(
+						newSitesFile.getSecureOutputStream(lsaUID, lsgGID, 0750, true, uid_min, gid_min)
+					)
+				)
+			) {
+				out.print("export SITES=\"");
+				boolean didOne=false;
+				for(SharedTomcatSite site : sites) {
+					com.aoindustries.aoserv.client.web.Site hs = site.getHttpdTomcatSite().getHttpdSite();
+					if(!hs.isDisabled()) {
+						if(didOne) out.print(' ');
+						else didOne=true;
+						out.print(hs.getName());
+					}
 				}
+				out.print("\"\n");
 			}
-			out.print("\"\n");
+			// flag as needing a restart if this file is different than any existing
+			Stat sitesStat = sitesFile.getStat();
+			if(!sitesStat.exists() || !newSitesFile.contentEquals(sitesFile)) {
+				needRestart=true;
+				if(sitesStat.exists()) {
+					PosixFile backupFile = new PosixFile(bin, "profile.sites.old", false);
+					sitesFile.renameTo(backupFile);
+				}
+				newSitesFile.renameTo(sitesFile);
+			} else newSitesFile.delete();
 		}
-		// flag as needing a restart if this file is different than any existing
-		PosixFile sitesFile = new PosixFile(sharedTomcatDirectory, "bin/profile.sites", false);
-		Stat sitesStat = sitesFile.getStat();
-		if(!sitesStat.exists() || !newSitesFileUF.contentEquals(sitesFile)) {
-			needRestart=true;
-			if(sitesStat.exists()) {
-				PosixFile backupFile=new PosixFile(sharedTomcatDirectory, "bin/profile.sites.old", false);
-				sitesFile.renameTo(backupFile);
-			}
-			newSitesFileUF.renameTo(sitesFile);
-		} else newSitesFileUF.delete();
 
 		// make work directories and remove extra work dirs
 		if(
@@ -365,7 +372,6 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 			}
 		}
 
-		PosixFile conf = new PosixFile(wwwGroupDir + "/conf");
 		if(
 			!sharedTomcat.isManual()
 			// conf directory may not exist while in manual mode

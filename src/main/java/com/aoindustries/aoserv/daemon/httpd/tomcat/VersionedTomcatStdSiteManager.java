@@ -369,7 +369,6 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 	protected List<Install> getInstallFiles(String optSlash, PosixFile installDir, boolean isUpgrade) throws IOException, SQLException {
 		List<Install> installFiles = new ArrayList<>();
 		installFiles.addAll(getTomcatCommon().getInstallFiles(optSlash, installDir, 0775)); // 0775 to allow Apache to read any passwd/group files in the conf/ directory
-		// bin/profile.sites is now bin/profile.d/httpd-sites.sh as of Tomcat 8.5
 		installFiles.add(new Generated("bin/tomcat", 0700, VersionedTomcatStdSiteManager::generateTomcatScript));
 		if(!isUpgrade) {
 			installFiles.add(new Mkdir    ("webapps", 0775));

@@ -81,8 +81,10 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 		final GroupServer lsg = sharedTomcat.getLinuxServerGroup();
 		final int lsgGID = lsg.getGid().getId();
 		final String wwwGroupDir = sharedTomcatDirectory.getPath();
-		final PosixFile tomcatUF = new PosixFile(wwwGroupDir + "/bin/tomcat");
+		final PosixFile bin = new PosixFile(sharedTomcatDirectory, "bin", false);
+		final PosixFile tomcatUF = new PosixFile(bin, "tomcat", false);
 		final PosixPath wwwDirectory = httpdConfig.getHttpdSitesDirectory();
+		final PosixFile sitesFile = new PosixFile(bin, "profile.sites", false);
 		final PosixFile daemonUF = new PosixFile(sharedTomcatDirectory, "daemon", false);
 		// Create and fill in the directory if it does not exist or is owned by root.
 		final PosixFile workUF = new PosixFile(sharedTomcatDirectory, "work", false);
@@ -96,7 +98,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 			// 001
 			if (!sharedTomcatStat.exists()) sharedTomcatDirectory.mkdir();
 			sharedTomcatDirectory.setMode(0770);
-			new PosixFile(sharedTomcatDirectory, "bin", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
+			bin.mkdir().chown(lsaUID, lsgGID).setMode(0770);
 			new PosixFile(sharedTomcatDirectory, "conf", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
 			daemonUF.mkdir().chown(lsaUID, lsgGID).setMode(0770);
 			PosixFile varUF = new PosixFile(sharedTomcatDirectory, "var", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
@@ -108,10 +110,9 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 			//Server postgresServer=thisServer.getPreferredPostgresServer();
 			//String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
 
-			String profileFile = wwwGroupDir + "/bin/profile";
-			LinuxAccountManager.setBashProfile(lsa, profileFile);
+			PosixFile profileUF = new PosixFile(bin, "profile", false);
+			LinuxAccountManager.setBashProfile(lsa, profileUF.getPath());
 
-			PosixFile profileUF = new PosixFile(profileFile);
 			try (
 				ChainWriter out = new ChainWriter(
 					new BufferedOutputStream(
@@ -159,7 +160,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 						+ ". /opt/xmlrpc-1.0/setenv.sh\n"
 						+ ". /opt/poolman-1.4/setenv.sh\n"
 						+ "\n"
-						+ "export PATH=\"${PATH}:").print(wwwGroupDir).print("/bin\"\n"
+						+ "export PATH=\"${PATH}:").print(bin).print("\"\n"
 						+ "\n"
 						+ "export JAVA_OPTS='-server -Djava.awt.headless=true -Xmx128M -Djdk.disableLastUsageTracking=true'\n"
 						+ "\n"
@@ -171,7 +172,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 						+ "    fi\n"
 						+ "done\n"
 						+ "\n"
-						+ ". ").print(wwwGroupDir).print("/bin/profile.sites\n"
+						+ ". ").print(sitesFile).print("\n"
 						+ "\n"
 						+ "for SITE in $SITES\n"
 						+ "do\n"
@@ -277,37 +278,42 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 
 		// always rebuild profile.sites file
 		List<SharedTomcatSite> sites = sharedTomcat.getHttpdTomcatSharedSites();
-		PosixFile newSitesFileUF = new PosixFile(sharedTomcatDirectory, "bin/profile.sites.new", false);
-		try (
-			ChainWriter out = new ChainWriter(
-				new BufferedOutputStream(
-					newSitesFileUF.getSecureOutputStream(lsaUID, lsgGID, 0750, true, uid_min, gid_min)
-				)
-			)
+		if(
+			!sharedTomcat.isManual()
+			// bin directory may not exist while in manual mode
+			|| bin.getStat().exists()
 		) {
-			out.print("export SITES=\"");
-			boolean didOne=false;
-			for(SharedTomcatSite site : sites) {
-				Site hs = site.getHttpdTomcatSite().getHttpdSite();
-				if(!hs.isDisabled()) {
-					if(didOne) out.print(' ');
-					else didOne=true;
-					out.print(hs.getName());
+			PosixFile newSitesFile = new PosixFile(bin, "profile.sites.new", false);
+			try (
+				ChainWriter out = new ChainWriter(
+					new BufferedOutputStream(
+						newSitesFile.getSecureOutputStream(lsaUID, lsgGID, 0750, true, uid_min, gid_min)
+					)
+				)
+			) {
+				out.print("export SITES=\"");
+				boolean didOne=false;
+				for(SharedTomcatSite site : sites) {
+					Site hs = site.getHttpdTomcatSite().getHttpdSite();
+					if(!hs.isDisabled()) {
+						if(didOne) out.print(' ');
+						else didOne=true;
+						out.print(hs.getName());
+					}
 				}
+				out.print("\"\n");
 			}
-			out.print("\"\n");
+			// flag as needing a restart if this file is different than any existing
+			Stat sitesStat = sitesFile.getStat();
+			if(!sitesStat.exists() || !newSitesFile.contentEquals(sitesFile)) {
+				needRestart=true;
+				if(sitesStat.exists()) {
+					PosixFile backupFile = new PosixFile(bin, "profile.sites.old", false);
+					sitesFile.renameTo(backupFile);
+				}
+				newSitesFile.renameTo(sitesFile);
+			} else newSitesFile.delete();
 		}
-		// flag as needing a restart if this file is different than any existing
-		PosixFile sitesFile = new PosixFile(sharedTomcatDirectory, "bin/profile.sites", false);
-		Stat sitesStat = sitesFile.getStat();
-		if(!sitesStat.exists() || !newSitesFileUF.contentEquals(sitesFile)) {
-			needRestart=true;
-			if(sitesStat.exists()) {
-				PosixFile backupFile=new PosixFile(sharedTomcatDirectory, "bin/profile.sites.old", false);
-				sitesFile.renameTo(backupFile);
-			}
-			newSitesFileUF.renameTo(sitesFile);
-		} else newSitesFileUF.delete();
 
 		// make work directories and remove extra work dirs
 		if(

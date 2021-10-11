@@ -325,35 +325,41 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 
 		// always rebuild bin/profile.d/httpd-sites.sh
 		List<SharedTomcatSite> sites = sharedTomcat.getHttpdTomcatSharedSites();
-		bout.reset();
-		try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
-			out.print("export SITES=\"");
-			boolean didOne = false;
-			for(SharedTomcatSite site : sites) {
-				com.aoindustries.aoserv.client.web.Site hs = site.getHttpdTomcatSite().getHttpdSite();
-				if(!hs.isDisabled()) {
-					if(didOne) out.print(' ');
-					else didOne = true;
-					out.print(hs.getName());
-				}
-			}
-			out.print("\"\n"
-					+ "\n"
-					+ "for SITE in $SITES\n"
-					+ "do\n"
-					+ "    export PATH=\"$PATH:").print(wwwDirectory).print("/$SITE/bin\"\n"
-					+ "done\n"
-					+ "unset SITE\n");
-		}
-		PosixFile httpdSitesSh = new PosixFile(binProfileD, "httpd-sites.sh", false);
 		if(
-			DaemonFileUtils.atomicWrite(
-				httpdSitesSh, bout.toByteArray(), 0640, lsaUID, lsgGID,
-				DaemonFileUtils.findUnusedBackup(httpdSitesSh + backupSuffix, BACKUP_SEPARATOR, BACKUP_EXTENSION),
-				null
-			)
+			!sharedTomcat.isManual()
+			// bin directory may not exist while in manual mode
+			|| bin.getStat().exists()
 		) {
-			needRestart = true;
+			bout.reset();
+			try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
+				out.print("export SITES=\"");
+				boolean didOne = false;
+				for(SharedTomcatSite site : sites) {
+					com.aoindustries.aoserv.client.web.Site hs = site.getHttpdTomcatSite().getHttpdSite();
+					if(!hs.isDisabled()) {
+						if(didOne) out.print(' ');
+						else didOne = true;
+						out.print(hs.getName());
+					}
+				}
+				out.print("\"\n"
+						+ "\n"
+						+ "for SITE in $SITES\n"
+						+ "do\n"
+						+ "    export PATH=\"$PATH:").print(wwwDirectory).print("/$SITE/bin\"\n"
+						+ "done\n"
+						+ "unset SITE\n");
+			}
+			PosixFile httpdSitesSh = new PosixFile(binProfileD, "httpd-sites.sh", false);
+			if(
+				DaemonFileUtils.atomicWrite(
+					httpdSitesSh, bout.toByteArray(), 0640, lsaUID, lsgGID,
+					DaemonFileUtils.findUnusedBackup(httpdSitesSh + backupSuffix, BACKUP_SEPARATOR, BACKUP_EXTENSION),
+					null
+				)
+			) {
+				needRestart = true;
+			}
 		}
 
 		// make work directories and remove extra work dirs

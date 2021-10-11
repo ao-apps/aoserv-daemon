@@ -146,6 +146,7 @@ abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends Htt
 	 * and restart to take care of this.
 	 */
 	@Override
+	@SuppressWarnings("NoopMethodInAbstractClass")
 	protected void enableDisable(PosixFile siteDirectory) {
 		// Do nothing
 	}
