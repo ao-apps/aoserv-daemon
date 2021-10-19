@@ -149,6 +149,39 @@ class TomcatCommon_10_0_X extends VersionedTomcatCommon {
 			Version version = new Version(rpm.getVersion(), rpm.getRelease());
 			String suffix = osConfig.getPackageReleaseSuffix();
 			// Downgrade support
+			if(version.compareTo("10.0.12-2" + suffix) < 0) {
+				UpgradeSymlink[] downgradeSymlinks_10_0_12_2 = {
+					// mysql-connector-java-8.0.27.jar -> mysql-connector-java-8.0.26.jar
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.27.jar",
+						"/dev/null",
+						"lib/mysql-connector-java-8.0.26.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.27.jar",
+						"../" + optSlash + "apache-tomcat-10.0/lib/mysql-connector-java-8.0.27.jar",
+						"lib/mysql-connector-java-8.0.26.jar",
+						"../" + optSlash + "apache-tomcat-10.0/lib/mysql-connector-java-8.0.26.jar"
+					),
+					// postgresql-42.3.0.jar -> postgresql-42.2.24.jar
+					new UpgradeSymlink(
+						"lib/postgresql-42.3.0.jar",
+						"/dev/null",
+						"lib/postgresql-42.2.24.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.3.0.jar",
+						"../" + optSlash + "apache-tomcat-10.0/lib/postgresql-42.3.0.jar",
+						"lib/postgresql-42.2.24.jar",
+						"../" + optSlash + "apache-tomcat-10.0/lib/postgresql-42.2.24.jar"
+					),
+				};
+				for(UpgradeSymlink symlink : downgradeSymlinks_10_0_12_2) {
+					if(symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
+			}
 			if(version.compareTo("10.0.12-1" + suffix) < 0) {
 				// 10.0.12-1 has same files as 10.0.11-2
 			}
@@ -358,7 +391,40 @@ class TomcatCommon_10_0_X extends VersionedTomcatCommon {
 			if(version.compareTo("10.0.12-1" + suffix) >= 0) {
 				// 10.0.12-1 has same files as 10.0.11-2
 			}
-			if(version.compareTo("10.0.12-1" + suffix) > 0) {
+			if(version.compareTo("10.0.12-2" + suffix) >= 0) {
+				UpgradeSymlink[] upgradeSymlinks_10_0_12_2 = {
+					// mysql-connector-java-8.0.26.jar -> mysql-connector-java-8.0.27.jar
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.26.jar",
+						"/dev/null",
+						"lib/mysql-connector-java-8.0.27.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.26.jar",
+						"../" + optSlash + "apache-tomcat-10.0/lib/mysql-connector-java-8.0.26.jar",
+						"lib/mysql-connector-java-8.0.27.jar",
+						"../" + optSlash + "apache-tomcat-10.0/lib/mysql-connector-java-8.0.27.jar"
+					),
+					// postgresql-42.2.24.jar -> postgresql-42.3.0.jar
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.24.jar",
+						"/dev/null",
+						"lib/postgresql-42.3.0.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.24.jar",
+						"../" + optSlash + "apache-tomcat-10.0/lib/postgresql-42.2.24.jar",
+						"lib/postgresql-42.3.0.jar",
+						"../" + optSlash + "apache-tomcat-10.0/lib/postgresql-42.3.0.jar"
+					),
+				};
+				for(UpgradeSymlink symlink : upgradeSymlinks_10_0_12_2) {
+					if(symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
+			}
+			if(version.compareTo("10.0.12-2" + suffix) > 0) {
 				throw new IllegalStateException("Version of Tomcat newer than expected: " + version);
 			}
 		}
