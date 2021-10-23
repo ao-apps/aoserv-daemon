@@ -297,7 +297,10 @@ public final class PgHbaManager extends BuilderThread {
 										|| version.startsWith(Version.VERSION_12 + 'R')
 										|| version.startsWith(Version.VERSION_13 + '.')
 										|| version.startsWith(Version.VERSION_13 + 'R')
+										|| version.startsWith(Version.VERSION_14 + '.')
+										|| version.startsWith(Version.VERSION_14 + 'R')
 									) {
+										// TODO: PostgreSQL 14 allows multi-line configs with trailing backslash line continuation
 										// scram-sha-256 as of PostgreSQL 10
 										boolean isScramSha256 = Version.isScramSha256(version);
 										// Find all non-system users on this server, used to limit "peer" and "ident" records

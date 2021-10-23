@@ -180,6 +180,8 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
 												|| version.startsWith(Version.VERSION_12 + 'R')
 												|| version.startsWith(Version.VERSION_13 + '.')
 												|| version.startsWith(Version.VERSION_13 + 'R')
+												|| version.startsWith(Version.VERSION_14 + '.')
+												|| version.startsWith(Version.VERSION_14 + 'R')
 											) {
 												currentSQL = null;
 												try (Statement stmt = conn.createStatement()) {

@@ -63,10 +63,10 @@ public final class PostgresUserManager extends BuilderThread {
 	}
 
 	/**
-	 * Gets the system roles for a given version of PostgreSQL.
-	 * Compare to <code>select rolname from pg_roles order by rolname;</code>
+	 * Gets the <a href="https://www.postgresql.org/docs/current/predefined-roles.html">predefined roles</a> for a given
+	 * version of PostgreSQL.  Compare to <code>select rolname from pg_roles order by rolname;</code>
 	 */
-	private static Set<User.Name> getSystemRoles(String version) {
+	private static Set<User.Name> getPredefinedRoles(String version) {
 		if(
 			version.startsWith(Version.VERSION_7_1 + '.')
 			|| version.startsWith(Version.VERSION_7_2 + '.')
@@ -128,6 +128,28 @@ public final class PostgresUserManager extends BuilderThread {
 				User.PG_WRITE_SERVER_FILES
 			));
 		}
+		if(
+			version.startsWith(Version.VERSION_14 + '.')
+			|| version.startsWith(Version.VERSION_14 + 'R')
+		) {
+			return new HashSet<>(Arrays.asList(
+				User.POSTGRES,
+				// PostgreSQL 10+
+				User.PG_MONITOR,
+				User.PG_READ_ALL_SETTINGS,
+				User.PG_READ_ALL_STATS,
+				User.PG_SIGNAL_BACKEND,
+				User.PG_STAT_SCAN_TABLES,
+				// PostgreSQL 11+
+				User.PG_EXECUTE_SERVER_PROGRAM,
+				User.PG_READ_SERVER_FILES,
+				User.PG_WRITE_SERVER_FILES,
+				// PostgreSQL 14+
+				User.PG_READ_ALL_DATA,
+				User.PG_WRITE_ALL_DATA,
+				User.PG_DATABASE_OWNER
+			));
+		}
 		throw new NotImplementedException("TODO: Implement for version " + version);
 	}
 
@@ -161,7 +183,7 @@ public final class PostgresUserManager extends BuilderThread {
 						logger.severe("No users; refusing to rebuild config: " + ps);
 					} else {
 						String version = ps.getVersion().getTechnologyVersion(connector).getVersion();
-						Set<User.Name> systemRoles = getSystemRoles(version);
+						Set<User.Name> systemRoles = getPredefinedRoles(version);
 						boolean supportsRoles = supportsRoles(version);
 						// Get the connection to work through
 						boolean disableEnableDone = false;
