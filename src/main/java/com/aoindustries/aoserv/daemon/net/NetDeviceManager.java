@@ -461,14 +461,14 @@ public final class NetDeviceManager extends BuilderThread {
 		}
 		String report;
 		if(procFile.exists()) {
-			StringBuilder SB=new StringBuilder();
+			StringBuilder sb = new StringBuilder();
 			try (InputStream in = new BufferedInputStream(new FileInputStream(procFile))) {
 				int ch;
 				while((ch = in.read()) != -1) {
-					SB.append((char)ch); // Assuming ISO-8859-1
+					sb.append((char)ch); // Assuming ISO-8859-1
 				}
 			}
-			report = SB.toString();
+			report = sb.toString();
 		} else report="";
 		return report;
 	}
@@ -517,7 +517,7 @@ public final class NetDeviceManager extends BuilderThread {
 	 * Updates all of the counts to the current values.  This is called by
 	 * getNetDeviceStatisticsReport to get up-to-date values, and also
 	 * called by the 32-bit wraparound detection thread to catch wraparound.
-	 * 
+	 *
 	 * All access to this method already synchronized on netDeviceStatisticsLock
 	 */
 	private static void updateCounts(Device netDevice, StringBuilder tempSB) throws IOException, SQLException {

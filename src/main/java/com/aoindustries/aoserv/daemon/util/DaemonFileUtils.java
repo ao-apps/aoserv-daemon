@@ -318,12 +318,12 @@ public class DaemonFileUtils {
 		Stat ufStat = uf.getStat();
 		if(ufStat.getSize()>=prefixLen) {
 			try (InputStream in = new BufferedInputStream(uf.getSecureInputStream(uid_min, gid_min))) {
-				StringBuilder SB=new StringBuilder(prefixLen);
+				StringBuilder sb = new StringBuilder(prefixLen);
 				int ch;
-				while(SB.length()<prefixLen && (ch=in.read())!=-1) {
-					SB.append((char)ch);
+				while(sb.length() < prefixLen && (ch = in.read()) != -1) {
+					sb.append((char)ch);
 				}
-				if(SB.toString().equals(prefix)) {
+				if(sb.toString().equals(prefix)) {
 					try (
 						TempFileContext tempFileContext = new TempFileContext(uf.getFile().getParent());
 						TempFile tempFile = tempFileContext.createTempFile(uf.getFile().getName())

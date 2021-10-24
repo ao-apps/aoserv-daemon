@@ -88,9 +88,9 @@ public final class AOServDaemonServer extends Thread {
 				if(timeSince < 0 || timeSince >= (5L*60*1000)) {
 					// Build a list of keys that should be removed
 					List<Long> removeKeys=new ArrayList<>();
-					Iterator<Long> I=accessKeys.keySet().iterator();
-					while(I.hasNext()) {
-						Long keyLong=I.next();
+					Iterator<Long> iter = accessKeys.keySet().iterator();
+					while(iter.hasNext()) {
+						Long keyLong = iter.next();
 						DaemonAccessEntry entry=accessKeys.get(keyLong);
 						timeSince=System.currentTimeMillis()-entry.created;
 						if(timeSince<0 || timeSince>=(60L*60*1000)) {
@@ -120,6 +120,7 @@ public final class AOServDaemonServer extends Thread {
 	}
 
 	@Override
+	@SuppressWarnings({"UseOfSystemOutOrSystemErr", "UseSpecificCatch", "BroadCatchBlock", "TooBroadCatch", "SleepWhileInLoop"})
 	public void run() {
 		while (true) {
 			try {
@@ -148,33 +149,33 @@ public final class AOServDaemonServer extends Thread {
 						// break;
 					case AppProtocol.AOSERV_DAEMON_SSL:
 						SSLServerSocketFactory factory = (SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
-						SSLServerSocket SS=(SSLServerSocket)factory.createServerSocket(serverPort, 50, address);
+						SSLServerSocket ss = (SSLServerSocket)factory.createServerSocket(serverPort, 50, address);
 						try {
 							while (true) {
-								Socket socket=SS.accept();
+								Socket socket = ss.accept();
 								try {
 									socket.setKeepAlive(true);
 									socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
 									//socket.setTcpNoDelay(true);
 									AOServDaemonServerThread thread = new AOServDaemonServerThread(this, socket);
 									thread.start();
-								} catch(ThreadDeath TD) {
-									throw TD;
-								} catch(Throwable T) {
-									logger.log(Level.SEVERE, null, T);
+								} catch(ThreadDeath td) {
+									throw td;
+								} catch(Throwable t) {
+									logger.log(Level.SEVERE, null, t);
 								}
 							}
 						} finally {
-							SS.close();
+							ss.close();
 						}
 						// break;
 					default:
 						throw new IllegalArgumentException("Unsupported protocol: "+protocol);
 				}
-			} catch (ThreadDeath TD) {
-				throw TD;
-			} catch (Throwable T) {
-				logger.log(Level.SEVERE, null, T);
+			} catch (ThreadDeath td) {
+				throw td;
+			} catch (Throwable t) {
+				logger.log(Level.SEVERE, null, t);
 			}
 			try {
 				sleep(60000);

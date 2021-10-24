@@ -146,10 +146,10 @@ public final class BackupManager {
 							}
 						}
 					}
-				} catch(ThreadDeath TD) {
-					throw TD;
-				} catch(Throwable T) {
-					logger.log(Level.SEVERE, null, T);
+				} catch(ThreadDeath td) {
+					throw td;
+				} catch(Throwable t) {
+					logger.log(Level.SEVERE, null, t);
 				}
 			} finally {
 				timer.stop();
@@ -188,10 +188,10 @@ public final class BackupManager {
 						}
 					}
 				}
-			} catch(ThreadDeath TD) {
-				throw TD;
-			} catch(Throwable T) {
-				logger.log(Level.SEVERE, null, T);
+			} catch(ThreadDeath td) {
+				throw td;
+			} catch(Throwable t) {
+				logger.log(Level.SEVERE, null, t);
 			}
 		} finally {
 			timer.stop();
@@ -230,10 +230,10 @@ public final class BackupManager {
 						}
 					}
 				}
-			} catch(ThreadDeath TD) {
-				throw TD;
-			} catch(Throwable T) {
-				logger.log(Level.SEVERE, null, T);
+			} catch(ThreadDeath td) {
+				throw td;
+			} catch(Throwable t) {
+				logger.log(Level.SEVERE, null, t);
 			}
 		} finally {
 			timer.stop();
@@ -342,32 +342,32 @@ public final class BackupManager {
 	public static File getNextBackupFile(String extension) throws IOException {
 		synchronized(BackupManager.class) {
 			GregorianCalendar gcal = new GregorianCalendar();
-			StringBuilder SB = new StringBuilder(11);
+			StringBuilder sb = new StringBuilder(11);
 
-			SB.append(gcal.get(Calendar.YEAR));
+			sb.append(gcal.get(Calendar.YEAR));
 
-			int month = gcal.get(Calendar.MONTH)+1;
-			if(month < 10) SB.append('0');
-			SB.append(month);
+			int month = gcal.get(Calendar.MONTH) + 1;
+			if(month < 10) sb.append('0');
+			sb.append(month);
 
 			int day = gcal.get(Calendar.DAY_OF_MONTH);
-			if(day < 10) SB.append('0');
-			SB.append(day).append('_');
+			if(day < 10) sb.append('0');
+			sb.append(day).append('_');
 
 			int hour = gcal.get(Calendar.HOUR_OF_DAY);
-			if(hour < 10) SB.append('0');
-			SB.append(hour);
+			if(hour < 10) sb.append('0');
+			sb.append(hour);
 
 			int minute = gcal.get(Calendar.MINUTE);
-			if(minute < 10) SB.append('0');
-			SB.append(minute);
+			if(minute < 10) sb.append('0');
+			sb.append(minute);
 
 			int second = gcal.get(Calendar.SECOND);
-			if(second < 10) SB.append('0');
-			SB.append(second).append('_');
+			if(second < 10) sb.append('0');
+			sb.append(second).append('_');
 
 			PosixFile oldaccountsDir = getOldaccountsDir();
-			String prefix = SB.toString();
+			String prefix = sb.toString();
 			for(int c = 1; c < Integer.MAX_VALUE; c++) {
 				PosixFile unixFile = new PosixFile(oldaccountsDir, prefix + c + extension, true);
 				if(!unixFile.getStat().exists()) {

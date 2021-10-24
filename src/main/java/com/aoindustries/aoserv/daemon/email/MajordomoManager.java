@@ -143,8 +143,8 @@ public final class MajordomoManager extends BuilderThread {
 						new PosixFile(msUF, "digests", false).mkdir().setMode(0700).chown(lsaUID, lsgGID);
 						if(!listsUF.getStat().exists()) listsUF.mkdir();
 						listsUF.setMode(0750).chown(lsaUID, mailGID);
-						PosixFile LogUF=new PosixFile(msUF, "Log", false);
-						LogUF.getSecureOutputStream(lsaUID, lsgGID, 0600, false, uid_min, gid_min).close();
+						PosixFile logUF = new PosixFile(msUF, "Log", false);
+						logUF.getSecureOutputStream(lsaUID, lsgGID, 0600, false, uid_min, gid_min).close();
 						PosixFile majordomocfUF=new PosixFile(msUF, "majordomo.cf", false);
 						try (ChainWriter out = new ChainWriter(new BufferedOutputStream(majordomocfUF.getSecureOutputStream(lsaUID, lsgGID, 0600, false, uid_min, gid_min)))) {
 							out.print("#\n"

@@ -111,15 +111,15 @@ public final class GShadowFile {
 
 			groupName = Group.Name.valueOf(values.get(0));
 
-			String S;
+			String s;
 
-			if(len > 1 && (S = values.get(1)).length() > 0) password = S;
+			if(len > 1 && (s = values.get(1)).length() > 0) password = s;
 			else password = null;
 
-			if(len > 2 && (S = values.get(2)).length() > 0) groupAdministrators = parseUserIds(S);
+			if(len > 2 && (s = values.get(2)).length() > 0) groupAdministrators = parseUserIds(s);
 			else groupAdministrators = Collections.emptySet();
 
-			if(len > 3 && (S = values.get(3)).length() > 0) groupMembers = parseUserIds(S);
+			if(len > 3 && (s = values.get(3)).length() > 0) groupMembers = parseUserIds(s);
 			else groupMembers = Collections.emptySet();
 
 			if(len > 4) throw new IllegalArgumentException("Too many fields: " + line);
@@ -209,6 +209,7 @@ public final class GShadowFile {
 		 * The unmodifiable set of group administrators
 		 * or an empty set if not set.
 		 */
+		@SuppressWarnings("ReturnOfCollectionOrArrayField") // Returning unmodifiable
 		public Set<User.Name> getGroupAdministrators() {
 			return groupAdministrators;
 		}
@@ -217,6 +218,7 @@ public final class GShadowFile {
 		 * The unmodifiable set of non-administrative group members
 		 * or an empty set if not set.
 		 */
+		@SuppressWarnings("ReturnOfCollectionOrArrayField") // Returning unmodifiable
 		public Set<User.Name> getGroupMembers() {
 			return groupMembers;
 		}

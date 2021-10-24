@@ -105,14 +105,14 @@ public final class EmailListManager {
 		int gid_min = thisServer.getGidMin().getId();
 
 		// Remove any '/r'
-		StringBuilder SB=new StringBuilder();
+		StringBuilder sb = new StringBuilder();
 		int len=file.length();
 		for(int c=0;c<len;c++) {
 			char ch=file.charAt(c);
-			if(ch!='\r') SB.append(ch);
+			if(ch!='\r') sb.append(ch);
 		}
 		// Make sure ends with '\n'
-		if(SB.length()>0 && SB.charAt(SB.length()-1)!='\n') SB.append('\n');
+		if(sb.length() > 0 && sb.charAt(sb.length() - 1) != '\n') sb.append('\n');
 
 		// If a majordomo list, add any new directories
 		if(path.toString().startsWith(MajordomoServer.MAJORDOMO_SERVER_DIRECTORY.toString() + '/')) {
@@ -142,7 +142,7 @@ public final class EmailListManager {
 					ENCODING
 				)
 			) {
-				out.write(SB.toString());
+				out.write(sb.toString());
 			}
 
 			// Move the new file into place

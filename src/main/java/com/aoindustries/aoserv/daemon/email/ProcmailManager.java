@@ -110,6 +110,7 @@ public final class ProcmailManager extends BuilderThread {
 
 	private static final Object rebuildLock = new Object();
 	@Override
+	@SuppressWarnings({"UseSpecificCatch", "BroadCatchBlock", "TooBroadCatch"})
 	protected boolean doRebuild() {
 		try {
 			Server thisServer = AOServDaemon.getThisServer();
@@ -282,7 +283,9 @@ public final class ProcmailManager extends BuilderThread {
 														+ "  # Discard spam with a score >= ").print(saDiscardScore).print("\n"
 														+ "  :0\n"
 														+ "  * ^X-Spam-Level: ");
-												for(int c = 0; c < saDiscardScore; c++) out.print("\\*");
+												for(int c = 0; c < saDiscardScore; c++) {
+													out.print("\\*");
+												}
 												out.print("\n"
 														+ "  /dev/null\n");
 											}
@@ -366,7 +369,9 @@ public final class ProcmailManager extends BuilderThread {
 												AttachmentType eat = eabs.get(d).getEmailAttachmentType();
 												String extension = eat.getExtension();
 												out.print("      echo \"    ").print(extension);
-												for(int e = extension.length(); e < 11; e++) out.print(' ');
+												for(int e = extension.length(); e < 11; e++) {
+													out.print(' ');
+												}
 												out.print(' ').print(eat.getDescription());
 												out.print("\" ");
 												if(d < (eabs.size() - 1)) out.print("; ");
@@ -484,10 +489,10 @@ public final class ProcmailManager extends BuilderThread {
 				}
 			}
 			return true;
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 			return false;
 		}
 	}
@@ -514,7 +519,7 @@ public final class ProcmailManager extends BuilderThread {
 			&& procmailrcStat.isRegularFile()
 		) {
 			int len1 = AUTO_PROCMAILRC.length();
-			StringBuilder SB = new StringBuilder(len1);
+			StringBuilder sb = new StringBuilder(len1);
 			int len2 = OLD_AUTO_PROCMAILRC.length();
 			StringBuilder oldSB = new StringBuilder(len2);
 			int longest = len1 >= len2 ? len1 : len2;
@@ -523,18 +528,19 @@ public final class ProcmailManager extends BuilderThread {
 				int count = 0;
 				int ch;
 				while(count < longest && (ch = in.read()) != -1) {
-					if(count < len1) SB.append((char)ch);
+					if(count < len1) sb.append((char)ch);
 					if(count < len2) oldSB.append((char)ch);
 					count++;
 				}
 			}
-			isManual = !(SB.toString().equals(AUTO_PROCMAILRC) || oldSB.toString().equals(OLD_AUTO_PROCMAILRC));
+			isManual = !(sb.toString().equals(AUTO_PROCMAILRC) || oldSB.toString().equals(OLD_AUTO_PROCMAILRC));
 		} else {
 			isManual = false;
 		}
 		return isManual;
 	}
 
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		Server thisServer = AOServDaemon.getThisServer();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();

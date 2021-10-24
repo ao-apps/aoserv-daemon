@@ -47,6 +47,7 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
+@SuppressWarnings("UseOfSystemOutOrSystemErr")
 public final class NetworkMonitor {
 
 	private static final Logger logger = Logger.getLogger(NetworkMonitor.class.getName());
@@ -333,6 +334,7 @@ public final class NetworkMonitor {
 			// Run in a separate thread
 			thread = new Thread(threadName) {
 				@Override
+				@SuppressWarnings({"ThrowFromFinallyBlock", "SleepWhileInLoop", "BroadCatchBlock", "TooBroadCatch", "UseSpecificCatch"})
 				public void run() {
 					while(true) {
 						try {
@@ -350,7 +352,9 @@ public final class NetworkMonitor {
 							cmd[index++] = device;
 							cmd[index++] = networkDirection.name();
 							cmd[index++] = countDirection.name();
-							for(String networkRange : networkRanges) cmd[index++] = networkRange;
+							for(String networkRange : networkRanges) {
+								cmd[index++] = networkRange;
+							}
 							assert index == cmd.length;
 
 							// Make sure libpcap is installed as required by ip_counts
@@ -361,6 +365,7 @@ public final class NetworkMonitor {
 								final InputStream errorIn = process.getErrorStream();
 								new Thread(errorInThreadName) {
 									@Override
+									@SuppressWarnings("UseSpecificCatch")
 									public void run() {
 										try {
 											try (BufferedReader in = new BufferedReader(new InputStreamReader(errorIn))) {
@@ -373,10 +378,10 @@ public final class NetworkMonitor {
 													}
 												}
 											}
-										} catch (ThreadDeath TD) {
-											throw TD;
-										} catch (Throwable T) {
-											logger.log(Level.SEVERE, null, T);
+										} catch (ThreadDeath td) {
+											throw td;
+										} catch (Throwable t) {
+											logger.log(Level.SEVERE, null, t);
 										}
 									}
 								}.start();
@@ -484,7 +489,7 @@ public final class NetworkMonitor {
 																	}
 																}
 															} else {
-																throw new AssertionError("Unexpected type of network: " + network.getClass().getName());
+																throw new AssertionError("Unexpected type of network: " + (network == null ? "null" : network.getClass().getName()));
 															}
 														}
 														if(highestPacketCount == Long.MIN_VALUE) throw new AssertionError("Unable to find IP to null route");
@@ -545,7 +550,7 @@ public final class NetworkMonitor {
 																}
 															}
 														} else {
-															throw new AssertionError("Unexpected type of network: " + network.getClass().getName());
+															throw new AssertionError("Unexpected type of network: " + (network == null ? "null" : network.getClass().getName()));
 														}
 													}
 													if(highestPacketCount == Long.MIN_VALUE) throw new AssertionError("Unable to find IP to null route");
@@ -585,7 +590,7 @@ public final class NetworkMonitor {
 																}
 															}
 														} else {
-															throw new AssertionError("Unexpected type of network: " + network.getClass().getName());
+															throw new AssertionError("Unexpected type of network: " + (network == null ? "null" : network.getClass().getName()));
 														}
 													}
 													if(highestByteCount == Long.MIN_VALUE) throw new AssertionError("Unable to find IP to null route");
@@ -612,12 +617,12 @@ public final class NetworkMonitor {
 								}
 							} finally {
 								int retVal = process.waitFor();
-								if(retVal!=0) throw new IOException("non-zero exit code: " + retVal);
+								if(retVal != 0) throw new IOException("non-zero exit code: " + retVal);
 							}
-						} catch (ThreadDeath TD) {
-							throw TD;
-						} catch (Throwable T) {
-							logger.log(Level.SEVERE, null, T);
+						} catch (ThreadDeath td) {
+							throw td;
+						} catch (Throwable t) {
+							logger.log(Level.SEVERE, null, t);
 						}
 						try {
 							// Sleep less on error when controlling null routes

@@ -111,6 +111,7 @@ public final class EmailAddressManager extends BuilderThread {
 
 	private static final Object rebuildLock = new Object();
 	@Override
+	@SuppressWarnings({"UseSpecificCatch", "BroadCatchBlock", "TooBroadCatch"})
 	protected boolean doRebuild() {
 		try {
 			Server thisServer = AOServDaemon.getThisServer();
@@ -345,10 +346,10 @@ public final class EmailAddressManager extends BuilderThread {
 				}
 			}
 			return true;
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 			return false;
 		}
 	}
@@ -508,18 +509,18 @@ public final class EmailAddressManager extends BuilderThread {
 	private static final String TIE_CHARS = "0123456789abcdefghijklmnopqrstuvwxyz";
 
 	private static String getTieUsername(Random random, Set<String> usernamesUsed) {
-		StringBuilder SB = new StringBuilder(4 + TIE_USERNAME_DIGITS);
-		SB.append(TIE_PREFIX);
+		StringBuilder sb = new StringBuilder(4 + TIE_USERNAME_DIGITS);
+		sb.append(TIE_PREFIX);
 		while(true) {
-			SB.setLength(TIE_PREFIX.length());
+			sb.setLength(TIE_PREFIX.length());
 			for(int c = 0; c < TIE_USERNAME_DIGITS; c++) {
-				SB.append(
+				sb.append(
 					TIE_CHARS.charAt(
 						random.nextInt(TIE_CHARS.length())
 					)
 				);
 			}
-			String username = SB.toString();
+			String username = sb.toString();
 			if(usernamesUsed.add(username)) {
 				return username;
 			}
@@ -554,6 +555,7 @@ public final class EmailAddressManager extends BuilderThread {
 		}
 	}
 
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		Server thisServer = AOServDaemon.getThisServer();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();

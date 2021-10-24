@@ -785,20 +785,20 @@ public final class FailoverFileReplicationManager {
 					perDateRoot = new PosixFile(toPath);
 
 					// The directories including the date
-					StringBuilder SB = new StringBuilder(toPath);
-					SB.append('/').append(fromServerYear).append('-');
-					if(fromServerMonth<10) SB.append('0');
-					SB.append(fromServerMonth).append('-');
-					if(fromServerDay<10) SB.append('0');
-					SB.append(fromServerDay);
-					finalMirrorRoot = SB.toString();
+					StringBuilder sb = new StringBuilder(toPath);
+					sb.append('/').append(fromServerYear).append('-');
+					if(fromServerMonth < 10) sb.append('0');
+					sb.append(fromServerMonth).append('-');
+					if(fromServerDay < 10) sb.append('0');
+					sb.append(fromServerDay);
+					finalMirrorRoot = sb.toString();
 					// The partial directory name used during the transfer
-					SB.append(PARTIAL_EXTENSION);
-					partialMirrorRoot = SB.toString();
+					sb.append(PARTIAL_EXTENSION);
+					partialMirrorRoot = sb.toString();
 					// The partial directory name used when recycling a previous directory
-					SB.setLength(finalMirrorRoot.length());
-					SB.append(RECYCLED_PARTIAL_EXTENSION);
-					recycledPartialMirrorRoot = SB.toString();
+					sb.setLength(finalMirrorRoot.length());
+					sb.append(RECYCLED_PARTIAL_EXTENSION);
+					recycledPartialMirrorRoot = sb.toString();
 
 					/*
 					 * Determine the current state of today's backup.  And it should always be in one of these four

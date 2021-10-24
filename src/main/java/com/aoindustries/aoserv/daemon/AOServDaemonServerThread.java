@@ -745,7 +745,7 @@ public final class AOServDaemonServerThread extends Thread {
 								{
 									String failoverRootStr = in.readUTF();
 									failoverRoot = failoverRootStr.isEmpty() ? null : PosixPath.valueOf(failoverRootStr);
-								}	
+								}
 								int nestedOperatingSystemVersion = in.readCompressedInt();
 								com.aoindustries.aoserv.client.mysql.Server.Name serverName;
 								if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_84_11) < 0) {
@@ -768,7 +768,7 @@ public final class AOServDaemonServerThread extends Thread {
 								{
 									String failoverRootStr = in.readUTF();
 									failoverRoot = failoverRootStr.isEmpty() ? null : PosixPath.valueOf(failoverRootStr);
-								}	
+								}
 								int nestedOperatingSystemVersion = in.readCompressedInt();
 								com.aoindustries.aoserv.client.mysql.Server.Name serverName;
 								if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_84_11) < 0) {
@@ -792,7 +792,7 @@ public final class AOServDaemonServerThread extends Thread {
 								{
 									String failoverRootStr = in.readUTF();
 									failoverRoot = failoverRootStr.isEmpty() ? null : PosixPath.valueOf(failoverRootStr);
-								}	
+								}
 								int nestedOperatingSystemVersion = in.readCompressedInt();
 								com.aoindustries.aoserv.client.mysql.Server.Name serverName;
 								if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_84_11) < 0) {
@@ -1422,8 +1422,8 @@ public final class AOServDaemonServerThread extends Thread {
 			) {
 				logger.log(Level.SEVERE, null, err);
 			}
-		} catch(Exception T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(Exception t) {
+			logger.log(Level.SEVERE, null, t);
 		} finally {
 			// Close the socket
 			try {

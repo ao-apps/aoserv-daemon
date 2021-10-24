@@ -48,6 +48,7 @@ public abstract class SocketServerManager {
 	}
 
 	private boolean started=false;
+	@SuppressWarnings({"UseOfSystemOutOrSystemErr", "UseSpecificCatch", "SleepWhileInLoop", "BroadCatchBlock", "TooBroadCatch", "SleepWhileHoldingLock"})
 	public final void start() throws IOException, SQLException {
 		if(!started) {
 			synchronized(System.out) {
@@ -56,15 +57,15 @@ public abstract class SocketServerManager {
 					System.out.print(getManagerName());
 					System.out.println(":");
 					startImpl();
-					boolean done=false;
+					boolean done = false;
 					while(!done) {
 						try {
 							verifySocketServers();
-							done=true;
-						} catch(ThreadDeath TD) {
-							throw TD;
-						} catch(Throwable T) {
-							logger.log(Level.SEVERE, null, T);
+							done = true;
+						} catch(ThreadDeath td) {
+							throw td;
+						} catch(Throwable t) {
+							logger.log(Level.SEVERE, null, t);
 							try {
 								Thread.sleep(15000);
 							} catch(InterruptedException err) {
@@ -78,9 +79,12 @@ public abstract class SocketServerManager {
 		}
 	}
 
+	@SuppressWarnings("NoopMethodInAbstractClass")
 	protected void startImpl() throws IOException, SQLException {
+		// No default action
 	}
 
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	protected void verifySocketServers() throws IOException, SQLException {
 		synchronized(this) {
 			Bind[] nbs=getNetBinds();

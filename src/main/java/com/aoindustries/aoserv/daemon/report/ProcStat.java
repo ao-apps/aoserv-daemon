@@ -129,9 +129,11 @@ public final class ProcStat {
 	}
 
 	private static long[] getLongArray(List<Long> list) {
-		int len=list.size();
-		long[] la=new long[len];
-		for(int c=0;c<len;c++) la[c]=list.get(c);
+		int len = list.size();
+		long[] la = new long[len];
+		for(int c = 0; c < len; c++) {
+			la[c] = list.get(c);
+		}
 		return la;
 	}
 
@@ -145,10 +147,10 @@ public final class ProcStat {
 
 	@Override
 	public String toString() {
-		StringBuilder SB=new StringBuilder();
-		SB.append(getClass().getName());
-		for(int c=0;c<userCPUTimes.length;c++) {
-			SB
+		StringBuilder sb = new StringBuilder();
+		sb.append(getClass().getName());
+		for(int c = 0; c < userCPUTimes.length; c++) {
+			sb
 				.append(c==0?'?':'&')
 				.append("cpu")
 				.append(c)
@@ -161,10 +163,10 @@ public final class ProcStat {
 				.append(')')
 			;
 		}
-		SB.append("&pages=(in=").append(pagesIn).append(",out=").append(pagesOut).append(')');
-		SB.append("&swaps=(in=").append(swapsIn).append(",out=").append(swapsOut).append(')');
-		SB.append("&contexts=").append(contextSwitches);
-		SB.append("&processes=").append(processes);
-		return SB.toString();
+		sb.append("&pages=(in=").append(pagesIn).append(",out=").append(pagesOut).append(')');
+		sb.append("&swaps=(in=").append(swapsIn).append(",out=").append(swapsOut).append(')');
+		sb.append("&contexts=").append(contextSwitches);
+		sb.append("&processes=").append(processes);
+		return sb.toString();
 	}
 }

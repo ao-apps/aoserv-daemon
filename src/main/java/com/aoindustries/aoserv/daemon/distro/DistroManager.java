@@ -105,6 +105,7 @@ public final class DistroManager implements Runnable {
 	private DistroManager() {
 	}
 
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException {
 		if(
 			AOServDaemonConfiguration.isManagerEnabled(DistroManager.class)
@@ -205,10 +206,10 @@ public final class DistroManager implements Runnable {
 						}
 					}
 				}
-			} catch(ThreadDeath TD) {
-				throw TD;
-			} catch(Throwable T) {
-				logger.log(Level.SEVERE, null, T);
+			} catch(ThreadDeath td) {
+				throw td;
+			} catch(Throwable t) {
+				logger.log(Level.SEVERE, null, t);
 				try {
 					Thread.sleep(MAX_SLEEP_TIME);
 				} catch(InterruptedException err) {

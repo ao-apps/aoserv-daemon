@@ -375,9 +375,9 @@ public final class DistroGenerator {
 
 	private final Map<Integer, Map<Integer, String>> groupnames = new HashMap<>();
 	private String getGroupname(OSFilename osFilename, int fileGID) throws IOException {
-		Integer I = osFilename.osv;
+		Integer i = osFilename.osv;
 		synchronized(groupnames) {
-			Map<Integer, String> realGroups = groupnames.get(I);
+			Map<Integer, String> realGroups = groupnames.get(i);
 			if(realGroups == null) {
 				realGroups = new HashMap<>();
 				try (BufferedReader in = new BufferedReader(
@@ -399,7 +399,7 @@ public final class DistroGenerator {
 						if(!realGroups.containsKey(groupID)) realGroups.put(groupID, groupname);
 					}
 				}
-				groupnames.put(I, realGroups);
+				groupnames.put(i, realGroups);
 			}
 			String groupname = realGroups.get(fileGID);
 			if(groupname == null) throw new IOException("Unable to find group name " + fileGID + " for file " + osFilename);
@@ -810,15 +810,15 @@ public final class DistroGenerator {
 					boolean doHash = isRegularFile && (type.equals(DistroFileType.SYSTEM) || type.equals(DistroFileType.PRELINK));
 
 					try {
-						StringBuilder SB = new StringBuilder();
-						SB
+						StringBuilder sb = new StringBuilder();
+						sb
 							.append("insert into distro_files_tmp values (nextval('distro_files_pkey_seq'), ")
 							.append(osFilename.osv)
 							.append(", ");
-						TextInPsqlEncoder.textInPsqlEncoder.writePrefixTo(SB);
-						TextInPsqlEncoder.textInPsqlEncoder.append(osFilename.filename.length() == 0 ? "/" : osFilename.filename, SB);
-						TextInPsqlEncoder.textInPsqlEncoder.writeSuffixTo(SB);
-						SB
+						TextInPsqlEncoder.textInPsqlEncoder.writePrefixTo(sb);
+						TextInPsqlEncoder.textInPsqlEncoder.append(osFilename.filename.length() == 0 ? "/" : osFilename.filename, sb);
+						TextInPsqlEncoder.textInPsqlEncoder.writeSuffixTo(sb);
+						sb
 							.append(", ")
 							.append(runState.isOptional(osFilename))
 							.append(", '")
@@ -826,14 +826,14 @@ public final class DistroGenerator {
 							.append("', ")
 							.append(statMode)
 							.append("::int8, ");
-						TextInPsqlEncoder.textInPsqlEncoder.writePrefixTo(SB);
-						TextInPsqlEncoder.textInPsqlEncoder.append(getUsername(osFilename, fileStat.getUid()), SB);
-						TextInPsqlEncoder.textInPsqlEncoder.writeSuffixTo(SB);
-						SB.append(", ");
-						TextInPsqlEncoder.textInPsqlEncoder.writePrefixTo(SB);
-						TextInPsqlEncoder.textInPsqlEncoder.append(getGroupname(osFilename, fileStat.getGid()), SB);
-						TextInPsqlEncoder.textInPsqlEncoder.writeSuffixTo(SB);
-						SB.append(", ");
+						TextInPsqlEncoder.textInPsqlEncoder.writePrefixTo(sb);
+						TextInPsqlEncoder.textInPsqlEncoder.append(getUsername(osFilename, fileStat.getUid()), sb);
+						TextInPsqlEncoder.textInPsqlEncoder.writeSuffixTo(sb);
+						sb.append(", ");
+						TextInPsqlEncoder.textInPsqlEncoder.writePrefixTo(sb);
+						TextInPsqlEncoder.textInPsqlEncoder.append(getGroupname(osFilename, fileStat.getGid()), sb);
+						TextInPsqlEncoder.textInPsqlEncoder.writeSuffixTo(sb);
+						sb.append(", ");
 						if(doHash) {
 							assert storeSize;
 							if(type.equals(DistroFileType.SYSTEM)) {
@@ -846,7 +846,7 @@ public final class DistroGenerator {
 									if(readLen != fileLen) throw new IOException("readLen != fileLen: " + readLen + " != " + fileLen);
 								}
 								if(sha256.length != 32) throw new AssertionError();
-								SB
+								sb
 									.append(fileLen).append("::int8, ")
 									.append(IoUtils.bufferToLong(sha256)).append("::int8, ")
 									.append(IoUtils.bufferToLong(sha256, 8)).append("::int8, ")
@@ -865,7 +865,7 @@ public final class DistroGenerator {
 											fileLen = in.getCount();
 										}
 										if(sha256.length != 32) throw new AssertionError();
-										SB
+										sb
 											.append(fileLen).append("::int8, ")
 											.append(IoUtils.bufferToLong(sha256)).append("::int8, ")
 											.append(IoUtils.bufferToLong(sha256, 8)).append("::int8, ")
@@ -881,22 +881,22 @@ public final class DistroGenerator {
 							} else throw new RuntimeException("Unexpected value for type: " + type);
 						} else {
 							if(storeSize) {
-								SB.append(fileStat.getSize()).append("::int8");
+								sb.append(fileStat.getSize()).append("::int8");
 							} else {
-								SB.append("null");
+								sb.append("null");
 							}
-							SB.append(", null, null, null, null");
+							sb.append(", null, null, null, null");
 						}
-						SB.append(", ");
+						sb.append(", ");
 						if(PosixFile.isSymLink(statMode)) {
-							TextInPsqlEncoder.textInPsqlEncoder.writePrefixTo(SB);
-							TextInPsqlEncoder.textInPsqlEncoder.append(file.readLink(), SB);
-							TextInPsqlEncoder.textInPsqlEncoder.writeSuffixTo(SB);
+							TextInPsqlEncoder.textInPsqlEncoder.writePrefixTo(sb);
+							TextInPsqlEncoder.textInPsqlEncoder.append(file.readLink(), sb);
+							TextInPsqlEncoder.textInPsqlEncoder.writeSuffixTo(sb);
 						} else {
-							SB.append("null");
+							sb.append("null");
 						}
-						SB.append(");");
-						runState.print(SB.toString());
+						sb.append(");");
+						runState.print(sb.toString());
 					} catch(IOException e) {
 						runState.err.println("Error on file: " + fullPath);
 						runState.err.flush();

@@ -61,7 +61,7 @@ import java.util.logging.Logger;
 
 /**
  * Handles the building of name server processes and files.
- * 
+ *
  * TODO: Had to put "DISABLE_ZONE_CHECKING="yes"" in /etc/sysconfig/named due
  *       to check finding "has no address records" for MX records.  We should
  *       check for this and enable zone checking.
@@ -92,7 +92,7 @@ public final class DNSManager extends BuilderThread {
 		+ " 64.62.174.0/24;"   // Virtual Servers
 		+ " 64.71.144.0/25;"   // Virtual Servers
 		//+ " 66.220.7.80/29;"   // gtapolicemods.com
-		// Fremont Management 
+		// Fremont Management
 		+ " 65.19.176.24/29;" // Firewalls
 		+ " 66.220.7.0/27;"  // Hosts
 		// Amsterdam
@@ -137,6 +137,7 @@ public final class DNSManager extends BuilderThread {
 		"named.loopback",
 		"slaves"
 	};
+	@SuppressWarnings("ReturnOfCollectionOrArrayField")
 	private static String[] getStaticFiles(int osv) throws IllegalArgumentException {
 		if(osv == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) return centos5StaticFiles;
 		if(osv == OperatingSystemVersion.CENTOS_7_X86_64) return centos7StaticFiles;
@@ -469,10 +470,10 @@ public final class DNSManager extends BuilderThread {
 				}
 			}
 			return true;
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 			return false;
 		}
 	}
@@ -497,6 +498,7 @@ public final class DNSManager extends BuilderThread {
 		}
 	}
 
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();

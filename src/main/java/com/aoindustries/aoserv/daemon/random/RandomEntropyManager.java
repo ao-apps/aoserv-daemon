@@ -255,10 +255,10 @@ public final class RandomEntropyManager implements Runnable {
 						logger.log(Level.WARNING, null, err);
 					}
 				}
-			} catch(ThreadDeath TD) {
-				throw TD;
-			} catch(Throwable T) {
-				logger.log(Level.SEVERE, null, T);
+			} catch(ThreadDeath td) {
+				throw td;
+			} catch(Throwable t) {
+				logger.log(Level.SEVERE, null, t);
 				try {
 					Thread.sleep(ERROR_DELAY);
 				} catch(InterruptedException err) {
@@ -268,6 +268,7 @@ public final class RandomEntropyManager implements Runnable {
 		}
 	}
 
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		Server thisServer = AOServDaemon.getThisServer();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();

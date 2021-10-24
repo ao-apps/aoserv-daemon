@@ -124,12 +124,14 @@ public final class ServerManager {
 		File procFile = new File("/proc/mdstat");
 		String report;
 		if(procFile.exists()) {
-			StringBuilder SB=new StringBuilder();
+			StringBuilder sb = new StringBuilder();
 			try (InputStream in = new BufferedInputStream(new FileInputStream(procFile))) {
 				int ch;
-				while((ch=in.read())!=-1) SB.append((char)ch);
+				while((ch = in.read()) != -1) {
+					sb.append((char)ch);
+				}
 			}
-			report = SB.toString();
+			report = sb.toString();
 		} else report="";
 		return report;
 	}
@@ -218,7 +220,9 @@ public final class ServerManager {
 		StringBuilder report = new StringBuilder(40);
 		try (InputStream in = new BufferedInputStream(new FileInputStream(procLoadavg))) {
 			int ch;
-			while((ch=in.read())!=-1) report.append((char)ch);
+			while((ch = in.read()) != -1) {
+				report.append((char)ch);
+			}
 		}
 		return report.toString();
 	}
@@ -227,7 +231,9 @@ public final class ServerManager {
 		StringBuilder report = new StringBuilder(40);
 		try (InputStream in = new BufferedInputStream(new FileInputStream(procMeminfo))) {
 			int ch;
-			while((ch=in.read())!=-1) report.append((char)ch);
+			while((ch = in.read()) != -1) {
+				report.append((char)ch);
+			}
 		}
 		return report.toString();
 	}

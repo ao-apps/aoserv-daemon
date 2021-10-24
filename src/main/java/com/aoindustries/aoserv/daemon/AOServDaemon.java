@@ -155,17 +155,19 @@ public final class AOServDaemon {
 	public static void findUnownedFiles(File file, Collection<Integer> uids, List<File> deleteFileList, int recursionLevel) throws IOException {
 		if(file.exists()) {
 			// Figure out the ownership
-			PosixFile unixFile=new PosixFile(file.getPath());
+			PosixFile unixFile = new PosixFile(file.getPath());
 			Stat stat = unixFile.getStat();
-			int uid=stat.getUid();
+			int uid = stat.getUid();
 			if(uids.contains(uid)) {
 				if(!stat.isSymLink()) {
 					// Search any children files
-					String[] list=file.list();
-					if(list!=null) {
-						int newRecursionLevel=recursionLevel+1;
-						int len=list.length;
-						for(int c=0;c<len;c++) findUnownedFiles(new File(file, list[c]), uids, deleteFileList, newRecursionLevel);
+					String[] list = file.list();
+					if(list != null) {
+						int newRecursionLevel = recursionLevel + 1;
+						int len = list.length;
+						for(int c = 0; c < len; c++) {
+							findUnownedFiles(new File(file, list[c]), uids, deleteFileList, newRecursionLevel);
+						}
 					}
 				}
 			} else deleteFileList.add(file);
@@ -196,6 +198,7 @@ public final class AOServDaemon {
 	 * provided in <code>com/aoindustries/aoserv/daemon/aoserv-daemon.properties</code>.
 	 * This will typically be called by the init scripts of the dedicated machine.
 	 */
+	@SuppressWarnings({"UseSpecificCatch", "BroadCatchBlock", "TooBroadCatch", "SleepWhileInLoop"})
 	public static void main(String[] args) {
 		boolean done=false;
 		while(!done) {
@@ -296,10 +299,10 @@ public final class AOServDaemon {
 					server.start();
 				}
 				done = true;
-			} catch (ThreadDeath TD) {
-				throw TD;
-			} catch (Throwable T) {
-				logger.log(Level.SEVERE, null, T);
+			} catch (ThreadDeath td) {
+				throw td;
+			} catch (Throwable t) {
+				logger.log(Level.SEVERE, null, t);
 				try {
 					Thread.sleep(60000);
 				} catch(InterruptedException err) {
@@ -315,16 +318,16 @@ public final class AOServDaemon {
 	 */
 	// TODO: Use ao-encoding SH encoder?
 	public static String getCommandString(String... command) {
-		StringBuilder SB = new StringBuilder();
-		for(int c=0;c<command.length;c++) {
-			if(c>0) SB.append(' ');
-			String cmd=command[c];
-			boolean needQuote=cmd.indexOf(' ')!=-1;
-			if(needQuote) SB.append('"');
-			SB.append(command[c]);
-			if(needQuote) SB.append('"');
+		StringBuilder sb = new StringBuilder();
+		for(int c = 0; c < command.length; c++) {
+			if(c > 0) sb.append(' ');
+			String cmd = command[c];
+			boolean needQuote = cmd.indexOf(' ') != -1;
+			if(needQuote) sb.append('"');
+			sb.append(command[c]);
+			if(needQuote) sb.append('"');
 		}
-		return SB.toString();
+		return sb.toString();
 	}
 
 	/**

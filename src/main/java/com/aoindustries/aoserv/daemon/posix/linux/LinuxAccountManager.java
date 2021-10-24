@@ -600,7 +600,7 @@ public class LinuxAccountManager extends BuilderThread {
 
 				/*
 				 * Remove any cron jobs that should not exist.
-				 */ 
+				 */
 				String[] cronList = cronDirectory.list();
 				if(cronList != null) {
 					for(String filename : cronList) {
@@ -827,7 +827,7 @@ public class LinuxAccountManager extends BuilderThread {
 		PosixFile file = new PosixFile(path.toString());
 		String content;
 		if(file.getStat().exists()) {
-			StringBuilder SB = new StringBuilder();
+			StringBuilder sb = new StringBuilder();
 			Server thisServer = AOServDaemon.getThisServer();
 			try (
 				InputStream in = new BufferedInputStream(
@@ -840,10 +840,10 @@ public class LinuxAccountManager extends BuilderThread {
 				// TODO: This is assuming ISO-8859-1 encoding.  Is this correct here?
 				int ch;
 				while((ch = in.read()) != -1) {
-					SB.append((char)ch);
+					sb.append((char)ch);
 				}
 			}
-			content = SB.toString();
+			content = sb.toString();
 		} else {
 			content = "";
 		}
@@ -854,15 +854,15 @@ public class LinuxAccountManager extends BuilderThread {
 		File cronFile = new File(cronDirectory, username.toString());
 		String cronTable;
 		if(cronFile.exists()) {
-			StringBuilder SB = new StringBuilder();
+			StringBuilder sb = new StringBuilder();
 			try (InputStream in = new BufferedInputStream(new FileInputStream(cronFile))) {
 				// TODO: This is assuming ISO-8859-1 encoding.  Is this correct here?
 				int ch;
 				while((ch = in.read()) != -1) {
-					SB.append((char)ch);
+					sb.append((char)ch);
 				}
 			}
-			cronTable = SB.toString();
+			cronTable = sb.toString();
 		} else {
 			cronTable = "";
 		}

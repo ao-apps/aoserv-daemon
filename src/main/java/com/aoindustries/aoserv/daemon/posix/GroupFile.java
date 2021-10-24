@@ -90,12 +90,12 @@ public final class GroupFile {
 
 			groupName = Group.Name.valueOf(values.get(0));
 
-			String S;
+			String s;
 
-			if(len > 2 && (S = values.get(2)).length() > 0) gid = Integer.parseInt(S);
+			if(len > 2 && (s = values.get(2)).length() > 0) gid = Integer.parseInt(s);
 			else throw new IllegalArgumentException("gid missing: " + line);
 
-			if(len > 3 && (S = values.get(3)).length() > 0) groupMembers = GShadowFile.Entry.parseUserIds(S);
+			if(len > 3 && (s = values.get(3)).length() > 0) groupMembers = GShadowFile.Entry.parseUserIds(s);
 			else groupMembers = Collections.emptySet();
 
 			if(len > 4) throw new IllegalArgumentException("Too many fields: " + line);
@@ -168,6 +168,7 @@ public final class GroupFile {
 		 * The unmodifiable set of group members
 		 * or an empty set if not set.
 		 */
+		@SuppressWarnings("ReturnOfCollectionOrArrayField") // Returning unmodifiable
 		public Set<User.Name> getGroupMembers() {
 			return groupMembers;
 		}

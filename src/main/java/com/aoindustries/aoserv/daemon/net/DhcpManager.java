@@ -78,6 +78,7 @@ public final class DhcpManager implements Runnable {
 		}
 	}
 
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		if(AOServDaemonConfiguration.isManagerEnabled(DhcpManager.class)) {
 			synchronized(System.out) {
@@ -123,10 +124,10 @@ public final class DhcpManager implements Runnable {
 						}
 					}
 				}
-			} catch(ThreadDeath TD) {
-				throw TD;
-			} catch(Throwable T) {
-				logger.log(Level.SEVERE, null, T);
+			} catch(ThreadDeath td) {
+				throw td;
+			} catch(Throwable t) {
+				logger.log(Level.SEVERE, null, t);
 				try {
 					Thread.sleep(POLL_INTERVAL);
 				} catch(InterruptedException err) {

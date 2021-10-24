@@ -124,30 +124,30 @@ public final class ShadowFile {
 
 			username = User.Name.valueOf(values.get(0));
 
-			String S;
+			String s;
 
-			if(len > 1 && (S = values.get(1)).length() > 0) password = S;
+			if(len > 1 && (s = values.get(1)).length() > 0) password = s;
 			else password = User.NO_PASSWORD_CONFIG_VALUE;
 
-			if(len > 2 && (S = values.get(2)).length() > 0) changedDate = Integer.parseInt(S);
+			if(len > 2 && (s = values.get(2)).length() > 0) changedDate = Integer.parseInt(s);
 			else changedDate = getCurrentDate();
 
-			if(len > 3 && (S = values.get(3)).length() > 0) minPasswordAge = Integer.parseInt(S);
+			if(len > 3 && (s = values.get(3)).length() > 0) minPasswordAge = Integer.parseInt(s);
 			else minPasswordAge = null;
 
-			if(len > 4 && (S = values.get(4)).length() > 0) maxPasswordAge = Integer.parseInt(S);
+			if(len > 4 && (s = values.get(4)).length() > 0) maxPasswordAge = Integer.parseInt(s);
 			else maxPasswordAge = null;
 
-			if(len > 5 && (S = values.get(5)).length() > 0) warningDays = Integer.parseInt(S);
+			if(len > 5 && (s = values.get(5)).length() > 0) warningDays = Integer.parseInt(s);
 			else warningDays = null;
 
-			if(len > 6 && (S = values.get(6)).length() > 0) inactivateDays = Integer.parseInt(S);
+			if(len > 6 && (s = values.get(6)).length() > 0) inactivateDays = Integer.parseInt(s);
 			else inactivateDays = null;
 
-			if(len > 7 && (S = values.get(7)).length() > 0) expirationDate = Integer.parseInt(S);
+			if(len > 7 && (s = values.get(7)).length() > 0) expirationDate = Integer.parseInt(s);
 			else expirationDate = null;
 
-			if(len > 8 && (S = values.get(8)).length() > 0) flag = S;
+			if(len > 8 && (s = values.get(8)).length() > 0) flag = s;
 			else flag = null;
 
 			if(len > 9) throw new IllegalArgumentException("Too many fields: " + line);

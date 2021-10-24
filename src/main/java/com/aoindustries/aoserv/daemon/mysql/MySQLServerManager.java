@@ -127,9 +127,9 @@ public final class MySQLServerManager extends BuilderThread {
 	private static final Map<Integer, AOConnectionPool> pools=new HashMap<>();
 	static AOConnectionPool getPool(Server ms) throws IOException, SQLException {
 		synchronized(pools) {
-			Integer I=ms.getPkey();
-			AOConnectionPool pool=pools.get(I);
-			if(pool==null) {
+			Integer i = ms.getPkey();
+			AOConnectionPool pool = pools.get(i);
+			if(pool == null) {
 				Database md=ms.getMySQLDatabase(Database.MYSQL);
 				if(md==null) throw new SQLException("Unable to find Database: "+Database.MYSQL+" on "+ms.toString());
 				Port port = md.getMySQLServer().getBind().getPort();
@@ -149,7 +149,7 @@ public final class MySQLServerManager extends BuilderThread {
 					AOServDaemonConfiguration.getMySqlMaxConnectionAge(serverName),
 					logger
 				);
-				pools.put(I, pool);
+				pools.put(i, pool);
 			}
 			return pool;
 		}

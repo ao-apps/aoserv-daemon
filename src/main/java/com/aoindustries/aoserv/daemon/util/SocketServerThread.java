@@ -58,28 +58,28 @@ public abstract class SocketServerThread extends Thread {
 
 	boolean runMore=true;
 
-	private ServerSocket SS;
+	private ServerSocket ss;
 
 	@Override
 	public void run() {
 		while(runMore) {
 			try {
-				SS=new ServerSocket(port, 50, java.net.InetAddress.getByName(ipAddress.toString()));
+				ss = new ServerSocket(port, 50, java.net.InetAddress.getByName(ipAddress.toString()));
 				try {
 					while(runMore) {
-						Socket socket=SS.accept();
+						Socket socket = ss.accept();
 						socket.setKeepAlive(true);
 						socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
 						//socket.setTcpNoDelay(true);
 						socketConnected(socket);
 					}
 				} finally {
-					SS.close();
+					ss.close();
 				}
-			} catch(ThreadDeath TD) {
-				throw TD;
-			} catch(Throwable T) {
-				logger.log(Level.SEVERE, null, T);
+			} catch(ThreadDeath td) {
+				throw td;
+			} catch(Throwable t) {
+				logger.log(Level.SEVERE, null, t);
 				try {
 					Thread.sleep(60000);
 				} catch(InterruptedException err) {
@@ -92,7 +92,7 @@ public abstract class SocketServerThread extends Thread {
 	public final void close() {
 		runMore=false;
 		try {
-			SS.close();
+			ss.close();
 		} catch(IOException err) {
 			logger.log(Level.SEVERE, null, err);
 		}

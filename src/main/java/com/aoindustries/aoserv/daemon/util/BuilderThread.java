@@ -78,6 +78,7 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
 			if (rebuildThread == null) {
 				rebuildThread = new Thread() {
 					@Override
+					@SuppressWarnings({"SleepWhileInLoop", "BroadCatchBlock", "TooBroadCatch"})
 					public void run() {
 						try {
 							long lastBuilt = -1;
@@ -124,10 +125,10 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
 											BuilderThread.this.notifyAll();
 										}
 									}
-								} catch(ThreadDeath TD) {
-									throw TD;
-								} catch(Throwable T) {
-									logger.logp(Level.SEVERE, BuilderThread.this.getClass().getName(), "run", null, T);
+								} catch(ThreadDeath td) {
+									throw td;
+								} catch(Throwable t) {
+									logger.logp(Level.SEVERE, BuilderThread.this.getClass().getName(), "run", null, t);
 									try {
 										isSleeping=true;
 										Thread.sleep(getRandomDelay());
@@ -141,10 +142,10 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
 								}
 							}
 							BuilderThread.this.rebuildThread = null;
-						} catch(ThreadDeath TD) {
-							throw TD;
-						} catch(Throwable T) {
-							logger.logp(Level.SEVERE, BuilderThread.this.getClass().getName(), "run", null, T);
+						} catch(ThreadDeath td) {
+							throw td;
+						} catch(Throwable t) {
+							logger.logp(Level.SEVERE, BuilderThread.this.getClass().getName(), "run", null, t);
 						}
 					}
 				};
@@ -164,8 +165,8 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
 			waitForBuildCount++;
 			try {
 				// Interrupt rebuild thread if it is waiting on the batch
-				Thread T=rebuildThread;
-				if(T!=null && isSleeping) T.interrupt();
+				Thread t = rebuildThread;
+				if(t != null && isSleeping) t.interrupt();
 
 				long updated=lastUpdated;
 				while(updated<=lastUpdated && updated>lastRebuild) {

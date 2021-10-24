@@ -391,9 +391,9 @@ public final class FTPManager extends BuilderThread {
 	 * Removes any file in the directory that is not listed in <code>files</code>.
 	 */
 	public static void trimFiles(PosixFile dir, List<String> files) throws IOException {
-		String[] SA=new String[files.size()];
-		files.toArray(SA);
-		trimFiles(dir, SA);
+		String[] sa = new String[files.size()];
+		files.toArray(sa);
+		trimFiles(dir, sa);
 	}
 
 	@Override

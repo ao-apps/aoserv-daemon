@@ -135,7 +135,9 @@ public final class SshdManager extends BuilderThread {
 		String octal = Long.toOctalString(sftpUmask);
 		if(sftpUmask < 0000) throw new IllegalArgumentException("sftpUmask < 0000 : " + octal);
 		if(sftpUmask > 0777) throw new IllegalArgumentException("sftpUmask > 0777 : " + octal);
-		while(octal.length() < 3) octal = '0' + octal;
+		while(octal.length() < 3) {
+			octal = '0' + octal;
+		}
 		return octal;
 	}
 
@@ -205,16 +207,15 @@ public final class SshdManager extends BuilderThread {
 			// Determine address family
 			boolean hasIPv4 = false;
 			boolean hasIPv6 = false;
-			LOOP :
 			for(Bind nb : nbs) {
 				InetAddress ip = nb.getIpAddress().getInetAddress();
 				ProtocolFamily family = ip.getProtocolFamily();
 				if(family.equals(StandardProtocolFamily.INET)) {
 					hasIPv4 = true;
-					if(hasIPv6) break LOOP;
+					if(hasIPv6) break;
 				} else if(family.equals(StandardProtocolFamily.INET6)) {
 					hasIPv6 = true;
-					if(hasIPv4) break LOOP;
+					if(hasIPv4) break;
 				} else {
 					throw new AssertionError("Unexpected family: " + family);
 				}
@@ -364,6 +365,7 @@ public final class SshdManager extends BuilderThread {
 
 	private static final Object rebuildLock = new Object();
 	@Override
+	@SuppressWarnings("SleepWhileHoldingLock")
 	protected boolean doRebuild() {
 		try {
 			Server thisServer = AOServDaemon.getThisServer();
@@ -548,14 +550,15 @@ public final class SshdManager extends BuilderThread {
 				}
 			}
 			return true;
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 			return false;
 		}
 	}
 
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		Server thisServer = AOServDaemon.getThisServer();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();

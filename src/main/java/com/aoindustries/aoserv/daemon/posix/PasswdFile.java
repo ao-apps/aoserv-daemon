@@ -121,40 +121,40 @@ public final class PasswdFile {
 
 			username = User.Name.valueOf(values.get(0));
 
-			String S;
+			String s;
 
-			if(len > 2 && (S = values.get(2)).length() > 0) uid = Integer.parseInt(S);
+			if(len > 2 && (s = values.get(2)).length() > 0) uid = Integer.parseInt(s);
 			else throw new IllegalArgumentException("uid missing: " + line);
 
-			if(len > 3 && (S = values.get(3)).length() > 0) gid = Integer.parseInt(S);
+			if(len > 3 && (s = values.get(3)).length() > 0) gid = Integer.parseInt(s);
 			else throw new IllegalArgumentException("gid missing: " + line);
 
 			List<String> fields;
-			if(len > 4 && (S = values.get(4)).length() > 0) {
-				fields = Strings.split(S, ',');
+			if(len > 4 && (s = values.get(4)).length() > 0) {
+				fields = Strings.split(s, ',');
 			} else {
 				fields = Collections.emptyList();
 			}
 			int fieldsLen = fields.size();
 
-			if(fieldsLen > 0 && (S = fields.get(0)).length() > 0) fullName = Gecos.valueOf(S);
+			if(fieldsLen > 0 && (s = fields.get(0)).length() > 0) fullName = Gecos.valueOf(s);
 			else fullName = null;
 
-			if(fieldsLen > 1 && (S = fields.get(1)).length() > 0) officeLocation = Gecos.valueOf(S);
+			if(fieldsLen > 1 && (s = fields.get(1)).length() > 0) officeLocation = Gecos.valueOf(s);
 			else officeLocation = null;
 
-			if(fieldsLen > 2 && (S = fields.get(2)).length() > 0) officePhone = Gecos.valueOf(S);
+			if(fieldsLen > 2 && (s = fields.get(2)).length() > 0) officePhone = Gecos.valueOf(s);
 			else officePhone = null;
 
-			if(fieldsLen > 3 && (S = fields.get(3)).length() > 0) homePhone = Gecos.valueOf(S);
+			if(fieldsLen > 3 && (s = fields.get(3)).length() > 0) homePhone = Gecos.valueOf(s);
 			else homePhone = null;
 
 			if(fields.size() > 4) throw new IllegalArgumentException("Too many GECOS fields: " + line);
 
-			if(len > 5 && (S = values.get(5)).length() > 0) home = PosixPath.valueOf(S);
+			if(len > 5 && (s = values.get(5)).length() > 0) home = PosixPath.valueOf(s);
 			else throw new IllegalArgumentException("home missing: " + line);
 
-			if(len > 6 && (S = values.get(6)).length() > 0) shell = PosixPath.valueOf(S);
+			if(len > 6 && (s = values.get(6)).length() > 0) shell = PosixPath.valueOf(s);
 			else throw new IllegalArgumentException("shell missing: " + line);
 
 			if(len > 7) throw new IllegalArgumentException("Too many fields: " + line);

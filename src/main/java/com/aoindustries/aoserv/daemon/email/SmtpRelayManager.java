@@ -85,6 +85,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 
 	private static final Object rebuildLock = new Object();
 	@Override
+	@SuppressWarnings({"UseSpecificCatch", "BroadCatchBlock", "TooBroadCatch"})
 	protected boolean doRebuild() {
 		try {
 			AOServConnector connector = AOServDaemon.getConnector();
@@ -225,10 +226,10 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 				}
 			}
 			return true;
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 			return false;
 		}
 	}
@@ -241,13 +242,13 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 	 * Gets the number of dots in the String, returning a maximum of 3 even if there are more
 	 */
 	/*
-	private static int getDotCount(String S) {
-		int count=0;
-		int len=S.length();
-		for(int c=0;c<len;c++) {
-			if(S.charAt(c)=='.') {
+	private static int getDotCount(String s) {
+		int count = 0;
+		int len = s.length();
+		for(int c = 0; c < len; c++) {
+			if(s.charAt(c) == '.') {
 				count++;
-				if(count>=3) break;
+				if(count >= 3) break;
 			}
 		}
 		return count;
@@ -286,6 +287,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 	}
 
 	@Override
+	@SuppressWarnings({"SleepWhileInLoop", "UseSpecificCatch", "BroadCatchBlock", "TooBroadCatch"})
 	public void run() {
 		long lastTime = Long.MIN_VALUE;
 		while(true) {
@@ -312,10 +314,10 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 					lastTime = time;
 					if(needRebuild) doRebuild();
 				}
-			} catch(ThreadDeath TD) {
-				throw TD;
-			} catch(Throwable T) {
-				logger.log(Level.SEVERE, null, T);
+			} catch(ThreadDeath td) {
+				throw td;
+			} catch(Throwable t) {
+				logger.log(Level.SEVERE, null, t);
 				try {
 					Thread.sleep(REFRESH_PERIOD);
 				} catch(InterruptedException err) {
@@ -325,6 +327,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 		}
 	}
 
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		Server thisServer = AOServDaemon.getThisServer();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
