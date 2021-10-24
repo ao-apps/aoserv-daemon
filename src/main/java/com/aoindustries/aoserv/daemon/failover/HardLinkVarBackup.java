@@ -357,10 +357,9 @@ public final class HardLinkVarBackup {
 		}
 
 		@Override
-		public boolean equals(Object O) {
-			if(O==null) return false;
-			if(!(O instanceof LinkKey)) return false;
-			LinkKey other=(LinkKey)O;
+		public boolean equals(Object obj) {
+			if(!(obj instanceof LinkKey)) return false;
+			LinkKey other=(LinkKey)obj;
 			return
 				fromDevice==other.fromDevice
 				&& fromInode==other.fromInode

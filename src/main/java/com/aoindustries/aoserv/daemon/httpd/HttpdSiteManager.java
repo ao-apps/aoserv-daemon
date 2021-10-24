@@ -848,10 +848,9 @@ public abstract class HttpdSiteManager {
 		}
 
 		@Override
-		public boolean equals(Object O) {
-			if(O==null) return false;
-			if(!(O instanceof Location)) return false;
-			Location other = (Location)O;
+		public boolean equals(Object obj) {
+			if(!(obj instanceof Location)) return false;
+			Location other = (Location)obj;
 			return
 				isRegularExpression == other.isRegularExpression
 				&& location.equals(other.location)
@@ -1008,10 +1007,9 @@ public abstract class HttpdSiteManager {
 		}
 
 		@Override
-		public boolean equals(Object O) {
-			if(O==null) return false;
-			if(!(O instanceof JkSetting)) return false;
-			JkSetting other = (JkSetting)O;
+		public boolean equals(Object obj) {
+			if(!(obj instanceof JkSetting)) return false;
+			JkSetting other = (JkSetting)obj;
 			return
 				isMount == other.isMount
 				&& path.equals(other.path)

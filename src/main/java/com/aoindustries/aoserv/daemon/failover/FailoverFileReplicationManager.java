@@ -673,7 +673,7 @@ public final class FailoverFileReplicationManager {
 	/**
 	 * Receives incoming data for a failover replication.  The critical information, such as the directory to store to,
 	 * has been provided by the master server because we can't trust the sending server.
-	 * 
+	 *
 	 * @param backupPartition  the full path to the root of the backup partition, without any hostnames, packages, or names
 	 * @param quota_gid  the quota_gid or <code>-1</code> for no quotas
 	 */
@@ -1267,7 +1267,7 @@ public final class FailoverFileReplicationManager {
 									}
 								}
 							} else if(PosixFile.isRegularFile(mode)) {
-								/* 
+								/*
 								 * When receiving a regular file, we will always look in the current directory and the linkTo directory
 								 * for an exact match with the same filename (based on length and mtime only).  If the exact match is in the
 								 * current directory, then no data will be transferred.  If the exact match is in the linkTo directory,
@@ -2174,10 +2174,9 @@ public final class FailoverFileReplicationManager {
 		}
 
 		@Override
-		public boolean equals(Object O) {
-			if(O==null) return false;
-			if(!(O instanceof ModifyTimeAndSize)) return false;
-			ModifyTimeAndSize other = (ModifyTimeAndSize)O;
+		public boolean equals(Object obj) {
+			if(!(obj instanceof ModifyTimeAndSize)) return false;
+			ModifyTimeAndSize other = (ModifyTimeAndSize)obj;
 			return
 				modifyTime==other.modifyTime
 				&& size==other.size
@@ -2680,10 +2679,10 @@ public final class FailoverFileReplicationManager {
 	/**
 	 * If the file is a regular file and is hard-linked, copies the file and renames it over the original (to break the link).
 	 * ufStat may no longer be correct after this method is called, if needed, restat after this call
-	 * 
+	 *
 	 * @param  uf  the file we are checking
 	 * @param  ufStat  the stat of the current file - it is assumed to match the correct state of uf
-	 * 
+	 *
 	 * @return  true if any changes were made.  This could be combined with a restat if necessary
 	 */
 	private static boolean copyIfHardLinked(Activity activity, PosixFile uf, Stat ufStat) throws IOException {
