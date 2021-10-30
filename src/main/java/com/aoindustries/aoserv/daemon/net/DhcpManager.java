@@ -105,22 +105,23 @@ public final class DhcpManager implements Runnable {
 	}
 
 	@Override
+	@SuppressWarnings("SleepWhileInLoop")
 	public void run() {
-		while(true) {
+		while(!Thread.currentThread().isInterrupted()) {
 			try {
-				while(true) {
-					try {
-						Thread.sleep(POLL_INTERVAL);
-					} catch(InterruptedException err) {
-						Thread.currentThread().interrupt();
-					}
-					for(Device nd : AOServDaemon.getThisServer().getHost().getNetDevices()) {
-						IpAddress primaryIP=nd.getPrimaryIPAddress();
-						if(primaryIP.isDhcp()) {
-							InetAddress dhcpAddress=getDhcpAddress(nd.getDeviceId().getName());
-							if(!primaryIP.getInetAddress().equals(dhcpAddress)) {
-								primaryIP.setDHCPAddress(dhcpAddress);
-							}
+				try {
+					Thread.sleep(POLL_INTERVAL);
+				} catch(InterruptedException err) {
+					// Restore the interrupted status
+					Thread.currentThread().interrupt();
+					break;
+				}
+				for(Device nd : AOServDaemon.getThisServer().getHost().getNetDevices()) {
+					IpAddress primaryIP=nd.getPrimaryIPAddress();
+					if(primaryIP.isDhcp()) {
+						InetAddress dhcpAddress=getDhcpAddress(nd.getDeviceId().getName());
+						if(!primaryIP.getInetAddress().equals(dhcpAddress)) {
+							primaryIP.setDHCPAddress(dhcpAddress);
 						}
 					}
 				}
@@ -132,6 +133,8 @@ public final class DhcpManager implements Runnable {
 					Thread.sleep(POLL_INTERVAL);
 				} catch(InterruptedException err) {
 					logger.log(Level.WARNING, null, err);
+					// Restore the interrupted status
+					Thread.currentThread().interrupt();
 				}
 			}
 		}

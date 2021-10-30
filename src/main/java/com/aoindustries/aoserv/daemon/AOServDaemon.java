@@ -200,8 +200,8 @@ public final class AOServDaemon {
 	 */
 	@SuppressWarnings({"UseSpecificCatch", "BroadCatchBlock", "TooBroadCatch", "SleepWhileInLoop"})
 	public static void main(String[] args) {
-		boolean done=false;
-		while(!done) {
+		boolean done = false;
+		while(!Thread.currentThread().isInterrupted()) {
 			try {
 				// Configure the SSL
 				String trustStorePath=AOServClientConfiguration.getSslTruststorePath();
@@ -307,6 +307,8 @@ public final class AOServDaemon {
 					Thread.sleep(60000);
 				} catch(InterruptedException err) {
 					logger.log(Level.WARNING, null, err);
+					// Restore the interrupted status
+					Thread.currentThread().interrupt();
 				}
 			}
 		}
@@ -417,6 +419,8 @@ public final class AOServDaemon {
 			} catch(InterruptedException err) {
 				InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '"+getCommandString(command)+"'");
 				ioErr.initCause(err);
+				// Restore the interrupted status
+				Thread.currentThread().interrupt();
 				throw ioErr;
 			}
 		} catch(Throwable t) {
@@ -577,6 +581,8 @@ public final class AOServDaemon {
 			} catch(InterruptedException err) {
 				InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '"+getCommandString(command)+"'");
 				ioErr.initCause(err);
+				// Restore the interrupted status
+				Thread.currentThread().interrupt();
 				throw ioErr;
 			}
 		} catch(Throwable t) {

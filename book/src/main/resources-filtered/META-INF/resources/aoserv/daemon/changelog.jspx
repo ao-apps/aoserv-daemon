@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		shortTitle="Changelog"
 		tocLevels="1"
 		datePublished="2020-04-16T21:06:03-05:00"
-		dateModified="2021-10-23T16:19:51-05:00"
+		dateModified="2021-10-29T03:58:47-05:00"
 	>
 		<c:if test="${fn:endsWith('@{project.version}', '-SNAPSHOT') and !fn:endsWith('@{project.version}', '-POST-SNAPSHOT')}">
 			<changelog:release
@@ -50,6 +50,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 			>
 				<ul>
 					<li>Added support for <ao:a href="https://www.postgresql.org/docs/14/index.html">PostgreSQL 14</ao:a>.</li>
+					<li>Now properly restoring Thread interrupted state on <code>InterruptedException</code>.</li>
 				</ul>
 			</changelog:release>
 		</c:if>

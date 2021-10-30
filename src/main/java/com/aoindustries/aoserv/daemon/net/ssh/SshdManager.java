@@ -524,6 +524,8 @@ public final class SshdManager extends BuilderThread {
 										Thread.sleep(1000);
 									} catch(InterruptedException err2) {
 										logger.log(Level.WARNING, null, err2);
+										// Restore the interrupted status
+										Thread.currentThread().interrupt();
 									}
 									AOServDaemon.exec(
 										"/etc/rc.d/init.d/sshd",

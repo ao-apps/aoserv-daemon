@@ -188,27 +188,28 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 	@SuppressWarnings({"SleepWhileInLoop", "UseSpecificCatch", "TooBroadCatch"})
 	public void run() {
 		long lastStartTime = -1;
-		while(true) {
+		while(!Thread.currentThread().isInterrupted()) {
 			try {
-				while(true) {
-					long delay;
-					if(lastStartTime == -1) delay = DELAY_INTERVAL;
-					else {
-						delay = lastStartTime + DELAY_INTERVAL - System.currentTimeMillis();
-						if(delay > DELAY_INTERVAL) delay = DELAY_INTERVAL;
-					}
-					if(delay > 0) {
-						try {
-							Thread.sleep(DELAY_INTERVAL);
-						} catch(InterruptedException err) {
-							logger.log(Level.WARNING, null, err);
-						}
-					}
-					lastStartTime = System.currentTimeMillis();
-
-					// Process incoming messages
-					processIncomingMessages();
+				long delay;
+				if(lastStartTime == -1) delay = DELAY_INTERVAL;
+				else {
+					delay = lastStartTime + DELAY_INTERVAL - System.currentTimeMillis();
+					if(delay > DELAY_INTERVAL) delay = DELAY_INTERVAL;
 				}
+				if(delay > 0) {
+					try {
+						Thread.sleep(DELAY_INTERVAL);
+					} catch(InterruptedException err) {
+						logger.log(Level.WARNING, null, err);
+						// Restore the interrupted status
+						Thread.currentThread().interrupt();
+						break;
+					}
+				}
+				lastStartTime = System.currentTimeMillis();
+
+				// Process incoming messages
+				processIncomingMessages();
 			} catch(ThreadDeath td) {
 				throw td;
 			} catch(Throwable t) {
@@ -217,6 +218,8 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 					Thread.sleep(60000);
 				} catch(InterruptedException err) {
 					logger.log(Level.WARNING, null, err);
+					// Restore the interrupted status
+					Thread.currentThread().interrupt();
 				}
 			}
 		}
@@ -304,7 +307,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 				StringBuilder tempSB = new StringBuilder();
 				List<PosixFile> thisPass = new ArrayList<>(MAX_SALEARN_BATCH);
 
-				while(true) {
+				while(!Thread.currentThread().isInterrupted()) {
 					// End loop if no subdirectories
 					String[] incomingDirectoryList = incomingDirectory.list();
 					if(incomingDirectoryList == null || incomingDirectoryList.length == 0) break;

@@ -137,7 +137,7 @@ public final class RandomEntropyManager implements Runnable {
 
 	@Override
 	public void run() {
-		while(true) {
+		while(!Thread.currentThread().isInterrupted()) {
 			try {
 				AOServConnector conn = AOServDaemon.getConnector();
 				Server thisServer = AOServDaemon.getThisServer();
@@ -169,7 +169,7 @@ public final class RandomEntropyManager implements Runnable {
 				long masterNeeded = Long.MIN_VALUE;
 				long masterLastCheckedTime = Long.MIN_VALUE;
 				boolean lastObtain = true;
-				while(true) {
+				while(!Thread.currentThread().isInterrupted()) {
 					long sleepyTime;
 					int entropyAvail = DevRandom.getEntropyAvail();
 					if(entropyAvail < obtainThreshold) {
@@ -253,6 +253,8 @@ public final class RandomEntropyManager implements Runnable {
 						Thread.sleep(sleepyTime);
 					} catch(InterruptedException err) {
 						logger.log(Level.WARNING, null, err);
+						// Restore the interrupted status
+						Thread.currentThread().interrupt();
 					}
 				}
 			} catch(ThreadDeath td) {
@@ -263,6 +265,8 @@ public final class RandomEntropyManager implements Runnable {
 					Thread.sleep(ERROR_DELAY);
 				} catch(InterruptedException err) {
 					logger.log(Level.WARNING, null, err);
+					// Restore the interrupted status
+					Thread.currentThread().interrupt();
 				}
 			}
 		}

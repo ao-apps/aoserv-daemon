@@ -623,6 +623,8 @@ public final class MySQLDatabaseManager extends BuilderThread {
 				}
 			);
 		} catch(InterruptedException e) {
+			// Restore the interrupted status
+			Thread.currentThread().interrupt();
 			throw new SQLException(e);
 		} catch(ExecutionException e) {
 			// Maintain expected exception types while not losing stack trace
@@ -786,6 +788,8 @@ public final class MySQLDatabaseManager extends BuilderThread {
 							)
 						);
 					} catch(InterruptedException e) {
+						// Restore the interrupted status
+						Thread.currentThread().interrupt();
 						throw new SQLException(e);
 					} catch(ExecutionException e) {
 						// Maintain expected exception types while not losing stack trace
@@ -810,7 +814,9 @@ public final class MySQLDatabaseManager extends BuilderThread {
 				out.writeNullUTF(checkTableResult.getMsgText());
 			}
 		} catch(InterruptedException e) {
-			IOException ioErr = new InterruptedIOException();
+			// Restore the interrupted status
+			Thread.currentThread().interrupt();
+			InterruptedIOException ioErr = new InterruptedIOException();
 			ioErr.initCause(e);
 			throw ioErr;
 		} catch(TimeoutException e) {

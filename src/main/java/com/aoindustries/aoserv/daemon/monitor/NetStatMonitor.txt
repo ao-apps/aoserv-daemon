@@ -70,13 +70,16 @@ final public class NetStatMonitor implements Runnable {
 	}
 
 	public void run() {
-		while(true) {
+		while(!Thread.currentThread().isInterrupted()) {
 			try {
-				while(true) {
+				while(!Thread.currentThread().isInterrupted()) {
 					try {
 						Thread.sleep(getRandomDelay());
 					} catch(InterruptedException err) {
 						LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
+						// Restore the interrupted status
+						Thread.currentThread().interrupt();
+						break;
 					}
 
 					// Get the current list of binds for this server
@@ -169,6 +172,8 @@ final public class NetStatMonitor implements Runnable {
 					Thread.sleep(Math.max(MIN_ERROR_DELAY, getRandomDelay()));
 				} catch(InterruptedException err) {
 					LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
+					// Restore the interrupted status
+					Thread.currentThread().interrupt();
 				}
 			}
 		}

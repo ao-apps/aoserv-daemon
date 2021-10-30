@@ -24,8 +24,6 @@ package com.aoindustries.aoserv.daemon.posix;
 
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * A <code>PosixProcess</code> represents a process
@@ -34,8 +32,6 @@ import java.util.logging.Logger;
  * @author  AO Industries, Inc.
  */
 public abstract class PosixProcess {
-
-	private static final Logger logger = Logger.getLogger(PosixProcess.class.getName());
 
 	protected int pid;
 
@@ -75,17 +71,14 @@ public abstract class PosixProcess {
 	 * then sends a kill signal.  The signals are sent to the execution of the
 	 * <code>/bin/kill</code> executable.
 	 */
-	public void killProc() throws IOException {
-		String pidS=String.valueOf(pid);
+	public void killProc() throws IOException, InterruptedException {
+		String pidS = String.valueOf(pid);
 		if(isRunning()) {
 			AOServDaemon.exec("/bin/kill", "-SIGTERM", pidS);
+			Thread.sleep(100);
 		}
 		if(isRunning()) {
-			try {
-				Thread.sleep(2000);
-			} catch(InterruptedException err) {
-				logger.log(Level.WARNING, null, err);
-			}
+			Thread.sleep(1900);
 		}
 		if(isRunning()) {
 			AOServDaemon.exec("/bin/kill", "-SIGKILL", pidS);

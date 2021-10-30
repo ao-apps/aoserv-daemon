@@ -96,9 +96,11 @@ public final class DistroManager implements Runnable {
 	public static void startDistro(boolean includeUser) {
 		DistroManager.includeUser = includeUser;
 		Thread t = thread;
-		if(isSleeping && t != null) {
+		if(t != null) {
 			runNow = true;
-			t.interrupt();
+			synchronized(sleepLock) {
+				sleepLock.notify(); // notifyAll() not needed: only one thread
+			}
 		}
 	}
 
@@ -123,86 +125,84 @@ public final class DistroManager implements Runnable {
 		}
 	}
 
-	private static volatile boolean isSleeping = false;
+	private static final Object sleepLock = new Object();
 	private static volatile boolean includeUser;
 	private static volatile boolean runNow = false;
 
 	@Override
 	public void run() {
-		while(true) {
+		while(!Thread.currentThread().isInterrupted()) {
 			try {
-				while(true) {
-					// Wait before checking again
-					includeUser = true;
-					isSleeping = true;
-					runNow = false;
-					try {
-						Thread.sleep(PRERUN_DELAY);
-					} catch(InterruptedException err) {
-						// Restore the interrupted status
-						Thread.currentThread().interrupt();
-						// Normal from startDistro method
+				// Wait before checking again
+				includeUser = true;
+				runNow = false;
+				try {
+					synchronized(sleepLock) {
+						sleepLock.wait(PRERUN_DELAY);
 					}
-					isSleeping = false;
+				} catch(InterruptedException err) {
+					// Restore the interrupted status
+					Thread.currentThread().interrupt();
+					break;
+				}
 
-					// It is time to run if it is the backup hour and the backup has not been run for at least 12 hours
-					Server thisServer = AOServDaemon.getThisServer();
-					long distroStartTime = System.currentTimeMillis();
-					Timestamp lastDistroTime = thisServer.getLastDistroTime();
-					boolean isFiner = logger.isLoggable(Level.FINER);
+				// It is time to run if it is the backup hour and the backup has not been run for at least 12 hours
+				Server thisServer = AOServDaemon.getThisServer();
+				long distroStartTime = System.currentTimeMillis();
+				Timestamp lastDistroTime = thisServer.getLastDistroTime();
+				boolean isFiner = logger.isLoggable(Level.FINER);
+				if(isFiner) {
+					logger.finer("runNow=" + runNow);
+					logger.finer("distroStartTime=" + distroStartTime);
+					logger.finer("lastDistroTime=" + lastDistroTime);
+				}
+				if(
+					runNow
+					|| lastDistroTime == null
+					// Last time in the future, assume system time changed and run now
+					|| lastDistroTime.getTime() > distroStartTime
+					// Has been at least 12 hours since the last run
+					|| (distroStartTime - lastDistroTime.getTime()) >= 12L*60*60*1000
+				) {
+					int distroHour = thisServer.getDistroHour();
+					GregorianCalendar gcal = new GregorianCalendar();
+					gcal.setTimeInMillis(distroStartTime);
+					int currentHour = gcal.get(Calendar.HOUR_OF_DAY);
 					if(isFiner) {
-						logger.finer("runNow=" + runNow);
-						logger.finer("distroStartTime=" + distroStartTime);
-						logger.finer("lastDistroTime=" + lastDistroTime);
+						logger.finer("distroHour=" + distroHour);
+						logger.finer("currentHour=" + currentHour);
 					}
-					if(
-						runNow
-						|| lastDistroTime == null
-						// Last time in the future, assume system time changed and run now
-						|| lastDistroTime.getTime() > distroStartTime
-						// Has been at least 12 hours since the last run
-						|| (distroStartTime - lastDistroTime.getTime()) >= 12L*60*60*1000
-					) {
-						int distroHour = thisServer.getDistroHour();
-						GregorianCalendar gcal = new GregorianCalendar();
-						gcal.setTimeInMillis(distroStartTime);
-						int currentHour = gcal.get(Calendar.HOUR_OF_DAY);
-						if(isFiner) {
-							logger.finer("distroHour=" + distroHour);
-							logger.finer("currentHour=" + currentHour);
-						}
-						if(runNow || currentHour == distroHour) {
-							try (
-								ProcessTimer timer = new ProcessTimer(
-									logger,
-									DistroManager.class.getName(),
-									"run",
-									"Distro verification taking too long",
-									"Distro Verification",
-									12*60*60*1000, // 12 hours
-									60*60*1000 // 1 hour
-								)
-							) {
-								AOServDaemon.executorService.submit(timer);
+					if(runNow || currentHour == distroHour) {
+						try (
+							ProcessTimer timer = new ProcessTimer(
+								logger,
+								DistroManager.class.getName(),
+								"run",
+								"Distro verification taking too long",
+								"Distro Verification",
+								12*60*60*1000, // 12 hours
+								60*60*1000 // 1 hour
+							)
+						) {
+							AOServDaemon.executorService.submit(timer);
 
-								AOServDaemon.getThisServer().setLastDistroTime(new Timestamp(distroStartTime));
+							AOServDaemon.getThisServer().setLastDistroTime(new Timestamp(distroStartTime));
 
-								DistroReportStats stats = new DistroReportStats();
-								List<DistroReportFile> results = checkFilesystem(stats, null);
+							DistroReportStats stats = new DistroReportStats();
+							List<DistroReportFile> results = checkFilesystem(stats, null);
 
-								// Report the results to the master server
-								// TODO
+							// Report the results to the master server
+							// TODO
 
-								// Compile the counters for each of the different codes
-								/*
-								HashMap codes = new HashMap();
-								for(int c = 0; c < size; c++) {
-									String code = results.get(c).substring(0, 2);
-									int[] count = (int[])codes.get(code);
-									if(count == null) codes.put(code, count  =new int[1]);
-									count[0]++;
-								}*/
-							}
+							// Compile the counters for each of the different codes
+							/*
+							HashMap codes = new HashMap();
+							for(int c = 0; c < size; c++) {
+								String code = results.get(c).substring(0, 2);
+								int[] count = (int[])codes.get(code);
+								if(count == null) codes.put(code, count  =new int[1]);
+								count[0]++;
+							}*/
 						}
 					}
 				}

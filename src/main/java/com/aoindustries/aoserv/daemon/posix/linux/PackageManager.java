@@ -844,6 +844,9 @@ public class PackageManager {
 									Thread.sleep(60000); // Sleep one minute between polls
 								} catch(InterruptedException e) {
 									logger.log(Level.WARNING, null, e);
+									// Restore the interrupted status
+									Thread.currentThread().interrupt();
+									break;
 								}
 								getAllRpms();
 							} catch(ThreadDeath td) {

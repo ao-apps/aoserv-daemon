@@ -230,6 +230,8 @@ public abstract class HttpdSiteManager {
 										Thread.sleep(5000);
 									} catch(InterruptedException err) {
 										logger.log(Level.WARNING, null, err);
+										// Restore the interrupted status
+										Thread.currentThread().interrupt();
 									}
 								}
 								stopStartRestartable.start();
@@ -258,6 +260,9 @@ public abstract class HttpdSiteManager {
 					commandFuture.get(60, TimeUnit.SECONDS);
 				} catch(InterruptedException err) {
 					logger.log(Level.WARNING, null, err);
+					// Restore the interrupted status
+					Thread.currentThread().interrupt();
+					break;
 				} catch(ExecutionException | TimeoutException err) {
 					logger.log(Level.WARNING, null, err);
 				}
@@ -307,6 +312,9 @@ public abstract class HttpdSiteManager {
 								stopFuture.get(60, TimeUnit.SECONDS);
 							} catch(InterruptedException err) {
 								logger.log(Level.WARNING, null, err);
+								// Restore the interrupted status
+								Thread.currentThread().interrupt();
+								break;
 							} catch(ExecutionException | TimeoutException err) {
 								logger.log(Level.WARNING, null, err);
 							}
@@ -343,6 +351,8 @@ public abstract class HttpdSiteManager {
 						Thread.sleep(5000);
 					} catch(InterruptedException err) {
 						logger.log(Level.WARNING, null, err);
+						// Restore the interrupted status
+						Thread.currentThread().interrupt();
 					}
 				}
 				Boolean started = stopStartable.start();

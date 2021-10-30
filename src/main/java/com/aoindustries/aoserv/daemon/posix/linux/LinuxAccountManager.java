@@ -147,7 +147,6 @@ public class LinuxAccountManager extends BuilderThread {
 
 	@SuppressWarnings("try")
 	private static void rebuildLinuxAccountSettings() throws IOException, SQLException {
-		AOServConnector connector = AOServDaemon.getConnector();
 		Server thisServer = AOServDaemon.getThisServer();
 		HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 
@@ -817,6 +816,10 @@ public class LinuxAccountManager extends BuilderThread {
 						PackageManager.removePackage(PackageManager.PackageName.AOSERV_FTP_SHELLS);
 					}
 				}
+			} catch(InterruptedException e) {
+				logger.log(Level.WARNING, null, e);
+				// Restore the interrupted status
+				Thread.currentThread().interrupt();
 			} finally {
 				DaemonFileUtils.restorecon(restorecon);
 			}

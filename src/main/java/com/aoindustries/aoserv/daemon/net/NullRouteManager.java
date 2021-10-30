@@ -220,11 +220,11 @@ public final class NullRouteManager {
 				thread = new Thread(NullRouteManager.class.getName()) {
 					@Override
 					public void run() {
-						while(true) {
+						while(!Thread.currentThread().isInterrupted()) {
 							try {
 								final StringBuilder newContents = new StringBuilder();
 								synchronized(nullRoutes) {
-									while(true) {
+									while(!Thread.currentThread().isInterrupted()) {
 										// Verify config file while cleaning-up entries
 										newContents.setLength(0);
 										final long currentTime = System.currentTimeMillis();
@@ -306,6 +306,10 @@ public final class NullRouteManager {
 								}
 							} catch (ThreadDeath td) {
 								throw td;
+							} catch (InterruptedException err) {
+								logger.log(Level.SEVERE, null, err);
+								// Restore the interrupted status
+								Thread.currentThread().interrupt();
 							} catch (Throwable t) {
 								logger.log(Level.SEVERE, null, t);
 							}
@@ -313,6 +317,8 @@ public final class NullRouteManager {
 								sleep(1000);
 							} catch (InterruptedException err) {
 								logger.log(Level.WARNING, null, err);
+								// Restore the interrupted status
+								Thread.currentThread().interrupt();
 							}
 						}
 					}

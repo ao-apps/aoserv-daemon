@@ -442,6 +442,8 @@ public final class SslCertificateManager {
 					} catch(InterruptedException e) {
 						InterruptedIOException ioErr = new InterruptedIOException("Interrupted waiting on " + CERTBOT_LOCK);
 						ioErr.initCause(e);
+						// Restore the interrupted status
+						Thread.currentThread().interrupt();
 						throw ioErr;
 					}
 				}
@@ -925,6 +927,8 @@ public final class SslCertificateManager {
 				}
 			);
 		} catch(InterruptedException e) {
+			// Restore the interrupted status
+			Thread.currentThread().interrupt();
 			InterruptedIOException ioErr = new InterruptedIOException();
 			ioErr.initCause(e);
 			throw ioErr;

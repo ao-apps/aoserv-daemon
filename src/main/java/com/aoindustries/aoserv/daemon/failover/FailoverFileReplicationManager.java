@@ -2713,7 +2713,7 @@ public final class FailoverFileReplicationManager {
 
 			String[] states = new String[1000];
 			BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-			while(true) {
+			while(!Thread.currentThread().isInterrupted()) {
 				System.out.println("Please press enter c for complete day or p for partial day: ");
 				String line = in.readLine();
 				if(line==null) break;

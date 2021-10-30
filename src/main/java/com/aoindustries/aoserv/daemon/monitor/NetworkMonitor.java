@@ -34,6 +34,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.InterruptedIOException;
 import java.io.PrintStream;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -336,7 +337,7 @@ public final class NetworkMonitor {
 				@Override
 				@SuppressWarnings({"ThrowFromFinallyBlock", "SleepWhileInLoop", "BroadCatchBlock", "TooBroadCatch", "UseSpecificCatch"})
 				public void run() {
-					while(true) {
+					while(!Thread.currentThread().isInterrupted()) {
 						try {
 							final String[] cmd = new String[
 								(controllingNullRoutes ? 0 : 1)
@@ -390,6 +391,7 @@ public final class NetworkMonitor {
 									// Must be at least 5 seconds between FIFO-generate null routes
 									Long lastFifoErrors = null;
 									while(true) {
+										if(Thread.currentThread().isInterrupted()) throw new InterruptedIOException();
 										// Read one record
 										final byte protocolVersion = in.readByte();
 										if(protocolVersion != 1) throw new IOException("Unexpected protocolVersion: "+protocolVersion);
@@ -629,6 +631,8 @@ public final class NetworkMonitor {
 							sleep(controllingNullRoutes ? 1000 : 10000);
 						} catch (InterruptedException err) {
 							logger.log(Level.WARNING, null, err);
+							// Restore the interrupted status
+							Thread.currentThread().interrupt();
 						}
 					}
 				}

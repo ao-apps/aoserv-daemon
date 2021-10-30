@@ -57,11 +57,10 @@ public abstract class SocketServerManager {
 					System.out.print(getManagerName());
 					System.out.println(":");
 					startImpl();
-					boolean done = false;
-					while(!done) {
+					while(!started && !Thread.currentThread().isInterrupted()) {
 						try {
 							verifySocketServers();
-							done = true;
+							started = true;
 						} catch(ThreadDeath td) {
 							throw td;
 						} catch(Throwable t) {
@@ -70,10 +69,11 @@ public abstract class SocketServerManager {
 								Thread.sleep(15000);
 							} catch(InterruptedException err) {
 								logger.log(Level.WARNING, null, err);
+								// Restore the interrupted status
+								Thread.currentThread().interrupt();
 							}
 						}
 					}
-					started=true;
 				}
 			}
 		}

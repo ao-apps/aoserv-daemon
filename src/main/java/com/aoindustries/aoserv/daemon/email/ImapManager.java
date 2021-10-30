@@ -276,7 +276,7 @@ public final class ImapManager extends BuilderThread {
 	 * It will first try to use the Primary IP address on the machine.  If that
 	 * doesn't have an IMAP server, then it will search all IP
 	 * addresses and use the first one with an IMAP server.
-	 * 
+	 *
 	 * @return  The (IP address, port, starttls) or <code>null</code> if not an IMAP server.
 	 */
 	private static Tuple3<InetAddress, Port, Boolean> getImapServer() throws IOException, SQLException {
@@ -1230,7 +1230,7 @@ public final class ImapManager extends BuilderThread {
 
 	/**
 	 * Gets a folder name for the provided user, domain, and folder.
-	 * 
+	 *
 	 * @param  user    the username (without any @ sign)
 	 * @param  domain  null if no domain
 	 * @param  folder  the folder or null for INBOX
@@ -1245,9 +1245,9 @@ public final class ImapManager extends BuilderThread {
 
 	/**
 	 * Rebuild the ACL on a folder, both creating missing and removing extra rights.
-	 * 
+	 *
 	 * http://www.faqs.org/rfcs/rfc2086.html
-	 * 
+	 *
 	 * @param  folder  the IMAPFolder to verify the ACL on
 	 * @param  user    the username (without any @ sign)
 	 * @param  domain  "default" if no domain
@@ -1300,7 +1300,7 @@ public final class ImapManager extends BuilderThread {
 
 	/**
 	 * Gets the Cyrus user part of a username.
-	 * 
+	 *
 	 * @see  #getDomain
 	 */
 	private static String getUser(User.Name username) {
@@ -1311,7 +1311,7 @@ public final class ImapManager extends BuilderThread {
 
 	/**
 	 * Gets the Cyrus domain part of a username or <code>null</code> for no domain.
-	 * 
+	 *
 	 * @see  #getUser
 	 */
 	private static String getDomain(User.Name username) {
@@ -1948,7 +1948,7 @@ public final class ImapManager extends BuilderThread {
 				if(WUIMAP_CONVERSION_ENABLED) {
 					assert convertors != null;
 					List<UserServer> deleteMe = new ArrayList<>();
-					while(!convertors.isEmpty()) {
+					while(!convertors.isEmpty() && !Thread.currentThread().isInterrupted()) {
 						deleteMe.clear();
 						for(Map.Entry<UserServer, Future<Object>> entry : convertors.entrySet()) {
 							UserServer lsa = entry.getKey();
@@ -1959,7 +1959,9 @@ public final class ImapManager extends BuilderThread {
 								deleteMe.add(lsa);
 							} catch(InterruptedException err) {
 								logger.log(Level.WARNING, "lsa = " + lsa, err);
-								// Will retry on next loop
+								// Restore the interrupted status
+								Thread.currentThread().interrupt();
+								break;
 							} catch(ExecutionException err) {
 								String extraInfo;
 								Throwable cause = err.getCause();
@@ -1975,8 +1977,10 @@ public final class ImapManager extends BuilderThread {
 								// This is OK, will just retry on next loop
 							}
 						}
-						for(UserServer lsa : deleteMe) {
-							convertors.remove(lsa);
+						if(!Thread.currentThread().isInterrupted()) {
+							for(UserServer lsa : deleteMe) {
+								convertors.remove(lsa);
+							}
 						}
 					}
 				}
@@ -2164,7 +2168,7 @@ public final class ImapManager extends BuilderThread {
 
 	/**
 	 * Gets all of the annotations for the provided folder, entry, and attribute.
-	 * 
+	 *
 	 * This uses ANNOTATEMORE
 	 *     Current: http://vman.de/cyrus/draft-daboo-imap-annotatemore-07.html
 	 *     Newer:   http://vman.de/cyrus/draft-daboo-imap-annotatemore-10.html
@@ -2172,9 +2176,9 @@ public final class ImapManager extends BuilderThread {
 	 * ad GETANNOTATION user/cyrus.test/Junk@suspendo.aoindustries.com "/vendor/cmu/cyrus-imapd/size" "value.shared"
 	 * ANNOTATION "user/cyrus.test/Junk@suspendo.aoindustries.com" "/vendor/cmu/cyrus-imapd/size" ("value.shared" "33650")
 	 * ad OK Completed
-	 * 
+	 *
 	 * http://java.sun.com/products/javamail/javadocs/com/sun/mail/imap/IMAPFolder.html#doCommand(com.sun.mail.imap.IMAPFolder.ProtocolCommand)
-	 * 
+	 *
 	 * https://glassfish.dev.java.net/javaee5/mail/
 	 * javamail@sun.com
 	 */
@@ -2225,7 +2229,7 @@ public final class ImapManager extends BuilderThread {
 
 	/**
 	 * Gets a single, specific annotation (specific in mailbox-name, entry-specifier, and attribute-specifier).
-	 * 
+	 *
 	 * @return  the value if found or <code>null</code> if unavailable
 	 */
 	private static String getAnnotation(IMAPFolder folder, String entry, String attribute) throws MessagingException {
@@ -2247,7 +2251,7 @@ public final class ImapManager extends BuilderThread {
 
 	/**
 	 * Sets a single annotation.
-	 * 
+	 *
 	 * @param  expectedValue  if <code>null</code>, annotation will be removed
 	 */
 	private static void setAnnotation(IMAPFolder folder, final String entry, final String value, final String contentType) throws MessagingException {
@@ -2327,6 +2331,9 @@ public final class ImapManager extends BuilderThread {
 						Thread.sleep(100);
 					} catch(InterruptedException err) {
 						logger.log(Level.WARNING, null, err);
+						// Restore the interrupted status
+						Thread.currentThread().interrupt();
+						break;
 					}
 				}
 			}

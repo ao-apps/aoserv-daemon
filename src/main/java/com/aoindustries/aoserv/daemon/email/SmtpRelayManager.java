@@ -290,30 +290,31 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 	@SuppressWarnings({"SleepWhileInLoop", "UseSpecificCatch", "BroadCatchBlock", "TooBroadCatch"})
 	public void run() {
 		long lastTime = Long.MIN_VALUE;
-		while(true) {
+		while(!Thread.currentThread().isInterrupted()) {
 			try {
-				while(true) {
-					try {
-						Thread.sleep(REFRESH_PERIOD);
-					} catch(InterruptedException err) {
-						logger.log(Level.WARNING, null, err);
-					}
-					long time = System.currentTimeMillis();
-					boolean needRebuild = false;
-					for(SmtpRelay relay : AOServDaemon.getThisServer().getEmailSmtpRelays()) {
-						Timestamp expiration = relay.getExpiration();
-						if(
-							expiration != null
-							&& expiration.getTime() >= lastTime
-							&& expiration.getTime() < time
-						) {
-							needRebuild = true;
-							break;
-						}
-					}
-					lastTime = time;
-					if(needRebuild) doRebuild();
+				try {
+					Thread.sleep(REFRESH_PERIOD);
+				} catch(InterruptedException err) {
+					logger.log(Level.WARNING, null, err);
+					// Restore the interrupted status
+					Thread.currentThread().interrupt();
+					break;
 				}
+				long time = System.currentTimeMillis();
+				boolean needRebuild = false;
+				for(SmtpRelay relay : AOServDaemon.getThisServer().getEmailSmtpRelays()) {
+					Timestamp expiration = relay.getExpiration();
+					if(
+						expiration != null
+						&& expiration.getTime() >= lastTime
+						&& expiration.getTime() < time
+					) {
+						needRebuild = true;
+						break;
+					}
+				}
+				lastTime = time;
+				if(needRebuild) doRebuild();
 			} catch(ThreadDeath td) {
 				throw td;
 			} catch(Throwable t) {
@@ -322,6 +323,8 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 					Thread.sleep(REFRESH_PERIOD);
 				} catch(InterruptedException err) {
 					logger.log(Level.WARNING, null, err);
+					// Restore the interrupted status
+					Thread.currentThread().interrupt();
 				}
 			}
 		}

@@ -56,17 +56,17 @@ public abstract class SocketServerThread extends Thread {
 		return port;
 	}
 
-	boolean runMore=true;
+	boolean runMore = true;
 
 	private ServerSocket ss;
 
 	@Override
 	public void run() {
-		while(runMore) {
+		while(runMore && !Thread.currentThread().isInterrupted()) {
 			try {
 				ss = new ServerSocket(port, 50, java.net.InetAddress.getByName(ipAddress.toString()));
 				try {
-					while(runMore) {
+					while(runMore && !Thread.currentThread().isInterrupted()) {
 						Socket socket = ss.accept();
 						socket.setKeepAlive(true);
 						socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
@@ -84,6 +84,8 @@ public abstract class SocketServerThread extends Thread {
 					Thread.sleep(60000);
 				} catch(InterruptedException err) {
 					logger.log(Level.WARNING, null, err);
+					// Restore the interrupted status
+					Thread.currentThread().interrupt();
 				}
 			}
 		}

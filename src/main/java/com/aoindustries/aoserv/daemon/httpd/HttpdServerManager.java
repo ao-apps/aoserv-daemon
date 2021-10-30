@@ -3638,6 +3638,8 @@ public class HttpdServerManager {
 		} catch(InterruptedException e) {
 			InterruptedIOException ioErr = new InterruptedIOException(e.getMessage());
 			ioErr.initCause(e);
+			// Restore the interrupted status
+			Thread.currentThread().interrupt();
 			throw ioErr;
 		} catch(ExecutionException e) {
 			// Maintain expected exception types while not losing stack trace

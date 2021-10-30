@@ -688,7 +688,7 @@ public final class NetDeviceManager extends BuilderThread {
 					// Reuse these two objects to reduce heap allocation
 					final List<Device> netDevices = new ArrayList<>();
 					final StringBuilder tempSB = new StringBuilder();
-					while(true) {
+					while(!Thread.currentThread().isInterrupted()) {
 						try {
 							netDevices.clear();
 							synchronized(_netDeviceStatisticsLock) {
@@ -712,6 +712,8 @@ public final class NetDeviceManager extends BuilderThread {
 							Thread.sleep(5000);
 						} catch(InterruptedException err) {
 							logger.log(Level.WARNING, null, err);
+							// Restore the interrupted status
+							Thread.currentThread().interrupt();
 						}
 					}
 				}

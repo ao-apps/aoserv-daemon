@@ -197,6 +197,8 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 									Thread.sleep(5000);
 								} catch(InterruptedException err) {
 									logger.log(Level.WARNING, null, err);
+									// Restore the interrupted status
+									Thread.currentThread().interrupt();
 								}
 							}
 							manager.start();
@@ -225,6 +227,9 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 				commandFuture.get(60, TimeUnit.SECONDS);
 			} catch(InterruptedException err) {
 				logger.log(Level.WARNING, null, err);
+				// Restore the interrupted status
+				Thread.currentThread().interrupt();
+				break;
 			} catch(ExecutionException | TimeoutException err) {
 				logger.log(Level.WARNING, null, err);
 			}

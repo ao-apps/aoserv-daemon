@@ -52,7 +52,7 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
 	private volatile Thread rebuildThread;
 	private long lastUpdated;
 	private long lastRebuild;
-	private volatile boolean isSleeping=false;
+	private final Object sleepLock = new Object();
 
 	protected BuilderThread() {
 		// Always rebuild the configs after start-up
@@ -86,15 +86,19 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
 							synchronized (BuilderThread.this) {
 								updateCopy = lastUpdated;
 							}
-							while (lastBuilt == -1 || lastBuilt < updateCopy) {
-								if(waitForBuildCount==0) {
+							while (
+								(lastBuilt == -1 || lastBuilt < updateCopy)
+								&& !Thread.currentThread().isInterrupted()
+							) {
+								if(waitForBuildCount == 0) {
 									try {
-										isSleeping=true;
-										sleep(getRandomDelay());
+										synchronized(sleepLock) {
+											sleepLock.wait(getRandomDelay());
+										}
 									} catch (InterruptedException err) {
-										// Interrupted by waitForRebuild call
+										// Restore the interrupted status
+										Thread.currentThread().interrupt();
 									}
-									isSleeping=false;
 								}
 								try {
 									try (
@@ -110,14 +114,16 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
 									) {
 										AOServDaemon.executorService.submit(timer);
 										long buildStart=System.currentTimeMillis();
-										while(!doRebuild()) {
+										while(!doRebuild() && !Thread.currentThread().isInterrupted()) {
 											try {
-												isSleeping=true;
-												Thread.sleep(getRandomDelay());
+												synchronized(sleepLock) {
+													sleepLock.wait(getRandomDelay());
+												}
 											} catch(InterruptedException err) {
 												logger.logp(Level.WARNING, BuilderThread.this.getClass().getName(), "run", null, err);
+												// Restore the interrupted status
+												Thread.currentThread().interrupt();
 											}
-											isSleeping=false;
 										}
 										lastBuilt = buildStart;
 										synchronized(BuilderThread.this) {
@@ -130,12 +136,14 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
 								} catch(Throwable t) {
 									logger.logp(Level.SEVERE, BuilderThread.this.getClass().getName(), "run", null, t);
 									try {
-										isSleeping=true;
-										Thread.sleep(getRandomDelay());
+										synchronized(sleepLock) {
+											sleepLock.wait(getRandomDelay());
+										}
 									} catch(InterruptedException err) {
 										logger.logp(Level.WARNING, BuilderThread.this.getClass().getName(), "run", null, err);
+										// Restore the interrupted status
+										Thread.currentThread().interrupt();
 									}
-									isSleeping=false;
 								}
 								synchronized(BuilderThread.this) {
 									updateCopy = lastUpdated;
@@ -164,16 +172,19 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
 		synchronized(this) {
 			waitForBuildCount++;
 			try {
-				// Interrupt rebuild thread if it is waiting on the batch
-				Thread t = rebuildThread;
-				if(t != null && isSleeping) t.interrupt();
+				// Notify rebuild thread if it is waiting on the batch
+				synchronized(sleepLock) {
+					sleepLock.notify(); // notifyAll() not needed, since will only ever be one thread
+				}
 
-				long updated=lastUpdated;
-				while(updated<=lastUpdated && updated>lastRebuild) {
+				long updated = lastUpdated;
+				while(updated <= lastUpdated && updated > lastRebuild && !Thread.currentThread().isInterrupted()) {
 					try {
 						wait();
 					} catch(InterruptedException err) {
 						logger.log(Level.WARNING, null, err);
+						// Restore the interrupted status
+						Thread.currentThread().interrupt();
 					}
 				}
 			} finally {

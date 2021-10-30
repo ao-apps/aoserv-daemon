@@ -250,7 +250,7 @@ public final class AOServDaemonServerThread extends Thread {
 
 			long seq = startSeq;
 		Loop:
-			while(true) {
+			while(!Thread.currentThread().isInterrupted()) {
 				// Verify client sends matching sequence
 				if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0) >= 0) {
 					long clientSeq = in.readLong();

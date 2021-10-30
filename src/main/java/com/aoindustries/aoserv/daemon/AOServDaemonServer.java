@@ -122,7 +122,7 @@ public final class AOServDaemonServer extends Thread {
 	@Override
 	@SuppressWarnings({"UseOfSystemOutOrSystemErr", "UseSpecificCatch", "BroadCatchBlock", "TooBroadCatch", "SleepWhileInLoop"})
 	public void run() {
-		while (true) {
+		while (!Thread.currentThread().isInterrupted()) {
 			try {
 				InetAddress address=InetAddress.getByName(serverBind.toString());
 				synchronized(System.out) {
@@ -137,8 +137,8 @@ public final class AOServDaemonServer extends Thread {
 				switch (protocol) {
 					case AppProtocol.AOSERV_DAEMON:
 						try (ServerSocket SS = new ServerSocket(serverPort, 50, serverBind.isUnspecified() ? null : address)) {
-							while(true) {
-								Socket socket=SS.accept();
+							while(!Thread.currentThread().isInterrupted()) {
+								Socket socket = SS.accept();
 								socket.setKeepAlive(true);
 								socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
 								//socket.setTcpNoDelay(true);
@@ -146,12 +146,12 @@ public final class AOServDaemonServer extends Thread {
 								thread.start();
 							}
 						}
-						// break;
+						break;
 					case AppProtocol.AOSERV_DAEMON_SSL:
 						SSLServerSocketFactory factory = (SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
 						SSLServerSocket ss = (SSLServerSocket)factory.createServerSocket(serverPort, 50, address);
 						try {
-							while (true) {
+							while (!Thread.currentThread().isInterrupted()) {
 								Socket socket = ss.accept();
 								try {
 									socket.setKeepAlive(true);
@@ -168,7 +168,7 @@ public final class AOServDaemonServer extends Thread {
 						} finally {
 							ss.close();
 						}
-						// break;
+						break;
 					default:
 						throw new IllegalArgumentException("Unsupported protocol: "+protocol);
 				}
@@ -177,10 +177,14 @@ public final class AOServDaemonServer extends Thread {
 			} catch (Throwable t) {
 				logger.log(Level.SEVERE, null, t);
 			}
-			try {
-				sleep(60000);
-			} catch (InterruptedException err) {
-				logger.log(Level.WARNING, null, err);
+			if(!Thread.currentThread().isInterrupted()) {
+				try {
+					sleep(60000);
+				} catch (InterruptedException err) {
+					logger.log(Level.WARNING, null, err);
+					// Restore the interrupted status
+					Thread.currentThread().interrupt();
+				}
 			}
 		}
 	}

@@ -51,6 +51,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.InterruptedIOException;
 import java.io.PrintWriter;
 import java.security.MessageDigest;
 import java.util.Arrays;
@@ -151,6 +152,10 @@ public final class DistroGenerator {
 			}
 			System.err.flush();
 			System.exit(SysExits.EX_SOFTWARE);
+		} catch(InterruptedException e) {
+			// Restore the interrupted status
+			Thread.currentThread().interrupt();
+			System.exit(SysExits.getSysExit(e));
 		} catch(Throwable t) {
 			System.exit(SysExits.getSysExit(t));
 		}
@@ -535,6 +540,7 @@ public final class DistroGenerator {
 			synchronized(nextFilenameLock) {
 				// Loop until end or found within a template directory
 				while(true) {
+					if(Thread.currentThread().isInterrupted()) throw new InterruptedIOException();
 					if(done) {
 						return null;
 					}
@@ -783,7 +789,7 @@ public final class DistroGenerator {
 		public void run() {
 			try {
 				MessageDigest digest = MessageDigestUtils.getSha256();
-				while(true) {
+				while(!Thread.currentThread().isInterrupted()) {
 					OSFilename osFilename = runState.getNextFilename();
 					if(osFilename == null) break;
 					assert osFilename.osv != -1 && osFilename.filename != null;
