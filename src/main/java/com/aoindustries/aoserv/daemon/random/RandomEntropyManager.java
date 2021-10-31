@@ -54,28 +54,28 @@ public final class RandomEntropyManager implements Runnable {
 	/**
 	 * The maximum delay between scans when obtaining from the master.
 	 */
-	public static final long MAX_OBTAIN_DELAY = 5 * 1000;
+	public static final long MAX_OBTAIN_DELAY = 5L * 1000;
 
 	/**
 	 * The delay when obtaining from the master is incomplete (master out of entropy).
 	 * This is used to avoid hitting the master stupid-hard when it is depleted.
 	 */
-	public static final long MAX_OBTAIN_INCOMPLETE_DELAY = 60 * 1000;
+	public static final long MAX_OBTAIN_INCOMPLETE_DELAY = 60L * 1000;
 
 	/**
 	 * The maximum delay between scans when at the desired entropy.
 	 */
-	public static final long MAX_DESIRED_DELAY = 15 * 1000;
+	public static final long MAX_DESIRED_DELAY = 15L * 1000;
 
 	/**
 	 * The minimum interval between calls to {@code getMasterEntropyNeeded()}
 	 */
-	public static final long GET_MASTER_ENTROPY_NEEDED_INTERVAL = 5 * 60 * 1000;
+	public static final long GET_MASTER_ENTROPY_NEEDED_INTERVAL = 5L * 60 * 1000;
 
 	/**
 	 * The delay after an error occurs.
 	 */
-	public static final long ERROR_DELAY = 60 * 1000;
+	public static final long ERROR_DELAY = 60L * 1000;
 
 	/**
 	 * The number of bits available where will provide to master server.

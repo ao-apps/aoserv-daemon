@@ -1591,7 +1591,7 @@ public final class ImapManager extends BuilderThread {
 								if(oldMessage.isSet(Flags.Flag.DELETED)) {
 									log(logOut, Level.FINER, username, "\"" + folderName + "\": Skipping deleted message " + (c + 1) + " of " + len + " (" + Strings.getApproximateSize(oldMessage.getSize()) + ")");
 								} else {
-									long messageAge = (System.currentTimeMillis() - oldMessage.getReceivedDate().getTime()) / (24L*60*60*1000);
+									long messageAge = (System.currentTimeMillis() - oldMessage.getReceivedDate().getTime()) / (24L * 60 * 60 * 1000);
 									if(
 										junkRetention != -1
 										&& "Junk".equals(folderName)
@@ -2465,7 +2465,7 @@ ad OK Completed
 					// Convert to correct time
 					GregorianCalendar gcal = new GregorianCalendar(Locale.US);
 					// TODO: Use TimeZone instead?
-					gcal.set(Calendar.ZONE_OFFSET, zoneHours * 60*60*1000 + zoneMinutes * 60*1000);
+					gcal.set(Calendar.ZONE_OFFSET, zoneHours * 60 * 60 * 1000 + zoneMinutes * 60 * 1000);
 					gcal.set(Calendar.YEAR, year);
 					gcal.set(Calendar.MONTH, month);
 					gcal.set(Calendar.DAY_OF_MONTH, day);

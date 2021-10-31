@@ -783,7 +783,7 @@ public final class NetDeviceManager extends BuilderThread {
 					//socket.setTcpNoDelay(true);
 					socket.setSoTimeout(60000);
 					socket.bind(new InetSocketAddress(sourceIp.toString(), sourcePort));
-					socket.connect(new InetSocketAddress(connectIp.toString(), 25), 60*1000);
+					socket.connect(new InetSocketAddress(connectIp.toString(), 25), 60 * 1000);
 
 					try (
 						PrintWriter out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), charset));

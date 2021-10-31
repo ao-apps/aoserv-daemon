@@ -69,7 +69,7 @@ public final class BackupManager {
 	/**
 	 * The maximum age of files in the /var/opt/aoserv-daemon/oldaccounts directory.
 	 */
-	private static final long MAX_OLDACCOUNTS_AGE = 7L*24*60*60*1000; // One week
+	private static final long MAX_OLDACCOUNTS_AGE = 7L * 24 * 60 * 60 * 1000; // One week
 
 	private BackupManager() {}
 
@@ -119,15 +119,15 @@ public final class BackupManager {
 	/*
 	static void backupInterBaseDatabases() throws IOException, SQLException {
 		if(AOServDaemon.getThisAOServer().isInterBase()) {
-			ProcessTimer timer=new ProcessTimer(
+			ProcessTimer timer = new ProcessTimer(
 				AOServDaemon.getFastRandom(),
 				AOServDaemonConfiguration.getWarningSmtpServer(),
 				AOServDaemonConfiguration.getWarningEmailFrom(),
 				AOServDaemonConfiguration.getWarningEmailTo(),
 				"InterBase backup taking too long",
 				"InterBase Backup",
-				3*60*60*1000,
-				60*60*1000
+				3L * 60 * 60 * 1000,
+				60L * 60 * 1000
 			);
 			try {
 				AOServDaemon.executorService.submit(timer);
@@ -166,8 +166,8 @@ public final class BackupManager {
 			AOServDaemonConfiguration.getWarningEmailTo(),
 			"MySQL backup taking too long",
 			"MySQL Backup",
-			3*60*60*1000,
-			60*60*1000
+			3L * 60 * 60 * 1000,
+			60L * 60 * 1000
 		);
 		try {
 			AOServDaemon.executorService.submit(timer);
@@ -208,8 +208,8 @@ public final class BackupManager {
 			AOServDaemonConfiguration.getWarningEmailTo(),
 			"PostgreSQL backup taking too long",
 			"PostgreSQL Backup",
-			3*60*60*1000,
-			60*60*1000
+			3L * 60 * 60 * 1000,
+			60L * 60 * 1000
 		);
 		try {
 			AOServDaemon.executorService.submit(timer);

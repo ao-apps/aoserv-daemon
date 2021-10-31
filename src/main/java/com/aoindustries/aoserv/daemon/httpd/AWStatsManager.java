@@ -725,7 +725,7 @@ public final class AWStatsManager extends BuilderThread {
 
 	@Override
 	public long getProcessTimerMaximumTime() {
-		return 15L*60*1000;
+		return 15L * 60 * 1000;
 	}
 
 	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})

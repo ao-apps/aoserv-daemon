@@ -743,7 +743,7 @@ public final class SslCertificateManager {
 						}
 						Date notAfter = x509Status.getNotAfter();
 						if(notAfter != null) {
-							long daysLeft = (notAfter.getTime() - currentTime) / (24 * 60 * 60 * 1000);
+							long daysLeft = (notAfter.getTime() - currentTime) / (24L * 60 * 60 * 1000);
 							String dateStr = df.format(notAfter);
 							AlertLevel alertLevel = (daysLeft <= (certbotName != null ? CERTBOT_CRITICAL_DAYS : OTHER_CRITICAL_DAYS)) ? CRITICAL
 										: daysLeft <= (certbotName != null ? CERTBOT_HIGH_DAYS : OTHER_HIGH_DAYS) ? HIGH

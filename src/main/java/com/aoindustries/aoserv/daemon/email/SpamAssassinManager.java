@@ -115,7 +115,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 	/**
 	 * The interval to sleep after each pass.
 	 */
-	private static final long DELAY_INTERVAL = (long)60*1000;
+	private static final long DELAY_INTERVAL = 60L * 1000;
 
 	/**
 	 * The maximum number of messages that will be sent to <code>sa-learn</code> as a single command.
@@ -962,7 +962,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 
 	@Override
 	public long getProcessTimerMaximumTime() {
-		return (long)30*60*1000;
+		return 30L * 60 * 1000;
 	}
 
 	/**

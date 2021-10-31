@@ -1125,7 +1125,7 @@ public class LinuxAccountManager extends BuilderThread {
 
 	@Override
 	public long getProcessTimerMaximumTime() {
-		return 15*60*1000;
+		return 15L * 60 * 1000;
 	}
 
 	/**

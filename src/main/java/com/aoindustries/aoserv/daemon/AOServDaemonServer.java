@@ -85,15 +85,15 @@ public final class AOServDaemonServer extends Thread {
 			if(lastAccessKeyCleaning == -1) lastAccessKeyCleaning = System.currentTimeMillis();
 			else {
 				long timeSince = System.currentTimeMillis() - lastAccessKeyCleaning;
-				if(timeSince < 0 || timeSince >= (5L*60*1000)) {
+				if(timeSince < 0 || timeSince >= (5L * 60 * 1000)) {
 					// Build a list of keys that should be removed
 					List<Long> removeKeys=new ArrayList<>();
 					Iterator<Long> iter = accessKeys.keySet().iterator();
 					while(iter.hasNext()) {
 						Long keyLong = iter.next();
-						DaemonAccessEntry entry=accessKeys.get(keyLong);
-						timeSince=System.currentTimeMillis()-entry.created;
-						if(timeSince<0 || timeSince>=(60L*60*1000)) {
+						DaemonAccessEntry entry = accessKeys.get(keyLong);
+						timeSince = System.currentTimeMillis() - entry.created;
+						if(timeSince < 0 || timeSince >= (60L * 60 * 1000)) {
 							removeKeys.add(keyLong);
 						}
 					}

@@ -190,6 +190,6 @@ public class TimeZoneManager extends BuilderThread {
 
 	@Override
 	public long getProcessTimerMaximumTime() {
-		return (long)30*60*1000;
+		return 30L * 60 * 1000;
 	}
 }

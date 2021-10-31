@@ -162,7 +162,7 @@ public final class DistroManager implements Runnable {
 					// Last time in the future, assume system time changed and run now
 					|| lastDistroTime.getTime() > distroStartTime
 					// Has been at least 12 hours since the last run
-					|| (distroStartTime - lastDistroTime.getTime()) >= 12L*60*60*1000
+					|| (distroStartTime - lastDistroTime.getTime()) >= 12L * 60 * 60 * 1000
 				) {
 					int distroHour = thisServer.getDistroHour();
 					GregorianCalendar gcal = new GregorianCalendar();
@@ -180,8 +180,8 @@ public final class DistroManager implements Runnable {
 								"run",
 								"Distro verification taking too long",
 								"Distro Verification",
-								12*60*60*1000, // 12 hours
-								60*60*1000 // 1 hour
+								12L * 60 * 60 * 1000, // 12 hours
+								60L * 60 * 1000 // 1 hour
 							)
 						) {
 							AOServDaemon.executorService.submit(timer);

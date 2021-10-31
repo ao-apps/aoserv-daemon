@@ -2399,7 +2399,7 @@ public final class FailoverFileReplicationManager {
 											int age = SafeMath.castInt(
 												(fromServerDate - gcal.getTimeInMillis())
 												/
-												(24l * 60 * 60 * 1000)
+												(24L * 60 * 60 * 1000)
 											);
 											if(age >= 0) {
 												// Must also be a date directory with no extension, or one of the expected extensions to delete:

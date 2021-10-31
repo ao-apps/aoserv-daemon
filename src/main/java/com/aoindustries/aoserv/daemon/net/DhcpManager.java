@@ -43,7 +43,7 @@ public final class DhcpManager implements Runnable {
 
 	private static final Logger logger = Logger.getLogger(DhcpManager.class.getName());
 
-	public static final int POLL_INTERVAL=5*60*1000;
+	public static final int POLL_INTERVAL = 5 * 60 * 1000;
 
 	private static final String GET_DHCP_ADDRESS="/opt/aoserv-daemon/bin/get_dhcp_address";
 

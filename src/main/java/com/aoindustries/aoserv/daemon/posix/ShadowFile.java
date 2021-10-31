@@ -213,7 +213,7 @@ public final class ShadowFile {
 		 * Gets the number of days from the Epoch for the provided time in milliseconds from Epoch.
 		 */
 		public static int getCurrentDate(long time) {
-			return SafeMath.castInt(time / (24 * 60 * 60 * 1000));
+			return SafeMath.castInt(time / (24L * 60 * 60 * 1000));
 		}
 
 		/**

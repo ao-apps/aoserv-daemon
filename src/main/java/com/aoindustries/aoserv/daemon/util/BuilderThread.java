@@ -41,12 +41,12 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
 	private static final Logger logger = Logger.getLogger(BuilderThread.class.getName());
 
 	public static final long
-		DEFAULT_PROCESS_TIMER_MAXIMUM_TIME=5*60*1000,
-		DEFAULT_PROCESS_TIMER_REMINDER_INTERVAL=15*60*1000
+		DEFAULT_PROCESS_TIMER_MAXIMUM_TIME = 5L * 60 * 1000,
+		DEFAULT_PROCESS_TIMER_REMINDER_INTERVAL = 15L * 60 * 1000
 	;
 	public static final int
-		DEFAULT_MINIMUM_DELAY=5*1000,
-		DEFAULT_MAXIMUM_DELAY=35*1000
+		DEFAULT_MINIMUM_DELAY = 5 * 1000,
+		DEFAULT_MAXIMUM_DELAY = 35 * 1000
 	;
 
 	private volatile Thread rebuildThread;
