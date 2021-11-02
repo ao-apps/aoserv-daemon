@@ -888,13 +888,13 @@ public final class SslCertificateManager {
 						if(usedBy.length() > 0) usedBy.append(", ");
 						int size = cyrusServers.size();
 						useCount += size;
-						usedBy.append(size).append(size == 1 ? " CyrusImapdServer" : " CyrusImapdServer");
+						usedBy.append(size).append(size == 1 ? " CyrusImapdServer" : " CyrusImapdServers");
 					}
 					if(!hsbs.isEmpty()) {
 						if(usedBy.length() > 0) usedBy.append(", ");
 						int size = hsbs.size();
 						useCount += size;
-						usedBy.append(size).append(size == 1 ? " VirtualHost" : " VirtualHost");
+						usedBy.append(size).append(size == 1 ? " VirtualHost" : " VirtualHosts");
 					}
 					if(!sendmailServers.isEmpty()) {
 						if(usedBy.length() > 0) usedBy.append(", ");
