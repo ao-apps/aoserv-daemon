@@ -51,15 +51,15 @@ import java.util.logging.Logger;
 /**
  * An <code>AOServerEnvironment</code> controls the backup system on
  * an <code>Server</code>.
- * 
+ *
  * TODO: Save bandwidth by doing prelink -u --undo-output=(tmpfile) (do this to read the file instead of direct I/O).
  *       Can possibly use the distro data to know which ones are prelinked.
- * 
+ *
  * TODO: Use LVM snapshots when is a domU - also do MySQL lock to get steady-state snapshot
- * 
+ *
  * TODO: Should we use some tricky stuff to dump the databases straight out as we iterate?  (Backups only)
  * TODO: Or, just dump to disk and remove when completed?  (Backups only)
- * 
+ *
  * TODO: Adhere to the d attribute?  man chattr
  *
  * @see  Server
@@ -483,10 +483,13 @@ public class AOServerEnvironment extends PosixFileEnvironment {
 	}
 
 	/**
-	 * Uses the fast random source from AOServDaemon.
+	 * {@inheritDoc}
+	 * <p>
+	 * Uses the fast random source from {@link AOServDaemon#getFastRandom()}.
+	 * </p>
 	 */
 	@Override
-	public Random getRandom() {
+	public Random getFastRandom() {
 		return AOServDaemon.getFastRandom();
 	}
 

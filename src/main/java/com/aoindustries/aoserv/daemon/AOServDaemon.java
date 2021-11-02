@@ -111,18 +111,23 @@ public final class AOServDaemon {
 
 	public static final boolean DEBUG = false;
 
-	/**
-	 * A single random number generator is shared by all daemon resources to provide better randomness.
-	 */
 	private static final SecureRandom secureRandom = new SecureRandom();
+
+	/**
+	 * A single random number generator is shared by all daemon resources.
+	 * <p>
+	 * Note: This is not a {@linkplain SecureRandom#getInstanceStrong() strong instance} to avoid blocking.
+	 * </p>
+	 */
 	public static SecureRandom getSecureRandom() {
 		return secureRandom;
 	}
 
+	private static final Random fastRandom = new Random(IoUtils.bufferToLong(secureRandom.generateSeed(Long.BYTES)));
+
 	/**
-	 * A fast pseudo-random number generated seeded by secure random.
+	 * A fast pseudo-random number generator for non-cryptographic purposes.
 	 */
-	private static final Random fastRandom = new Random(IoUtils.bufferToLong(secureRandom.generateSeed(8)));
 	public static Random getFastRandom() {
 		return fastRandom;
 	}

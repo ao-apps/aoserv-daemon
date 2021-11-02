@@ -52,6 +52,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.SecureRandom;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -60,7 +61,6 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -122,8 +122,7 @@ public final class EmailAddressManager extends BuilderThread {
 				&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
-			// Use pseudo-random number generated seeded by secure random
-			Random random = AOServDaemon.getFastRandom();
+			SecureRandom secureRandom = AOServDaemon.getSecureRandom();
 
 			synchronized(rebuildLock) {
 				Set<PosixFile> restorecon = new LinkedHashSet<>();
@@ -242,7 +241,7 @@ public final class EmailAddressManager extends BuilderThread {
 										didOne = true;
 									}
 									writeEmailAddressConfigs(
-										random,
+										secureRandom,
 										ea,
 										usernamesUsed,
 										devNullUsername,
@@ -292,7 +291,7 @@ public final class EmailAddressManager extends BuilderThread {
 										didOne = true;
 									}
 									writeEmailAddressConfigs(
-										random,
+										secureRandom,
 										ea,
 										usernamesUsed,
 										devNullUsername,
@@ -355,7 +354,7 @@ public final class EmailAddressManager extends BuilderThread {
 	}
 
 	private static void writeEmailAddressConfigs(
-		Random random,
+		SecureRandom secureRandom,
 		Address ea,
 		Set<String> usernamesUsed,
 		String[] devNullUsername,
@@ -400,7 +399,7 @@ public final class EmailAddressManager extends BuilderThread {
 			// 1) /dev/null only
 			tieUsername = devNullUsername[0];
 			if(tieUsername == null) {
-				tieUsername = getTieUsername(random, usernamesUsed);
+				tieUsername = getTieUsername(secureRandom, usernamesUsed);
 				devNullUsername[0] = tieUsername;
 				aliasesOut.print(tieUsername).println(": /dev/null");
 			}
@@ -414,7 +413,7 @@ public final class EmailAddressManager extends BuilderThread {
 			Email destination = efs.get(0).getDestination();
 			tieUsername = singleForwardingTies.get(destination);
 			if(tieUsername == null) {
-				tieUsername = getTieUsername(random, usernamesUsed);
+				tieUsername = getTieUsername(secureRandom, usernamesUsed);
 				singleForwardingTies.put(destination, tieUsername);
 				aliasesOut.print(tieUsername).print(": ").println(destination);
 			}
@@ -428,7 +427,7 @@ public final class EmailAddressManager extends BuilderThread {
 			PosixPath path = elas.get(0).getEmailList().getPath();
 			tieUsername = singleListTies.get(path);
 			if(tieUsername == null) {
-				tieUsername = getTieUsername(random, usernamesUsed);
+				tieUsername = getTieUsername(secureRandom, usernamesUsed);
 				singleListTies.put(path, tieUsername);
 				aliasesOut.print(tieUsername).print(": :include:").println(path);
 			}
@@ -442,7 +441,7 @@ public final class EmailAddressManager extends BuilderThread {
 			String command = epas.get(0).getEmailPipe().getCommand();
 			tieUsername = singlePipeTies.get(command);
 			if(tieUsername == null) {
-				tieUsername = getTieUsername(random, usernamesUsed);
+				tieUsername = getTieUsername(secureRandom, usernamesUsed);
 				singlePipeTies.put(command, tieUsername);
 				aliasesOut.print(tieUsername).print(": \"| ").print(command).println('"');
 			}
@@ -458,7 +457,7 @@ public final class EmailAddressManager extends BuilderThread {
 				User.Name username = lsa.getLinuxAccount_username_id();
 				tieUsername = singleInboxTies.get(username);
 				if(tieUsername == null) {
-					tieUsername = getTieUsername(random, usernamesUsed);
+					tieUsername = getTieUsername(secureRandom, usernamesUsed);
 					singleInboxTies.put(username, tieUsername);
 					aliasesOut.print(tieUsername).print(": \\").println(Strings.replace(username.toString(), '@', "\\@"));
 				}
@@ -472,7 +471,7 @@ public final class EmailAddressManager extends BuilderThread {
 			|| !laas.isEmpty()
 		) {
 			// 6) Multiple destinations, BEA ignored (list each)
-			tieUsername = getTieUsername(random, usernamesUsed);
+			tieUsername = getTieUsername(secureRandom, usernamesUsed);
 			aliasesOut.print(tieUsername).print(": ");
 			boolean done = false;
 			for(Forwarding ef : efs) {
@@ -508,7 +507,7 @@ public final class EmailAddressManager extends BuilderThread {
 	private static final String TIE_PREFIX = "tmp_";
 	private static final String TIE_CHARS = "0123456789abcdefghijklmnopqrstuvwxyz";
 
-	private static String getTieUsername(Random random, Set<String> usernamesUsed) {
+	private static String getTieUsername(SecureRandom secureRandom, Set<String> usernamesUsed) {
 		StringBuilder sb = new StringBuilder(4 + TIE_USERNAME_DIGITS);
 		sb.append(TIE_PREFIX);
 		while(true) {
@@ -516,7 +515,7 @@ public final class EmailAddressManager extends BuilderThread {
 			for(int c = 0; c < TIE_USERNAME_DIGITS; c++) {
 				sb.append(
 					TIE_CHARS.charAt(
-						random.nextInt(TIE_CHARS.length())
+						secureRandom.nextInt(TIE_CHARS.length())
 					)
 				);
 			}
