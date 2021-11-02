@@ -513,12 +513,14 @@ public final class PgHbaManager extends BuilderThread {
 									// Signal reload on PostgreSQL
 									File pidFile = new File(serverDir, "postmaster.pid");
 									if(pidFile.exists()) {
-										BufferedReader in=new BufferedReader(new InputStreamReader(new FileInputStream(pidFile)));
-										String pid=in.readLine();
+										String pid;
+										try (BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(pidFile)))) {
+											pid = in.readLine();
+										}
 										// Must be all 0-9
-										for(int d=0;d<pid.length();d++) {
-											char ch=pid.charAt(d);
-											if(ch<'0' || ch>'9') throw new IOException("Invalid character in postmaster.pid first line: "+ch);
+										for(int d = 0; d < pid.length(); d++) {
+											char ch = pid.charAt(d);
+											if(ch < '0' || ch > '9') throw new IOException("Invalid character in postmaster.pid first line: " + ch);
 										}
 										new LinuxProcess(Integer.parseInt(pid)).signal("HUP");
 									} else {
