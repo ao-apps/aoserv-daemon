@@ -69,7 +69,7 @@ public final class FirewalldManager extends BuilderThread {
 	 * The zones for SSH, used as a fail-safe if SSH not added to any zone.
 	 */
 	private static final Set<FirewallZone.Name> sshFailsafeZones = Collections.unmodifiableSet(
-		new LinkedHashSet<FirewallZone.Name>(
+		new LinkedHashSet<>(
 			Arrays.asList(
 				FirewallZone.DMZ,
 				FirewallZone.EXTERNAL,

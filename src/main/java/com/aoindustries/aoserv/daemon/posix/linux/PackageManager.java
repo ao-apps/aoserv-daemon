@@ -676,7 +676,7 @@ public class PackageManager {
 					}
 					// Notify any listeners
 					listenerManager.enqueueEvent(
-						(PackageListener listener) -> () -> listener.packageListUpdated(unmodifiableAllRpms)
+						listener -> () -> listener.packageListUpdated(unmodifiableAllRpms)
 					);
 				} else {
 					logger.fine("RPMs not changed");
@@ -761,7 +761,9 @@ public class PackageManager {
 	 */
 	public static void installPackages(Iterable<PackageName> packageNames) throws IOException {
 		synchronized(packagesLock) {
-			for(PackageName packageName : packageNames) installPackage(packageName);
+			for(PackageName packageName : packageNames) {
+				installPackage(packageName);
+			}
 		}
 	}
 
@@ -773,7 +775,9 @@ public class PackageManager {
 	 */
 	public static void installPackages(PackageName ... packageNames) throws IOException {
 		synchronized(packagesLock) {
-			for(PackageName packageName : packageNames) installPackage(packageName);
+			for(PackageName packageName : packageNames) {
+				installPackage(packageName);
+			}
 		}
 	}
 

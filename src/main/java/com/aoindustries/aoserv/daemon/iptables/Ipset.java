@@ -84,7 +84,7 @@ public final class Ipset {
 	 * To minimize the kernel locking duration, each ipset is only updated with
 	 * what has changed since the last build.
 	 */
-	//private static final Map<Set, Set<Integer>> lastNetworks=new HashMap<Set, Set<Integer>>();
+	//private static final Map<Set, Set<Integer>> lastNetworks = new HashMap<>();
 
 	/**
 	 * Calls ipset -S, skipping any comment lines

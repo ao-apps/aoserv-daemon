@@ -67,7 +67,6 @@ import com.sun.mail.imap.AppendUID;
 import com.sun.mail.imap.IMAPFolder;
 import com.sun.mail.imap.IMAPStore;
 import com.sun.mail.imap.Rights;
-import com.sun.mail.imap.protocol.IMAPProtocol;
 import com.sun.mail.imap.protocol.IMAPResponse;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -2185,7 +2184,7 @@ public final class ImapManager extends BuilderThread {
 	@SuppressWarnings({"unchecked"})
 	private static List<Annotation> getAnnotations(IMAPFolder folder, final String entry, final String attribute) throws MessagingException {
 		final String mailboxName = folder.getFullName();
-		List<Annotation> annotations = (List)folder.doCommand((IMAPProtocol p) -> {
+		List<Annotation> annotations = (List)folder.doCommand(p -> {
 			// Issue command
 			Argument args = new Argument();
 			args.writeString(mailboxName);
@@ -2265,7 +2264,7 @@ public final class ImapManager extends BuilderThread {
 			newValue = value;
 			newContentType = contentType;
 		}
-		folder.doCommand((IMAPProtocol p) -> {
+		folder.doCommand(p -> {
 			// Issue command
 			Argument list = new Argument();
 			list.writeNString("value.shared");

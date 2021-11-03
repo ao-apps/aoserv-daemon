@@ -213,6 +213,7 @@ public abstract class HttpdSiteManager {
 	 *
 	 * Only called by the already synchronized <code>HttpdManager.doRebuild()</code> method.
 	 */
+	@SuppressWarnings("SleepWhileInLoop")
 	static void stopStartAndRestart(Set<Site> sitesNeedingRestarted) throws IOException, SQLException {
 		for(Site httpdSite : AOServDaemon.getThisServer().getHttpdSites()) {
 			HttpdSiteManager manager = getInstance(httpdSite);
@@ -1040,7 +1041,7 @@ public abstract class HttpdSiteManager {
 		}
 	}
 
-	private static final SortedSet<JkSetting> emptyJkSettings = Collections.unmodifiableSortedSet(new TreeSet<JkSetting>());
+	private static final SortedSet<JkSetting> emptyJkSettings = Collections.unmodifiableSortedSet(new TreeSet<>());
 
 	/**
 	 * Gets the JkMount and JkUnmounts for this site.

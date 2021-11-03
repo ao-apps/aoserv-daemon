@@ -716,11 +716,7 @@ public final class AOServDaemon {
 	 * Executes a command, opens then immediately closes the command's input, and captures the output.
 	 */
 	public static byte[] execAndCaptureBytes(File workingDirectory, String... command) throws IOException {
-		return execCall(
-			stdout -> IoUtils.readFully(stdout),
-			workingDirectory,
-			command
-		);
+		return execCall(IoUtils::readFully, workingDirectory, command);
 	}
 
 	/**
