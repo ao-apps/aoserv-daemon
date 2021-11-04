@@ -135,7 +135,10 @@ public final class SshdManager extends BuilderThread {
 		String octal = Long.toOctalString(sftpUmask);
 		if(sftpUmask < 0000) throw new IllegalArgumentException("sftpUmask < 0000 : " + octal);
 		if(sftpUmask > 0777) throw new IllegalArgumentException("sftpUmask > 0777 : " + octal);
-		while(octal.length() < 3) {
+		int len = octal.length();
+		if(len == 1) {
+			octal = "00" + octal;
+		} else if(len == 2) {
 			octal = '0' + octal;
 		}
 		return octal;
