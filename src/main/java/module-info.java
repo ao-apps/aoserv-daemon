@@ -78,4 +78,5 @@ module com.aoindustries.aoserv.daemon {
 	// Java SE
 	//requires java.logging;
 	requires java.naming;
+	requires java.sql;
 }
