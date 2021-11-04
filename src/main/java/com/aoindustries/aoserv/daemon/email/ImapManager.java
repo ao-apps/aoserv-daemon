@@ -1964,7 +1964,7 @@ public final class ImapManager extends BuilderThread {
 							} catch(ExecutionException err) {
 								String extraInfo;
 								Throwable cause = err.getCause();
-								if(cause != null && (cause instanceof ReadOnlyFolderException)) {
+								if(cause instanceof ReadOnlyFolderException) {
 									ReadOnlyFolderException rofe = (ReadOnlyFolderException)cause;
 									extraInfo = "lsa = " + lsa + ", folder = " + rofe.getFolder().getFullName();
 								} else {
