@@ -45,6 +45,7 @@ public abstract class SocketServerManager {
 	private final List<SocketServerThread> socketServers=new ArrayList<>();
 
 	protected SocketServerManager() {
+		// Do nothing
 	}
 
 	private boolean started=false;

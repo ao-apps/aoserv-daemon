@@ -36,14 +36,16 @@ import java.util.Set;
  *
  * @author  AO Industries, Inc.
  */
-public class TomcatCommon_3_2_4 extends TomcatCommon_3_X {
+public final class TomcatCommon_3_2_4 extends TomcatCommon_3_X {
 
 	private static final TomcatCommon_3_2_4 instance = new TomcatCommon_3_2_4();
 	public static TomcatCommon_3_2_4 getInstance() {
 		return instance;
 	}
 
-	private TomcatCommon_3_2_4() {}
+	private TomcatCommon_3_2_4() {
+		// Do nothing
+	}
 
 	@Override
 	protected Set<PackageManager.PackageName> getRequiredPackages() throws IOException, SQLException {

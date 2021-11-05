@@ -51,7 +51,10 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-public final class PasswdFile {
+public abstract class PasswdFile {
+
+	/** Make no instances. */
+	private PasswdFile() {throw new AssertionError();}
 
 	private static final Logger logger = Logger.getLogger(PasswdFile.class.getName());
 
@@ -473,8 +476,5 @@ public final class PasswdFile {
 			}
 		}
 		return createPasswdFile(passwdEntries.values());
-	}
-
-	private PasswdFile() {
 	}
 }

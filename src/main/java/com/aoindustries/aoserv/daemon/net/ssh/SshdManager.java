@@ -98,6 +98,7 @@ public final class SshdManager extends BuilderThread {
 	private static SshdManager sshdManager;
 
 	private SshdManager() {
+		// Do nothing
 	}
 
 	private static void writeListenAddresses(Collection<? extends Bind> nbs, ChainWriter out) throws SQLException, IOException {

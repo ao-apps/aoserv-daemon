@@ -53,6 +53,7 @@ public final class MySQLHostManager extends BuilderThread {
 	private static final Logger logger = Logger.getLogger(MySQLHostManager.class.getName());
 
 	private MySQLHostManager() {
+		// Do nothing
 	}
 
 	private static final Object rebuildLock = new Object();

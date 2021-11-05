@@ -90,6 +90,7 @@ public final class EmailAddressManager extends BuilderThread {
 	private static EmailAddressManager emailAddressManager;
 
 	private EmailAddressManager() {
+		// Do nothing
 	}
 
 	private static void writeRequiredSystemAlias(String requiredAddress, List<SystemAlias> systemAliases, Set<String> usernamesUsed, ChainWriter aliasesOut) throws SQLException {

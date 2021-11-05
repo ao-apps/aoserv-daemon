@@ -43,12 +43,12 @@ import java.sql.SQLException;
 /**
  * @author  AO Industries, Inc.
  */
-public final class EmailListManager {
+public abstract class EmailListManager {
+
+	/** Make no instances. */
+	private EmailListManager() {throw new AssertionError();}
 
 	private static final Charset ENCODING = StandardCharsets.UTF_8;
-
-	private EmailListManager() {
-	}
 
 	/**
 	 * Reads the address list from the file system.

@@ -65,6 +65,7 @@ public final class PgHbaManager extends BuilderThread {
 	private static final Logger logger = Logger.getLogger(PgHbaManager.class.getName());
 
 	private PgHbaManager() {
+		// Do nothing
 	}
 
 	private static boolean writeList(Iterable<?> list, ChainWriter out) {

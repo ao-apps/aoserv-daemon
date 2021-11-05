@@ -106,6 +106,7 @@ public final class ProcmailManager extends BuilderThread {
 	private static final int SPAMC_SKIP_THRESHOLD = 1000000;
 
 	private ProcmailManager() {
+		// Do nothing
 	}
 
 	private static final Object rebuildLock = new Object();

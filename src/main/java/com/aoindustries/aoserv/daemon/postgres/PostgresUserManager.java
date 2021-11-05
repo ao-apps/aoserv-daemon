@@ -60,6 +60,7 @@ public final class PostgresUserManager extends BuilderThread {
 	private static final Logger logger = Logger.getLogger(PostgresUserManager.class.getName());
 
 	private PostgresUserManager() {
+		// Do nothing
 	}
 
 	/**

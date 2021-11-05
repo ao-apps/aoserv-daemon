@@ -84,6 +84,7 @@ public final class FirewalldManager extends BuilderThread {
 	private static FirewalldManager firewalldManager;
 
 	private FirewalldManager() {
+		// Do nothing
 	}
 
 	/**

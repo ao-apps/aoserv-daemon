@@ -54,7 +54,10 @@ import java.util.regex.Pattern;
  *
  * @author  AO Industries, Inc.
  */
-class HttpdLogManager {
+abstract class HttpdLogManager {
+
+	/** Make no instances. */
+	private HttpdLogManager() {throw new AssertionError();}
 
 	private static final Logger logger = Logger.getLogger(HttpdLogManager.class.getName());
 
@@ -468,8 +471,5 @@ class HttpdLogManager {
 				}
 			}
 		}
-	}
-
-	private HttpdLogManager() {
 	}
 }

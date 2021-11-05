@@ -36,7 +36,9 @@ import java.sql.SQLException;
  */
 public abstract class TomcatCommon_3_X extends TomcatCommon {
 
-	TomcatCommon_3_X() {}
+	TomcatCommon_3_X() {
+		// Do nothing
+	}
 
 	/**
 	 * The list of files that are contained in [/var]/www/{site}/var/log directories.

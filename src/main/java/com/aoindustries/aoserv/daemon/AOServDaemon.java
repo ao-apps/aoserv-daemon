@@ -105,7 +105,10 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-public final class AOServDaemon {
+public abstract class AOServDaemon {
+
+	/** Make no instances. */
+	private AOServDaemon() {throw new AssertionError();}
 
 	private static final Logger logger = Logger.getLogger(AOServDaemon.class.getName());
 
@@ -141,12 +144,6 @@ public final class AOServDaemon {
 	 * An unbounded executor for daemon-wide tasks.
 	 */
 	public static final ExecutorService executorService = Executors.newCachedThreadPool();
-
-	/**
-	 * Create no instances.
-	 */
-	private AOServDaemon() {
-	}
 
 	/**
 	 * Recursively searches for any files that are not owned by a UID in

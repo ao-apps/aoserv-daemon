@@ -76,6 +76,7 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
 	private static final File WORKING_DIRECTORY = new File("/var/lib/pgsql");
 
 	private PostgresDatabaseManager() {
+		// Do nothing
 	}
 
 	private static final Object rebuildLock = new Object();

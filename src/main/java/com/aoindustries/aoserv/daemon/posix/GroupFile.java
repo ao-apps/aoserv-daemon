@@ -50,7 +50,10 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-public final class GroupFile {
+public abstract class GroupFile {
+
+	/** Make no instances. */
+	private GroupFile() {throw new AssertionError();}
 
 	private static final Logger logger = Logger.getLogger(GroupFile.class.getName());
 
@@ -309,8 +312,5 @@ public final class GroupFile {
 			}
 		}
 		return createGroupFile(groupEntries.values());
-	}
-
-	private GroupFile() {
 	}
 }

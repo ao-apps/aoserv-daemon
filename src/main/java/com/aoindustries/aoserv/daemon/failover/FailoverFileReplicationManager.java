@@ -200,7 +200,10 @@ Maximum number of chunks per file: 2 ^ (44 - 20): 2 ^ 24
  *
  * @author  AO Industries, Inc.
  */
-public final class FailoverFileReplicationManager {
+public abstract class FailoverFileReplicationManager {
+
+	/** Make no instances. */
+	private FailoverFileReplicationManager() {throw new AssertionError();}
 
 	private static final Logger logger = Logger.getLogger(FailoverFileReplicationManager.class.getName());
 
@@ -284,9 +287,6 @@ public final class FailoverFileReplicationManager {
 	 * recent pass or when it is from an older pass.
 	 */
 	private static final String RECYCLED_PARTIAL_EXTENSION=".recycled.partial";
-
-	private FailoverFileReplicationManager() {
-	}
 
 	/**
 	 * Checks a path for sanity:

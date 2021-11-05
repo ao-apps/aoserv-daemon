@@ -43,7 +43,10 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-public class PackageManager {
+public abstract class PackageManager {
+
+	/** Make no instances. */
+	private PackageManager() {throw new AssertionError();}
 
 	private static final Logger logger = Logger.getLogger(PackageManager.class.getName());
 
@@ -311,12 +314,6 @@ public class PackageManager {
 	 * to the installed RPMs.
 	 */
 	private static final String VAR_LIB_RPM = "/var/lib/rpm";
-
-	/**
-	 * Make no instances.
-	 */
-	private PackageManager() {
-	}
 
 	public static class Version implements Comparable<Version> {
 

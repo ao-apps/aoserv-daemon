@@ -239,6 +239,7 @@ public final class ImapManager extends BuilderThread {
 	private static final String SOURCE_SUFFIX = "-source";
 
 	private ImapManager() {
+		// Do nothing
 	}
 
 	private static final Map<Tuple3<InetAddress, Port, Boolean>, Session> _sessions = new HashMap<>();

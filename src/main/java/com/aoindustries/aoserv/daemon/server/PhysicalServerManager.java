@@ -30,10 +30,10 @@ import java.io.IOException;
  *
  * @author  AO Industries, Inc.
  */
-public final class PhysicalServerManager {
+public abstract class PhysicalServerManager {
 
-	private PhysicalServerManager() {
-	}
+	/** Make no instances. */
+	private PhysicalServerManager() {throw new AssertionError();}
 
 	private static final String[] apcaccessStatusCommand = {
 		"/sbin/apcaccess",

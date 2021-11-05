@@ -57,7 +57,7 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-public class SmtpRelayManager extends BuilderThread implements Runnable {
+public final class SmtpRelayManager extends BuilderThread implements Runnable {
 
 	private static final Logger logger = Logger.getLogger(SmtpRelayManager.class.getName());
 
@@ -284,6 +284,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 	}
 
 	private SmtpRelayManager() {
+		// Do nothing
 	}
 
 	@Override

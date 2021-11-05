@@ -76,6 +76,7 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
 	public static final File pgsqlDirectory = new File(Server.DATA_BASE_DIR.toString());
 
 	private PostgresServerManager() {
+		// Do nothing
 	}
 
 	private static final Object rebuildLock = new Object();

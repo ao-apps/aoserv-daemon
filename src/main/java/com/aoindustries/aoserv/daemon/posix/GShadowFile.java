@@ -53,7 +53,10 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-public final class GShadowFile {
+public abstract class GShadowFile {
+
+	/** Make no instances. */
+	private GShadowFile() {throw new AssertionError();}
 
 	private static final Logger logger = Logger.getLogger(GShadowFile.class.getName());
 
@@ -365,8 +368,5 @@ public final class GShadowFile {
 			}
 		}
 		return createGShadowFile(gshadowEntries.values());
-	}
-
-	private GShadowFile() {
 	}
 }

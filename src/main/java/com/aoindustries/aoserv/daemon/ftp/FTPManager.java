@@ -78,6 +78,7 @@ public final class FTPManager extends BuilderThread {
 	private static FTPManager ftpManager;
 
 	private FTPManager() {
+		// Do nothing
 	}
 
 	private static final Object rebuildLock = new Object();

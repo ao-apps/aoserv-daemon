@@ -56,6 +56,7 @@ public final class MySQLUserManager extends BuilderThread {
 	private static final Logger logger = Logger.getLogger(MySQLUserManager.class.getName());
 
 	private MySQLUserManager() {
+		// Do nothing
 	}
 
 	private static final Object rebuildLock = new Object();

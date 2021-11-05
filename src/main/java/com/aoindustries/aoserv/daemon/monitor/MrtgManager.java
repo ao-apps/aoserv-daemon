@@ -81,6 +81,7 @@ public final class MrtgManager extends BuilderThread {
 	private static MrtgManager mrtgManager;
 
 	private MrtgManager() {
+		// Do nothing
 	}
 
 	/**

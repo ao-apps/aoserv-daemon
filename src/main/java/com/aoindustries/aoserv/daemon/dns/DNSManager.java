@@ -147,6 +147,7 @@ public final class DNSManager extends BuilderThread {
 	private static DNSManager dnsManager;
 
 	private DNSManager() {
+		// Do nothing
 	}
 
 	/**

@@ -58,6 +58,7 @@ public final class EmailDomainManager extends BuilderThread {
 	private static EmailDomainManager emailDomainManager;
 
 	private EmailDomainManager() {
+		// Do nothing
 	}
 
 	private static final Object rebuildLock = new Object();

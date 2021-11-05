@@ -85,6 +85,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
 	private static final File WORKING_DIRECTORY = new File("/var/lib/mysql");
 
 	private MySQLDatabaseManager() {
+		// Do nothing
 	}
 
 	private static final Object rebuildLock = new Object();

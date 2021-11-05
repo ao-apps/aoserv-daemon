@@ -41,10 +41,10 @@ import java.util.Properties;
  *
  * @author  AO Industries, Inc.
  */
-public final class AOServDaemonConfiguration {
+public abstract class AOServDaemonConfiguration {
 
-	private AOServDaemonConfiguration() {
-	}
+	/** Make no instances. */
+	private AOServDaemonConfiguration() {throw new AssertionError();}
 
 	private static Properties props;
 

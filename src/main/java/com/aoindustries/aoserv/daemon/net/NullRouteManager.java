@@ -212,6 +212,7 @@ public final class NullRouteManager {
 	private Thread thread;
 
 	private NullRouteManager() {
+		// Do nothing
 	}
 
 	private void startThread() {

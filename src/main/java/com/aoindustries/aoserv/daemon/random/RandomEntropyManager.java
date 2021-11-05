@@ -133,6 +133,7 @@ public final class RandomEntropyManager implements Runnable {
 	private static Thread thread;
 
 	private RandomEntropyManager() {
+		// Do nothing
 	}
 
 	@Override

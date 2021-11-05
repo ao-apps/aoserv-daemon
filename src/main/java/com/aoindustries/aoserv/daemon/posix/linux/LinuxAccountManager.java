@@ -94,7 +94,7 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-public class LinuxAccountManager extends BuilderThread {
+public final class LinuxAccountManager extends BuilderThread {
 
 	private static final Logger logger = Logger.getLogger(LinuxAccountManager.class.getName());
 
@@ -1144,5 +1144,6 @@ public class LinuxAccountManager extends BuilderThread {
 	}
 
 	private LinuxAccountManager() {
+		// Do nothing
 	}
 }

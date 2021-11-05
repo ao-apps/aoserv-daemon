@@ -167,6 +167,7 @@ public final class SendmailCFManager extends BuilderThread {
 	private static final PosixFile sendmailRcFile = new PosixFile("/etc/rc.d/rc3.d/S80sendmail");
 
 	private SendmailCFManager() {
+		// Do nothing
 	}
 
 	/**
@@ -266,7 +267,7 @@ public final class SendmailCFManager extends BuilderThread {
 				clientKey = certificate.getKeyFile().toString();
 			}
 		}
-		
+
 		out.print("define(`confCLIENT_CERT', `").print(clientCert).print("')dnl\n"
 				+ "define(`confCLIENT_KEY', `").print(clientKey).print("')dnl\n"
 				+ "dnl\n"

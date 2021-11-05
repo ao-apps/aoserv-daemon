@@ -58,6 +58,7 @@ public final class MySQLDBUserManager extends BuilderThread {
 	private static final Logger logger = Logger.getLogger(MySQLDBUserManager.class.getName());
 
 	private MySQLDBUserManager() {
+		// Do nothing
 	}
 
 	private static final Object rebuildLock = new Object();
@@ -183,7 +184,7 @@ public final class MySQLDBUserManager extends BuilderThread {
 											Tuple2<Database.Name, User.Name> key = new Tuple2<>(db, user);
 											if(!existing.remove(key)) {
 												// Add the db entry
-												String host = 
+												String host =
 													user.equals(User.MYSQL_SESSION)
 													|| user.equals(User.MYSQL_SYS)
 													? "localhost"

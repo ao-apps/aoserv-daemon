@@ -108,7 +108,7 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-public class SpamAssassinManager extends BuilderThread implements Runnable {
+public final class SpamAssassinManager extends BuilderThread implements Runnable {
 
 	private static final Logger logger = Logger.getLogger(SpamAssassinManager.class.getName());
 
@@ -182,6 +182,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 	private static final long IMAP_SPOOL_MODE = 0644;
 
 	private SpamAssassinManager() {
+		// Do nothing
 	}
 
 	@Override

@@ -30,6 +30,7 @@ public abstract class DBReportData {
 	public int numUsers;
 
 	protected DBReportData() {
+		// Do nothing
 	}
 
 	@Override

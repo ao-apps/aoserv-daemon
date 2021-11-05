@@ -59,6 +59,7 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 	public static final float KILL_DELAY_INTERVAL = 0.1f;
 
 	VersionedTomcatCommon() {
+		// Do nothing
 	}
 
 	/**

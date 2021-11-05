@@ -29,9 +29,6 @@ import org.junit.Test;
 
 public class VersionedTomcatCommonTest {
 
-	public VersionedTomcatCommonTest() {
-	}
-
 	@Test
 	public void testVersion1() {
 		VersionedTomcatCommon.Version version1 = new VersionedTomcatCommon.Version(

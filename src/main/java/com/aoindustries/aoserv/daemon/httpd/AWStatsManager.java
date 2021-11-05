@@ -77,6 +77,7 @@ public final class AWStatsManager extends BuilderThread {
 	private static AWStatsManager awstatsManager;
 
 	private AWStatsManager() {
+		// Do nothing
 	}
 
 	private static final Object rebuildLock = new Object();

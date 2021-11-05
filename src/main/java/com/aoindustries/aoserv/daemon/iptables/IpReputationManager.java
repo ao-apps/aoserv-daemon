@@ -83,6 +83,7 @@ public final class IpReputationManager extends BuilderThread {
 	}
 
 	private IpReputationManager() {
+		// Do nothing
 	}
 
 	@SuppressWarnings("UseOfSystemOutOrSystemErr")

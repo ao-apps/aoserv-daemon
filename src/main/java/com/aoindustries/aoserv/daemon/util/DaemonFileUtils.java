@@ -48,15 +48,12 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-public class DaemonFileUtils {
+public abstract class DaemonFileUtils {
+
+	/** Make no instances. */
+	private DaemonFileUtils() {throw new AssertionError();}
 
 	private static final Logger logger = Logger.getLogger(DaemonFileUtils.class.getName());
-
-	/**
-	 * Make no instances.
-	 */
-	private DaemonFileUtils() {
-	}
 
 	/**
 	 * Copies a resource to the provided output stream.

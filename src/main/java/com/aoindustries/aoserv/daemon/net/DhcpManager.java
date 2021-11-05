@@ -50,6 +50,7 @@ public final class DhcpManager implements Runnable {
 	private static Thread thread;
 
 	private DhcpManager() {
+		// Do nothing
 	}
 
 	public static InetAddress getDhcpAddress(String device) throws IOException {

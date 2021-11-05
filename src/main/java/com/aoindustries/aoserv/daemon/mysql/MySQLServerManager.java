@@ -65,6 +65,7 @@ public final class MySQLServerManager extends BuilderThread {
 	public static final File mysqlDirectory=new File(Server.DATA_BASE_DIR.toString());
 
 	private MySQLServerManager() {
+		// Do nothing
 	}
 
 	private static final Object rebuildLock = new Object();

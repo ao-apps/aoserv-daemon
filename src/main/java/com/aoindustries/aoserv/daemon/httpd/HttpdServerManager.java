@@ -97,11 +97,12 @@ import org.apache.commons.lang3.NotImplementedException;
  *
  * @author  AO Industries, Inc.
  */
-public class HttpdServerManager {
+public abstract class HttpdServerManager {
+
+	/** Make no instances. */
+	private HttpdServerManager() {throw new AssertionError();}
 
 	private static final Logger logger = Logger.getLogger(HttpdServerManager.class.getName());
-
-	private HttpdServerManager() {}
 
 	/**
 	 * Reverts configurations for Let's Encrypt compatibility.
@@ -3516,9 +3517,7 @@ public class HttpdServerManager {
 		}
 	}
 
-	private static class SeBoolLock {
-	};
-
+	private static class SeBoolLock {/* Empty lock class to help heap profile */}
 	private static final SeBoolLock seBoolLock = new SeBoolLock();
 
 	private static void setSeBool(String bool, boolean value) throws IOException {

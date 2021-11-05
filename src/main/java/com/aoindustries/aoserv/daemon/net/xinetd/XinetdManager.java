@@ -71,6 +71,7 @@ public final class XinetdManager extends BuilderThread {
 	public static final File xinetdDirectory=new File("/etc/xinetd.d");
 
 	private XinetdManager() {
+		// Do nothing
 	}
 
 	private static final Object rebuildLock = new Object();

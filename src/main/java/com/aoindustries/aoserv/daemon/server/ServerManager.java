@@ -43,10 +43,10 @@ import java.util.Map;
  *
  * @author  AO Industries, Inc.
  */
-public final class ServerManager {
+public abstract class ServerManager {
 
-	private ServerManager() {
-	}
+	/** Make no instances. */
+	private ServerManager() {throw new AssertionError();}
 
 	private static final File procLoadavg = new File("/proc/loadavg");
 	private static final File procMeminfo = new File("/proc/meminfo");

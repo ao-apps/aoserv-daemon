@@ -71,7 +71,9 @@ public final class BackupManager {
 	 */
 	private static final long MAX_OLDACCOUNTS_AGE = 7L * 24 * 60 * 60 * 1000; // One week
 
-	private BackupManager() {}
+	private BackupManager() {
+		// Do nothing
+	}
 
 	/**
 	 * Backs-up and then deletes the provided files.

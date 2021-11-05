@@ -44,7 +44,7 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-public class TimeZoneManager extends BuilderThread {
+public final class TimeZoneManager extends BuilderThread {
 
 	private static final Logger logger = Logger.getLogger(TimeZoneManager.class.getName());
 
@@ -53,6 +53,7 @@ public class TimeZoneManager extends BuilderThread {
 	private static final PosixFile ETC_LOCALTIME = new PosixFile("/etc/localtime");
 
 	private TimeZoneManager() {
+		// Do nothing
 	}
 
 	@SuppressWarnings("UseOfSystemOutOrSystemErr")

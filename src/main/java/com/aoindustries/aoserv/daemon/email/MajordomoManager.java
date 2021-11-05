@@ -61,6 +61,7 @@ public final class MajordomoManager extends BuilderThread {
 	private static MajordomoManager majordomoManager;
 
 	private MajordomoManager() {
+		// Do nothing
 	}
 
 	private static final Object rebuildLock = new Object();

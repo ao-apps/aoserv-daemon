@@ -58,6 +58,7 @@ public final class SaslauthdManager extends BuilderThread {
 	private static final String SERVICE = "saslauthd.service";
 
 	private SaslauthdManager() {
+		// Do nothing
 	}
 
 	private static final Object rebuildLock = new Object();

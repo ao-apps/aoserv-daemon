@@ -59,6 +59,7 @@ public final class CvsManager extends BuilderThread {
 	private static CvsManager cvsManager;
 
 	private CvsManager() {
+		// Do nothing
 	}
 
 	private static final Object rebuildLock = new Object();

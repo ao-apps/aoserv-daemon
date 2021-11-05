@@ -52,7 +52,10 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-public final class ShadowFile {
+public abstract class ShadowFile {
+
+	/** Make no instances. */
+	private ShadowFile() {throw new AssertionError();}
 
 	private static final Logger logger = Logger.getLogger(ShadowFile.class.getName());
 
@@ -559,8 +562,5 @@ public final class ShadowFile {
 				: PosixFile.crypt(plaintext, cryptAlgorithm, AOServDaemon.getSecureRandom()),
 			updateChangedDate ? Entry.getCurrentDate() : null
 		);
-	}
-
-	private ShadowFile() {
 	}
 }

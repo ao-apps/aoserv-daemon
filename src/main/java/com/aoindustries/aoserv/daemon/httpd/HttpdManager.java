@@ -60,6 +60,7 @@ public final class HttpdManager extends BuilderThread {
 	private static HttpdManager httpdManager;
 
 	private HttpdManager() {
+		// Do nothing
 	}
 
 	private static final Object rebuildLock = new Object();

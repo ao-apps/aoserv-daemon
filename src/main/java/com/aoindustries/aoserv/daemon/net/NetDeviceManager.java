@@ -85,6 +85,7 @@ public final class NetDeviceManager extends BuilderThread {
 	private static final boolean WARN_ONLY = false;
 
 	private NetDeviceManager() {
+		// Do nothing
 	}
 
 	private static final Object rebuildLock = new Object();

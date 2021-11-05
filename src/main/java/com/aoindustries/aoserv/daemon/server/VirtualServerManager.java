@@ -57,12 +57,12 @@ import java.util.regex.Pattern;
  *
  * @author  AO Industries, Inc.
  */
-public final class VirtualServerManager {
+public abstract class VirtualServerManager {
+
+	/** Make no instances. */
+	private VirtualServerManager() {throw new AssertionError();}
 
 	private static final Logger logger = Logger.getLogger(VirtualServerManager.class.getName());
-
-	private VirtualServerManager() {
-	}
 
 	/**
 	 * Gets the xm/xl command used for this server.

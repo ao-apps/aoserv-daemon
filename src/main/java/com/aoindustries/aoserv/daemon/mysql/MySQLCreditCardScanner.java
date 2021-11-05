@@ -48,7 +48,7 @@ import java.util.logging.Logger;
 
 /**
  * Controls the MySQL databases.
- * 
+ *
  * TODO: Move to NOC.
  *
  * @author  AO Industries, Inc.
@@ -58,6 +58,7 @@ public final class MySQLCreditCardScanner implements CronJob {
 	private static final Logger logger = Logger.getLogger(MySQLCreditCardScanner.class.getName());
 
 	private MySQLCreditCardScanner() {
+		// Do nothing
 	}
 
 	private static MySQLCreditCardScanner mySQLCreditCardScanner;

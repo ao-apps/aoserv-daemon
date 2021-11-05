@@ -105,6 +105,7 @@ public final class DistroManager implements Runnable {
 	}
 
 	private DistroManager() {
+		// Do nothing
 	}
 
 	@SuppressWarnings("UseOfSystemOutOrSystemErr")

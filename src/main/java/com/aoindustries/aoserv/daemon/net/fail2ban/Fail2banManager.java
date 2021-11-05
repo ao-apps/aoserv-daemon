@@ -68,6 +68,7 @@ public final class Fail2banManager extends BuilderThread {
 	private static final PosixFile JAIL_D = new PosixFile("/etc/fail2ban/jail.d");
 
 	private Fail2banManager() {
+		// Do nothing
 	}
 
 	@SuppressWarnings({"unchecked"})

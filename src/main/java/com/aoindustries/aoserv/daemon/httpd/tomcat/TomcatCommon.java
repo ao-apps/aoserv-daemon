@@ -38,6 +38,7 @@ import java.util.Set;
 public abstract class TomcatCommon {
 
 	TomcatCommon() {
+		// Do nothing
 	}
 
 	/**

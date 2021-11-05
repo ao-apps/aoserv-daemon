@@ -44,7 +44,10 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-public final class Ipset {
+public abstract class Ipset {
+
+	/** Make no instances. */
+	private Ipset() {throw new AssertionError();}
 
 	private static final Logger logger = Logger.getLogger(Ipset.class.getName());
 
@@ -75,9 +78,6 @@ public final class Ipset {
 		 * @see  Set
 		 */
 		R
-	}
-
-	private Ipset() {
 	}
 
 	/**

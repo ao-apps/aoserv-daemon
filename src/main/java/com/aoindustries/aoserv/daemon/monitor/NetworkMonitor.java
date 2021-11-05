@@ -241,6 +241,7 @@ public final class NetworkMonitor {
 
 	abstract static class Network {
 		Network() {
+			// Do nothing
 		}
 	}
 
