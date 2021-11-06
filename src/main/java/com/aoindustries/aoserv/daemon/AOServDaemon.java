@@ -203,7 +203,7 @@ public abstract class AOServDaemon {
 	@SuppressWarnings({"UseSpecificCatch", "BroadCatchBlock", "TooBroadCatch", "SleepWhileInLoop"})
 	public static void main(String[] args) {
 		boolean done = false;
-		while(!Thread.currentThread().isInterrupted()) {
+		while(!Thread.currentThread().isInterrupted() && !done) {
 			try {
 				// Configure the SSL
 				String trustStorePath=AOServClientConfiguration.getSslTruststorePath();
