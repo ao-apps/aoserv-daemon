@@ -147,7 +147,28 @@ public final class AOServDaemonServerThread extends Thread {
 			final Key daemonKey;
 			{
 				// Read the most preferred version
-				String preferredVersion = in.readUTF();
+				String preferredVersion;
+				try {
+					preferredVersion = in.readUTF();
+				} catch(SSLHandshakeException err) {
+					String message = err.getMessage();
+					Level level;
+					if(
+						// Do not routinely log messages that are normal due to monitoring simply connecting only
+						!(
+							// Java 11
+							"Remote host terminated the handshake".equals(message)
+							// Java 8
+							|| "Remote host closed connection during handshake".equals(message)
+						)
+					) {
+						level = Level.FINE;
+					} else {
+						level = Level.SEVERE;
+					}
+					logger.log(level, null, err);
+					return;
+				}
 				// Then connector key
 				if(
 					preferredVersion.equals(AOServDaemonProtocol.Version.VERSION_1_77.getVersion())
@@ -1409,11 +1430,6 @@ public final class AOServDaemonServerThread extends Thread {
 			}
 		} catch(EOFException err) {
 			// Normal for abrupt connection closing
-		} catch(SSLHandshakeException err) {
-			String message = err.getMessage();
-			if(!"Remote host closed connection during handshake".equals(message)) {
-				logger.log(Level.SEVERE, null, err);
-			}
 		} catch(SocketException err) {
 			String message=err.getMessage();
 			if(
