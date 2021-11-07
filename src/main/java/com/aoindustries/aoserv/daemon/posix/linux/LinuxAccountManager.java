@@ -322,7 +322,8 @@ public final class LinuxAccountManager extends BuilderThread {
 							if(!usernames.add(username)) throw new SQLException("Duplicate username: " + username);
 							if(!usernameStrs.add(username.toString())) throw new AssertionError();
 							uids.add(lsa.getUid().getId());
-							homeDirs.add(lsa.getHome().toString());
+							PosixPath home = lsa.getHome();
+							homeDirs.add(home.toString());
 							GroupServer primaryGroup = lsa.getPrimaryLinuxServerGroup();
 							if(primaryGroup == null) throw new SQLException("Unable to find primary GroupServer for username=" + username + " on " + lsa.getServer());
 							PosixPath shell = la.getShell().getPath();
@@ -339,6 +340,15 @@ public final class LinuxAccountManager extends BuilderThread {
 									logger.info("Converting " + shell + " to " + Shell.BASH + " for " + username);
 									shell = Shell.BASH;
 								}
+							} else if(
+								username.equals(User.JENKINS)
+								&& home.toString().equals("/home/jenkins")
+							) {
+								// TODO: Remove this once JCA's Jenkins moved to newer version on separate virtual server:
+								if(logger.isLoggable(Level.INFO)) {
+									logger.info("Converting " + shell + " to " + Shell.BASH + " for " + username + " to be compatible with previous Jenkins installations in " + home);
+									shell = Shell.BASH;
+								}
 							}
 							if(
 								passwdEntries.put(
@@ -351,7 +361,7 @@ public final class LinuxAccountManager extends BuilderThread {
 										la.getOfficeLocation(),
 										la.getOfficePhone(),
 										la.getHomePhone(),
-										lsa.getHome(),
+										home,
 										shell
 									)
 								) != null
