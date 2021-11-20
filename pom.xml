@@ -105,9 +105,15 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
 	</issueManagement>
 
 	<ciManagement>
+		<system>Jenkins</system>
+		<url>https://jenkins.aoindustries.com/job/ao/job/aoserv/job/daemon/</url>
+	</ciManagement>
+	<!-- Only one allowed in POM:
+	<ciManagement>
 		<system>GitHub Actions</system>
 		<url>https://github.com/ao-apps/aoserv-daemon/actions</url>
 	</ciManagement>
+	-->
 
 	<repositories>
 		<!-- Repository required here, too, so can find parent -->
@@ -292,7 +298,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
 											<includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/com.google.code.gson/gson</outputDirectory>
 										</artifactItem>
-										<!-- ao-javadoc-offline: <groupId>com.sun.mail</groupId><artifactId>javax.mail</artifactId> -->
+										<!-- ao-javadoc-offline: <groupId>com.sun.mail</groupId><artifactId>javax.mail</artifactId><classifier>javadoc</classifier> -->
 										<artifactItem>
 											<groupId>com.aoindustries</groupId><artifactId>noc-monitor-portmon</artifactId><classifier>javadoc</classifier>
 											<includes>element-list, package-list</includes>
@@ -402,7 +408,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
 									<url>https://javadoc.io/doc/com.google.code.gson/gson/${gson.version}/</url>
 									<location>${project.build.directory}/offlineLinks/com.google.code.gson/gson</location>
 								</offlineLink>
-								<!-- ao-javadoc-offline: <groupId>com.sun.mail</groupId><artifactId>javax.mail</artifactId> -->
+								<!-- ao-javadoc-offline: <groupId>com.sun.mail</groupId><artifactId>javax.mail</artifactId><classifier>javadoc</classifier> -->
 								<offlineLink>
 									<url>https://aoindustries.com/noc/monitor/portmon/apidocs/</url>
 									<location>${project.build.directory}/offlineLinks/com.aoindustries/noc-monitor-portmon</location>
