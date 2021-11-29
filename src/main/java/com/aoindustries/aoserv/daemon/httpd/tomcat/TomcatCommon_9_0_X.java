@@ -151,6 +151,26 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 			Version version = new Version(rpm.getVersion(), rpm.getRelease());
 			String suffix = osConfig.getPackageReleaseSuffix();
 			// Downgrade support
+			if(version.compareTo("9.0.55-1" + suffix) < 0) {
+				UpgradeSymlink[] downgradeSymlinks_9_0_55_1 = {
+					// postgresql-42.3.1.jar -> postgresql-42.3.0.jar
+					new UpgradeSymlink(
+						"lib/postgresql-42.3.1.jar",
+						"/dev/null",
+						"lib/postgresql-42.3.0.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.3.1.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.3.1.jar",
+						"lib/postgresql-42.3.0.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.3.0.jar"
+					),
+				};
+				for(UpgradeSymlink symlink : downgradeSymlinks_9_0_55_1) {
+					if(symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
+			}
 			if(version.compareTo("9.0.54-2" + suffix) < 0) {
 				UpgradeSymlink[] downgradeSymlinks_9_0_54_2 = {
 					// mysql-connector-java-8.0.27.jar -> mysql-connector-java-8.0.26.jar
@@ -419,7 +439,27 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 					if(symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			}
-			if(version.compareTo("9.0.54-2" + suffix) > 0) {
+			if(version.compareTo("9.0.55-1" + suffix) >= 0) {
+				UpgradeSymlink[] upgradeSymlinks_9_0_55_1 = {
+					// postgresql-42.3.0.jar -> postgresql-42.3.1.jar
+					new UpgradeSymlink(
+						"lib/postgresql-42.3.0.jar",
+						"/dev/null",
+						"lib/postgresql-42.3.1.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.3.0.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.3.0.jar",
+						"lib/postgresql-42.3.1.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.3.1.jar"
+					),
+				};
+				for(UpgradeSymlink symlink : upgradeSymlinks_9_0_55_1) {
+					if(symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
+			}
+			if(version.compareTo("9.0.55-1" + suffix) > 0) {
 				throw new IllegalStateException("Version of Tomcat newer than expected: " + version);
 			}
 		}
