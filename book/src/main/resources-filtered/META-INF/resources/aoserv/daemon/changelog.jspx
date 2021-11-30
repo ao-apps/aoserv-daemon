@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
 		shortTitle="Changelog"
 		tocLevels="1"
 		datePublished="2020-04-16T21:06:03-05:00"
-		dateModified="2021-11-28T18:23:34-06:00"
+		dateModified="2021-11-29T21:28:42-06:00"
 	>
 		<c:if test="${fn:endsWith('@{project.version}', '-SNAPSHOT') and !fn:endsWith('@{project.version}', '-POST-SNAPSHOT')}">
 			<changelog:release
@@ -55,6 +55,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
 					<li>Updated to Apache Tomcat 8.5.73 with MySQL JDBC 8.0.27 and PostgreSQL JDBC 42.3.1.</li>
 					<li>Updated to Apache Tomcat 9.0.55 with MySQL JDBC 8.0.27 and PostgreSQL JDBC 42.3.1.</li>
 					<li>Updated to Apache Tomcat 10.0.13 with MySQL JDBC 8.0.27 and PostgreSQL JDBC 42.3.1.</li>
+					<li>Added support for PHP 8.1.</li>
 				</ul>
 			</changelog:release>
 		</c:if>
