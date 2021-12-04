@@ -340,15 +340,15 @@ public final class LinuxAccountManager extends BuilderThread {
 									logger.info("Converting " + shell + " to " + Shell.BASH + " for " + username);
 									shell = Shell.BASH;
 								}
-							} else if(
-								username.equals(User.JENKINS)
-								&& home.toString().equals("/home/jenkins")
-							) {
-								// TODO: Remove this once JCA's Jenkins moved to newer version on separate virtual server:
-								if(logger.isLoggable(Level.INFO)) {
-									logger.info("Converting " + shell + " to " + Shell.BASH + " for " + username + " to be compatible with previous Jenkins installations in " + home);
-									shell = Shell.BASH;
-								}
+//							} else if(
+//								username.equals(User.JENKINS)
+//								&& home.toString().equals("/home/jenkins")
+//							) {
+//								// TODO: Remove this once JCA's Jenkins moved to newer version on separate virtual server:
+//								if(logger.isLoggable(Level.INFO)) {
+//									logger.info("Converting " + shell + " to " + Shell.BASH + " for " + username + " to be compatible with previous Jenkins installations in " + home);
+//									shell = Shell.BASH;
+//								}
 							}
 							if(
 								passwdEntries.put(
