@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2021  AO Industries, Inc.
+ * Copyright (C) 2021, 2022  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -151,6 +151,26 @@ final class TomcatCommon_10_0_X extends VersionedTomcatCommon {
 			Version version = new Version(rpm.getVersion(), rpm.getRelease());
 			String suffix = osConfig.getPackageReleaseSuffix();
 			// Downgrade support
+			if(version.compareTo("10.0.14-2" + suffix) < 0) {
+				UpgradeSymlink[] downgradeSymlinks_10_0_14_2 = {
+					// mysql-connector-java-8.0.28.jar -> mysql-connector-java-8.0.27.jar
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.28.jar",
+						"/dev/null",
+						"lib/mysql-connector-java-8.0.27.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.28.jar",
+						"../" + optSlash + "apache-tomcat-10.0/lib/mysql-connector-java-8.0.28.jar",
+						"lib/mysql-connector-java-8.0.27.jar",
+						"../" + optSlash + "apache-tomcat-10.0/lib/mysql-connector-java-8.0.27.jar"
+					),
+				};
+				for(UpgradeSymlink symlink : downgradeSymlinks_10_0_14_2) {
+					if(symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
+			}
 			if(version.compareTo("10.0.14-1" + suffix) < 0) {
 				// 10.0.14-1 has same files as 10.0.13-1
 			}
@@ -472,7 +492,27 @@ final class TomcatCommon_10_0_X extends VersionedTomcatCommon {
 			if(version.compareTo("10.0.14-1" + suffix) >= 0) {
 				// 10.0.14-1 has same files as 10.0.13-1
 			}
-			if(version.compareTo("10.0.14-1" + suffix) > 0) {
+			if(version.compareTo("10.0.14-2" + suffix) >= 0) {
+				UpgradeSymlink[] upgradeSymlinks_10_0_14_2 = {
+					// mysql-connector-java-8.0.27.jar -> mysql-connector-java-8.0.28.jar
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.27.jar",
+						"/dev/null",
+						"lib/mysql-connector-java-8.0.28.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.27.jar",
+						"../" + optSlash + "apache-tomcat-10.0/lib/mysql-connector-java-8.0.27.jar",
+						"lib/mysql-connector-java-8.0.28.jar",
+						"../" + optSlash + "apache-tomcat-10.0/lib/mysql-connector-java-8.0.28.jar"
+					),
+				};
+				for(UpgradeSymlink symlink : upgradeSymlinks_10_0_14_2) {
+					if(symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
+			}
+			if(version.compareTo("10.0.14-2" + suffix) > 0) {
 				throw new IllegalStateException("Version of Tomcat newer than expected: " + version);
 			}
 		}
