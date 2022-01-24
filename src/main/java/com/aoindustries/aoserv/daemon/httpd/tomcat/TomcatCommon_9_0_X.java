@@ -151,6 +151,9 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 			Version version = new Version(rpm.getVersion(), rpm.getRelease());
 			String suffix = osConfig.getPackageReleaseSuffix();
 			// Downgrade support
+			if(version.compareTo("9.0.58-1" + suffix) < 0) {
+				// 9.0.58-1 has same files as 9.0.56-2
+			}
 			if(version.compareTo("9.0.56-2" + suffix) < 0) {
 				UpgradeSymlink[] downgradeSymlinks_9_0_56_2 = {
 					// mysql-connector-java-8.0.28.jar -> mysql-connector-java-8.0.27.jar
@@ -505,7 +508,10 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 					if(symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			}
-			if(version.compareTo("9.0.56-2" + suffix) > 0) {
+			if(version.compareTo("9.0.58-1" + suffix) >= 0) {
+				// 9.0.58-1 has same files as 9.0.56-2
+			}
+			if(version.compareTo("9.0.58-1" + suffix) > 0) {
 				throw new IllegalStateException("Version of Tomcat newer than expected: " + version);
 			}
 		}
