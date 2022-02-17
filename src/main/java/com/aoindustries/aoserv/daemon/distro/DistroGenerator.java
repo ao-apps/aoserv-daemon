@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
+ * Copyright (C) 2001-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -719,7 +719,7 @@ public final class DistroGenerator {
 		// TODO: We could/should use the Executors API here?  This is old style direct thread manipulation, but works so not changing at this time.
 		// Create and start the threads
 		for(int c = 0; c < numThreads; c++) {
-			runState.generators[c] = new DistroGeneratorThread(runState, c);
+			runState.generators[c] = new DistroGeneratorThread(runState);
 			runState.generators[c].start();
 		}
 		// Join each thread and throw any exceptions from them
@@ -771,17 +771,14 @@ public final class DistroGenerator {
 
 		private final RunState runState;
 
-		private final int threadNum;
-
 		// synchronizing on threads may conflict with join method, using explicit lock for exceptions
 		private final Object exceptionLock = new Object();
 		private IOException ioException;
 		private FoundNeversException foundNeversException;
 		private Throwable throwable;
 
-		private DistroGeneratorThread(RunState runState, int threadNum) {
+		private DistroGeneratorThread(RunState runState) {
 			this.runState = runState;
-			this.threadNum = threadNum;
 		}
 
 		@Override
