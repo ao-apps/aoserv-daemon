@@ -451,7 +451,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
 				<groupId>com.aoapps</groupId><artifactId>ao-io-filesystems</artifactId><version>0.2.0${POST-SNAPSHOT}</version>
 			</dependency>
 			<dependency>
-				<groupId>com.aoapps</groupId><artifactId>ao-io-filesystems-posix</artifactId><version>0.2.1-SNAPSHOT<!-- ${POST-SNAPSHOT} --></version>
+				<groupId>com.aoapps</groupId><artifactId>ao-io-filesystems-posix</artifactId><version>0.2.1${POST-SNAPSHOT}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.aoapps</groupId><artifactId>ao-io-posix</artifactId><version>4.0.0${POST-SNAPSHOT}</version>
