@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2017, 2021  AO Industries, Inc.
+ * Copyright (C) 2017, 2021, 2022  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -34,7 +34,10 @@ import java.security.NoSuchAlgorithmException;
  *
  * @author  AO Industries, Inc.
  */
-class MessageDigestUtils {
+final class MessageDigestUtils {
+
+	/** Make no instances. */
+	private MessageDigestUtils() {throw new AssertionError();}
 
 	static byte[] hashInput(MessageDigest digest, InputStream in) throws IOException {
 		digest.reset();
@@ -60,9 +63,5 @@ class MessageDigestUtils {
 
 	static String getHexChars(long sha256_0, long sha256_1, long sha256_2, long sha256_3) {
 		return MD5.getMD5String(sha256_0, sha256_1) + MD5.getMD5String(sha256_2, sha256_3);
-	}
-
-	private MessageDigestUtils() {
-		// Make no instances
 	}
 }
