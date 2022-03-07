@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
 		shortTitle="Changelog"
 		tocLevels="1"
 		datePublished="2020-04-16T21:06:03-05:00"
-		dateModified="2022-02-19T00:09:49-06:00"
+		dateModified="2022-03-07T06:20:08-06:00"
 	>
 		<c:if test="${fn:endsWith('@{project.version}', '-SNAPSHOT') and !fn:endsWith('@{project.version}', '-POST-SNAPSHOT')}">
 			<changelog:release
@@ -47,7 +47,13 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
 				artifactId="@{documented.artifactId}"
 				repository="@{nexusUrl}content/repositories/snapshots/"
 				scmUrl="@{project.scm.url}"
-			/>
+			>
+				<ul>
+					<li>Updated to Apache Tomcat 8.5.76 with MySQL JDBC 8.0.28 and PostgreSQL JDBC 42.3.3.</li>
+					<li>Updated to Apache Tomcat 9.0.59 with MySQL JDBC 8.0.28 and PostgreSQL JDBC 42.3.3.</li>
+					<li>Updated to Apache Tomcat 10.0.17 with MySQL JDBC 8.0.28 and PostgreSQL JDBC 42.3.3.</li>
+				</ul>
+			</changelog:release>
 		</c:if>
 
 		<changelog:release
