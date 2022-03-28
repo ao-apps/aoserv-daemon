@@ -820,7 +820,7 @@ public final class DistroGenerator {
 							.append(", ");
 						TextInPsqlEncoder.textInPsqlEncoder.writePrefixTo(sb);
 						TextInPsqlEncoder.textInPsqlEncoder.append(osFilename.filename.length() == 0 ? "/" : osFilename.filename, sb);
-						TextInPsqlEncoder.textInPsqlEncoder.writeSuffixTo(sb);
+						TextInPsqlEncoder.textInPsqlEncoder.writeSuffixTo(sb, false);
 						sb
 							.append(", ")
 							.append(runState.isOptional(osFilename))
@@ -831,11 +831,11 @@ public final class DistroGenerator {
 							.append("::int8, ");
 						TextInPsqlEncoder.textInPsqlEncoder.writePrefixTo(sb);
 						TextInPsqlEncoder.textInPsqlEncoder.append(getUsername(osFilename, fileStat.getUid()), sb);
-						TextInPsqlEncoder.textInPsqlEncoder.writeSuffixTo(sb);
+						TextInPsqlEncoder.textInPsqlEncoder.writeSuffixTo(sb, false);
 						sb.append(", ");
 						TextInPsqlEncoder.textInPsqlEncoder.writePrefixTo(sb);
 						TextInPsqlEncoder.textInPsqlEncoder.append(getGroupname(osFilename, fileStat.getGid()), sb);
-						TextInPsqlEncoder.textInPsqlEncoder.writeSuffixTo(sb);
+						TextInPsqlEncoder.textInPsqlEncoder.writeSuffixTo(sb, false);
 						sb.append(", ");
 						if(doHash) {
 							assert storeSize;
@@ -894,7 +894,7 @@ public final class DistroGenerator {
 						if(PosixFile.isSymLink(statMode)) {
 							TextInPsqlEncoder.textInPsqlEncoder.writePrefixTo(sb);
 							TextInPsqlEncoder.textInPsqlEncoder.append(file.readLink(), sb);
-							TextInPsqlEncoder.textInPsqlEncoder.writeSuffixTo(sb);
+							TextInPsqlEncoder.textInPsqlEncoder.writeSuffixTo(sb, false);
 						} else {
 							sb.append("null");
 						}
