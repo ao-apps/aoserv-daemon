@@ -966,7 +966,7 @@ public final class FailoverFileReplicationManager {
 				final StreamableInput in =
 					useCompression && protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_84_19) >= 0
 					? new StreamableInput(new GZIPInputStream(rawIn, AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_GZIP_BUFFER_SIZE))
-					// ? new StreamableInput(new GZIPInputStream(new NoCloseInputStream(rawIn), BufferManager.BUFFER_SIZE))
+					// ? new StreamableInput(new GZIPInputStream(NoCloseInputStream.wrap(rawIn), BufferManager.BUFFER_SIZE))
 					: rawIn
 				;
 
