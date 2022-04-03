@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2003-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
+ * Copyright (C) 2003-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -580,7 +580,7 @@ public final class MajordomoManager extends BuilderThread {
 										+ "#\tbool -- choose from: yes, no, y, n\n"
 										+ "#\tenum -- One of a list of possible values\n"
 										+ "#\tinteger -- an integer (string made up of the digits 0-9,\n"
-										+ "#\t	   no decimal point)\n"
+										+ "#\t\t   no decimal point)\n"
 										+ "#\tfloat -- a floating point number with decimal point.\n"
 										+ "#\tregexp -- A perl style regular expression with\n"
 										+ "#\t\t\t  leading and trailing /'s.\n"
