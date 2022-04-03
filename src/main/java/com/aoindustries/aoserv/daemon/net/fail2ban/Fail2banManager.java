@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2018, 2019, 2020, 2021  AO Industries, Inc.
+ * Copyright (C) 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -44,8 +44,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -188,6 +188,7 @@ public final class Fail2banManager extends BuilderThread {
 
 	private static final Object rebuildLock = new Object();
 	@Override
+	@SuppressWarnings({"BroadCatchBlock", "TooBroadCatch", "UseSpecificCatch"})
 	protected boolean doRebuild() {
 		try {
 			Server thisServer = AOServDaemon.getThisServer();
@@ -208,7 +209,7 @@ public final class Fail2banManager extends BuilderThread {
 						if(logger.isLoggable(Level.FINE)) logger.fine("netBinds: " + netBinds);
 
 						// Resolves the unique ports for each supported jail
-						Map<Jail, SortedSet<Integer>> jailPorts = new HashMap<>();
+						Map<Jail, SortedSet<Integer>> jailPorts = new EnumMap<>(Jail.class);
 						for(Bind nb : netBinds) {
 							InetAddress ip = nb.getIpAddress().getInetAddress();
 							if(!ip.isLoopback()) {
