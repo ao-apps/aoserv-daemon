@@ -151,6 +151,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 			Version version = new Version(rpm.getVersion(), rpm.getRelease());
 			String suffix = osConfig.getPackageReleaseSuffix();
 			// Downgrade support
+			if(version.compareTo("8.5.78-1" + suffix) < 0) {
+				// 8.5.78-1 has same files as 8.5.77-1
+			}
 			if(version.compareTo("8.5.77-1" + suffix) < 0) {
 				// 8.5.77-1 has same files as 8.5.76-1
 			}
@@ -531,7 +534,10 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 			if(version.compareTo("8.5.77-1" + suffix) >= 0) {
 				// 8.5.77-1 has same files as 8.5.76-1
 			}
-			if(version.compareTo("8.5.77-1" + suffix) > 0) {
+			if(version.compareTo("8.5.78-1" + suffix) >= 0) {
+				// 8.5.78-1 has same files as 8.5.77-1
+			}
+			if(version.compareTo("8.5.78-1" + suffix) > 0) {
 				throw new IllegalStateException("Version of Tomcat newer than expected: " + version);
 			}
 		}
