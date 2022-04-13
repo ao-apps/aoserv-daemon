@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2013, 2014, 2017, 2018, 2020, 2021  AO Industries, Inc.
+ * Copyright (C) 2013, 2014, 2017, 2018, 2020, 2021, 2022  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -60,7 +60,7 @@ public final class NetworkMonitor {
 	private static final Map<String, NetworkMonitor> inMonitors = new LinkedHashMap<>();
 	private static final Map<String, NetworkMonitor> outMonitors = new LinkedHashMap<>();
 
-	public static void start() throws IOException {
+	public static void start() {
 		if(AOServDaemonConfiguration.isManagerEnabled(NetworkMonitor.class)) {
 			for(AOServDaemonConfiguration.NetworkMonitorConfiguration config : AOServDaemonConfiguration.getNetworkMonitors().values()) {
 				final String networkName = config.getName();

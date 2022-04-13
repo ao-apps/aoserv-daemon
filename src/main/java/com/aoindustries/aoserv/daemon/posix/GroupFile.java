@@ -35,7 +35,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.sql.SQLException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -233,7 +232,7 @@ public final class GroupFile {
 	/**
 	 * Must hold {@link #groupLock}
 	 */
-	public static void writeGroupFile(byte[] newContents, Set<PosixFile> restorecon) throws SQLException, IOException {
+	public static void writeGroupFile(byte[] newContents, Set<PosixFile> restorecon) throws IOException {
 		assert Thread.holdsLock(groupLock);
 		DaemonFileUtils.atomicWrite(
 			groupFile,

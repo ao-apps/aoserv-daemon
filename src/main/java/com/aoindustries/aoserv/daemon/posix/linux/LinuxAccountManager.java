@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
+ * Copyright (C) 2001-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -863,7 +863,7 @@ public final class LinuxAccountManager extends BuilderThread {
 		return content;
 	}
 
-	public static String getCronTable(User.Name username) throws IOException, SQLException {
+	public static String getCronTable(User.Name username) throws IOException {
 		File cronFile = new File(cronDirectory, username.toString());
 		String cronTable;
 		if(cronFile.exists()) {

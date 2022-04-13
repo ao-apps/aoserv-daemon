@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2008-2013, 2015, 2017, 2018, 2020, 2021  AO Industries, Inc.
+ * Copyright (C) 2008-2013, 2015, 2017, 2018, 2020, 2021, 2022  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -86,7 +86,7 @@ final class TomcatCommon_4_1_X extends TomcatCommon {
 	 *
 	 * @param optSlash  Relative path from the CATALINA_HOME to /opt/, including trailing slash, such as <code>../../opt/</code>.
 	 */
-	boolean upgradeTomcatDirectory(String optSlash, PosixFile tomcatDirectory, int uid, int gid) throws IOException, SQLException {
+	boolean upgradeTomcatDirectory(String optSlash, PosixFile tomcatDirectory, int uid, int gid) {
 		boolean needsRestart = false;
 		// Nothing to do
 		return needsRestart;

@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
+ * Copyright (C) 2001-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -234,7 +234,7 @@ public final class SmtpRelayManager extends BuilderThread implements Runnable {
 		}
 	}
 
-	private static void writeAccessLine(ChainWriter out, String host, SmtpRelayType type/*, boolean isQmail*/) throws IOException, SQLException {
+	private static void writeAccessLine(ChainWriter out, String host, SmtpRelayType type/*, boolean isQmail*/) {
 		/*if(isQmail) out.print(host).print(':').print(Strings.replace(type.getQmailConfig(), "%h", host)).print('\n');
 		else*/ out.print("Connect:").print(host).print('\t').print(Strings.replace(type.getSendmailConfig(), "%h", host)).print('\n');
 	}

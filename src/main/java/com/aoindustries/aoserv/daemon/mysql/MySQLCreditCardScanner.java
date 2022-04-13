@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2007-2013, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
+ * Copyright (C) 2007-2013, 2017, 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -32,7 +32,6 @@ import com.aoindustries.aoserv.client.mysql.Database;
 import com.aoindustries.aoserv.client.mysql.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
@@ -64,7 +63,7 @@ public final class MySQLCreditCardScanner implements CronJob {
 	private static MySQLCreditCardScanner mySQLCreditCardScanner;
 
 	@SuppressWarnings("UseOfSystemOutOrSystemErr")
-	public static void start() throws IOException, SQLException {
+	public static void start() {
 		if(AOServDaemonConfiguration.isManagerEnabled(MySQLCreditCardScanner.class) && mySQLCreditCardScanner==null) {
 			synchronized(System.out) {
 				if(mySQLCreditCardScanner==null) {

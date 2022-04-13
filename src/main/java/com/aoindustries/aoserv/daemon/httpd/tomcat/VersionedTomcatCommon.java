@@ -186,7 +186,7 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 		return "../../" + optSlash + jdkProfileSh.substring("/opt/".length());
 	}
 
-	protected static byte[] generateProfileUmaskSh(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException {
+	protected static byte[] generateProfileUmaskSh(String optSlash, String apacheTomcatDir, PosixFile installDir) {
 		return (
 			"umask 0027\n"
 			+ "export UMASK=0027\n"

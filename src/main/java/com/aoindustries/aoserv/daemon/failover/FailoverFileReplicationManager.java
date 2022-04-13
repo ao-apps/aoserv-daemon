@@ -558,7 +558,7 @@ public final class FailoverFileReplicationManager {
 		);
 	}
 
-	private static String[] list(Activity activity, PosixFile uf) throws IOException {
+	private static String[] list(Activity activity, PosixFile uf) {
 		activity.update("file: list: ", uf);
 		return uf.list();
 	}
@@ -2128,7 +2128,7 @@ public final class FailoverFileReplicationManager {
 	/**
 	 * Called after a file is added, to keep the cache in sync.
 	 */
-	private static void added(Activity activity, Map<PosixFile, ModifyTimeAndSizeCache> modifyTimeAndSizeCaches, PosixFile uf, PosixFile ufParent, ModifyTimeAndSize ufModifyTimeAndSize) throws IOException {
+	private static void added(Activity activity, Map<PosixFile, ModifyTimeAndSizeCache> modifyTimeAndSizeCaches, PosixFile uf, PosixFile ufParent, ModifyTimeAndSize ufModifyTimeAndSize) {
 		if(!modifyTimeAndSizeCaches.isEmpty()) {
 			ModifyTimeAndSizeCache modifyTimeAndSizeCache = modifyTimeAndSizeCaches.get(ufParent);
 			if(modifyTimeAndSizeCache!=null) {
@@ -2645,7 +2645,7 @@ public final class FailoverFileReplicationManager {
 		return false;
 	}
 
-	private static void delete(Map<Integer, List<String>> directoriesByAge, int age, List<String> deleteFilenames) throws IOException {
+	private static void delete(Map<Integer, List<String>> directoriesByAge, int age, List<String> deleteFilenames) {
 		List<String> directories = directoriesByAge.get(age);
 		if(directories!=null) {
 			for(String directory : directories) {
