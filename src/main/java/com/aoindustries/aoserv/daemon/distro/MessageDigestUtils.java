@@ -37,32 +37,34 @@ import java.security.NoSuchAlgorithmException;
  */
 final class MessageDigestUtils {
 
-	/** Make no instances. */
-	private MessageDigestUtils() {throw new AssertionError();}
+  /** Make no instances. */
+  private MessageDigestUtils() {
+    throw new AssertionError();
+  }
 
-	static byte[] hashInput(MessageDigest digest, InputStream in) throws IOException {
-		digest.reset();
-		byte[] buff = BufferManager.getBytes();
-		try {
-			int numBytes;
-			while((numBytes = in.read(buff)) != -1) {
-				digest.update(buff, 0, numBytes);
-			}
-		} finally {
-			BufferManager.release(buff, false);
-		}
-		return digest.digest();
-	}
+  static byte[] hashInput(MessageDigest digest, InputStream in) throws IOException {
+    digest.reset();
+    byte[] buff = BufferManager.getBytes();
+    try {
+      int numBytes;
+      while ((numBytes = in.read(buff)) != -1) {
+        digest.update(buff, 0, numBytes);
+      }
+    } finally {
+      BufferManager.release(buff, false);
+    }
+    return digest.digest();
+  }
 
-	static MessageDigest getSha256() {
-		try {
-			return MessageDigest.getInstance("SHA-256");
-		} catch(NoSuchAlgorithmException e) {
-			throw new AssertionError("SHA-256 should exist on all Java runtimes", e);
-		}
-	}
+  static MessageDigest getSha256() {
+    try {
+      return MessageDigest.getInstance("SHA-256");
+    } catch (NoSuchAlgorithmException e) {
+      throw new AssertionError("SHA-256 should exist on all Java runtimes", e);
+    }
+  }
 
-	static String getHexChars(long sha256_0, long sha256_1, long sha256_2, long sha256_3) {
-		return MD5.getMD5String(sha256_0, sha256_1) + MD5.getMD5String(sha256_2, sha256_3);
-	}
+  static String getHexChars(long sha256_0, long sha256_1, long sha256_2, long sha256_3) {
+    return MD5.getMD5String(sha256_0, sha256_1) + MD5.getMD5String(sha256_2, sha256_3);
+  }
 }

@@ -108,674 +108,692 @@ import java.util.logging.Logger;
  */
 public final class AOServDaemon {
 
-	/** Make no instances. */
-	private AOServDaemon() {throw new AssertionError();}
+  /** Make no instances. */
+  private AOServDaemon() {
+    throw new AssertionError();
+  }
 
-	private static final Logger logger = Logger.getLogger(AOServDaemon.class.getName());
+  private static final Logger logger = Logger.getLogger(AOServDaemon.class.getName());
 
-	public static final boolean DEBUG = false;
+  public static final boolean DEBUG = false;
 
-	private static final SecureRandom secureRandom = new SecureRandom();
+  private static final SecureRandom secureRandom = new SecureRandom();
 
-	/**
-	 * A single random number generator is shared by all daemon resources.
-	 * <p>
-	 * Note: This is not a {@linkplain SecureRandom#getInstanceStrong() strong instance} to avoid blocking.
-	 * </p>
-	 */
-	public static SecureRandom getSecureRandom() {
-		return secureRandom;
-	}
+  /**
+   * A single random number generator is shared by all daemon resources.
+   * <p>
+   * Note: This is not a {@linkplain SecureRandom#getInstanceStrong() strong instance} to avoid blocking.
+   * </p>
+   */
+  public static SecureRandom getSecureRandom() {
+    return secureRandom;
+  }
 
-	private static final Random fastRandom = new Random(IoUtils.bufferToLong(secureRandom.generateSeed(Long.BYTES)));
+  private static final Random fastRandom = new Random(IoUtils.bufferToLong(secureRandom.generateSeed(Long.BYTES)));
 
-	/**
-	 * A fast pseudo-random number generator for non-cryptographic purposes.
-	 */
-	public static Random getFastRandom() {
-		return fastRandom;
-	}
+  /**
+   * A fast pseudo-random number generator for non-cryptographic purposes.
+   */
+  public static Random getFastRandom() {
+    return fastRandom;
+  }
 
-	/**
-	 * The default connection is used to the database, because it should be configured in the properties files.
-	 */
-	private static AOServConnector conn;
+  /**
+   * The default connection is used to the database, because it should be configured in the properties files.
+   */
+  private static AOServConnector conn;
 
-	/**
-	 * An unbounded executor for daemon-wide tasks.
-	 */
-	public static final ExecutorService executorService = Executors.newCachedThreadPool();
+  /**
+   * An unbounded executor for daemon-wide tasks.
+   */
+  public static final ExecutorService executorService = Executors.newCachedThreadPool();
 
-	/**
-	 * Recursively searches for any files that are not owned by a UID in
-	 * the provided list.  If an unowned file is found and is a directory,
-	 * its contents are not searched.  To avoid infinite recursion, symbolic
-	 * links are not followed but may be deleted.
-	 *
-	 * @param  file  the <code>File</code> to search from
-	 * @param  uids  the <code>IntList</code> containing the list of uids
-	 */
-	public static void findUnownedFiles(File file, Collection<Integer> uids, List<File> deleteFileList, int recursionLevel) throws IOException {
-		if(file.exists()) {
-			// Figure out the ownership
-			PosixFile unixFile = new PosixFile(file.getPath());
-			Stat stat = unixFile.getStat();
-			int uid = stat.getUid();
-			if(uids.contains(uid)) {
-				if(!stat.isSymLink()) {
-					// Search any children files
-					String[] list = file.list();
-					if(list != null) {
-						int newRecursionLevel = recursionLevel + 1;
-						int len = list.length;
-						for(int c = 0; c < len; c++) {
-							findUnownedFiles(new File(file, list[c]), uids, deleteFileList, newRecursionLevel);
-						}
-					}
-				}
-			} else deleteFileList.add(file);
-		}
-	}
+  /**
+   * Recursively searches for any files that are not owned by a UID in
+   * the provided list.  If an unowned file is found and is a directory,
+   * its contents are not searched.  To avoid infinite recursion, symbolic
+   * links are not followed but may be deleted.
+   *
+   * @param  file  the <code>File</code> to search from
+   * @param  uids  the <code>IntList</code> containing the list of uids
+   */
+  public static void findUnownedFiles(File file, Collection<Integer> uids, List<File> deleteFileList, int recursionLevel) throws IOException {
+    if (file.exists()) {
+      // Figure out the ownership
+      PosixFile unixFile = new PosixFile(file.getPath());
+      Stat stat = unixFile.getStat();
+      int uid = stat.getUid();
+      if (uids.contains(uid)) {
+        if (!stat.isSymLink()) {
+          // Search any children files
+          String[] list = file.list();
+          if (list != null) {
+            int newRecursionLevel = recursionLevel + 1;
+            int len = list.length;
+            for (int c = 0; c < len; c++) {
+              findUnownedFiles(new File(file, list[c]), uids, deleteFileList, newRecursionLevel);
+            }
+          }
+        }
+      } else {
+        deleteFileList.add(file);
+      }
+    }
+  }
 
-	public static AOServConnector getConnector() throws ConfigurationException {
-		synchronized(AOServDaemon.class) {
-			if(conn == null) {
-				// Get the connector that will be used
-				conn = AOServConnector.getConnector();
-			}
-			return conn;
-		}
-	}
+  public static AOServConnector getConnector() throws ConfigurationException {
+    synchronized (AOServDaemon.class) {
+      if (conn == null) {
+        // Get the connector that will be used
+        conn = AOServConnector.getConnector();
+      }
+      return conn;
+    }
+  }
 
-	public static Server getThisServer() throws IOException, SQLException {
-		String hostname = AOServDaemonConfiguration.getServerHostname();
-		Host host = getConnector().getNet().getHost().get(hostname);
-		if(host == null) throw new SQLException("Unable to find Host: " + hostname);
-		Server linuxServer = host.getLinuxServer();
-		if(linuxServer == null) throw new SQLException("Host is not a linux.Server: " + hostname);
-		return linuxServer;
-	}
+  public static Server getThisServer() throws IOException, SQLException {
+    String hostname = AOServDaemonConfiguration.getServerHostname();
+    Host host = getConnector().getNet().getHost().get(hostname);
+    if (host == null) {
+      throw new SQLException("Unable to find Host: " + hostname);
+    }
+    Server linuxServer = host.getLinuxServer();
+    if (linuxServer == null) {
+      throw new SQLException("Host is not a linux.Server: " + hostname);
+    }
+    return linuxServer;
+  }
 
-	/**
-	 * Runs the <code>AOServDaemon</code> with the values
-	 * provided in <code>com/aoindustries/aoserv/daemon/aoserv-daemon.properties</code>.
-	 * This will typically be called by the init scripts of the dedicated machine.
-	 */
-	@SuppressWarnings({"UseSpecificCatch", "BroadCatchBlock", "TooBroadCatch", "SleepWhileInLoop"})
-	public static void main(String[] args) {
-		boolean done = false;
-		while(!Thread.currentThread().isInterrupted() && !done) {
-			try {
-				// Configure the SSL
-				String trustStorePath=AOServClientConfiguration.getSslTruststorePath();
-				if(trustStorePath!=null && trustStorePath.length()>0) {
-					System.setProperty("javax.net.ssl.trustStore", trustStorePath);
-				}
-				String trustStorePassword=AOServClientConfiguration.getSslTruststorePassword();
-				if(trustStorePassword!=null && trustStorePassword.length()>0) {
-					System.setProperty("javax.net.ssl.trustStorePassword", trustStorePassword);
-				}
-				String keyStorePath=AOServDaemonConfiguration.getSSLKeystorePath();
-				if(keyStorePath!=null && keyStorePath.length()>0) {
-					System.setProperty("javax.net.ssl.keyStore", keyStorePath);
-				}
-				String keyStorePassword=AOServDaemonConfiguration.getSSLKeystorePassword();
-				if(keyStorePassword!=null && keyStorePassword.length()>0) {
-					System.setProperty("javax.net.ssl.keyStorePassword", keyStorePassword);
-				}
+  /**
+   * Runs the <code>AOServDaemon</code> with the values
+   * provided in <code>com/aoindustries/aoserv/daemon/aoserv-daemon.properties</code>.
+   * This will typically be called by the init scripts of the dedicated machine.
+   */
+  @SuppressWarnings({"UseSpecificCatch", "BroadCatchBlock", "TooBroadCatch", "SleepWhileInLoop"})
+  public static void main(String[] args) {
+    boolean done = false;
+    while (!Thread.currentThread().isInterrupted() && !done) {
+      try {
+        // Configure the SSL
+        String trustStorePath=AOServClientConfiguration.getSslTruststorePath();
+        if (trustStorePath != null && trustStorePath.length()>0) {
+          System.setProperty("javax.net.ssl.trustStore", trustStorePath);
+        }
+        String trustStorePassword=AOServClientConfiguration.getSslTruststorePassword();
+        if (trustStorePassword != null && trustStorePassword.length()>0) {
+          System.setProperty("javax.net.ssl.trustStorePassword", trustStorePassword);
+        }
+        String keyStorePath=AOServDaemonConfiguration.getSSLKeystorePath();
+        if (keyStorePath != null && keyStorePath.length()>0) {
+          System.setProperty("javax.net.ssl.keyStore", keyStorePath);
+        }
+        String keyStorePassword=AOServDaemonConfiguration.getSSLKeystorePassword();
+        if (keyStorePassword != null && keyStorePassword.length()>0) {
+          System.setProperty("javax.net.ssl.keyStorePassword", keyStorePassword);
+        }
 
-				OperatingSystemVersion osv = getThisServer().getHost().getOperatingSystemVersion();
-				int osvId = osv.getPkey();
-				// TODO: Verify operating system version is correct on start-up to protect against config mistakes.
-				// TODO: Verify operating system version matches via /etc/release...
+        OperatingSystemVersion osv = getThisServer().getHost().getOperatingSystemVersion();
+        int osvId = osv.getPkey();
+        // TODO: Verify operating system version is correct on start-up to protect against config mistakes.
+        // TODO: Verify operating system version matches via /etc/release...
 
-				// Start up the managers
-				// cvsd
-				CvsManager.start();
-				// distro
-				DistroManager.start();
-				// dns
-				DNSManager.start();
-				// email
-				EmailAddressManager.start();
-				EmailDomainManager.start();
-				ImapManager.start();
-				MajordomoManager.start();
-				ProcmailManager.start();
-				SaslauthdManager.start();
-				SendmailCFManager.start();
-				SpamAssassinManager.start();
-				SmtpRelayManager.start();
-				// email.jilter
-				JilterConfigurationWriter.start();
-				// failover
-				FailoverFileReplicationManager.start();
-				// ftp
-				FTPManager.start();
-				// httpd
-				AWStatsManager.start();
-				HttpdManager.start();
-				// iptables
-				IpReputationManager.start();
-				// monitor
-				MrtgManager.start();
-				NetworkMonitor.start();
-				// mysql
-				// TODO: Move to aoserv-daemon: MySQLCreditCardScanner.start();
-				MySQLDatabaseManager.start();
-				MySQLDBUserManager.start();
-				MySQLHostManager.start();
-				MySQLServerManager.start();
-				MySQLUserManager.start();
-				// net
-				DhcpManager.start();
-				NetDeviceManager.start();
-				NullRouteManager.start();
-				// net.fail2ban
-				Fail2banManager.start();
-				// net.firewalld
-				FirewalldManager.start();
-				// net.ssh
-				SshdManager.start();
-				// net.xinetd
-				XinetdManager.start();
-				// postgres
-				PgHbaManager.start();
-				PostgresDatabaseManager.start();
-				PostgresServerManager.start();
-				PostgresUserManager.start();
-				// random
-				RandomEntropyManager.start();
-				// timezone
-				TimeZoneManager.start();
-				// unix.linux
-				LinuxAccountManager.start();
+        // Start up the managers
+        // cvsd
+        CvsManager.start();
+        // distro
+        DistroManager.start();
+        // dns
+        DNSManager.start();
+        // email
+        EmailAddressManager.start();
+        EmailDomainManager.start();
+        ImapManager.start();
+        MajordomoManager.start();
+        ProcmailManager.start();
+        SaslauthdManager.start();
+        SendmailCFManager.start();
+        SpamAssassinManager.start();
+        SmtpRelayManager.start();
+        // email.jilter
+        JilterConfigurationWriter.start();
+        // failover
+        FailoverFileReplicationManager.start();
+        // ftp
+        FTPManager.start();
+        // httpd
+        AWStatsManager.start();
+        HttpdManager.start();
+        // iptables
+        IpReputationManager.start();
+        // monitor
+        MrtgManager.start();
+        NetworkMonitor.start();
+        // mysql
+        // TODO: Move to aoserv-daemon: MySQLCreditCardScanner.start();
+        MySQLDatabaseManager.start();
+        MySQLDBUserManager.start();
+        MySQLHostManager.start();
+        MySQLServerManager.start();
+        MySQLUserManager.start();
+        // net
+        DhcpManager.start();
+        NetDeviceManager.start();
+        NullRouteManager.start();
+        // net.fail2ban
+        Fail2banManager.start();
+        // net.firewalld
+        FirewalldManager.start();
+        // net.ssh
+        SshdManager.start();
+        // net.xinetd
+        XinetdManager.start();
+        // postgres
+        PgHbaManager.start();
+        PostgresDatabaseManager.start();
+        PostgresServerManager.start();
+        PostgresUserManager.start();
+        // random
+        RandomEntropyManager.start();
+        // timezone
+        TimeZoneManager.start();
+        // unix.linux
+        LinuxAccountManager.start();
 
-				// Start up the AOServDaemonServers
-				Bind bind = getThisServer().getDaemonBind();
-				if(bind != null) {
-					AOServDaemonServer server = new AOServDaemonServer(
-						bind.getIpAddress().getInetAddress(),
-						bind.getPort().getPort(),
-						bind.getAppProtocol().getProtocol()
-					);
-					server.start();
-				}
-				done = true;
-			} catch (ThreadDeath td) {
-				throw td;
-			} catch (Throwable t) {
-				logger.log(Level.SEVERE, null, t);
-				try {
-					Thread.sleep(60000);
-				} catch(InterruptedException err) {
-					logger.log(Level.WARNING, null, err);
-					// Restore the interrupted status
-					Thread.currentThread().interrupt();
-				}
-			}
-		}
-	}
+        // Start up the AOServDaemonServers
+        Bind bind = getThisServer().getDaemonBind();
+        if (bind != null) {
+          AOServDaemonServer server = new AOServDaemonServer(
+            bind.getIpAddress().getInetAddress(),
+            bind.getPort().getPort(),
+            bind.getAppProtocol().getProtocol()
+          );
+          server.start();
+        }
+        done = true;
+      } catch (ThreadDeath td) {
+        throw td;
+      } catch (Throwable t) {
+        logger.log(Level.SEVERE, null, t);
+        try {
+          Thread.sleep(60000);
+        } catch (InterruptedException err) {
+          logger.log(Level.WARNING, null, err);
+          // Restore the interrupted status
+          Thread.currentThread().interrupt();
+        }
+      }
+    }
+  }
 
-	/**
-	 * Gets a single-String representation of the command.  This should be used
-	 * for display purposes only, because it doesn't quote things in a shell-safe way.
-	 */
-	// TODO: Use ao-encoding SH encoder?
-	public static String getCommandString(String... command) {
-		StringBuilder sb = new StringBuilder();
-		for(int c = 0; c < command.length; c++) {
-			if(c > 0) sb.append(' ');
-			String cmd = command[c];
-			boolean needQuote = cmd.indexOf(' ') != -1;
-			if(needQuote) sb.append('"');
-			sb.append(command[c]);
-			if(needQuote) sb.append('"');
-		}
-		return sb.toString();
-	}
+  /**
+   * Gets a single-String representation of the command.  This should be used
+   * for display purposes only, because it doesn't quote things in a shell-safe way.
+   */
+  // TODO: Use ao-encoding SH encoder?
+  public static String getCommandString(String... command) {
+    StringBuilder sb = new StringBuilder();
+    for (int c = 0; c < command.length; c++) {
+      if (c > 0) {
+        sb.append(' ');
+      }
+      String cmd = command[c];
+      boolean needQuote = cmd.indexOf(' ') != -1;
+      if (needQuote) {
+        sb.append('"');
+      }
+      sb.append(command[c]);
+      if (needQuote) {
+        sb.append('"');
+      }
+    }
+    return sb.toString();
+  }
 
-	/**
-	 * Executes a command, performing any arbitrary action with the command's output stream.
-	 * Command's input is written on the current thread.
-	 * Command's output is read, and handled, on a different thread.
-	 * Command's error output is also read on a different thread.
-	 * <p>
-	 * The command's standard error is logged to {@link System#err}.
-	 * </p>
-	 * <p>
-	 * Any non-zero exit value will result in an exception, including the standard error output when available.
-	 * </p>
-	 */
-	// TODO: First parameter as PosixPath object?
-	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch", "UseOfSystemOutOrSystemErr", "overloads"})
-	public static <V> V execCall(
-		ConsumerE<? super OutputStream, ? extends IOException> stdin,
-		FunctionE<? super InputStream, V, ? extends IOException> stdout,
-		File workingDirectory,
-		String... command
-	) throws IOException {
-		if(DEBUG) {
-			System.out.print("DEBUG: AOServDaemon.execCall(): ");
-			System.out.println(getCommandString(command));
-		}
-		Process process = new ProcessBuilder(command).directory(workingDirectory).start();
-		// Read and handle the standard output concurrently
-		Future<V> outputFuture = executorService.submit(() -> {
-			try (InputStream in = process.getInputStream()) {
-				return stdout.apply(in);
-			}
-		});
-		// Read the standard error concurrently
-		Future<String> errorFuture = executorService.submit(() -> {
-			try (Reader errIn = new InputStreamReader(process.getErrorStream())) {
-				return IoUtils.readFully(errIn);
-			}
-		});
-		// Write any output on the current thread
-		Throwable t0;
-		try {
-			try (OutputStream out = process.getOutputStream()) {
-				stdin.accept(out);
-			}
-			t0 = null;
-		} catch(Throwable t) {
-			t0 = t;
-		}
-		// Finish reading the standard input
-		V result = null;
-		try {
-			try {
-				result = outputFuture.get();
-			} catch(ExecutionException e) {
-				ExecutionExceptions.wrapAndThrow(e, IOException.class, IOException::new);
-			}
-		} catch(Throwable t) {
-			t0 = Throwables.addSuppressed(t0, t);
-		}
-		// Finish reading the standard error
-		String errorString = null;
-		try {
-			try {
-				errorString = errorFuture.get();
-				// Write any standard error to standard error
-				if(!errorString.isEmpty()) {
-					System.err.println("'" + getCommandString(command) + "': " + errorString);
-				}
-			} catch(ExecutionException e) {
-				ExecutionExceptions.wrapAndThrow(e, IOException.class, IOException::new);
-			}
-		} catch(Throwable t) {
-			t0 = Throwables.addSuppressed(t0, t);
-		}
-		try {
-			// Wait for exit status
-			try {
-				int retCode = process.waitFor();
-				if(retCode != 0) {
-					if(errorString == null) {
-						throw new IOException("Non-zero exit status from '" + getCommandString(command) + "': " + retCode + ", standard error unavailable");
-					} else {
-						throw new IOException("Non-zero exit status from '" + getCommandString(command) + "': " + retCode + ", standard error was: " + errorString);
-					}
-				}
-			} catch(InterruptedException err) {
-				InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '"+getCommandString(command)+"'");
-				ioErr.initCause(err);
-				// Restore the interrupted status
-				Thread.currentThread().interrupt();
-				throw ioErr;
-			}
-		} catch(Throwable t) {
-			t0 = Throwables.addSuppressed(t0, t);
-		}
-		if(t0 != null) {
-			throw Throwables.wrap(t0, IOException.class, IOException::new);
-		} else {
-			return result;
-		}
-	}
+  /**
+   * Executes a command, performing any arbitrary action with the command's output stream.
+   * Command's input is written on the current thread.
+   * Command's output is read, and handled, on a different thread.
+   * Command's error output is also read on a different thread.
+   * <p>
+   * The command's standard error is logged to {@link System#err}.
+   * </p>
+   * <p>
+   * Any non-zero exit value will result in an exception, including the standard error output when available.
+   * </p>
+   */
+  // TODO: First parameter as PosixPath object?
+  @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch", "UseOfSystemOutOrSystemErr", "overloads"})
+  public static <V> V execCall(
+    ConsumerE<? super OutputStream, ? extends IOException> stdin,
+    FunctionE<? super InputStream, V, ? extends IOException> stdout,
+    File workingDirectory,
+    String... command
+  ) throws IOException {
+    if (DEBUG) {
+      System.out.print("DEBUG: AOServDaemon.execCall(): ");
+      System.out.println(getCommandString(command));
+    }
+    Process process = new ProcessBuilder(command).directory(workingDirectory).start();
+    // Read and handle the standard output concurrently
+    Future<V> outputFuture = executorService.submit(() -> {
+      try (InputStream in = process.getInputStream()) {
+        return stdout.apply(in);
+      }
+    });
+    // Read the standard error concurrently
+    Future<String> errorFuture = executorService.submit(() -> {
+      try (Reader errIn = new InputStreamReader(process.getErrorStream())) {
+        return IoUtils.readFully(errIn);
+      }
+    });
+    // Write any output on the current thread
+    Throwable t0;
+    try {
+      try (OutputStream out = process.getOutputStream()) {
+        stdin.accept(out);
+      }
+      t0 = null;
+    } catch (Throwable t) {
+      t0 = t;
+    }
+    // Finish reading the standard input
+    V result = null;
+    try {
+      try {
+        result = outputFuture.get();
+      } catch (ExecutionException e) {
+        ExecutionExceptions.wrapAndThrow(e, IOException.class, IOException::new);
+      }
+    } catch (Throwable t) {
+      t0 = Throwables.addSuppressed(t0, t);
+    }
+    // Finish reading the standard error
+    String errorString = null;
+    try {
+      try {
+        errorString = errorFuture.get();
+        // Write any standard error to standard error
+        if (!errorString.isEmpty()) {
+          System.err.println("'" + getCommandString(command) + "': " + errorString);
+        }
+      } catch (ExecutionException e) {
+        ExecutionExceptions.wrapAndThrow(e, IOException.class, IOException::new);
+      }
+    } catch (Throwable t) {
+      t0 = Throwables.addSuppressed(t0, t);
+    }
+    try {
+      // Wait for exit status
+      try {
+        int retCode = process.waitFor();
+        if (retCode != 0) {
+          if (errorString == null) {
+            throw new IOException("Non-zero exit status from '" + getCommandString(command) + "': " + retCode + ", standard error unavailable");
+          } else {
+            throw new IOException("Non-zero exit status from '" + getCommandString(command) + "': " + retCode + ", standard error was: " + errorString);
+          }
+        }
+      } catch (InterruptedException err) {
+        InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '"+getCommandString(command)+"'");
+        ioErr.initCause(err);
+        // Restore the interrupted status
+        Thread.currentThread().interrupt();
+        throw ioErr;
+      }
+    } catch (Throwable t) {
+      t0 = Throwables.addSuppressed(t0, t);
+    }
+    if (t0 != null) {
+      throw Throwables.wrap(t0, IOException.class, IOException::new);
+    } else {
+      return result;
+    }
+  }
 
-	/**
-	 * Executes a command, performing any arbitrary action with the command's output stream.
-	 * Command's input is written on the current thread.
-	 * Command's output is read, and handled, on a different thread.
-	 * Command's error output is also read on a different thread.
-	 * <p>
-	 * The command's standard error is logged to {@link System#err}.
-	 * </p>
-	 * <p>
-	 * Any non-zero exit value will result in an exception, including the standard error output when available.
-	 * </p>
-	 */
-	@SuppressWarnings("overloads")
-	public static <V> V execCall(
-		ConsumerE<? super OutputStream, ? extends IOException> stdin,
-		FunctionE<? super InputStream, V, ? extends IOException> stdout,
-		String... command
-	) throws IOException {
-		return execCall(stdin, stdout, (File)null, command);
-	}
+  /**
+   * Executes a command, performing any arbitrary action with the command's output stream.
+   * Command's input is written on the current thread.
+   * Command's output is read, and handled, on a different thread.
+   * Command's error output is also read on a different thread.
+   * <p>
+   * The command's standard error is logged to {@link System#err}.
+   * </p>
+   * <p>
+   * Any non-zero exit value will result in an exception, including the standard error output when available.
+   * </p>
+   */
+  @SuppressWarnings("overloads")
+  public static <V> V execCall(
+    ConsumerE<? super OutputStream, ? extends IOException> stdin,
+    FunctionE<? super InputStream, V, ? extends IOException> stdout,
+    String... command
+  ) throws IOException {
+    return execCall(stdin, stdout, (File)null, command);
+  }
 
-	/**
-	 * Executes a command, performing any arbitrary action with the command's output stream.
-	 * Command's input is written on the current thread.
-	 * Command's output is read, and handled, on a different thread.
-	 * Command's error output is also read on a different thread.
-	 * <p>
-	 * The command's standard error is logged to {@link System#err}.
-	 * </p>
-	 * <p>
-	 * Any non-zero exit value will result in an exception, including the standard error output when available.
-	 * </p>
-	 */
-	@SuppressWarnings("overloads")
-	public static void execRun(
-		ConsumerE<? super OutputStream, ? extends IOException> stdin,
-		ConsumerE<? super InputStream, ? extends IOException> stdout,
-		File workingDirectory,
-		String... command
-	) throws IOException {
-		execCall(
-			stdin,
-			_stdout -> {
-				stdout.accept(_stdout);
-				return null;
-			},
-			workingDirectory,
-			command
-		);
-	}
+  /**
+   * Executes a command, performing any arbitrary action with the command's output stream.
+   * Command's input is written on the current thread.
+   * Command's output is read, and handled, on a different thread.
+   * Command's error output is also read on a different thread.
+   * <p>
+   * The command's standard error is logged to {@link System#err}.
+   * </p>
+   * <p>
+   * Any non-zero exit value will result in an exception, including the standard error output when available.
+   * </p>
+   */
+  @SuppressWarnings("overloads")
+  public static void execRun(
+    ConsumerE<? super OutputStream, ? extends IOException> stdin,
+    ConsumerE<? super InputStream, ? extends IOException> stdout,
+    File workingDirectory,
+    String... command
+  ) throws IOException {
+    execCall(
+      stdin,
+      _stdout -> {
+        stdout.accept(_stdout);
+        return null;
+      },
+      workingDirectory,
+      command
+    );
+  }
 
-	/**
-	 * Executes a command, performing any arbitrary action with the command's output stream.
-	 * Command's input is written on the current thread.
-	 * Command's output is read, and handled, on a different thread.
-	 * Command's error output is also read on a different thread.
-	 * <p>
-	 * The command's standard error is logged to {@link System#err}.
-	 * </p>
-	 * <p>
-	 * Any non-zero exit value will result in an exception, including the standard error output when available.
-	 * </p>
-	 */
-	@SuppressWarnings("overloads")
-	public static void execRun(
-		ConsumerE<? super OutputStream, ? extends IOException> stdin,
-		ConsumerE<? super InputStream, ? extends IOException> stdout,
-		String... command
-	) throws IOException {
-		execRun(stdin, stdout, (File)null, command);
-	}
+  /**
+   * Executes a command, performing any arbitrary action with the command's output stream.
+   * Command's input is written on the current thread.
+   * Command's output is read, and handled, on a different thread.
+   * Command's error output is also read on a different thread.
+   * <p>
+   * The command's standard error is logged to {@link System#err}.
+   * </p>
+   * <p>
+   * Any non-zero exit value will result in an exception, including the standard error output when available.
+   * </p>
+   */
+  @SuppressWarnings("overloads")
+  public static void execRun(
+    ConsumerE<? super OutputStream, ? extends IOException> stdin,
+    ConsumerE<? super InputStream, ? extends IOException> stdout,
+    String... command
+  ) throws IOException {
+    execRun(stdin, stdout, (File)null, command);
+  }
 
-	/**
-	 * Executes a command, performing any arbitrary action with the command's output stream.
-	 * Command's input is opened then immediately closed.
-	 * Command's output is read, and handled, on the current thread.
-	 * Command's error output is read on a different thread.
-	 * <p>
-	 * The command's standard error is logged to {@link System#err}.
-	 * </p>
-	 * <p>
-	 * Any non-zero exit value will result in an exception, including the standard error output when available.
-	 * </p>
-	 */
-	// TODO: First parameter as PosixPath object?
-	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch", "UseOfSystemOutOrSystemErr", "overloads"})
-	public static <V> V execCall(
-		FunctionE<? super InputStream, V, ? extends IOException> stdout,
-		File workingDirectory,
-		String... command
-	) throws IOException {
-		if(DEBUG) {
-			System.out.print("DEBUG: AOServDaemon.execCall(): ");
-			System.out.println(getCommandString(command));
-		}
-		Process process = new ProcessBuilder(command).directory(workingDirectory).start();
-		// Read the standard error concurrently
-		Future<String> errorFuture = executorService.submit(() -> {
-			try (Reader errIn = new InputStreamReader(process.getErrorStream())) {
-				return IoUtils.readFully(errIn);
-			}
-		});
-		Throwable t0;
-		// Close the process's stdin
-		try {
-			process.getOutputStream().close();
-			t0 = null;
-		} catch(Throwable t) {
-			t0 = t;
-		}
-		// Read and handle the standard output on current thread
-		V result = null;
-		try {
-			try (InputStream in = process.getInputStream()) {
-				result = stdout.apply(in);
-			}
-		} catch(Throwable t) {
-			t0 = Throwables.addSuppressed(t0, t);
-		}
-		// Finish reading the standard error
-		String errorString = null;
-		try {
-			try {
-				errorString = errorFuture.get();
-				// Write any standard error to standard error
-				if(!errorString.isEmpty()) {
-					System.err.println("'" + getCommandString(command) + "': " + errorString);
-				}
-			} catch(ExecutionException e) {
-				ExecutionExceptions.wrapAndThrow(e, IOException.class, IOException::new);
-			}
-		} catch(Throwable t) {
-			t0 = Throwables.addSuppressed(t0, t);
-		}
-		try {
-			// Wait for exit status
-			try {
-				int retCode = process.waitFor();
-				if(retCode != 0) {
-					if(errorString == null) {
-						throw new IOException("Non-zero exit status from '" + getCommandString(command) + "': " + retCode + ", standard error unavailable");
-					} else {
-						throw new IOException("Non-zero exit status from '" + getCommandString(command) + "': " + retCode + ", standard error was: " + errorString);
-					}
-				}
-			} catch(InterruptedException err) {
-				InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '"+getCommandString(command)+"'");
-				ioErr.initCause(err);
-				// Restore the interrupted status
-				Thread.currentThread().interrupt();
-				throw ioErr;
-			}
-		} catch(Throwable t) {
-			t0 = Throwables.addSuppressed(t0, t);
-		}
-		if(t0 != null) {
-			throw Throwables.wrap(t0, IOException.class, IOException::new);
-		} else {
-			return result;
-		}
-	}
+  /**
+   * Executes a command, performing any arbitrary action with the command's output stream.
+   * Command's input is opened then immediately closed.
+   * Command's output is read, and handled, on the current thread.
+   * Command's error output is read on a different thread.
+   * <p>
+   * The command's standard error is logged to {@link System#err}.
+   * </p>
+   * <p>
+   * Any non-zero exit value will result in an exception, including the standard error output when available.
+   * </p>
+   */
+  // TODO: First parameter as PosixPath object?
+  @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch", "UseOfSystemOutOrSystemErr", "overloads"})
+  public static <V> V execCall(
+    FunctionE<? super InputStream, V, ? extends IOException> stdout,
+    File workingDirectory,
+    String... command
+  ) throws IOException {
+    if (DEBUG) {
+      System.out.print("DEBUG: AOServDaemon.execCall(): ");
+      System.out.println(getCommandString(command));
+    }
+    Process process = new ProcessBuilder(command).directory(workingDirectory).start();
+    // Read the standard error concurrently
+    Future<String> errorFuture = executorService.submit(() -> {
+      try (Reader errIn = new InputStreamReader(process.getErrorStream())) {
+        return IoUtils.readFully(errIn);
+      }
+    });
+    Throwable t0;
+    // Close the process's stdin
+    try {
+      process.getOutputStream().close();
+      t0 = null;
+    } catch (Throwable t) {
+      t0 = t;
+    }
+    // Read and handle the standard output on current thread
+    V result = null;
+    try {
+      try (InputStream in = process.getInputStream()) {
+        result = stdout.apply(in);
+      }
+    } catch (Throwable t) {
+      t0 = Throwables.addSuppressed(t0, t);
+    }
+    // Finish reading the standard error
+    String errorString = null;
+    try {
+      try {
+        errorString = errorFuture.get();
+        // Write any standard error to standard error
+        if (!errorString.isEmpty()) {
+          System.err.println("'" + getCommandString(command) + "': " + errorString);
+        }
+      } catch (ExecutionException e) {
+        ExecutionExceptions.wrapAndThrow(e, IOException.class, IOException::new);
+      }
+    } catch (Throwable t) {
+      t0 = Throwables.addSuppressed(t0, t);
+    }
+    try {
+      // Wait for exit status
+      try {
+        int retCode = process.waitFor();
+        if (retCode != 0) {
+          if (errorString == null) {
+            throw new IOException("Non-zero exit status from '" + getCommandString(command) + "': " + retCode + ", standard error unavailable");
+          } else {
+            throw new IOException("Non-zero exit status from '" + getCommandString(command) + "': " + retCode + ", standard error was: " + errorString);
+          }
+        }
+      } catch (InterruptedException err) {
+        InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '"+getCommandString(command)+"'");
+        ioErr.initCause(err);
+        // Restore the interrupted status
+        Thread.currentThread().interrupt();
+        throw ioErr;
+      }
+    } catch (Throwable t) {
+      t0 = Throwables.addSuppressed(t0, t);
+    }
+    if (t0 != null) {
+      throw Throwables.wrap(t0, IOException.class, IOException::new);
+    } else {
+      return result;
+    }
+  }
 
-	/**
-	 * Executes a command, performing any arbitrary action with the command's output stream.
-	 * Command's input is opened then immediately closed.
-	 * Command's output is read, and handled, on the current thread.
-	 * Command's error output is read on a different thread.
-	 * <p>
-	 * The command's standard error is logged to {@link System#err}.
-	 * </p>
-	 * <p>
-	 * Any non-zero exit value will result in an exception, including the standard error output when available.
-	 * </p>
-	 */
-	@SuppressWarnings("overloads")
-	public static <V> V execCall(
-		FunctionE<? super InputStream, V, ? extends IOException> stdout,
-		String... command
-	) throws IOException {
-		return execCall(stdout, (File)null, command);
-	}
+  /**
+   * Executes a command, performing any arbitrary action with the command's output stream.
+   * Command's input is opened then immediately closed.
+   * Command's output is read, and handled, on the current thread.
+   * Command's error output is read on a different thread.
+   * <p>
+   * The command's standard error is logged to {@link System#err}.
+   * </p>
+   * <p>
+   * Any non-zero exit value will result in an exception, including the standard error output when available.
+   * </p>
+   */
+  @SuppressWarnings("overloads")
+  public static <V> V execCall(
+    FunctionE<? super InputStream, V, ? extends IOException> stdout,
+    String... command
+  ) throws IOException {
+    return execCall(stdout, (File)null, command);
+  }
 
-	/**
-	 * Executes a command, performing any arbitrary action with the command's output stream.
-	 * Command's input is opened then immediately closed.
-	 * Command's output is read, and handled, on the current thread.
-	 * Command's error output is read on a different thread.
-	 * <p>
-	 * The command's standard error is logged to {@link System#err}.
-	 * </p>
-	 * <p>
-	 * Any non-zero exit value will result in an exception, including the standard error output when available.
-	 * </p>
-	 */
-	@SuppressWarnings("overloads")
-	public static void execRun(
-		ConsumerE<? super InputStream, ? extends IOException> stdout,
-		File workingDirectory,
-		String... command
-	) throws IOException {
-		execCall(
-			_stdout -> {
-				stdout.accept(_stdout);
-				return null;
-			},
-			workingDirectory,
-			command
-		);
-	}
+  /**
+   * Executes a command, performing any arbitrary action with the command's output stream.
+   * Command's input is opened then immediately closed.
+   * Command's output is read, and handled, on the current thread.
+   * Command's error output is read on a different thread.
+   * <p>
+   * The command's standard error is logged to {@link System#err}.
+   * </p>
+   * <p>
+   * Any non-zero exit value will result in an exception, including the standard error output when available.
+   * </p>
+   */
+  @SuppressWarnings("overloads")
+  public static void execRun(
+    ConsumerE<? super InputStream, ? extends IOException> stdout,
+    File workingDirectory,
+    String... command
+  ) throws IOException {
+    execCall(
+      _stdout -> {
+        stdout.accept(_stdout);
+        return null;
+      },
+      workingDirectory,
+      command
+    );
+  }
 
-	/**
-	 * Executes a command, performing any arbitrary action with the command's output stream.
-	 * Command's input is opened then immediately closed.
-	 * Command's output is read, and handled, on the current thread.
-	 * Command's error output is read on a different thread.
-	 * <p>
-	 * The command's standard error is logged to {@link System#err}.
-	 * </p>
-	 * <p>
-	 * Any non-zero exit value will result in an exception, including the standard error output when available.
-	 * </p>
-	 */
-	@SuppressWarnings("overloads")
-	public static void execRun(
-		ConsumerE<? super InputStream, ? extends IOException> stdout,
-		String... command
-	) throws IOException {
-		execRun(stdout, (File)null, command);
-	}
+  /**
+   * Executes a command, performing any arbitrary action with the command's output stream.
+   * Command's input is opened then immediately closed.
+   * Command's output is read, and handled, on the current thread.
+   * Command's error output is read on a different thread.
+   * <p>
+   * The command's standard error is logged to {@link System#err}.
+   * </p>
+   * <p>
+   * Any non-zero exit value will result in an exception, including the standard error output when available.
+   * </p>
+   */
+  @SuppressWarnings("overloads")
+  public static void execRun(
+    ConsumerE<? super InputStream, ? extends IOException> stdout,
+    String... command
+  ) throws IOException {
+    execRun(stdout, (File)null, command);
+  }
 
-	/**
-	 * Executes a command, opens then immediately closes the command's input, and discards the output.
-	 *
-	 * @see  #execRun(com.aoapps.lang.function.ConsumerE, java.lang.String...)
-	 */
-	public static void exec(File workingDirectory, String... command) throws IOException {
-		execRun(
-			stdout -> IoUtils.copy(stdout, NullOutputStream.getInstance()), // Do nothing with the output
-			workingDirectory,
-			command
-		);
-	}
+  /**
+   * Executes a command, opens then immediately closes the command's input, and discards the output.
+   *
+   * @see  #execRun(com.aoapps.lang.function.ConsumerE, java.lang.String...)
+   */
+  public static void exec(File workingDirectory, String... command) throws IOException {
+    execRun(
+      stdout -> IoUtils.copy(stdout, NullOutputStream.getInstance()), // Do nothing with the output
+      workingDirectory,
+      command
+    );
+  }
 
-	/**
-	 * Executes a command, opens then immediately closes the command's input, and discards the output.
-	 *
-	 * @see  #execRun(com.aoapps.lang.function.ConsumerE, java.lang.String...)
-	 */
-	public static void exec(String... command) throws IOException {
-		exec((File)null, command);
-	}
+  /**
+   * Executes a command, opens then immediately closes the command's input, and discards the output.
+   *
+   * @see  #execRun(com.aoapps.lang.function.ConsumerE, java.lang.String...)
+   */
+  public static void exec(String... command) throws IOException {
+    exec((File)null, command);
+  }
 
-	/**
-	 * Executes a command, opens then immediately closes the command's input, and captures the output.
-	 */
-	public static String execAndCapture(File workingDirectory, String... command) throws IOException {
-		return execCall(
-			stdout -> {
-				try (Reader in = new InputStreamReader(stdout)) {
-					return IoUtils.readFully(in);
-				}
-			},
-			workingDirectory,
-			command
-		);
-	}
+  /**
+   * Executes a command, opens then immediately closes the command's input, and captures the output.
+   */
+  public static String execAndCapture(File workingDirectory, String... command) throws IOException {
+    return execCall(
+      stdout -> {
+        try (Reader in = new InputStreamReader(stdout)) {
+          return IoUtils.readFully(in);
+        }
+      },
+      workingDirectory,
+      command
+    );
+  }
 
-	/**
-	 * Executes a command, opens then immediately closes the command's input, and captures the output.
-	 */
-	public static String execAndCapture(String... command) throws IOException {
-		return execAndCapture((File)null, command);
-	}
+  /**
+   * Executes a command, opens then immediately closes the command's input, and captures the output.
+   */
+  public static String execAndCapture(String... command) throws IOException {
+    return execAndCapture((File)null, command);
+  }
 
-	/**
-	 * Executes a command, opens then immediately closes the command's input, and captures the output.
-	 */
-	public static byte[] execAndCaptureBytes(File workingDirectory, String... command) throws IOException {
-		return execCall(IoUtils::readFully, workingDirectory, command);
-	}
+  /**
+   * Executes a command, opens then immediately closes the command's input, and captures the output.
+   */
+  public static byte[] execAndCaptureBytes(File workingDirectory, String... command) throws IOException {
+    return execCall(IoUtils::readFully, workingDirectory, command);
+  }
 
-	/**
-	 * Executes a command, opens then immediately closes the command's input, and captures the output.
-	 */
-	public static byte[] execAndCaptureBytes(String... command) throws IOException {
-		return execAndCaptureBytes((File)null, command);
-	}
+  /**
+   * Executes a command, opens then immediately closes the command's input, and captures the output.
+   */
+  public static byte[] execAndCaptureBytes(String... command) throws IOException {
+    return execAndCaptureBytes((File)null, command);
+  }
 
-	/**
-	 * Switches to the specified user and executes a command.
-	 *
-	 * @param  nice  a nice level passed to /bin/nice, a value of zero (0) will cause nice to not be called
-	 */
-	// TODO: Use ao-encoding to escape command
-	public static void suexec(User.Name username, File workingDirectory, String command, int nice) throws IOException {
-		/*
-		 * Not needed because command is passed as String[] and any funny stuff will
-		 * be executed as the proper user.
-		if(command==null) throw new IllegalArgumentException("command is null");
-		int len = command.length();
-		if(len==0) throw new IllegalArgumentException("command is empty");
-		for(int c=0;c<len;c++) {
-			char ch = command.charAt(c);
-			if(
-				(ch<'a' || ch>'z')
-				&& (ch<'A' || ch>'Z')
-				&& (ch<'0' || ch>'9')
-				&& ch!=' '
-				&& ch!='-'
-				&& ch!='_'
-				&& ch!='.'
-				&& ch!='/'
-			) {
-				throw new IllegalArgumentException("Invalid command character: "+ch);
-			}
-		}*/
+  /**
+   * Switches to the specified user and executes a command.
+   *
+   * @param  nice  a nice level passed to /bin/nice, a value of zero (0) will cause nice to not be called
+   */
+  // TODO: Use ao-encoding to escape command
+  public static void suexec(User.Name username, File workingDirectory, String command, int nice) throws IOException {
+    /*
+     * Not needed because command is passed as String[] and any funny stuff will
+     * be executed as the proper user.
+    if (command == null) {
+      throw new IllegalArgumentException("command is null");
+    }
+    int len = command.length();
+    if (len == 0) {
+      throw new IllegalArgumentException("command is empty");
+    }
+    for (int c=0;c<len;c++) {
+      char ch = command.charAt(c);
+      if (
+        (ch<'a' || ch>'z')
+        && (ch<'A' || ch>'Z')
+        && (ch<'0' || ch>'9')
+        && ch != ' '
+        && ch != '-'
+        && ch != '_'
+        && ch != '.'
+        && ch != '/'
+      ) {
+        throw new IllegalArgumentException("Invalid command character: "+ch);
+      }
+    }*/
 
-		String[] cmd;
-		if(nice!=0) {
-			cmd = new String[] {
-				"/bin/nice",
-				"-n",
-				Integer.toString(nice),
-				"/bin/su",
-				"-s",
-				Shell.BASH.toString(),
-				"-c",
-				command,
-				username.toString()
-			};
-		} else {
-			cmd = new String[] {
-				"/bin/su",
-				"-s",
-				Shell.BASH.toString(),
-				"-c",
-				command,
-				username.toString()
-			};
-		}
-		exec(workingDirectory, cmd);
-	}
+    String[] cmd;
+    if (nice != 0) {
+      cmd = new String[] {
+        "/bin/nice",
+        "-n",
+        Integer.toString(nice),
+        "/bin/su",
+        "-s",
+        Shell.BASH.toString(),
+        "-c",
+        command,
+        username.toString()
+      };
+    } else {
+      cmd = new String[] {
+        "/bin/su",
+        "-s",
+        Shell.BASH.toString(),
+        "-c",
+        command,
+        username.toString()
+      };
+    }
+    exec(workingDirectory, cmd);
+  }
 }

@@ -22,508 +22,508 @@ You should have received a copy of the GNU Lesser General Public License
 along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
 -->
 <jsp:root
-	xmlns:ao="https://oss.aoapps.com/taglib/"
-	xmlns:c="http://java.sun.com/jsp/jstl/core"
-	xmlns:changelog="https://semanticcms.com/changelog/taglib/"
-	xmlns:core="https://semanticcms.com/core/taglib/"
-	xmlns:fn="http://java.sun.com/jsp/jstl/functions"
-	xmlns:jsp="http://java.sun.com/JSP/Page"
-	version="2.1"
+  xmlns:ao="https://oss.aoapps.com/taglib/"
+  xmlns:c="http://java.sun.com/jsp/jstl/core"
+  xmlns:changelog="https://semanticcms.com/changelog/taglib/"
+  xmlns:core="https://semanticcms.com/core/taglib/"
+  xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+  xmlns:jsp="http://java.sun.com/JSP/Page"
+  version="2.1"
 >
-	<jsp:directive.page language="java" pageEncoding="UTF-8" />
-	<jsp:directive.page session="false" />
-	<core:page
-		title="@{documented.name} Changelog"
-		shortTitle="Changelog"
-		tocLevels="1"
-		datePublished="2020-04-16T21:06:03-05:00"
-		dateModified="2022-04-11T22:46:38-05:00"
-	>
-		<c:if test="${fn:endsWith('@{project.version}', '-SNAPSHOT') and !fn:endsWith('@{project.version}', '-POST-SNAPSHOT')}">
-			<changelog:release
-				projectName="@{documented.name}"
-				version="@{project.version}"
-				groupId="@{project.groupId}"
-				artifactId="@{documented.artifactId}"
-				repository="@{nexusUrl}content/repositories/snapshots/"
-				scmUrl="@{project.scm.url}"
-			>
-				<ul>
-					<li>Updated to Apache Tomcat 8.5.78 with MySQL JDBC 8.0.28 and PostgreSQL JDBC 42.3.3.</li>
-					<li>Updated to Apache Tomcat 9.0.62 with MySQL JDBC 8.0.28 and PostgreSQL JDBC 42.3.3.</li>
-					<li>Updated to Apache Tomcat 10.0.20 with MySQL JDBC 8.0.28 and PostgreSQL JDBC 42.3.3.</li>
-				</ul>
-			</changelog:release>
-		</c:if>
+  <jsp:directive.page language="java" pageEncoding="UTF-8" />
+  <jsp:directive.page session="false" />
+  <core:page
+    title="@{documented.name} Changelog"
+    shortTitle="Changelog"
+    tocLevels="1"
+    datePublished="2020-04-16T21:06:03-05:00"
+    dateModified="2022-04-11T22:46:38-05:00"
+  >
+    <c:if test="${fn:endsWith('@{project.version}', '-SNAPSHOT') and !fn:endsWith('@{project.version}', '-POST-SNAPSHOT')}">
+      <changelog:release
+        projectName="@{documented.name}"
+        version="@{project.version}"
+        groupId="@{project.groupId}"
+        artifactId="@{documented.artifactId}"
+        repository="@{nexusUrl}content/repositories/snapshots/"
+        scmUrl="@{project.scm.url}"
+      >
+        <ul>
+          <li>Updated to Apache Tomcat 8.5.78 with MySQL JDBC 8.0.28 and PostgreSQL JDBC 42.3.3.</li>
+          <li>Updated to Apache Tomcat 9.0.62 with MySQL JDBC 8.0.28 and PostgreSQL JDBC 42.3.3.</li>
+          <li>Updated to Apache Tomcat 10.0.20 with MySQL JDBC 8.0.28 and PostgreSQL JDBC 42.3.3.</li>
+        </ul>
+      </changelog:release>
+    </c:if>
 
-		<changelog:release
-			projectName="@{documented.name}"
-			version="1.89.0"
-			datePublished="2022-02-19T00:09:49-06:00"
-			groupId="@{project.groupId}"
-			artifactId="@{documented.artifactId}"
-			scmUrl="@{project.scm.url}"
-		>
-			<ul>
-				<li>Added support for <ao:a href="https://www.postgresql.org/docs/14/index.html">PostgreSQL 14</ao:a>.</li>
-				<li>Now properly restoring Thread interrupted state on <code>InterruptedException</code>.</li>
-				<li>Added support for <ao:a href="https://www.jenkins.io/">Jenkins</ao:a>.</li>
-				<li>Updated to Apache Tomcat 8.5.75 with MySQL JDBC 8.0.28 and PostgreSQL JDBC 42.3.1.</li>
-				<li>Updated to Apache Tomcat 9.0.58 with MySQL JDBC 8.0.28 and PostgreSQL JDBC 42.3.1.</li>
-				<li>Updated to Apache Tomcat 10.0.16 with MySQL JDBC 8.0.28 and PostgreSQL JDBC 42.3.1.</li>
-				<li>Added support for PHP 8.1.</li>
-			</ul>
-		</changelog:release>
+    <changelog:release
+      projectName="@{documented.name}"
+      version="1.89.0"
+      datePublished="2022-02-19T00:09:49-06:00"
+      groupId="@{project.groupId}"
+      artifactId="@{documented.artifactId}"
+      scmUrl="@{project.scm.url}"
+    >
+      <ul>
+        <li>Added support for <ao:a href="https://www.postgresql.org/docs/14/index.html">PostgreSQL 14</ao:a>.</li>
+        <li>Now properly restoring Thread interrupted state on <code>InterruptedException</code>.</li>
+        <li>Added support for <ao:a href="https://www.jenkins.io/">Jenkins</ao:a>.</li>
+        <li>Updated to Apache Tomcat 8.5.75 with MySQL JDBC 8.0.28 and PostgreSQL JDBC 42.3.1.</li>
+        <li>Updated to Apache Tomcat 9.0.58 with MySQL JDBC 8.0.28 and PostgreSQL JDBC 42.3.1.</li>
+        <li>Updated to Apache Tomcat 10.0.16 with MySQL JDBC 8.0.28 and PostgreSQL JDBC 42.3.1.</li>
+        <li>Added support for PHP 8.1.</li>
+      </ul>
+    </changelog:release>
 
-		<changelog:release
-			projectName="@{documented.name}"
-			version="1.88.0"
-			datePublished="2021-10-18T19:56:13-05:00"
-			groupId="@{project.groupId}"
-			artifactId="@{documented.artifactId}"
-			scmUrl="@{project.scm.url}"
-		>
-			<ul>
-				<li>Updated to Apache Tomcat 8.5.72 with MySQL JDBC 8.0.27 and PostgreSQL JDBC 42.3.0.</li>
-				<li>Updated to Apache Tomcat 9.0.54 with MySQL JDBC 8.0.27 and PostgreSQL JDBC 42.3.0.</li>
-				<li>Updated to Apache Tomcat 10.0.12 with MySQL JDBC 8.0.27 and PostgreSQL JDBC 42.3.0.</li>
-				<li><code>notify()</code> replaced with <code>notifyAll()</code> since more than one thread can be waiting.</li>
-				<li>Improved Tomcat manual mode:
-					<ol>
-						<li>No longer performing any in-place Tomcat upgrades</li>
-						<li>Handling missing <code>bin</code> directory</li>
-						<li>Handling missing <code>bin/tomcat</code> script and related <code>daemon/tomcat</code> symlink</li>
-						<li>Handling missing <code>conf</code> directory</li>
-						<li>Handling missing <code>work/Catalina</code> directory</li>
-					</ol>
-				</li>
-			</ul>
-		</changelog:release>
+    <changelog:release
+      projectName="@{documented.name}"
+      version="1.88.0"
+      datePublished="2021-10-18T19:56:13-05:00"
+      groupId="@{project.groupId}"
+      artifactId="@{documented.artifactId}"
+      scmUrl="@{project.scm.url}"
+    >
+      <ul>
+        <li>Updated to Apache Tomcat 8.5.72 with MySQL JDBC 8.0.27 and PostgreSQL JDBC 42.3.0.</li>
+        <li>Updated to Apache Tomcat 9.0.54 with MySQL JDBC 8.0.27 and PostgreSQL JDBC 42.3.0.</li>
+        <li>Updated to Apache Tomcat 10.0.12 with MySQL JDBC 8.0.27 and PostgreSQL JDBC 42.3.0.</li>
+        <li><code>notify()</code> replaced with <code>notifyAll()</code> since more than one thread can be waiting.</li>
+        <li>Improved Tomcat manual mode:
+          <ol>
+            <li>No longer performing any in-place Tomcat upgrades</li>
+            <li>Handling missing <code>bin</code> directory</li>
+            <li>Handling missing <code>bin/tomcat</code> script and related <code>daemon/tomcat</code> symlink</li>
+            <li>Handling missing <code>conf</code> directory</li>
+            <li>Handling missing <code>work/Catalina</code> directory</li>
+          </ol>
+        </li>
+      </ul>
+    </changelog:release>
 
-		<changelog:release
-			projectName="@{documented.name}"
-			version="1.87.0"
-			datePublished="2021-09-22T02:15:02-05:00"
-			groupId="@{project.groupId}"
-			artifactId="@{documented.artifactId}"
-			scmUrl="@{project.scm.url}"
-		>
-			<ul>
-				<li>Updated to Apache Tomcat 8.5.71 with MySQL JDBC 8.0.26 and PostgreSQL JDBC 42.2.23.</li>
-				<li>Updated to Apache Tomcat 9.0.53 with MySQL JDBC 8.0.26 and PostgreSQL JDBC 42.2.23.</li>
-				<li>Updated to Apache Tomcat 10.0.11 with MySQL JDBC 8.0.26 and PostgreSQL JDBC 42.2.23.</li>
-			</ul>
-		</changelog:release>
+    <changelog:release
+      projectName="@{documented.name}"
+      version="1.87.0"
+      datePublished="2021-09-22T02:15:02-05:00"
+      groupId="@{project.groupId}"
+      artifactId="@{documented.artifactId}"
+      scmUrl="@{project.scm.url}"
+    >
+      <ul>
+        <li>Updated to Apache Tomcat 8.5.71 with MySQL JDBC 8.0.26 and PostgreSQL JDBC 42.2.23.</li>
+        <li>Updated to Apache Tomcat 9.0.53 with MySQL JDBC 8.0.26 and PostgreSQL JDBC 42.2.23.</li>
+        <li>Updated to Apache Tomcat 10.0.11 with MySQL JDBC 8.0.26 and PostgreSQL JDBC 42.2.23.</li>
+      </ul>
+    </changelog:release>
 
-		<changelog:release
-			projectName="@{documented.name}"
-			version="1.86.0"
-			datePublished="2021-09-05T04:16:36-05:00"
-			groupId="@{project.groupId}"
-			artifactId="@{documented.artifactId}"
-			scmUrl="@{project.scm.url}"
-		>
-			<ul>
-				<li>Updated to Apache Tomcat 8.5.70 with MySQL JDBC 8.0.26 and PostgreSQL JDBC 42.2.23.</li>
-				<li>Updated to Apache Tomcat 9.0.52 with MySQL JDBC 8.0.26 and PostgreSQL JDBC 42.2.23.</li>
-				<li>Updated to Apache Tomcat 10.0.10 with MySQL JDBC 8.0.26 and PostgreSQL JDBC 42.2.23.</li>
-				<li>
-					Moved "Authenticated Locations" above "Site options" in Apache config builder.
-					Apache applies the last matching "Require", so this order correctly blocks URLs even when
-					password-protected.
-				</li>
-				<li>Apache PHP config builder now correctly uses "libphp.so" for <![CDATA[PHP &gt;= 8.0]]>.</li>
-			</ul>
-		</changelog:release>
+    <changelog:release
+      projectName="@{documented.name}"
+      version="1.86.0"
+      datePublished="2021-09-05T04:16:36-05:00"
+      groupId="@{project.groupId}"
+      artifactId="@{documented.artifactId}"
+      scmUrl="@{project.scm.url}"
+    >
+      <ul>
+        <li>Updated to Apache Tomcat 8.5.70 with MySQL JDBC 8.0.26 and PostgreSQL JDBC 42.2.23.</li>
+        <li>Updated to Apache Tomcat 9.0.52 with MySQL JDBC 8.0.26 and PostgreSQL JDBC 42.2.23.</li>
+        <li>Updated to Apache Tomcat 10.0.10 with MySQL JDBC 8.0.26 and PostgreSQL JDBC 42.2.23.</li>
+        <li>
+          Moved "Authenticated Locations" above "Site options" in Apache config builder.
+          Apache applies the last matching "Require", so this order correctly blocks URLs even when
+          password-protected.
+        </li>
+        <li>Apache PHP config builder now correctly uses "libphp.so" for <![CDATA[PHP &gt;= 8.0]]>.</li>
+      </ul>
+    </changelog:release>
 
-		<changelog:release
-			projectName="@{documented.name}"
-			version="1.85.0"
-			datePublished="2021-07-24T14:22:52-05:00"
-			groupId="@{project.groupId}"
-			artifactId="@{documented.artifactId}"
-			scmUrl="@{project.scm.url}"
-		>
-			<ul>
-				<li>Now supports Java 9+ modules with included <code>module-info.class</code>.</li>
-				<li>
-					Updated MySQL JDBC Drivers to 8.0.26.  Please note, our internal packaging may still use older
-					drivers for compatibility with legacy applications that are not yet on MySQL 5.6 or newer.
-				</li>
-				<li>Added support for in-place Tomcat downgrades within the range of supported versions.</li>
-				<li>Updated to Apache Tomcat 8.5.69 with MySQL JDBC 8.0.26 and PostgreSQL JDBC 42.2.23.</li>
-				<li>Updated to Apache Tomcat 9.0.50 with MySQL JDBC 8.0.26 and PostgreSQL JDBC 42.2.23.</li>
-				<li>Updated to Apache Tomcat 10.0.8 with MySQL JDBC 8.0.26 and PostgreSQL JDBC 42.2.23.</li>
-			</ul>
-		</changelog:release>
+    <changelog:release
+      projectName="@{documented.name}"
+      version="1.85.0"
+      datePublished="2021-07-24T14:22:52-05:00"
+      groupId="@{project.groupId}"
+      artifactId="@{documented.artifactId}"
+      scmUrl="@{project.scm.url}"
+    >
+      <ul>
+        <li>Now supports Java 9+ modules with included <code>module-info.class</code>.</li>
+        <li>
+          Updated MySQL JDBC Drivers to 8.0.26.  Please note, our internal packaging may still use older
+          drivers for compatibility with legacy applications that are not yet on MySQL 5.6 or newer.
+        </li>
+        <li>Added support for in-place Tomcat downgrades within the range of supported versions.</li>
+        <li>Updated to Apache Tomcat 8.5.69 with MySQL JDBC 8.0.26 and PostgreSQL JDBC 42.2.23.</li>
+        <li>Updated to Apache Tomcat 9.0.50 with MySQL JDBC 8.0.26 and PostgreSQL JDBC 42.2.23.</li>
+        <li>Updated to Apache Tomcat 10.0.8 with MySQL JDBC 8.0.26 and PostgreSQL JDBC 42.2.23.</li>
+      </ul>
+    </changelog:release>
 
-		<changelog:release
-			projectName="@{documented.name}"
-			version="1.84.21"
-			datePublished="2021-05-17T19:26:27-05:00"
-			groupId="@{project.groupId}"
-			artifactId="@{documented.artifactId}"
-			scmUrl="@{project.scm.url}"
-		>
-			<ul>
-				<li>Updated to Apache Tomcat 8.5.66 with MySQL JDBC 8.0.25 and PostgreSQL JDBC 42.2.20.</li>
-				<li>Updated to Apache Tomcat 9.0.46 with MySQL JDBC 8.0.25 and PostgreSQL JDBC 42.2.20.</li>
-				<li>Updated to Apache Tomcat 10.0.6 with MySQL JDBC 8.0.25 and PostgreSQL JDBC 42.2.20.</li>
-			</ul>
-		</changelog:release>
+    <changelog:release
+      projectName="@{documented.name}"
+      version="1.84.21"
+      datePublished="2021-05-17T19:26:27-05:00"
+      groupId="@{project.groupId}"
+      artifactId="@{documented.artifactId}"
+      scmUrl="@{project.scm.url}"
+    >
+      <ul>
+        <li>Updated to Apache Tomcat 8.5.66 with MySQL JDBC 8.0.25 and PostgreSQL JDBC 42.2.20.</li>
+        <li>Updated to Apache Tomcat 9.0.46 with MySQL JDBC 8.0.25 and PostgreSQL JDBC 42.2.20.</li>
+        <li>Updated to Apache Tomcat 10.0.6 with MySQL JDBC 8.0.25 and PostgreSQL JDBC 42.2.20.</li>
+      </ul>
+    </changelog:release>
 
-		<changelog:release
-			projectName="@{documented.name}"
-			version="1.84.20"
-			datePublished="2021-05-11T18:00:02-05:00"
-			groupId="@{project.groupId}"
-			artifactId="@{documented.artifactId}"
-			scmUrl="@{project.scm.url}"
-		>
-			<ul>
-				<li>
-					<p>
-						The config builder for SpamAssassin now scales the maximum children by the total system memory.
-						It is scaled to allow one child per 100 MiB of total memory, then bounded to be no less than 5
-						and no more than 25.
-					</p>
-					<p>
-						Each spamd child currently consumes between 50 MiB and 90 MiB of resident memory.  With our
-						previous hard-coded setting of 25, this could cause swap thrashing with heavy email load on
-						smaller servers.
-					</p>
-				</li>
-			</ul>
-		</changelog:release>
+    <changelog:release
+      projectName="@{documented.name}"
+      version="1.84.20"
+      datePublished="2021-05-11T18:00:02-05:00"
+      groupId="@{project.groupId}"
+      artifactId="@{documented.artifactId}"
+      scmUrl="@{project.scm.url}"
+    >
+      <ul>
+        <li>
+          <p>
+            The config builder for SpamAssassin now scales the maximum children by the total system memory.
+            It is scaled to allow one child per 100 MiB of total memory, then bounded to be no less than 5
+            and no more than 25.
+          </p>
+          <p>
+            Each spamd child currently consumes between 50 MiB and 90 MiB of resident memory.  With our
+            previous hard-coded setting of 25, this could cause swap thrashing with heavy email load on
+            smaller servers.
+          </p>
+        </li>
+      </ul>
+    </changelog:release>
 
-		<changelog:release
-			projectName="@{documented.name}"
-			version="1.84.19"
-			datePublished="2021-04-30T11:17:40-05:00"
-			groupId="@{project.groupId}"
-			artifactId="@{documented.artifactId}"
-			scmUrl="@{project.scm.url}"
-		>
-			<ul>
-				<li>Updated PostgreSQL JDBC Drivers to 42.2.20.</li>
-				<li>Updated Apache Tomcat 8.5.65 to MySQL JDBC 8.0.24 and PostgreSQL JDBC 42.2.20.</li>
-				<li>Updated Apache Tomcat 9.0.45 to MySQL JDBC 8.0.24 and PostgreSQL JDBC 42.2.20.</li>
-				<li>Updated Apache Tomcat 10.0.5 to MySQL JDBC 8.0.24 and PostgreSQL JDBC 42.2.20.</li>
-				<li>
-					Enabled GZIP compression of backup uploads when compression is enabled.
-					Previously, the compression flag would only enable MD5-based chunked transfers.
-				</li>
-			</ul>
-		</changelog:release>
+    <changelog:release
+      projectName="@{documented.name}"
+      version="1.84.19"
+      datePublished="2021-04-30T11:17:40-05:00"
+      groupId="@{project.groupId}"
+      artifactId="@{documented.artifactId}"
+      scmUrl="@{project.scm.url}"
+    >
+      <ul>
+        <li>Updated PostgreSQL JDBC Drivers to 42.2.20.</li>
+        <li>Updated Apache Tomcat 8.5.65 to MySQL JDBC 8.0.24 and PostgreSQL JDBC 42.2.20.</li>
+        <li>Updated Apache Tomcat 9.0.45 to MySQL JDBC 8.0.24 and PostgreSQL JDBC 42.2.20.</li>
+        <li>Updated Apache Tomcat 10.0.5 to MySQL JDBC 8.0.24 and PostgreSQL JDBC 42.2.20.</li>
+        <li>
+          Enabled GZIP compression of backup uploads when compression is enabled.
+          Previously, the compression flag would only enable MD5-based chunked transfers.
+        </li>
+      </ul>
+    </changelog:release>
 
-		<changelog:release
-			projectName="@{documented.name}"
-			version="1.84.18"
-			datePublished="2021-04-14T20:54:18-05:00"
-			groupId="@{project.groupId}"
-			artifactId="@{documented.artifactId}"
-			scmUrl="@{project.scm.url}"
-		>
-			<ul>
-				<li>Updated to Apache Tomcat 8.5.65.</li>
-				<li>Updated to Apache Tomcat 9.0.45.</li>
-				<li>Updated to Apache Tomcat 10.0.5.</li>
-				<li>Removed unsupported operating systems Gentoo, Mandrake, Mandriva, and RedHat.</li>
-			</ul>
-		</changelog:release>
+    <changelog:release
+      projectName="@{documented.name}"
+      version="1.84.18"
+      datePublished="2021-04-14T20:54:18-05:00"
+      groupId="@{project.groupId}"
+      artifactId="@{documented.artifactId}"
+      scmUrl="@{project.scm.url}"
+    >
+      <ul>
+        <li>Updated to Apache Tomcat 8.5.65.</li>
+        <li>Updated to Apache Tomcat 9.0.45.</li>
+        <li>Updated to Apache Tomcat 10.0.5.</li>
+        <li>Removed unsupported operating systems Gentoo, Mandrake, Mandriva, and RedHat.</li>
+      </ul>
+    </changelog:release>
 
-		<changelog:release
-			projectName="@{documented.name}"
-			version="1.84.17"
-			datePublished="2021-03-21T22:50:46-05:00"
-			groupId="@{project.groupId}"
-			artifactId="@{documented.artifactId}"
-			scmUrl="@{project.scm.url}"
-		>
-			<ul>
-				<li>Updated dependencies.</li>
-			</ul>
-		</changelog:release>
+    <changelog:release
+      projectName="@{documented.name}"
+      version="1.84.17"
+      datePublished="2021-03-21T22:50:46-05:00"
+      groupId="@{project.groupId}"
+      artifactId="@{documented.artifactId}"
+      scmUrl="@{project.scm.url}"
+    >
+      <ul>
+        <li>Updated dependencies.</li>
+      </ul>
+    </changelog:release>
 
-		<changelog:release
-			projectName="@{documented.name}"
-			version="1.84.16"
-			datePublished="2021-03-21T06:45:52-05:00"
-			groupId="@{project.groupId}"
-			artifactId="@{documented.artifactId}"
-			scmUrl="@{project.scm.url}"
-		>
-			<ul>
-				<li>Added support for <ao:a href="https://tomcat.apache.org/tomcat-10.0-doc/">Apache Tomcat 10.0</ao:a>.</li>
-			</ul>
-		</changelog:release>
+    <changelog:release
+      projectName="@{documented.name}"
+      version="1.84.16"
+      datePublished="2021-03-21T06:45:52-05:00"
+      groupId="@{project.groupId}"
+      artifactId="@{documented.artifactId}"
+      scmUrl="@{project.scm.url}"
+    >
+      <ul>
+        <li>Added support for <ao:a href="https://tomcat.apache.org/tomcat-10.0-doc/">Apache Tomcat 10.0</ao:a>.</li>
+      </ul>
+    </changelog:release>
 
-		<changelog:release
-			projectName="@{documented.name}"
-			version="1.84.15"
-			datePublished="2021-03-20T06:00:56-05:00"
-			groupId="@{project.groupId}"
-			artifactId="@{documented.artifactId}"
-			scmUrl="@{project.scm.url}"
-		>
-			<ul>
-				<li>Updated to Apache Tomcat 8.5.64.</li>
-				<li>Updated to Apache Tomcat 9.0.44.</li>
-			</ul>
-		</changelog:release>
+    <changelog:release
+      projectName="@{documented.name}"
+      version="1.84.15"
+      datePublished="2021-03-20T06:00:56-05:00"
+      groupId="@{project.groupId}"
+      artifactId="@{documented.artifactId}"
+      scmUrl="@{project.scm.url}"
+    >
+      <ul>
+        <li>Updated to Apache Tomcat 8.5.64.</li>
+        <li>Updated to Apache Tomcat 9.0.44.</li>
+      </ul>
+    </changelog:release>
 
-		<changelog:release
-			projectName="@{documented.name}"
-			version="1.84.14"
-			datePublished="2021-02-19T02:51:14-06:00"
-			groupId="@{project.groupId}"
-			artifactId="@{documented.artifactId}"
-			scmUrl="@{project.scm.url}"
-		>
-			<ul>
-				<li>Updated PostgreSQL JDBC Drivers to 42.2.19.</li>
-				<li>Updated to Apache Tomcat 7.0.108 with PostgreSQL JDBC 42.2.19.</li>
-				<li>Updated Apache Tomcat 8.5.63 to PostgreSQL JDBC 42.2.19.</li>
-				<li>Updated Apache Tomcat 9.0.43 to PostgreSQL JDBC 42.2.19.</li>
-			</ul>
-		</changelog:release>
+    <changelog:release
+      projectName="@{documented.name}"
+      version="1.84.14"
+      datePublished="2021-02-19T02:51:14-06:00"
+      groupId="@{project.groupId}"
+      artifactId="@{documented.artifactId}"
+      scmUrl="@{project.scm.url}"
+    >
+      <ul>
+        <li>Updated PostgreSQL JDBC Drivers to 42.2.19.</li>
+        <li>Updated to Apache Tomcat 7.0.108 with PostgreSQL JDBC 42.2.19.</li>
+        <li>Updated Apache Tomcat 8.5.63 to PostgreSQL JDBC 42.2.19.</li>
+        <li>Updated Apache Tomcat 9.0.43 to PostgreSQL JDBC 42.2.19.</li>
+      </ul>
+    </changelog:release>
 
-		<changelog:release
-			projectName="@{documented.name}"
-			version="1.84.13"
-			datePublished="2021-02-05T20:49:16-06:00"
-			groupId="@{project.groupId}"
-			artifactId="@{documented.artifactId}"
-			scmUrl="@{project.scm.url}"
-		>
-			<ul>
-				<li>Added support for <ao:a href="https://www.php.net/releases/8.0/">PHP 8.0</ao:a>.</li>
-				<li>Added missing newline in server.xml generator.</li>
-				<li>
-					<code>dump_mysql_database</code> script now uses <code>--login-path=mysql=<var>\${name}</var></code>
-					instead of using the password on the command line.
-				</li>
-				<li>Logging generated commands when dump results in empty file.</li>
-				<li>
-					Centralized <code>exec</code> calls from Java into a couple methods that are very thorough in
-					logging standard error output, and including the standard error in exceptions.  This should help
-					us in resolving some scripts that work from command line, but not when called by the daemon.
-				</li>
-				<li>Added support for Apache Tomcat 7.0.107, 8.5.63, and 9.0.43.</li>
-				<li>
-					Added support for <ao:a href="https://www.postgresql.org/docs/12/index.html">PostgreSQL 12</ao:a>
-					and <ao:a href="https://www.postgresql.org/docs/13/index.html">PostgreSQL 13</ao:a>.
-				</li>
-				<li>
-					Launching Tomcat daemon wrapper scripts via <code>nohup</code> in order to release terminal.
-					This aids in the scripting of Tomcat restarts.
-				</li>
-				<li>Setting working directory on all "su" execs.</li>
-				<li>Fixed bug in Tomcat symlink management that caused excessive Tomcat restarts.</li>
-				<li>
-					Now fixing permissions in <code>/var/spool/aoserv/spamassassin/*/(ham|spam)_*</code>
-					before calling <code>sa-learn</code>.
-				</li>
-				<li>
-					For PHP as Apache module (mod_php), converted PHP configuration from <code>AddType</code> to <code>SetHandler</code>, and disabled
-					<code>*.phps</code> by default.  This makes the module configuration consistent with the CGI configuration
-					and represents the modern best practices.
-				</li>
-				<li>Removed <code>linux.Server.daemon_key</code>, now stored in <code>aoserv-daemon.properties</code></li>
-				<li>New daemon protocol: <code>1.84.13</code></li>
-				<li>Daemon key now sent in 256-bit binary form</li>
-			</ul>
-		</changelog:release>
+    <changelog:release
+      projectName="@{documented.name}"
+      version="1.84.13"
+      datePublished="2021-02-05T20:49:16-06:00"
+      groupId="@{project.groupId}"
+      artifactId="@{documented.artifactId}"
+      scmUrl="@{project.scm.url}"
+    >
+      <ul>
+        <li>Added support for <ao:a href="https://www.php.net/releases/8.0/">PHP 8.0</ao:a>.</li>
+        <li>Added missing newline in server.xml generator.</li>
+        <li>
+          <code>dump_mysql_database</code> script now uses <code>--login-path=mysql=<var>\${name}</var></code>
+          instead of using the password on the command line.
+        </li>
+        <li>Logging generated commands when dump results in empty file.</li>
+        <li>
+          Centralized <code>exec</code> calls from Java into a couple methods that are very thorough in
+          logging standard error output, and including the standard error in exceptions.  This should help
+          us in resolving some scripts that work from command line, but not when called by the daemon.
+        </li>
+        <li>Added support for Apache Tomcat 7.0.107, 8.5.63, and 9.0.43.</li>
+        <li>
+          Added support for <ao:a href="https://www.postgresql.org/docs/12/index.html">PostgreSQL 12</ao:a>
+          and <ao:a href="https://www.postgresql.org/docs/13/index.html">PostgreSQL 13</ao:a>.
+        </li>
+        <li>
+          Launching Tomcat daemon wrapper scripts via <code>nohup</code> in order to release terminal.
+          This aids in the scripting of Tomcat restarts.
+        </li>
+        <li>Setting working directory on all "su" execs.</li>
+        <li>Fixed bug in Tomcat symlink management that caused excessive Tomcat restarts.</li>
+        <li>
+          Now fixing permissions in <code>/var/spool/aoserv/spamassassin/*/(ham|spam)_*</code>
+          before calling <code>sa-learn</code>.
+        </li>
+        <li>
+          For PHP as Apache module (mod_php), converted PHP configuration from <code>AddType</code> to <code>SetHandler</code>, and disabled
+          <code>*.phps</code> by default.  This makes the module configuration consistent with the CGI configuration
+          and represents the modern best practices.
+        </li>
+        <li>Removed <code>linux.Server.daemon_key</code>, now stored in <code>aoserv-daemon.properties</code></li>
+        <li>New daemon protocol: <code>1.84.13</code></li>
+        <li>Daemon key now sent in 256-bit binary form</li>
+      </ul>
+    </changelog:release>
 
-		<changelog:release
-			projectName="@{documented.name}"
-			version="1.84.12"
-			datePublished="2020-11-29T04:59:23-06:00"
-			groupId="@{project.groupId}"
-			artifactId="@{documented.artifactId}"
-			scmUrl="@{project.scm.url}"
-		>
-			<ul>
-				<li>Updated PostgreSQL JDBC Drivers to 42.2.18.</li>
-				<li>Updated dependencies.</li>
-				<li>
-					<p>
-						Fixed bug in automatic cleanup performed by the <code>bin/tomcat</code> script during JVM restarts.
-						The script was deleting <code>*.java</code> files while leaving their <code>*.class</code> counterparts.
-						This could cause JSP recompilation failures when an application is deployed with incompatible
-						dependency changes.
-					</p>
-					<p>
-						We will not be manually updating existing Tomcat instances.  New instances will have the
-						scripts correctly generated, as will in-place Tomcat upgrades.
-					</p>
-				</li>
-				<li>Added support for Apache Tomcat 7.0.106 with MySQL JDBC 5.1.49 and PostgreSQL JDBC 42.2.18.</li>
-				<li>Added support for Apache Tomcat 8.5.60 with MySQL JDBC 8.0.22 and PostgreSQL JDBC 42.2.18.</li>
-				<li>Added support for Apache Tomcat 9.0.40 with MySQL JDBC 8.0.22 and PostgreSQL JDBC 42.2.18.</li>
-			</ul>
-		</changelog:release>
+    <changelog:release
+      projectName="@{documented.name}"
+      version="1.84.12"
+      datePublished="2020-11-29T04:59:23-06:00"
+      groupId="@{project.groupId}"
+      artifactId="@{documented.artifactId}"
+      scmUrl="@{project.scm.url}"
+    >
+      <ul>
+        <li>Updated PostgreSQL JDBC Drivers to 42.2.18.</li>
+        <li>Updated dependencies.</li>
+        <li>
+          <p>
+            Fixed bug in automatic cleanup performed by the <code>bin/tomcat</code> script during JVM restarts.
+            The script was deleting <code>*.java</code> files while leaving their <code>*.class</code> counterparts.
+            This could cause JSP recompilation failures when an application is deployed with incompatible
+            dependency changes.
+          </p>
+          <p>
+            We will not be manually updating existing Tomcat instances.  New instances will have the
+            scripts correctly generated, as will in-place Tomcat upgrades.
+          </p>
+        </li>
+        <li>Added support for Apache Tomcat 7.0.106 with MySQL JDBC 5.1.49 and PostgreSQL JDBC 42.2.18.</li>
+        <li>Added support for Apache Tomcat 8.5.60 with MySQL JDBC 8.0.22 and PostgreSQL JDBC 42.2.18.</li>
+        <li>Added support for Apache Tomcat 9.0.40 with MySQL JDBC 8.0.22 and PostgreSQL JDBC 42.2.18.</li>
+      </ul>
+    </changelog:release>
 
-		<changelog:release
-			projectName="@{documented.name}"
-			version="1.84.11"
-			datePublished="2020-07-18T23:51:33-05:00"
-			groupId="@{project.groupId}"
-			artifactId="@{documented.artifactId}"
-			scmUrl="@{project.scm.url}"
-		>
-			<ul>
-				<li>
-					Now correctly uses per-instance MySQL settings in <code>aoserv-daemon.properties</code> when
-					accessing slave servers.  Previously, only the default settings were used on slaves.
-				</li>
-				<li>
-					<p>
-						Now excluding <code>/var/lib/fail2ban/fail2ban.sqlite3</code> from backups in default generated
-						backup rules.  In the unexpected case this file should be backed-up, the default exclusion may
-						be overridden in <ao:a href="https://aoindustries.com/aoserv/components/client/tables/TableDefinitions.ao?table_name=file_backup_settings">file_backup_settings</ao:a>.
-					</p>
-					<p>
-						We saved <strong>490 GiB</strong> of space on our backup servers from this exclusion alone.
-					</p>
-				</li>
-				<li>Updated MySQL JDBC Drivers to 8.0.21 for Apache Tomcat 8.5.57 and 9.0.37.</li>
-			</ul>
-		</changelog:release>
+    <changelog:release
+      projectName="@{documented.name}"
+      version="1.84.11"
+      datePublished="2020-07-18T23:51:33-05:00"
+      groupId="@{project.groupId}"
+      artifactId="@{documented.artifactId}"
+      scmUrl="@{project.scm.url}"
+    >
+      <ul>
+        <li>
+          Now correctly uses per-instance MySQL settings in <code>aoserv-daemon.properties</code> when
+          accessing slave servers.  Previously, only the default settings were used on slaves.
+        </li>
+        <li>
+          <p>
+            Now excluding <code>/var/lib/fail2ban/fail2ban.sqlite3</code> from backups in default generated
+            backup rules.  In the unexpected case this file should be backed-up, the default exclusion may
+            be overridden in <ao:a href="https://aoindustries.com/aoserv/components/client/tables/TableDefinitions.ao?table_name=file_backup_settings">file_backup_settings</ao:a>.
+          </p>
+          <p>
+            We saved <strong>490 GiB</strong> of space on our backup servers from this exclusion alone.
+          </p>
+        </li>
+        <li>Updated MySQL JDBC Drivers to 8.0.21 for Apache Tomcat 8.5.57 and 9.0.37.</li>
+      </ul>
+    </changelog:release>
 
-		<changelog:release
-			projectName="@{documented.name}"
-			version="1.84.10"
-			datePublished="2020-07-12T23:28:11-05:00"
-			groupId="@{project.groupId}"
-			artifactId="@{documented.artifactId}"
-			scmUrl="@{project.scm.url}"
-		>
-			<ul>
-				<li>
-					New Linux group and user "centos" to support deployments in
-					<ao:a href="https://aws.amazon.com/ec2/">Amazon EC2</ao:a> (and other cloud environments) via
-					the <ao:a href="https://cloud-init.io/">cloud-init</ao:a> package.
-				</li>
-				<li>Added support for Apache Tomcat 7.0.105 with PostgreSQL JDBC updated to 42.2.14.</li>
-			</ul>
-		</changelog:release>
+    <changelog:release
+      projectName="@{documented.name}"
+      version="1.84.10"
+      datePublished="2020-07-12T23:28:11-05:00"
+      groupId="@{project.groupId}"
+      artifactId="@{documented.artifactId}"
+      scmUrl="@{project.scm.url}"
+    >
+      <ul>
+        <li>
+          New Linux group and user "centos" to support deployments in
+          <ao:a href="https://aws.amazon.com/ec2/">Amazon EC2</ao:a> (and other cloud environments) via
+          the <ao:a href="https://cloud-init.io/">cloud-init</ao:a> package.
+        </li>
+        <li>Added support for Apache Tomcat 7.0.105 with PostgreSQL JDBC updated to 42.2.14.</li>
+      </ul>
+    </changelog:release>
 
-		<changelog:release
-			projectName="@{documented.name}"
-			version="1.84.9"
-			datePublished="2020-07-07T20:13:56-05:00"
-			groupId="@{project.groupId}"
-			artifactId="@{documented.artifactId}"
-			scmUrl="@{project.scm.url}"
-		>
-			<ul>
-				<li>Added support for Apache Tomcat 8.5.57 and 9.0.37.</li>
-			</ul>
-		</changelog:release>
+    <changelog:release
+      projectName="@{documented.name}"
+      version="1.84.9"
+      datePublished="2020-07-07T20:13:56-05:00"
+      groupId="@{project.groupId}"
+      artifactId="@{documented.artifactId}"
+      scmUrl="@{project.scm.url}"
+    >
+      <ul>
+        <li>Added support for Apache Tomcat 8.5.57 and 9.0.37.</li>
+      </ul>
+    </changelog:release>
 
-		<changelog:release
-			projectName="@{documented.name}"
-			version="1.84.8"
-			datePublished="2020-06-30T17:30:05-05:00"
-			groupId="@{project.groupId}"
-			artifactId="@{documented.artifactId}"
-			scmUrl="@{project.scm.url}"
-		>
-			<ul>
-				<li>Fixed <code>drbdcstate</code> script to correctly parse DRBD resources that are in a StandAlone state.</li>
-			</ul>
-		</changelog:release>
+    <changelog:release
+      projectName="@{documented.name}"
+      version="1.84.8"
+      datePublished="2020-06-30T17:30:05-05:00"
+      groupId="@{project.groupId}"
+      artifactId="@{documented.artifactId}"
+      scmUrl="@{project.scm.url}"
+    >
+      <ul>
+        <li>Fixed <code>drbdcstate</code> script to correctly parse DRBD resources that are in a StandAlone state.</li>
+      </ul>
+    </changelog:release>
 
-		<changelog:release
-			projectName="@{documented.name}"
-			version="1.84.7"
-			datePublished="2020-06-18T14:43:11-05:00"
-			groupId="@{project.groupId}"
-			artifactId="@{documented.artifactId}"
-			scmUrl="@{project.scm.url}"
-		>
-			<ul>
-				<li>
-					Tomcat 8.5 and 9.0: Improved <code>bin/profile.d/umask.sh</code>
-					now sets the <code>UMASK</code> environment variable, as used by
-					<code>catalina.sh</code>.  The umask defaults to <code>0027</code>.
-				</li>
-			</ul>
-		</changelog:release>
+    <changelog:release
+      projectName="@{documented.name}"
+      version="1.84.7"
+      datePublished="2020-06-18T14:43:11-05:00"
+      groupId="@{project.groupId}"
+      artifactId="@{documented.artifactId}"
+      scmUrl="@{project.scm.url}"
+    >
+      <ul>
+        <li>
+          Tomcat 8.5 and 9.0: Improved <code>bin/profile.d/umask.sh</code>
+          now sets the <code>UMASK</code> environment variable, as used by
+          <code>catalina.sh</code>.  The umask defaults to <code>0027</code>.
+        </li>
+      </ul>
+    </changelog:release>
 
-		<changelog:release
-			projectName="@{documented.name}"
-			version="1.84.6"
-			datePublished="2020-06-11T09:16:35-05:00"
-			groupId="@{project.groupId}"
-			artifactId="@{documented.artifactId}"
-			scmUrl="@{project.scm.url}"
-		>
-			<ul>
-				<li>Updated PostgreSQL JDBC Drivers to 42.2.14.</li>
-				<li>Added support for Apache Tomcat 8.5.55 and 9.0.35.</li>
-			</ul>
-		</changelog:release>
+    <changelog:release
+      projectName="@{documented.name}"
+      version="1.84.6"
+      datePublished="2020-06-11T09:16:35-05:00"
+      groupId="@{project.groupId}"
+      artifactId="@{documented.artifactId}"
+      scmUrl="@{project.scm.url}"
+    >
+      <ul>
+        <li>Updated PostgreSQL JDBC Drivers to 42.2.14.</li>
+        <li>Added support for Apache Tomcat 8.5.55 and 9.0.35.</li>
+      </ul>
+    </changelog:release>
 
-		<changelog:release
-			projectName="@{documented.name}"
-			version="1.84.5"
-			datePublished="2020-05-19T03:39:49-05:00"
-			groupId="@{project.groupId}"
-			artifactId="@{documented.artifactId}"
-			scmUrl="@{project.scm.url}"
-		>
-			<ul>
-				<li>Added support for Apache Tomcat 7.0.104.</li>
-			</ul>
-		</changelog:release>
+    <changelog:release
+      projectName="@{documented.name}"
+      version="1.84.5"
+      datePublished="2020-05-19T03:39:49-05:00"
+      groupId="@{project.groupId}"
+      artifactId="@{documented.artifactId}"
+      scmUrl="@{project.scm.url}"
+    >
+      <ul>
+        <li>Added support for Apache Tomcat 7.0.104.</li>
+      </ul>
+    </changelog:release>
 
-		<changelog:release
-			projectName="@{documented.name}"
-			version="1.84.4"
-			datePublished="2020-05-13T18:15:37-05:00"
-			groupId="@{project.groupId}"
-			artifactId="@{documented.artifactId}"
-			scmUrl="@{project.scm.url}"
-		>
-			<ul>
-				<li>Added support for Apache Tomcat 8.5.55 and 9.0.35.</li>
-			</ul>
-		</changelog:release>
+    <changelog:release
+      projectName="@{documented.name}"
+      version="1.84.4"
+      datePublished="2020-05-13T18:15:37-05:00"
+      groupId="@{project.groupId}"
+      artifactId="@{documented.artifactId}"
+      scmUrl="@{project.scm.url}"
+    >
+      <ul>
+        <li>Added support for Apache Tomcat 8.5.55 and 9.0.35.</li>
+      </ul>
+    </changelog:release>
 
-		<changelog:release
-			projectName="@{documented.name}"
-			version="1.84.3"
-			datePublished="2020-04-29T09:38:45-05:00"
-			groupId="@{project.groupId}"
-			artifactId="@{documented.artifactId}"
-			scmUrl="@{project.scm.url}"
-		>
-			<ul>
-				<li>Updated MySQL JDBC Drivers to 5.1.49.</li>
-				<li>Updated MySQL JDBC Drivers to 5.1.49 for Apache Tomcat 7.0.103.</li>
-				<li>Updated MySQL JDBC Drivers to 8.0.20 for Apache Tomcat 8.5.54 and 9.0.34.</li>
-			</ul>
-		</changelog:release>
+    <changelog:release
+      projectName="@{documented.name}"
+      version="1.84.3"
+      datePublished="2020-04-29T09:38:45-05:00"
+      groupId="@{project.groupId}"
+      artifactId="@{documented.artifactId}"
+      scmUrl="@{project.scm.url}"
+    >
+      <ul>
+        <li>Updated MySQL JDBC Drivers to 5.1.49.</li>
+        <li>Updated MySQL JDBC Drivers to 5.1.49 for Apache Tomcat 7.0.103.</li>
+        <li>Updated MySQL JDBC Drivers to 8.0.20 for Apache Tomcat 8.5.54 and 9.0.34.</li>
+      </ul>
+    </changelog:release>
 
-		<changelog:release
-			projectName="@{documented.name}"
-			version="1.84.2"
-			datePublished="2020-04-26T00:13:59-05:00"
-			groupId="@{project.groupId}"
-			artifactId="@{documented.artifactId}"
-			scmUrl="@{project.scm.url}"
-		>
-			<ul>
-				<li>Project moved to GitHub and Maven.</li>
-				<li>
-					Removed dependency on the special AO build of JavaMail that had implemented <code>writeQString(…)</code>.
-					This allows us to use the current releases from the Central Repository.
-				</li>
-				<li>Updated to Java 8 coding standards.</li>
-				<li>Added support for Apache Tomcat 8.5.54 and 9.0.34.</li>
-			</ul>
-		</changelog:release>
-	</core:page>
+    <changelog:release
+      projectName="@{documented.name}"
+      version="1.84.2"
+      datePublished="2020-04-26T00:13:59-05:00"
+      groupId="@{project.groupId}"
+      artifactId="@{documented.artifactId}"
+      scmUrl="@{project.scm.url}"
+    >
+      <ul>
+        <li>Project moved to GitHub and Maven.</li>
+        <li>
+          Removed dependency on the special AO build of JavaMail that had implemented <code>writeQString(…)</code>.
+          This allows us to use the current releases from the Central Repository.
+        </li>
+        <li>Updated to Java 8 coding standards.</li>
+        <li>Added support for Apache Tomcat 8.5.54 and 9.0.34.</li>
+      </ul>
+    </changelog:release>
+  </core:page>
 </jsp:root>

@@ -32,28 +32,28 @@ import com.aoapps.lang.EmptyArrays;
  */
 public final class ProcNetDev {
 
-	public final String[] deviceIDs;
-	public final long[]
-		rxBytes,
-		rxPackets,
-		rxErrors,
-		rxDrop,
-		rxFIFO,
-		rxFrame,
-		rxCompress,
-		rxMulticast,
-		txBytes,
-		txPackets,
-		txErrors,
-		txDrop,
-		txFIFO,
-		txColls,
-		txCarrier,
-		txCompressed
-	;
+  public final String[] deviceIDs;
+  public final long[]
+    rxBytes,
+    rxPackets,
+    rxErrors,
+    rxDrop,
+    rxFIFO,
+    rxFrame,
+    rxCompress,
+    rxMulticast,
+    txBytes,
+    txPackets,
+    txErrors,
+    txDrop,
+    txFIFO,
+    txColls,
+    txCarrier,
+    txCompressed
+  ;
 
-	public ProcNetDev() {
-		deviceIDs = EmptyArrays.EMPTY_STRING_ARRAY;
-		rxBytes=rxPackets=rxErrors=rxDrop=rxFIFO=rxFrame=rxCompress=rxMulticast=txBytes=txPackets=txErrors=txDrop=txFIFO=txColls=txCarrier=txCompressed = EmptyArrays.EMPTY_LONG_ARRAY;
-	}
+  public ProcNetDev() {
+    deviceIDs = EmptyArrays.EMPTY_STRING_ARRAY;
+    rxBytes=rxPackets=rxErrors=rxDrop=rxFIFO=rxFrame=rxCompress=rxMulticast=txBytes=txPackets=txErrors=txDrop=txFIFO=txColls=txCarrier=txCompressed = EmptyArrays.EMPTY_LONG_ARRAY;
+  }
 }

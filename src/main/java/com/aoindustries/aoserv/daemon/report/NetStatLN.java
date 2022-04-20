@@ -32,11 +32,11 @@ import com.aoapps.lang.EmptyArrays;
  */
 public final class NetStatLN {
 
-	public final String[] deviceIDs;
-	public final int[] listens;
+  public final String[] deviceIDs;
+  public final int[] listens;
 
-	public NetStatLN() {
-		deviceIDs = EmptyArrays.EMPTY_STRING_ARRAY;
-		listens = EmptyArrays.EMPTY_INT_ARRAY;
-	}
+  public NetStatLN() {
+    deviceIDs = EmptyArrays.EMPTY_STRING_ARRAY;
+    listens = EmptyArrays.EMPTY_INT_ARRAY;
+  }
 }

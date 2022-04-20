@@ -45,71 +45,79 @@ import java.sql.SQLException;
  */
 class HttpdTomcatStdSiteManager_3_2_4 extends HttpdTomcatStdSiteManager_3_X<TomcatCommon_3_2_4> {
 
-	HttpdTomcatStdSiteManager_3_2_4(PrivateTomcatSite tomcatStdSite) throws SQLException, IOException {
-		super(tomcatStdSite);
-	}
+  HttpdTomcatStdSiteManager_3_2_4(PrivateTomcatSite tomcatStdSite) throws SQLException, IOException {
+    super(tomcatStdSite);
+  }
 
-	@Override
-	public TomcatCommon_3_2_4 getTomcatCommon() {
-		return TomcatCommon_3_2_4.getInstance();
-	}
+  @Override
+  public TomcatCommon_3_2_4 getTomcatCommon() {
+    return TomcatCommon_3_2_4.getInstance();
+  }
 
-	@Override
-	protected byte[] buildServerXml(PosixFile siteDirectory, String autoWarning) throws IOException, SQLException {
-		final String siteDir = siteDirectory.getPath();
-		AOServConnector conn = AOServDaemon.getConnector();
-		final Version htv = tomcatSite.getHttpdTomcatVersion();
+  @Override
+  protected byte[] buildServerXml(PosixFile siteDirectory, String autoWarning) throws IOException, SQLException {
+    final String siteDir = siteDirectory.getPath();
+    AOServConnector conn = AOServDaemon.getConnector();
+    final Version htv = tomcatSite.getHttpdTomcatVersion();
 
-		// Build to RAM first
-		ByteArrayOutputStream bout = new ByteArrayOutputStream();
-		try (ChainWriter out = new ChainWriter(bout)) {
-			out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n");
-			if(!httpdSite.isManual()) out.print(autoWarning);
-			out.print("<Host>\n"
-					+ "  <xmlmapper:debug level=\"0\" />\n"
-					+ "  <Logger name=\"tc_log\" verbosityLevel = \"INFORMATION\" path=\"").textInXmlAttribute(siteDir).print("/var/log/tomcat.log\" />\n"
-					+ "  <Logger name=\"servlet_log\" path=\"").textInXmlAttribute(siteDir).print("/var/log/servlet.log\" />\n"
-					+ "  <Logger name=\"JASPER_LOG\" path=\"").textInXmlAttribute(siteDir).print("/var/log/jasper.log\" verbosityLevel = \"INFORMATION\" />\n"
-					+ "\n"
-					+ "  <ContextManager debug=\"0\" home=\"").textInXmlAttribute(siteDir).print("\" workDir=\"").textInXmlAttribute(siteDir).print("/work\" showDebugInfo=\"true\" >\n"
-					+ "    <ContextInterceptor className=\"org.apache.tomcat.context.WebXmlReader\" />\n"
-					+ "    <ContextInterceptor className=\"org.apache.tomcat.context.LoaderInterceptor\" />\n"
-					+ "    <ContextInterceptor className=\"org.apache.tomcat.context.DefaultCMSetter\" />\n"
-					+ "    <ContextInterceptor className=\"org.apache.tomcat.context.WorkDirInterceptor\" />\n"
-					+ "    <RequestInterceptor className=\"org.apache.tomcat.request.SessionInterceptor\" />\n"
-					+ "    <RequestInterceptor className=\"org.apache.tomcat.request.SimpleMapper1\" debug=\"0\" />\n"
-					+ "    <RequestInterceptor className=\"org.apache.tomcat.request.InvokerInterceptor\" debug=\"0\" />\n"
-					+ "    <RequestInterceptor className=\"org.apache.tomcat.request.StaticInterceptor\" debug=\"0\" />\n"
-					+ "    <RequestInterceptor className=\"org.apache.tomcat.session.StandardSessionInterceptor\" />\n"
-					+ "    <RequestInterceptor className=\"org.apache.tomcat.request.AccessInterceptor\" debug=\"0\" />\n"
-					+ "    <RequestInterceptor className=\"org.apache.tomcat.request.SimpleRealm\" debug=\"0\" />\n"
-					+ "    <ContextInterceptor className=\"org.apache.tomcat.context.LoadOnStartupInterceptor\" />\n");
+    // Build to RAM first
+    ByteArrayOutputStream bout = new ByteArrayOutputStream();
+    try (ChainWriter out = new ChainWriter(bout)) {
+      out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n");
+      if (!httpdSite.isManual()) {
+        out.print(autoWarning);
+      }
+      out.print("<Host>\n"
+          + "  <xmlmapper:debug level=\"0\" />\n"
+          + "  <Logger name=\"tc_log\" verbosityLevel = \"INFORMATION\" path=\"").textInXmlAttribute(siteDir).print("/var/log/tomcat.log\" />\n"
+          + "  <Logger name=\"servlet_log\" path=\"").textInXmlAttribute(siteDir).print("/var/log/servlet.log\" />\n"
+          + "  <Logger name=\"JASPER_LOG\" path=\"").textInXmlAttribute(siteDir).print("/var/log/jasper.log\" verbosityLevel = \"INFORMATION\" />\n"
+          + "\n"
+          + "  <ContextManager debug=\"0\" home=\"").textInXmlAttribute(siteDir).print("\" workDir=\"").textInXmlAttribute(siteDir).print("/work\" showDebugInfo=\"true\" >\n"
+          + "    <ContextInterceptor className=\"org.apache.tomcat.context.WebXmlReader\" />\n"
+          + "    <ContextInterceptor className=\"org.apache.tomcat.context.LoaderInterceptor\" />\n"
+          + "    <ContextInterceptor className=\"org.apache.tomcat.context.DefaultCMSetter\" />\n"
+          + "    <ContextInterceptor className=\"org.apache.tomcat.context.WorkDirInterceptor\" />\n"
+          + "    <RequestInterceptor className=\"org.apache.tomcat.request.SessionInterceptor\" />\n"
+          + "    <RequestInterceptor className=\"org.apache.tomcat.request.SimpleMapper1\" debug=\"0\" />\n"
+          + "    <RequestInterceptor className=\"org.apache.tomcat.request.InvokerInterceptor\" debug=\"0\" />\n"
+          + "    <RequestInterceptor className=\"org.apache.tomcat.request.StaticInterceptor\" debug=\"0\" />\n"
+          + "    <RequestInterceptor className=\"org.apache.tomcat.session.StandardSessionInterceptor\" />\n"
+          + "    <RequestInterceptor className=\"org.apache.tomcat.request.AccessInterceptor\" debug=\"0\" />\n"
+          + "    <RequestInterceptor className=\"org.apache.tomcat.request.SimpleRealm\" debug=\"0\" />\n"
+          + "    <ContextInterceptor className=\"org.apache.tomcat.context.LoadOnStartupInterceptor\" />\n");
 
-			for(Worker worker : tomcatSite.getHttpdWorkers()) {
-				Bind netBind=worker.getBind();
-				String protocol=worker.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol();
+      for (Worker worker : tomcatSite.getHttpdWorkers()) {
+        Bind netBind=worker.getBind();
+        String protocol=worker.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol();
 
-				out.print("    <Connector className=\"org.apache.tomcat.service.PoolTcpConnector\">\n"
-						+ "      <Parameter name=\"handler\" value=\"");
-				if(protocol.equals(JkProtocol.AJP12)) out.print("org.apache.tomcat.service.connector.Ajp12ConnectionHandler");
-				else if(protocol.equals(JkProtocol.AJP13)) out.print("org.apache.tomcat.service.connector.Ajp13ConnectionHandler");
-				else throw new IllegalArgumentException("Unknown AJP version: "+htv);
-				out.print("\"/>\n"
-						+ "      <Parameter name=\"port\" value=\"").textInXmlAttribute(netBind.getPort().getPort()).print("\"/>\n");
-				InetAddress ip=netBind.getIpAddress().getInetAddress();
-				if(!ip.isUnspecified()) out.print("      <Parameter name=\"inet\" value=\"").textInXmlAttribute(ip).print("\"/>\n");
-				out.print("      <Parameter name=\"max_threads\" value=\"30\"/>\n"
-						+ "      <Parameter name=\"max_spare_threads\" value=\"10\"/>\n"
-						+ "      <Parameter name=\"min_spare_threads\" value=\"1\"/>\n"
-						+ "    </Connector>\n"
-				);
-			}
-			for(Context htc : tomcatSite.getHttpdTomcatContexts()) {
-				out.print("    <Context path=\"").textInXmlAttribute(htc.getPath()).print("\" docBase=\"").textInXmlAttribute(htc.getDocBase()).print("\" debug=\"").textInXmlAttribute(htc.getDebugLevel()).print("\" reloadable=\"").textInXmlAttribute(htc.isReloadable()).print("\" />\n");
-			}
-			out.print("  </ContextManager>\n"
-					+ "</Server>\n");
-		}
-		return bout.toByteArray();
-	}
+        out.print("    <Connector className=\"org.apache.tomcat.service.PoolTcpConnector\">\n"
+            + "      <Parameter name=\"handler\" value=\"");
+        if (protocol.equals(JkProtocol.AJP12)) {
+          out.print("org.apache.tomcat.service.connector.Ajp12ConnectionHandler");
+        } else if (protocol.equals(JkProtocol.AJP13)) {
+          out.print("org.apache.tomcat.service.connector.Ajp13ConnectionHandler");
+        } else {
+          throw new IllegalArgumentException("Unknown AJP version: "+htv);
+        }
+        out.print("\"/>\n"
+            + "      <Parameter name=\"port\" value=\"").textInXmlAttribute(netBind.getPort().getPort()).print("\"/>\n");
+        InetAddress ip=netBind.getIpAddress().getInetAddress();
+        if (!ip.isUnspecified()) {
+          out.print("      <Parameter name=\"inet\" value=\"").textInXmlAttribute(ip).print("\"/>\n");
+        }
+        out.print("      <Parameter name=\"max_threads\" value=\"30\"/>\n"
+            + "      <Parameter name=\"max_spare_threads\" value=\"10\"/>\n"
+            + "      <Parameter name=\"min_spare_threads\" value=\"1\"/>\n"
+            + "    </Connector>\n"
+        );
+      }
+      for (Context htc : tomcatSite.getHttpdTomcatContexts()) {
+        out.print("    <Context path=\"").textInXmlAttribute(htc.getPath()).print("\" docBase=\"").textInXmlAttribute(htc.getDocBase()).print("\" debug=\"").textInXmlAttribute(htc.getDebugLevel()).print("\" reloadable=\"").textInXmlAttribute(htc.isReloadable()).print("\" />\n");
+      }
+      out.print("  </ContextManager>\n"
+          + "</Server>\n");
+    }
+    return bout.toByteArray();
+  }
 }

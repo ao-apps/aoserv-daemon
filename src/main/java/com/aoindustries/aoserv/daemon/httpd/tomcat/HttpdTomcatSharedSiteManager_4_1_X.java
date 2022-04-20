@@ -42,79 +42,81 @@ import java.util.Set;
  */
 class HttpdTomcatSharedSiteManager_4_1_X extends HttpdTomcatSharedSiteManager<TomcatCommon_4_1_X> {
 
-	HttpdTomcatSharedSiteManager_4_1_X(SharedTomcatSite tomcatSharedSite) throws SQLException, IOException {
-		super(tomcatSharedSite);
-	}
+  HttpdTomcatSharedSiteManager_4_1_X(SharedTomcatSite tomcatSharedSite) throws SQLException, IOException {
+    super(tomcatSharedSite);
+  }
 
-	@Override
-	protected void buildSiteDirectoryContents(String optSlash, PosixFile siteDirectory, boolean isUpgrade) throws IOException, SQLException {
-		if(isUpgrade) throw new IllegalArgumentException("In-place upgrade not supported");
-		/*
-		 * Resolve and allocate stuff used throughout the method
-		 */
-		final String siteDir = siteDirectory.getPath();
-		final int uid = httpdSite.getLinuxServerAccount().getUid().getId();
-		final int gid = httpdSite.getLinuxServerGroup().getGid().getId();
+  @Override
+  protected void buildSiteDirectoryContents(String optSlash, PosixFile siteDirectory, boolean isUpgrade) throws IOException, SQLException {
+    if (isUpgrade) {
+      throw new IllegalArgumentException("In-place upgrade not supported");
+    }
+    /*
+     * Resolve and allocate stuff used throughout the method
+     */
+    final String siteDir = siteDirectory.getPath();
+    final int uid = httpdSite.getLinuxServerAccount().getUid().getId();
+    final int gid = httpdSite.getLinuxServerGroup().getGid().getId();
 
-		/*
-		 * Create the skeleton of the site, the directories and links.
-		 */
-		DaemonFileUtils.mkdir(siteDir+"/bin", 0770, uid, gid);
-		DaemonFileUtils.mkdir(siteDir+"/conf", 0775, uid, gid);
-		DaemonFileUtils.mkdir(siteDir+"/daemon", 0770, uid, gid);
-		DaemonFileUtils.ln("var/log", siteDir+"/logs", uid, gid);
-		DaemonFileUtils.mkdir(siteDir+"/var", 0770, uid, gid);
-		DaemonFileUtils.mkdir(siteDir+"/var/log", 0770, uid, gid);
-		DaemonFileUtils.mkdir(siteDir+"/webapps", 0775, uid, gid);
-		DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE, 0775, uid, gid);
-		DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF", 0775, uid, gid);
-		DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, uid, gid);
-		DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, uid, gid);	
+    /*
+     * Create the skeleton of the site, the directories and links.
+     */
+    DaemonFileUtils.mkdir(siteDir+"/bin", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir+"/conf", 0775, uid, gid);
+    DaemonFileUtils.mkdir(siteDir+"/daemon", 0770, uid, gid);
+    DaemonFileUtils.ln("var/log", siteDir+"/logs", uid, gid);
+    DaemonFileUtils.mkdir(siteDir+"/var", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir+"/var/log", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir+"/webapps", 0775, uid, gid);
+    DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE, 0775, uid, gid);
+    DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF", 0775, uid, gid);
+    DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, uid, gid);
 
-		Server thisServer = AOServDaemon.getThisServer();
-		int uid_min = thisServer.getUidMin().getId();
-		int gid_min = thisServer.getGidMin().getId();
+    Server thisServer = AOServDaemon.getThisServer();
+    int uid_min = thisServer.getUidMin().getId();
+    int gid_min = thisServer.getGidMin().getId();
 
-		/*
-		 * Write the ROOT/WEB-INF/web.xml file.
-		 */
-		String webXML=siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/web.xml";
-		try (
-			ChainWriter out = new ChainWriter(
-				new BufferedOutputStream(
-					new PosixFile(webXML).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
-				)
-			)
-		) {
-			out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
-					+ "\n"
-					+ "<!DOCTYPE web-app\n"
-					+ "    PUBLIC \"-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN\"\n"
-					+ "    \"http://java.sun.com/j2ee/dtds/web-app_2_3.dtd\">\n"
-					+ "\n"
-					+ "<web-app>\n"
-					+ "  <display-name>Welcome to Tomcat</display-name>\n"
-					+ "  <description>\n"
-					+ "    Welcome to Tomcat\n"
-					+ "  </description>\n"
-					+ "</web-app>\n");
-		}
-	}
+    /*
+     * Write the ROOT/WEB-INF/web.xml file.
+     */
+    String webXML=siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/web.xml";
+    try (
+      ChainWriter out = new ChainWriter(
+        new BufferedOutputStream(
+          new PosixFile(webXML).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
+        )
+      )
+    ) {
+      out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
+          + "\n"
+          + "<!DOCTYPE web-app\n"
+          + "    PUBLIC \"-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN\"\n"
+          + "    \"http://java.sun.com/j2ee/dtds/web-app_2_3.dtd\">\n"
+          + "\n"
+          + "<web-app>\n"
+          + "  <display-name>Welcome to Tomcat</display-name>\n"
+          + "  <description>\n"
+          + "    Welcome to Tomcat\n"
+          + "  </description>\n"
+          + "</web-app>\n");
+    }
+  }
 
-	@Override
-	public TomcatCommon_4_1_X getTomcatCommon() {
-		return TomcatCommon_4_1_X.getInstance();
-	}
+  @Override
+  public TomcatCommon_4_1_X getTomcatCommon() {
+    return TomcatCommon_4_1_X.getInstance();
+  }
 
-	@Override
-	protected boolean rebuildConfigFiles(PosixFile siteDirectory, Set<PosixFile> restorecon) {
-		// No configs to rebuild
-		return false;
-	}
+  @Override
+  protected boolean rebuildConfigFiles(PosixFile siteDirectory, Set<PosixFile> restorecon) {
+    // No configs to rebuild
+    return false;
+  }
 
-	@Override
-	protected boolean upgradeSiteDirectoryContents(String optSlash, PosixFile siteDirectory) throws IOException, SQLException {
-		// Nothing to do
-		return false;
-	}
+  @Override
+  protected boolean upgradeSiteDirectoryContents(String optSlash, PosixFile siteDirectory) throws IOException, SQLException {
+    // Nothing to do
+    return false;
+  }
 }

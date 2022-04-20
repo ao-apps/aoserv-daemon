@@ -36,115 +36,119 @@ import java.util.Objects;
  */
 public class UpgradeSymlink {
 
-	private final String oldLinkPath;
-	private final String oldLinkTarget;
-	private final String newLinkPath;
-	private final String newLinkTarget;
+  private final String oldLinkPath;
+  private final String oldLinkTarget;
+  private final String newLinkPath;
+  private final String newLinkTarget;
 
-	/**
-	 * @param oldLinkTarget  if {@code null} the link will be created if missing
-	 */
-	public UpgradeSymlink(String oldLinkPath, String oldLinkTarget, String newLinkPath, String newLinkTarget) {
-		NullArgumentException.checkNotNull(oldLinkPath, "oldLinkPath");
-		if(oldLinkPath.equals(newLinkPath) && Objects.equals(oldLinkTarget, newLinkTarget)) {
-			throw new IllegalArgumentException("oldLinkPath = newLinkPath and oldLinkTarget = newLinkTarget: linkPath = " + oldLinkPath + ", linkTarget = " + oldLinkTarget);
-		}
-		if((newLinkPath == null) != (newLinkTarget == null)) throw new IllegalArgumentException("(newLinkPath == null) != (newLinkTarget == null): (" + newLinkPath + " == null) != (" + newLinkTarget + " == null)");
-		if((oldLinkTarget == null) && (newLinkTarget == null)) throw new IllegalArgumentException("(oldLinkTarget == null) && (newLinkTarget == null): (" + oldLinkTarget + " == null) && (" + newLinkTarget + " == null)");
-		this.oldLinkPath = oldLinkPath;
-		this.oldLinkTarget = oldLinkTarget;
-		this.newLinkPath = newLinkPath;
-		this.newLinkTarget = newLinkTarget;
-	}
+  /**
+   * @param oldLinkTarget  if {@code null} the link will be created if missing
+   */
+  public UpgradeSymlink(String oldLinkPath, String oldLinkTarget, String newLinkPath, String newLinkTarget) {
+    NullArgumentException.checkNotNull(oldLinkPath, "oldLinkPath");
+    if (oldLinkPath.equals(newLinkPath) && Objects.equals(oldLinkTarget, newLinkTarget)) {
+      throw new IllegalArgumentException("oldLinkPath = newLinkPath and oldLinkTarget = newLinkTarget: linkPath = " + oldLinkPath + ", linkTarget = " + oldLinkTarget);
+    }
+    if ((newLinkPath == null) != (newLinkTarget == null)) {
+      throw new IllegalArgumentException("(newLinkPath == null) != (newLinkTarget == null): (" + newLinkPath + " == null) != (" + newLinkTarget + " == null)");
+    }
+    if ((oldLinkTarget == null) && (newLinkTarget == null)) {
+      throw new IllegalArgumentException("(oldLinkTarget == null) && (newLinkTarget == null): (" + oldLinkTarget + " == null) && (" + newLinkTarget + " == null)");
+    }
+    this.oldLinkPath = oldLinkPath;
+    this.oldLinkTarget = oldLinkTarget;
+    this.newLinkPath = newLinkPath;
+    this.newLinkTarget = newLinkTarget;
+  }
 
-	/**
-	 * @param oldLinkTarget  if {@code null} the link will be created if missing
-	 */
-	public UpgradeSymlink(String linkPath, String oldLinkTarget, String newLinkTarget) {
-		this(linkPath, oldLinkTarget, newLinkTarget == null ? null : linkPath, newLinkTarget);
-	}
+  /**
+   * @param oldLinkTarget  if {@code null} the link will be created if missing
+   */
+  public UpgradeSymlink(String linkPath, String oldLinkTarget, String newLinkTarget) {
+    this(linkPath, oldLinkTarget, newLinkTarget == null ? null : linkPath, newLinkTarget);
+  }
 
-	/**
-	 * Gets the relative path to the old symlink.
-	 */
-	public String getOldLinkPath() {
-		return oldLinkPath;
-	}
+  /**
+   * Gets the relative path to the old symlink.
+   */
+  public String getOldLinkPath() {
+    return oldLinkPath;
+  }
 
-	/**
-	 * Gets the old target.
-	 */
-	public String getOldLinkTarget() {
-		return oldLinkTarget;
-	}
+  /**
+   * Gets the old target.
+   */
+  public String getOldLinkTarget() {
+    return oldLinkTarget;
+  }
 
-	/**
-	 * Gets the relative path to the new symlink or {@code null} if should not exist.
-	 */
-	public String getNewLinkPath() {
-		return newLinkPath;
-	}
+  /**
+   * Gets the relative path to the new symlink or {@code null} if should not exist.
+   */
+  public String getNewLinkPath() {
+    return newLinkPath;
+  }
 
-	/**
-	 * Gets the new link target or {@code null} if should not exist.
-	 */
-	public String getNewLinkTarget() {
-		return newLinkTarget;
-	}
+  /**
+   * Gets the new link target or {@code null} if should not exist.
+   */
+  public String getNewLinkTarget() {
+    return newLinkTarget;
+  }
 
-	/**
-	 * Updates the symlink if needed.  Will also reset the UID
-	 * and GID if they mismatch.
-	 * 
-	 * @return  <code>true</code> if link modified.  UID and GID changes alone will not
-	 *          count as a change.
-	 */
-	public boolean upgradeLinkTarget(PosixFile baseDirectory, int uid, int gid) throws IOException {
-		boolean needsRestart = false;
-		PosixFile oldLink = new PosixFile(baseDirectory.getPath() + "/" + oldLinkPath);
-		Stat oldLinkStat = oldLink.getStat();
-		PosixFile newLink;
-		Stat newLinkStat;
-		if(newLinkPath == null) {
-			newLink = null;
-			newLinkStat = null;
-		} else if(newLinkPath.equals(oldLinkPath)) {
-			newLink = oldLink;
-			newLinkStat = oldLinkStat;
-		} else {
-			newLink = new PosixFile(baseDirectory.getPath() + "/" + newLinkPath);
-			newLinkStat = newLink.getStat();
-		}
-		if(oldLinkTarget == null) {
-			assert newLinkPath != null;
-			assert newLinkTarget != null;
-			assert newLink != null;
-			assert newLinkStat != null;
-			if(!oldLinkStat.exists() && !newLinkStat.exists()) {
-				newLink.symLink(newLinkTarget);
-				newLinkStat = newLink.getStat();
-				needsRestart = true;
-			}
-		} else if(oldLinkStat.exists() && oldLinkStat.isSymLink()) {
-			if(oldLink.readLink().equals(oldLinkTarget)) {
-				oldLink.delete();
-				if(newLinkTarget != null) {
-					assert newLink != null;
-					newLink.symLink(newLinkTarget);
-					newLinkStat = newLink.getStat();
-				}
-				needsRestart = true;
-			}
-		}
-		// Check ownership
-		if(
-			newLinkStat != null
-			&& newLinkStat.exists()
-			&& (newLinkStat.getUid() != uid || newLinkStat.getGid() != gid)
-		) {
-			assert newLink != null;
-			newLink.chown(uid, gid);
-		}
-		return needsRestart;
-	}
+  /**
+   * Updates the symlink if needed.  Will also reset the UID
+   * and GID if they mismatch.
+   *
+   * @return  <code>true</code> if link modified.  UID and GID changes alone will not
+   *          count as a change.
+   */
+  public boolean upgradeLinkTarget(PosixFile baseDirectory, int uid, int gid) throws IOException {
+    boolean needsRestart = false;
+    PosixFile oldLink = new PosixFile(baseDirectory.getPath() + "/" + oldLinkPath);
+    Stat oldLinkStat = oldLink.getStat();
+    PosixFile newLink;
+    Stat newLinkStat;
+    if (newLinkPath == null) {
+      newLink = null;
+      newLinkStat = null;
+    } else if (newLinkPath.equals(oldLinkPath)) {
+      newLink = oldLink;
+      newLinkStat = oldLinkStat;
+    } else {
+      newLink = new PosixFile(baseDirectory.getPath() + "/" + newLinkPath);
+      newLinkStat = newLink.getStat();
+    }
+    if (oldLinkTarget == null) {
+      assert newLinkPath != null;
+      assert newLinkTarget != null;
+      assert newLink != null;
+      assert newLinkStat != null;
+      if (!oldLinkStat.exists() && !newLinkStat.exists()) {
+        newLink.symLink(newLinkTarget);
+        newLinkStat = newLink.getStat();
+        needsRestart = true;
+      }
+    } else if (oldLinkStat.exists() && oldLinkStat.isSymLink()) {
+      if (oldLink.readLink().equals(oldLinkTarget)) {
+        oldLink.delete();
+        if (newLinkTarget != null) {
+          assert newLink != null;
+          newLink.symLink(newLinkTarget);
+          newLinkStat = newLink.getStat();
+        }
+        needsRestart = true;
+      }
+    }
+    // Check ownership
+    if (
+      newLinkStat != null
+      && newLinkStat.exists()
+      && (newLinkStat.getUid() != uid || newLinkStat.getGid() != gid)
+    ) {
+      assert newLink != null;
+      newLink.chown(uid, gid);
+    }
+    return needsRestart;
+  }
 }

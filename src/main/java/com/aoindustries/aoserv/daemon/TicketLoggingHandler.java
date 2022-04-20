@@ -31,14 +31,14 @@ package com.aoindustries.aoserv.daemon;
  */
 public class TicketLoggingHandler extends com.aoindustries.aoserv.client.ticket.TicketLoggingHandler {
 
-	/**
-	 * Public constructor required so can be specified in <code>logging.properties</code>.
-	 */
-	public TicketLoggingHandler() {
-		super(
-			AOServDaemonConfiguration.getServerHostname(),
-			AOServDaemon.getConnector(),
-			"aoserv.aoserv_daemon"
-		);
-	}
+  /**
+   * Public constructor required so can be specified in <code>logging.properties</code>.
+   */
+  public TicketLoggingHandler() {
+    super(
+      AOServDaemonConfiguration.getServerHostname(),
+      AOServDaemon.getConnector(),
+      "aoserv.aoserv_daemon"
+    );
+  }
 }

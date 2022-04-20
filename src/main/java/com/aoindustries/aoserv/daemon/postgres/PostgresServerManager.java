@@ -67,322 +67,328 @@ import java.util.logging.Logger;
  */
 public final class PostgresServerManager extends BuilderThread implements CronJob {
 
-	private static final Logger logger = Logger.getLogger(PostgresServerManager.class.getName());
+  private static final Logger logger = Logger.getLogger(PostgresServerManager.class.getName());
 
-	/**
-	 * The SELinux type for PostgreSQL.
-	 */
-	private static final String SELINUX_TYPE = "postgresql_port_t";
+  /**
+   * The SELinux type for PostgreSQL.
+   */
+  private static final String SELINUX_TYPE = "postgresql_port_t";
 
-	public static final File pgsqlDirectory = new File(Server.DATA_BASE_DIR.toString());
+  public static final File pgsqlDirectory = new File(Server.DATA_BASE_DIR.toString());
 
-	private PostgresServerManager() {
-		// Do nothing
-	}
+  private PostgresServerManager() {
+    // Do nothing
+  }
 
-	private static final Object rebuildLock = new Object();
-	@Override
-	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
-	protected boolean doRebuild() {
-		try {
-			com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
-			OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
-			int osvId = osv.getPkey();
-			if(
-				osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-				&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
-			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+  private static final Object rebuildLock = new Object();
+  @Override
+  @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
+  protected boolean doRebuild() {
+    try {
+      com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+      OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
+      int osvId = osv.getPkey();
+      if (
+        osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+        && osvId != OperatingSystemVersion.CENTOS_7_X86_64
+      ) {
+        throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+      }
 
-			synchronized(rebuildLock) {
-				Set<Port> postgresqlPorts = new HashSet<>();
-				for(Server postgresServer : thisServer.getPostgresServers()) {
-					postgresqlPorts.add(postgresServer.getBind().getPort());
-					// TODO: Add and initialize any missing /var/lib/pgsql/name
-					// TODO: Add/update any /etc/rc.d/init.d/postgresql-name
-				}
-				// Add any other local MySQL port (such as tunneled)
-				for(Bind nb : thisServer.getHost().getNetBinds()) {
-					String protocol = nb.getAppProtocol().getProtocol();
-					if(AppProtocol.POSTGRESQL.equals(protocol)) {
-						postgresqlPorts.add(nb.getPort());
-					}
-				}
+      synchronized (rebuildLock) {
+        Set<Port> postgresqlPorts = new HashSet<>();
+        for (Server postgresServer : thisServer.getPostgresServers()) {
+          postgresqlPorts.add(postgresServer.getBind().getPort());
+          // TODO: Add and initialize any missing /var/lib/pgsql/name
+          // TODO: Add/update any /etc/rc.d/init.d/postgresql-name
+        }
+        // Add any other local MySQL port (such as tunneled)
+        for (Bind nb : thisServer.getHost().getNetBinds()) {
+          String protocol = nb.getAppProtocol().getProtocol();
+          if (AppProtocol.POSTGRESQL.equals(protocol)) {
+            postgresqlPorts.add(nb.getPort());
+          }
+        }
 
-				// Set postgresql_port_t SELinux ports.
-				switch(osvId) {
-					case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
-						// SELinux left in Permissive state, not configured here
-						break;
-					case OperatingSystemVersion.CENTOS_7_X86_64 : {
-						// Install /usr/bin/semanage if missing
-						PackageManager.installPackage(PackageManager.PackageName.POLICYCOREUTILS_PYTHON);
-						// Reconfigure SELinux ports
-						if(SEManagePort.configure(postgresqlPorts, SELINUX_TYPE)) {
-							// TODO: serversNeedingReloaded.addAll(...);
-						}
-						break;
-					}
-					default :
-						throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-				}
+        // Set postgresql_port_t SELinux ports.
+        switch (osvId) {
+          case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
+            // SELinux left in Permissive state, not configured here
+            break;
+          case OperatingSystemVersion.CENTOS_7_X86_64 : {
+            // Install /usr/bin/semanage if missing
+            PackageManager.installPackage(PackageManager.PackageName.POLICYCOREUTILS_PYTHON);
+            // Reconfigure SELinux ports
+            if (SEManagePort.configure(postgresqlPorts, SELINUX_TYPE)) {
+              // TODO: serversNeedingReloaded.addAll(...);
+            }
+            break;
+          }
+          default :
+            throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+        }
 
-				// TODO: restart any that need started/restarted
-			}
-			return true;
-		} catch(ThreadDeath td) {
-			throw td;
-		} catch(Throwable t) {
-			logger.log(Level.SEVERE, null, t);
-			return false;
-		}
-	}
+        // TODO: restart any that need started/restarted
+      }
+      return true;
+    } catch (ThreadDeath td) {
+      throw td;
+    } catch (Throwable t) {
+      logger.log(Level.SEVERE, null, t);
+      return false;
+    }
+  }
 
-	private static final Map<Integer, AOConnectionPool> pools = new HashMap<>();
-	static AOConnectionPool getPool(Server ps) throws IOException, SQLException {
-		AOServConnector connector  =AOServDaemon.getConnector();
-		String version = ps.getVersion().getTechnologyVersion(connector).getVersion();
-		synchronized(pools) {
-			Integer pkeyObj = ps.getPkey();
-			AOConnectionPool pool = pools.get(pkeyObj);
-			if(pool == null) {
-				Database pd = ps.getPostgresDatabase(Database.AOSERV);
-				if(pd == null) throw new SQLException("Unable to find Database: " + Database.AOSERV + " on "+ps.toString());
-				String jdbcUrl;
-				if(
-					version.startsWith(Version.VERSION_7_1 + '.')
-					|| version.startsWith(Version.VERSION_7_2 + '.')
-					|| version.startsWith(Version.VERSION_7_3 + '.')
-					|| version.startsWith(Version.VERSION_8_1 + '.')
-					|| version.startsWith(Version.VERSION_8_3 + '.')
-					|| version.startsWith(Version.VERSION_8_3 + 'R')
-				) {
-					// Connect to IP (no 127.0.0.1/::1-only support)
-					jdbcUrl = pd.getJdbcUrl(true);
-				} else if(
-					version.startsWith(Version.VERSION_9_4 + '.')
-					|| version.startsWith(Version.VERSION_9_4 + 'R')
-					|| version.startsWith(Version.VERSION_9_5 + '.')
-					|| version.startsWith(Version.VERSION_9_5 + 'R')
-					|| version.startsWith(Version.VERSION_9_6 + '.')
-					|| version.startsWith(Version.VERSION_9_6 + 'R')
-					|| version.startsWith(Version.VERSION_10 + '.')
-					|| version.startsWith(Version.VERSION_10 + 'R')
-					|| version.startsWith(Version.VERSION_11 + '.')
-					|| version.startsWith(Version.VERSION_11 + 'R')
-					|| version.startsWith(Version.VERSION_12 + '.')
-					|| version.startsWith(Version.VERSION_12 + 'R')
-					|| version.startsWith(Version.VERSION_13 + '.')
-					|| version.startsWith(Version.VERSION_13 + 'R')
-					|| version.startsWith(Version.VERSION_14 + '.')
-					|| version.startsWith(Version.VERSION_14 + 'R')
-				) {
-					// Connect to 127.0.0.1 or ::1
-					StringBuilder jdbcUrlSB = new StringBuilder();
-					jdbcUrlSB.append("jdbc:postgresql://");
-					Bind nb = ps.getBind();
-					InetAddress ia = nb.getIpAddress().getInetAddress();
-					ProtocolFamily family = ia.getProtocolFamily();
-					if(family.equals(StandardProtocolFamily.INET)) {
-						jdbcUrlSB.append(InetAddress.LOOPBACK_IPV4.toBracketedString());
-					} else if(family.equals(StandardProtocolFamily.INET6)) {
-						jdbcUrlSB.append(InetAddress.LOOPBACK_IPV6.toBracketedString());
-					} else {
-						throw new AssertionError("Unexpected family: " + family);
-					}
-					Port port = nb.getPort();
-					if(!port.equals(Server.DEFAULT_PORT)) {
-						jdbcUrlSB
-							.append(':')
-							.append(port.getPort());
-					}
-					jdbcUrlSB
-						.append('/')
-						.append(URLEncoder.encode(pd.getName().toString(), StandardCharsets.UTF_8.name())); // Java 10: No .name()
-					jdbcUrl = jdbcUrlSB.toString();
-				} else {
-					throw new RuntimeException("Unexpected version of PostgreSQL: " + version);
-				}
-				Server.Name serverName = ps.getName();
-				pool = new AOConnectionPool(
-					pd.getJdbcDriver(),
-					jdbcUrl,
-					User.POSTGRES.toString(),
-					AOServDaemonConfiguration.getPostgresPassword(serverName),
-					AOServDaemonConfiguration.getPostgresConnections(serverName),
-					AOServDaemonConfiguration.getPostgresMaxConnectionAge(serverName),
-					logger
-				);
-				pools.put(pkeyObj, pool);
-			}
-			return pool;
-		}
-	}
+  private static final Map<Integer, AOConnectionPool> pools = new HashMap<>();
+  static AOConnectionPool getPool(Server ps) throws IOException, SQLException {
+    AOServConnector connector  =AOServDaemon.getConnector();
+    String version = ps.getVersion().getTechnologyVersion(connector).getVersion();
+    synchronized (pools) {
+      Integer pkeyObj = ps.getPkey();
+      AOConnectionPool pool = pools.get(pkeyObj);
+      if (pool == null) {
+        Database pd = ps.getPostgresDatabase(Database.AOSERV);
+        if (pd == null) {
+          throw new SQLException("Unable to find Database: " + Database.AOSERV + " on "+ps.toString());
+        }
+        String jdbcUrl;
+        if (
+          version.startsWith(Version.VERSION_7_1 + '.')
+          || version.startsWith(Version.VERSION_7_2 + '.')
+          || version.startsWith(Version.VERSION_7_3 + '.')
+          || version.startsWith(Version.VERSION_8_1 + '.')
+          || version.startsWith(Version.VERSION_8_3 + '.')
+          || version.startsWith(Version.VERSION_8_3 + 'R')
+        ) {
+          // Connect to IP (no 127.0.0.1/::1-only support)
+          jdbcUrl = pd.getJdbcUrl(true);
+        } else if (
+          version.startsWith(Version.VERSION_9_4 + '.')
+          || version.startsWith(Version.VERSION_9_4 + 'R')
+          || version.startsWith(Version.VERSION_9_5 + '.')
+          || version.startsWith(Version.VERSION_9_5 + 'R')
+          || version.startsWith(Version.VERSION_9_6 + '.')
+          || version.startsWith(Version.VERSION_9_6 + 'R')
+          || version.startsWith(Version.VERSION_10 + '.')
+          || version.startsWith(Version.VERSION_10 + 'R')
+          || version.startsWith(Version.VERSION_11 + '.')
+          || version.startsWith(Version.VERSION_11 + 'R')
+          || version.startsWith(Version.VERSION_12 + '.')
+          || version.startsWith(Version.VERSION_12 + 'R')
+          || version.startsWith(Version.VERSION_13 + '.')
+          || version.startsWith(Version.VERSION_13 + 'R')
+          || version.startsWith(Version.VERSION_14 + '.')
+          || version.startsWith(Version.VERSION_14 + 'R')
+        ) {
+          // Connect to 127.0.0.1 or ::1
+          StringBuilder jdbcUrlSB = new StringBuilder();
+          jdbcUrlSB.append("jdbc:postgresql://");
+          Bind nb = ps.getBind();
+          InetAddress ia = nb.getIpAddress().getInetAddress();
+          ProtocolFamily family = ia.getProtocolFamily();
+          if (family.equals(StandardProtocolFamily.INET)) {
+            jdbcUrlSB.append(InetAddress.LOOPBACK_IPV4.toBracketedString());
+          } else if (family.equals(StandardProtocolFamily.INET6)) {
+            jdbcUrlSB.append(InetAddress.LOOPBACK_IPV6.toBracketedString());
+          } else {
+            throw new AssertionError("Unexpected family: " + family);
+          }
+          Port port = nb.getPort();
+          if (!port.equals(Server.DEFAULT_PORT)) {
+            jdbcUrlSB
+              .append(':')
+              .append(port.getPort());
+          }
+          jdbcUrlSB
+            .append('/')
+            .append(URLEncoder.encode(pd.getName().toString(), StandardCharsets.UTF_8.name())); // Java 10: No .name()
+          jdbcUrl = jdbcUrlSB.toString();
+        } else {
+          throw new RuntimeException("Unexpected version of PostgreSQL: " + version);
+        }
+        Server.Name serverName = ps.getName();
+        pool = new AOConnectionPool(
+          pd.getJdbcDriver(),
+          jdbcUrl,
+          User.POSTGRES.toString(),
+          AOServDaemonConfiguration.getPostgresPassword(serverName),
+          AOServDaemonConfiguration.getPostgresConnections(serverName),
+          AOServDaemonConfiguration.getPostgresMaxConnectionAge(serverName),
+          logger
+        );
+        pools.put(pkeyObj, pool);
+      }
+      return pool;
+    }
+  }
 
-	private static PostgresServerManager postgresServerManager;
-	@SuppressWarnings("UseOfSystemOutOrSystemErr")
-	public static void start() throws IOException, SQLException {
-		com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
-		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
-		int osvId = osv.getPkey();
+  private static PostgresServerManager postgresServerManager;
+  @SuppressWarnings("UseOfSystemOutOrSystemErr")
+  public static void start() throws IOException, SQLException {
+    com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+    OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
+    int osvId = osv.getPkey();
 
-		synchronized(System.out) {
-			if(
-				// Nothing is done for these operating systems
-				osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-				&& osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-				// Check config after OS check so config entry not needed
-				&& AOServDaemonConfiguration.isManagerEnabled(PostgresServerManager.class)
-				&& postgresServerManager == null
-			) {
-				System.out.print("Starting PostgresServerManager: ");
-				// Must be a supported operating system
-				if(
-					osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-					|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
-				) {
-					AOServConnector conn = AOServDaemon.getConnector();
-					postgresServerManager = new PostgresServerManager();
-					conn.getPostgresql().getServer().addTableListener(postgresServerManager, 0);
-					// Register in CronDaemon
-					CronDaemon.addCronJob(postgresServerManager, logger);
-					System.out.println("Done");
-				} else {
-					System.out.println("Unsupported OperatingSystemVersion: " + osv);
-				}
-			}
-		}
-	}
+    synchronized (System.out) {
+      if (
+        // Nothing is done for these operating systems
+        osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+        && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+        && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+        // Check config after OS check so config entry not needed
+        && AOServDaemonConfiguration.isManagerEnabled(PostgresServerManager.class)
+        && postgresServerManager == null
+      ) {
+        System.out.print("Starting PostgresServerManager: ");
+        // Must be a supported operating system
+        if (
+          osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+          || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+        ) {
+          AOServConnector conn = AOServDaemon.getConnector();
+          postgresServerManager = new PostgresServerManager();
+          conn.getPostgresql().getServer().addTableListener(postgresServerManager, 0);
+          // Register in CronDaemon
+          CronDaemon.addCronJob(postgresServerManager, logger);
+          System.out.println("Done");
+        } else {
+          System.out.println("Unsupported OperatingSystemVersion: " + osv);
+        }
+      }
+    }
+  }
 
-	public static void waitForRebuild() {
-		if(postgresServerManager != null) postgresServerManager.waitForBuild();
-	}
+  public static void waitForRebuild() {
+    if (postgresServerManager != null) {
+      postgresServerManager.waitForBuild();
+    }
+  }
 
-	@Override
-	public String getProcessTimerDescription() {
-		return "Rebuild PostgreSQL Servers";
-	}
+  @Override
+  public String getProcessTimerDescription() {
+    return "Rebuild PostgreSQL Servers";
+  }
 
-	public static void restartPostgreSQL(Server ps) throws IOException, SQLException {
-		ServerManager.controlProcess("postgresql-" + ps.getName(), "restart");
-	}
+  public static void restartPostgreSQL(Server ps) throws IOException, SQLException {
+    ServerManager.controlProcess("postgresql-" + ps.getName(), "restart");
+  }
 
-	public static void startPostgreSQL(Server ps) throws IOException, SQLException {
-		ServerManager.controlProcess("postgresql-" + ps.getName(), "start");
-	}
+  public static void startPostgreSQL(Server ps) throws IOException, SQLException {
+    ServerManager.controlProcess("postgresql-" + ps.getName(), "start");
+  }
 
-	public static void stopPostgreSQL(Server ps) throws IOException, SQLException {
-		ServerManager.controlProcess("postgresql-" + ps.getName(), "stop");
-	}
+  public static void stopPostgreSQL(Server ps) throws IOException, SQLException {
+    ServerManager.controlProcess("postgresql-" + ps.getName(), "stop");
+  }
 
-	/**
-	 * This task will be ran once per day at 1:30am.
-	 */
-	private static final Schedule schedule = (int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year)
-		-> minute==30 && hour==1;
+  /**
+   * This task will be ran once per day at 1:30am.
+   */
+  private static final Schedule schedule = (int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year)
+    -> minute == 30 && hour == 1;
 
-	@Override
-	public Schedule getSchedule() {
-		return schedule;
-	}
+  @Override
+  public Schedule getSchedule() {
+    return schedule;
+  }
 
-	@Override
-	public int getThreadPriority() {
-		return Thread.NORM_PRIORITY - 2;
-	}
+  @Override
+  public int getThreadPriority() {
+    return Thread.NORM_PRIORITY - 2;
+  }
 
-	/**
-	 * Rotates PostgreSQL log files.  Those older than one month are removed.
-	 *
-	 * TODO: Should use standard log file rotation, so configuration still works if aoserv-daemon disabled or removed.
-	 */
-	@Override
-	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
-	public void run(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
-		try {
-			AOServConnector conn = AOServDaemon.getConnector();
-			for(Server postgresServer : AOServDaemon.getThisServer().getPostgresServers()) {
-				String version=postgresServer.getVersion().getTechnologyVersion(conn).getVersion();
-				if(
-					!version.startsWith(Version.VERSION_7_1 + '.')
-					&& !version.startsWith(Version.VERSION_7_2 + '.')
-					&& !version.startsWith(Version.VERSION_7_3 + '.')
-					&& !version.startsWith(Version.VERSION_8_0 + '.')
-				) {
-					// Is 8.1 or newer, need to compress and rotate logs
-					File logDirectory = new File("/var/opt/postgresql-" + postgresServer.getName() + "/log");
-					String[] list = logDirectory.list();
-					if(list != null) {
-						for(String filename : list) {
-							if(
-								!filename.equals("stderr")
-								&& !filename.equals("stdout")
-							) {
-								// Must be in postgresql-2006-02-14_011332.log format
-								// TODO: *.csv, too
-								if(
-									filename.length() != 32
-									|| !filename.substring(0, 11).equals("postgresql-")
-									|| filename.charAt(11) < '0' || filename.charAt(11)>'9'
-									|| filename.charAt(12) < '0' || filename.charAt(12)>'9'
-									|| filename.charAt(13) < '0' || filename.charAt(13)>'9'
-									|| filename.charAt(14) < '0' || filename.charAt(14)>'9'
-									|| filename.charAt(15) != '-'
-									|| filename.charAt(16) < '0' || filename.charAt(16)>'9'
-									|| filename.charAt(17) < '0' || filename.charAt(17)>'9'
-									|| filename.charAt(18) != '-'
-									|| filename.charAt(19) < '0' || filename.charAt(19)>'9'
-									|| filename.charAt(20) < '0' || filename.charAt(20)>'9'
-									|| filename.charAt(21) != '_'
-									|| filename.charAt(22) < '0' || filename.charAt(22)>'9'
-									|| filename.charAt(23) < '0' || filename.charAt(23)>'9'
-									|| filename.charAt(24) < '0' || filename.charAt(24)>'9'
-									|| filename.charAt(25) < '0' || filename.charAt(25)>'9'
-									|| filename.charAt(26) < '0' || filename.charAt(26)>'9'
-									|| filename.charAt(27) < '0' || filename.charAt(27)>'9'
-									|| filename.charAt(28) != '.'
-									|| (
-										!(
-											// *.log
-											filename.charAt(29) == 'l'
-											|| filename.charAt(30) == 'o'
-											|| filename.charAt(31) == 'g'
-										) && !(
-											// *.csv
-											filename.charAt(29) == 'c'
-											|| filename.charAt(30) == 's'
-											|| filename.charAt(31) == 'v'
-										)
-									)
-								) {
-									logger.log(Level.WARNING, null, new IOException("Warning, unexpected filename, will not remove: " + logDirectory.getPath() + "/" + filename));
-								} else {
-									// Determine the timestamp of the file
-									GregorianCalendar fileDate = new GregorianCalendar();
-									fileDate.set(Calendar.YEAR, Integer.parseInt(filename.substring(11, 15)));
-									fileDate.set(Calendar.MONTH, Integer.parseInt(filename.substring(16, 18)) - 1);
-									fileDate.set(Calendar.DAY_OF_MONTH, Integer.parseInt(filename.substring(19, 21)));
-									fileDate.set(Calendar.HOUR_OF_DAY, 0);
-									fileDate.set(Calendar.MINUTE, 0);
-									fileDate.set(Calendar.SECOND, 0);
-									fileDate.set(Calendar.MILLISECOND, 0);
+  /**
+   * Rotates PostgreSQL log files.  Those older than one month are removed.
+   *
+   * TODO: Should use standard log file rotation, so configuration still works if aoserv-daemon disabled or removed.
+   */
+  @Override
+  @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
+  public void run(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
+    try {
+      AOServConnector conn = AOServDaemon.getConnector();
+      for (Server postgresServer : AOServDaemon.getThisServer().getPostgresServers()) {
+        String version=postgresServer.getVersion().getTechnologyVersion(conn).getVersion();
+        if (
+          !version.startsWith(Version.VERSION_7_1 + '.')
+          && !version.startsWith(Version.VERSION_7_2 + '.')
+          && !version.startsWith(Version.VERSION_7_3 + '.')
+          && !version.startsWith(Version.VERSION_8_0 + '.')
+        ) {
+          // Is 8.1 or newer, need to compress and rotate logs
+          File logDirectory = new File("/var/opt/postgresql-" + postgresServer.getName() + "/log");
+          String[] list = logDirectory.list();
+          if (list != null) {
+            for (String filename : list) {
+              if (
+                !filename.equals("stderr")
+                && !filename.equals("stdout")
+              ) {
+                // Must be in postgresql-2006-02-14_011332.log format
+                // TODO: *.csv, too
+                if (
+                  filename.length() != 32
+                  || !filename.substring(0, 11).equals("postgresql-")
+                  || filename.charAt(11) < '0' || filename.charAt(11)>'9'
+                  || filename.charAt(12) < '0' || filename.charAt(12)>'9'
+                  || filename.charAt(13) < '0' || filename.charAt(13)>'9'
+                  || filename.charAt(14) < '0' || filename.charAt(14)>'9'
+                  || filename.charAt(15) != '-'
+                  || filename.charAt(16) < '0' || filename.charAt(16)>'9'
+                  || filename.charAt(17) < '0' || filename.charAt(17)>'9'
+                  || filename.charAt(18) != '-'
+                  || filename.charAt(19) < '0' || filename.charAt(19)>'9'
+                  || filename.charAt(20) < '0' || filename.charAt(20)>'9'
+                  || filename.charAt(21) != '_'
+                  || filename.charAt(22) < '0' || filename.charAt(22)>'9'
+                  || filename.charAt(23) < '0' || filename.charAt(23)>'9'
+                  || filename.charAt(24) < '0' || filename.charAt(24)>'9'
+                  || filename.charAt(25) < '0' || filename.charAt(25)>'9'
+                  || filename.charAt(26) < '0' || filename.charAt(26)>'9'
+                  || filename.charAt(27) < '0' || filename.charAt(27)>'9'
+                  || filename.charAt(28) != '.'
+                  || (
+                    !(
+                      // *.log
+                      filename.charAt(29) == 'l'
+                      || filename.charAt(30) == 'o'
+                      || filename.charAt(31) == 'g'
+                    ) && !(
+                      // *.csv
+                      filename.charAt(29) == 'c'
+                      || filename.charAt(30) == 's'
+                      || filename.charAt(31) == 'v'
+                    )
+                  )
+                ) {
+                  logger.log(Level.WARNING, null, new IOException("Warning, unexpected filename, will not remove: " + logDirectory.getPath() + "/" + filename));
+                } else {
+                  // Determine the timestamp of the file
+                  GregorianCalendar fileDate = new GregorianCalendar();
+                  fileDate.set(Calendar.YEAR, Integer.parseInt(filename.substring(11, 15)));
+                  fileDate.set(Calendar.MONTH, Integer.parseInt(filename.substring(16, 18)) - 1);
+                  fileDate.set(Calendar.DAY_OF_MONTH, Integer.parseInt(filename.substring(19, 21)));
+                  fileDate.set(Calendar.HOUR_OF_DAY, 0);
+                  fileDate.set(Calendar.MINUTE, 0);
+                  fileDate.set(Calendar.SECOND, 0);
+                  fileDate.set(Calendar.MILLISECOND, 0);
 
-									GregorianCalendar monthAgo = new GregorianCalendar();
-									monthAgo.add(Calendar.MONTH, -1);
+                  GregorianCalendar monthAgo = new GregorianCalendar();
+                  monthAgo.add(Calendar.MONTH, -1);
 
-									if(fileDate.compareTo(monthAgo) < 0) {
-										new PosixFile(logDirectory, filename).delete();
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		} catch(ThreadDeath td) {
-			throw td;
-		} catch(Throwable t) {
-			logger.log(Level.SEVERE, null, t);
-		}
-	}
+                  if (fileDate.compareTo(monthAgo) < 0) {
+                    new PosixFile(logDirectory, filename).delete();
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (ThreadDeath td) {
+      throw td;
+    } catch (Throwable t) {
+      logger.log(Level.SEVERE, null, t);
+    }
+  }
 }

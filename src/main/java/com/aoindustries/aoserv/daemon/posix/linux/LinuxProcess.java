@@ -43,140 +43,156 @@ import java.util.Map;
  */
 public class LinuxProcess extends PosixProcess {
 
-	private static final File proc = new File("/proc");
+  private static final File proc = new File("/proc");
 
-	/** The <code>/proc/<i>pid</i></code> file is cached once created */
-	private File processProc;
+  /** The <code>/proc/<i>pid</i></code> file is cached once created */
+  private File processProc;
 
-	/**
-	 * Constructs a Linux process given its process ID.
-	 */
-	public LinuxProcess(int pid) {
-		super(pid);
-	}
+  /**
+   * Constructs a Linux process given its process ID.
+   */
+  public LinuxProcess(int pid) {
+    super(pid);
+  }
 
-	/**
-	 * Determines the group ID of the currently running process.
-	 * The GID is considered the group owner of the file in the
-	 * /proc directory.  If the process is not running, a
-	 * FileNotFoundException is thrown.
-	 */
-	@Override
-	public int getGid() throws IOException {
-		return new PosixFile(getProc().getPath()).getStat().getGid();
-	}
+  /**
+   * Determines the group ID of the currently running process.
+   * The GID is considered the group owner of the file in the
+   * /proc directory.  If the process is not running, a
+   * FileNotFoundException is thrown.
+   */
+  @Override
+  public int getGid() throws IOException {
+    return new PosixFile(getProc().getPath()).getStat().getGid();
+  }
 
-	/**
-	 * Gets the directory that contains the proc info.
-	 *
-	 * @return  the <code>File</code>
-	 * @exception  IOException if the proc is not mounted
-	 */
-	private File getProc() {
-		synchronized(this) {
-			if(processProc==null) {
-				processProc=new File(proc, String.valueOf(pid));
-			}
-			return processProc;
-		}
-	}
+  /**
+   * Gets the directory that contains the proc info.
+   *
+   * @return  the <code>File</code>
+   * @exception  IOException if the proc is not mounted
+   */
+  private File getProc() {
+    synchronized (this) {
+      if (processProc == null) {
+        processProc=new File(proc, String.valueOf(pid));
+      }
+      return processProc;
+    }
+  }
 
-	/**
-	 * Determines the user ID of the currently running process.
-	 * The UID is considered the owner of the file in the
-	 * /proc directory.  If the process is not running, a
-	 * FileNotFoundException is thrown.
-	 */
-	@Override
-	public int getUid() throws IOException {
-		return new PosixFile(getProc().getPath()).getStat().getUid();
-	}
+  /**
+   * Determines the user ID of the currently running process.
+   * The UID is considered the owner of the file in the
+   * /proc directory.  If the process is not running, a
+   * FileNotFoundException is thrown.
+   */
+  @Override
+  public int getUid() throws IOException {
+    return new PosixFile(getProc().getPath()).getStat().getUid();
+  }
 
-	/**
-	 * Determines if the process is currently running.  The process
-	 * is considered running if a directory exists in /proc.
-	 */
-	@Override
-	public boolean isRunning() throws IOException {
-		return getProc().exists();
-	}
+  /**
+   * Determines if the process is currently running.  The process
+   * is considered running if a directory exists in /proc.
+   */
+  @Override
+  public boolean isRunning() throws IOException {
+    return getProc().exists();
+  }
 
-	/**
-	 * Gets the command line from <code>/proc/<i>pid</i>/cmdline</code>, split
-	 * on null bytes.
-	 */
-	public String[] getCmdline() throws IOException {
-		List<String> split = new ArrayList<>();
-		StringBuilder sb = new StringBuilder();
-		File cmdlineFile = new File(getProc(), "cmdline");
-		try (Reader in = new FileReader(cmdlineFile)) {
-			int ch;
-			while((ch = in.read()) != -1) {
-				if(ch == 0) {
-					split.add(sb.toString());
-					sb.setLength(0);
-				} else {
-					sb.append((char)ch);
-				}
-			}
-		}
-		if(sb.length() != 0) split.add(sb.toString());
-		return split.toArray(new String[split.size()]);
-	}
+  /**
+   * Gets the command line from <code>/proc/<i>pid</i>/cmdline</code>, split
+   * on null bytes.
+   */
+  public String[] getCmdline() throws IOException {
+    List<String> split = new ArrayList<>();
+    StringBuilder sb = new StringBuilder();
+    File cmdlineFile = new File(getProc(), "cmdline");
+    try (Reader in = new FileReader(cmdlineFile)) {
+      int ch;
+      while ((ch = in.read()) != -1) {
+        if (ch == 0) {
+          split.add(sb.toString());
+          sb.setLength(0);
+        } else {
+          sb.append((char)ch);
+        }
+      }
+    }
+    if (sb.length() != 0) {
+      split.add(sb.toString());
+    }
+    return split.toArray(new String[split.size()]);
+  }
 
-	/**
-	 * Gets the status from <code>/proc/<i>pid</i>/status</code>.
-	 * The colon (:) is removed from the field names.
-	 *
-	 * @see  #getStatus(java.lang.String)
-	 */
-	public Map<String, String> getStatus() throws IOException {
-		File statusFile = new File(getProc(), "status");
-		final int expectedMaxLength = 45; // "wc -l /proc/*/status" shows maximum 45 lines in kernel 3.10.0-514.16.1.el7.x86_64
-		Map<String, String> status = AoCollections.newLinkedHashMap(expectedMaxLength);
-		try (BufferedReader in = new BufferedReader(new FileReader(statusFile))) {
-			String line;
-			while((line = in.readLine()) != null) {
-				// Have seen empty lines, skip them
-				if(!line.isEmpty()) {
-					int tabPos = line.indexOf('\t');
-					if(tabPos == -1) throw new IOException("No tab found in line from " + statusFile + ": " + line);
-					if(tabPos < 1) throw new IOException("Empty name column from " + statusFile + ": " + line);
-					if(line.charAt(tabPos - 1) != ':') throw new IOException("Not colon before tab from " + statusFile + ": " + line);
-					String name = line.substring(0, tabPos - 1);
-					String value = line.substring(tabPos + 1);
-					if(status.put(name, value) != null) throw new IOException("Duplicate name from " + statusFile + ": " + name);
-				}
-			}
-		}
-		return status;
-	}
+  /**
+   * Gets the status from <code>/proc/<i>pid</i>/status</code>.
+   * The colon (:) is removed from the field names.
+   *
+   * @see  #getStatus(java.lang.String)
+   */
+  public Map<String, String> getStatus() throws IOException {
+    File statusFile = new File(getProc(), "status");
+    final int expectedMaxLength = 45; // "wc -l /proc/*/status" shows maximum 45 lines in kernel 3.10.0-514.16.1.el7.x86_64
+    Map<String, String> status = AoCollections.newLinkedHashMap(expectedMaxLength);
+    try (BufferedReader in = new BufferedReader(new FileReader(statusFile))) {
+      String line;
+      while ((line = in.readLine()) != null) {
+        // Have seen empty lines, skip them
+        if (!line.isEmpty()) {
+          int tabPos = line.indexOf('\t');
+          if (tabPos == -1) {
+            throw new IOException("No tab found in line from " + statusFile + ": " + line);
+          }
+          if (tabPos < 1) {
+            throw new IOException("Empty name column from " + statusFile + ": " + line);
+          }
+          if (line.charAt(tabPos - 1) != ':') {
+            throw new IOException("Not colon before tab from " + statusFile + ": " + line);
+          }
+          String name = line.substring(0, tabPos - 1);
+          String value = line.substring(tabPos + 1);
+          if (status.put(name, value) != null) {
+            throw new IOException("Duplicate name from " + statusFile + ": " + name);
+          }
+        }
+      }
+    }
+    return status;
+  }
 
-	/**
-	 * Gets one field of the status from <code>/proc/<i>pid</i>/status</code>.
-	 * The colon (:) is removed from the field names.
-	 *
-	 * @return  the corresponding value or {@code null} if not found
-	 *
-	 * @see  #getStatus()
-	 */
-	public String getStatus(String name) throws IOException {
-		File statusFile = new File(getProc(), "status");
-		try (BufferedReader in = new BufferedReader(new FileReader(statusFile))) {
-			String line;
-			while((line = in.readLine()) != null) {
-				// Have seen empty lines, skip them
-				if(!line.isEmpty()) {
-					int tabPos = line.indexOf('\t');
-					if(tabPos == -1) throw new IOException("No tab found in line from " + statusFile + ": " + line);
-					if(tabPos < 1) throw new IOException("Empty name column from " + statusFile + ": " + line);
-					if(line.charAt(tabPos - 1) != ':') throw new IOException("Not colon before tab from " + statusFile + ": " + line);
-					if(name.equals(line.substring(0, tabPos - 1))) {
-						return line.substring(tabPos + 1);
-					}
-				}
-			}
-		}
-		return null;
-	}
+  /**
+   * Gets one field of the status from <code>/proc/<i>pid</i>/status</code>.
+   * The colon (:) is removed from the field names.
+   *
+   * @return  the corresponding value or {@code null} if not found
+   *
+   * @see  #getStatus()
+   */
+  public String getStatus(String name) throws IOException {
+    File statusFile = new File(getProc(), "status");
+    try (BufferedReader in = new BufferedReader(new FileReader(statusFile))) {
+      String line;
+      while ((line = in.readLine()) != null) {
+        // Have seen empty lines, skip them
+        if (!line.isEmpty()) {
+          int tabPos = line.indexOf('\t');
+          if (tabPos == -1) {
+            throw new IOException("No tab found in line from " + statusFile + ": " + line);
+          }
+          if (tabPos < 1) {
+            throw new IOException("Empty name column from " + statusFile + ": " + line);
+          }
+          if (line.charAt(tabPos - 1) != ':') {
+            throw new IOException("Not colon before tab from " + statusFile + ": " + line);
+          }
+          if (name.equals(line.substring(0, tabPos - 1))) {
+            return line.substring(tabPos + 1);
+          }
+        }
+      }
+    }
+    return null;
+  }
 }

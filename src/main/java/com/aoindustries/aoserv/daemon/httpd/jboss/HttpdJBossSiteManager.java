@@ -46,74 +46,76 @@ import java.util.Set;
  */
 public abstract class HttpdJBossSiteManager<TC extends TomcatCommon> extends HttpdTomcatSiteManager<TC> {
 
-	/**
-	 * Gets the specific manager for one type of web site.
-	 */
-	public static HttpdJBossSiteManager<? extends TomcatCommon> getInstance(Site jbossSite) throws IOException, SQLException {
-		AOServConnector connector=AOServDaemon.getConnector();
-		String jbossVersion = jbossSite.getHttpdJBossVersion().getTechnologyVersion(connector).getVersion();
-		if(jbossVersion.equals("2.2.2")) return new HttpdJBossSiteManager_2_2_2(jbossSite);
-		throw new SQLException("Unsupported version of standard JBoss: "+jbossVersion+" on "+jbossSite);
-	}
+  /**
+   * Gets the specific manager for one type of web site.
+   */
+  public static HttpdJBossSiteManager<? extends TomcatCommon> getInstance(Site jbossSite) throws IOException, SQLException {
+    AOServConnector connector=AOServDaemon.getConnector();
+    String jbossVersion = jbossSite.getHttpdJBossVersion().getTechnologyVersion(connector).getVersion();
+    if (jbossVersion.equals("2.2.2")) {
+      return new HttpdJBossSiteManager_2_2_2(jbossSite);
+    }
+    throw new SQLException("Unsupported version of standard JBoss: "+jbossVersion+" on "+jbossSite);
+  }
 
-	protected final Site jbossSite;
+  protected final Site jbossSite;
 
-	HttpdJBossSiteManager(Site jbossSite) throws SQLException, IOException {
-		super(jbossSite.getHttpdTomcatSite());
-		this.jbossSite = jbossSite;
-	}
+  HttpdJBossSiteManager(Site jbossSite) throws SQLException, IOException {
+    super(jbossSite.getHttpdTomcatSite());
+    this.jbossSite = jbossSite;
+  }
 
-	@Override
-	public PosixFile getPidFile() throws IOException, SQLException {
-		return new PosixFile(
-			HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
-			+ "/"
-			+ httpdSite.getName()
-			+ "/var/run/jboss.pid"
-		);
-	}
+  @Override
+  public PosixFile getPidFile() throws IOException, SQLException {
+    return new PosixFile(
+      HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
+      + "/"
+      + httpdSite.getName()
+      + "/var/run/jboss.pid"
+    );
+  }
 
-	@Override
-	public boolean isStartable() throws IOException, SQLException {
-		return
-			!httpdSite.isDisabled()
-			&& (
-				!httpdSite.isManual()
-				// Script may not exist while in manual mode
-				|| new PosixFile(getStartStopScriptPath().toString()).getStat().exists()
-			);
-	}
+  @Override
+  public boolean isStartable() throws IOException, SQLException {
+    return
+      !httpdSite.isDisabled()
+      && (
+        !httpdSite.isManual()
+        // Script may not exist while in manual mode
+        || new PosixFile(getStartStopScriptPath().toString()).getStat().exists()
+      );
+  }
 
-	@Override
-	public PosixPath getStartStopScriptPath() throws IOException, SQLException {
-		try {
-			return PosixPath.valueOf(
-				HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
-				+ "/"
-				+ httpdSite.getName()
-				+ "/bin/jboss"
-			);
-		} catch(ValidationException e) {
-			throw new IOException(e);
-		}
-	}
+  @Override
+  public PosixPath getStartStopScriptPath() throws IOException, SQLException {
+    try {
+      return PosixPath.valueOf(
+        HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
+        + "/"
+        + httpdSite.getName()
+        + "/bin/jboss"
+      );
+    } catch (ValidationException e) {
+      throw new IOException(e);
+    }
+  }
 
-	@Override
-	public User.Name getStartStopScriptUsername() throws IOException, SQLException {
-		return httpdSite.getLinuxAccount_username();
-	}
+  @Override
+  public User.Name getStartStopScriptUsername() throws IOException, SQLException {
+    return httpdSite.getLinuxAccount_username();
+  }
 
-	@Override
-	public File getStartStopScriptWorkingDirectory() throws IOException, SQLException {
-		return new File(
-			HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
-			+ "/"
-			+ httpdSite.getName()
-		);
-	}
+  @Override
+  public File getStartStopScriptWorkingDirectory() throws IOException, SQLException {
+    return new File(
+      HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
+      + "/"
+      + httpdSite.getName()
+    );
+  }
 
-	@Override
-	protected void flagNeedsRestart(Set<com.aoindustries.aoserv.client.web.Site> sitesNeedingRestarted, Set<SharedTomcat> sharedTomcatsNeedingRestarted) {
-		sitesNeedingRestarted.add(httpdSite);
-	}
+  @Override
+  protected void flagNeedsRestart(Set<com.aoindustries.aoserv.client.web.Site> sitesNeedingRestarted, Set<SharedTomcat> sharedTomcatsNeedingRestarted) {
+    sitesNeedingRestarted.add(httpdSite);
+  }
 }

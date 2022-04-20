@@ -32,12 +32,12 @@ import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
  */
 class HttpdSharedTomcatManager_10_0_X extends VersionedSharedTomcatManager<TomcatCommon_10_0_X> {
 
-	HttpdSharedTomcatManager_10_0_X(SharedTomcat sharedTomcat) {
-		super(sharedTomcat);
-	}
+  HttpdSharedTomcatManager_10_0_X(SharedTomcat sharedTomcat) {
+    super(sharedTomcat);
+  }
 
-	@Override
-	TomcatCommon_10_0_X getTomcatCommon() {
-		return TomcatCommon_10_0_X.getInstance();
-	}
+  @Override
+  TomcatCommon_10_0_X getTomcatCommon() {
+    return TomcatCommon_10_0_X.getInstance();
+  }
 }

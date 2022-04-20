@@ -46,104 +46,116 @@ import java.util.TreeMap;
  */
 public class HttpdStaticSiteManager extends HttpdSiteManager {
 
-	/**
-	 * Gets the specific manager for one type of web site.
-	 */
-	static HttpdStaticSiteManager getInstance(StaticSite staticSite) throws SQLException, IOException {
-		return new HttpdStaticSiteManager(staticSite);
-	}
+  /**
+   * Gets the specific manager for one type of web site.
+   */
+  static HttpdStaticSiteManager getInstance(StaticSite staticSite) throws SQLException, IOException {
+    return new HttpdStaticSiteManager(staticSite);
+  }
 
-	protected final StaticSite staticSite;
+  protected final StaticSite staticSite;
 
-	private HttpdStaticSiteManager(StaticSite staticSite) throws SQLException, IOException {
-		super(staticSite.getHttpdSite());
-		this.staticSite = staticSite;
-	}
+  private HttpdStaticSiteManager(StaticSite staticSite) throws SQLException, IOException {
+    super(staticSite.getHttpdSite());
+    this.staticSite = staticSite;
+  }
 
-	@Override
-	protected void buildSiteDirectory(
-		PosixFile siteDirectory,
-		String optSlash,
-		Set<Site> sitesNeedingRestarted,
-		Set<SharedTomcat> sharedTomcatsNeedingRestarted,
-		Set<PosixFile> restorecon
-	) throws IOException, SQLException {
-		final boolean isAuto = !httpdSite.isManual();
-		final int apacheUid = getApacheUid();
-		final int uid = httpdSite.getLinuxServerAccount().getUid().getId();
-		final int gid = httpdSite.getLinuxServerGroup().getGid().getId();
+  @Override
+  protected void buildSiteDirectory(
+    PosixFile siteDirectory,
+    String optSlash,
+    Set<Site> sitesNeedingRestarted,
+    Set<SharedTomcat> sharedTomcatsNeedingRestarted,
+    Set<PosixFile> restorecon
+  ) throws IOException, SQLException {
+    final boolean isAuto = !httpdSite.isManual();
+    final int apacheUid = getApacheUid();
+    final int uid = httpdSite.getLinuxServerAccount().getUid().getId();
+    final int gid = httpdSite.getLinuxServerGroup().getGid().getId();
 
-		// Create wwwDirectory if needed
-		Stat siteDirectoryStat = siteDirectory.getStat();
-		if(!siteDirectoryStat.exists()) {
-			siteDirectory.mkdir(false, 0700);
-			siteDirectoryStat = siteDirectory.getStat();
-		} else if(!siteDirectoryStat.isDirectory()) throw new IOException("Not a directory: "+siteDirectory);
+    // Create wwwDirectory if needed
+    Stat siteDirectoryStat = siteDirectory.getStat();
+    if (!siteDirectoryStat.exists()) {
+      siteDirectory.mkdir(false, 0700);
+      siteDirectoryStat = siteDirectory.getStat();
+    } else if (!siteDirectoryStat.isDirectory()) {
+      throw new IOException("Not a directory: "+siteDirectory);
+    }
 
-		// New if still owned by root
-		final boolean isNew = siteDirectoryStat.getUid() == PosixFile.ROOT_UID;
+    // New if still owned by root
+    final boolean isNew = siteDirectoryStat.getUid() == PosixFile.ROOT_UID;
 
-		// conf/
-		if(isNew || isAuto) DaemonFileUtils.mkdir(new PosixFile(siteDirectory, "conf", false), 0775, uid, gid);
-		// htdocs/
-		PosixFile htdocsDirectory = new PosixFile(siteDirectory, "htdocs", false);
-		if(isNew || isAuto) DaemonFileUtils.mkdir(htdocsDirectory, 0775, uid, gid);
-		// htdocs/index.html
-		if(isNew) createTestIndex(new PosixFile(htdocsDirectory, "index.html", false));
+    // conf/
+    if (isNew || isAuto) {
+      DaemonFileUtils.mkdir(new PosixFile(siteDirectory, "conf", false), 0775, uid, gid);
+    }
+    // htdocs/
+    PosixFile htdocsDirectory = new PosixFile(siteDirectory, "htdocs", false);
+    if (isNew || isAuto) {
+      DaemonFileUtils.mkdir(htdocsDirectory, 0775, uid, gid);
+    }
+    // htdocs/index.html
+    if (isNew) {
+      createTestIndex(new PosixFile(htdocsDirectory, "index.html", false));
+    }
 
-		// Complete, set permission and ownership
-		siteDirectoryStat = siteDirectory.getStat();
-		if(siteDirectoryStat.getMode()!=0770) siteDirectory.setMode(0770);
-		if(siteDirectoryStat.getUid()!=apacheUid || siteDirectoryStat.getGid()!=gid) siteDirectory.chown(apacheUid, gid);
-	}
+    // Complete, set permission and ownership
+    siteDirectoryStat = siteDirectory.getStat();
+    if (siteDirectoryStat.getMode() != 0770) {
+      siteDirectory.setMode(0770);
+    }
+    if (siteDirectoryStat.getUid() != apacheUid || siteDirectoryStat.getGid() != gid) {
+      siteDirectory.chown(apacheUid, gid);
+    }
+  }
 
-	/**
-	 * No CGI.
-	 */
-	@Override
-	protected boolean enableCgi() {
-		return false;
-	}
+  /**
+   * No CGI.
+   */
+  @Override
+  protected boolean enableCgi() {
+    return false;
+  }
 
-	/**
-	 * No PHP.
-	 */
-	@Override
-	protected boolean enablePhp() {
-		return false;
-	}
+  /**
+   * No PHP.
+   */
+  @Override
+  protected boolean enablePhp() {
+    return false;
+  }
 
-	/**
-	 * No anonymous FTP directory.
-	 */
-	@Override
-	public boolean enableAnonymousFtp() {
-		return false;
-	}
+  /**
+   * No anonymous FTP directory.
+   */
+  @Override
+  public boolean enableAnonymousFtp() {
+    return false;
+  }
 
-	@Override
-	public SortedMap<String, WebAppSettings> getWebapps() throws IOException, SQLException {
-		try {
-			SortedMap<String, WebAppSettings> webapps = new TreeMap<>();
-			webapps.put(
-				"",
-				new WebAppSettings(
-					PosixPath.valueOf(
-						HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory().toString()
-							+'/'
-							+httpdSite.getName()
-							+"/htdocs"
-					),
-					httpdSite.getEnableHtaccess() ? "AuthConfig Indexes Limit" : "None",
-					httpdSite.getEnableSsi(),
-					httpdSite.getEnableIndexes(),
-					httpdSite.getEnableFollowSymlinks(),
-					enableCgi()
-				)
-			);
-			return webapps;
-		} catch(ValidationException e) {
-			throw new IOException(e);
-		}
-	}
+  @Override
+  public SortedMap<String, WebAppSettings> getWebapps() throws IOException, SQLException {
+    try {
+      SortedMap<String, WebAppSettings> webapps = new TreeMap<>();
+      webapps.put(
+        "",
+        new WebAppSettings(
+          PosixPath.valueOf(
+            HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory().toString()
+              +'/'
+              +httpdSite.getName()
+              +"/htdocs"
+          ),
+          httpdSite.getEnableHtaccess() ? "AuthConfig Indexes Limit" : "None",
+          httpdSite.getEnableSsi(),
+          httpdSite.getEnableIndexes(),
+          httpdSite.getEnableFollowSymlinks(),
+          enableCgi()
+        )
+      );
+      return webapps;
+    } catch (ValidationException e) {
+      throw new IOException(e);
+    }
+  }
 }

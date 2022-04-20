@@ -47,116 +47,140 @@ import java.util.Set;
  */
 abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends HttpdTomcatSiteManager<TC> {
 
-	/**
-	 * Gets the specific manager for one type of web site.
-	 */
-	static HttpdTomcatSharedSiteManager<? extends TomcatCommon> getInstance(SharedTomcatSite shrSite) throws IOException, SQLException {
-		AOServConnector connector=AOServDaemon.getConnector();
+  /**
+   * Gets the specific manager for one type of web site.
+   */
+  static HttpdTomcatSharedSiteManager<? extends TomcatCommon> getInstance(SharedTomcatSite shrSite) throws IOException, SQLException {
+    AOServConnector connector=AOServDaemon.getConnector();
 
-		Version htv=shrSite.getHttpdTomcatSite().getHttpdTomcatVersion();
-		if(htv.isTomcat3_1(connector))    return new HttpdTomcatSharedSiteManager_3_1(shrSite);
-		if(htv.isTomcat3_2_4(connector))  return new HttpdTomcatSharedSiteManager_3_2_4(shrSite);
-		if(htv.isTomcat4_1_X(connector))  return new HttpdTomcatSharedSiteManager_4_1_X(shrSite);
-		if(htv.isTomcat5_5_X(connector))  return new HttpdTomcatSharedSiteManager_5_5_X(shrSite);
-		if(htv.isTomcat6_0_X(connector))  return new HttpdTomcatSharedSiteManager_6_0_X(shrSite);
-		if(htv.isTomcat7_0_X(connector))  return new HttpdTomcatSharedSiteManager_7_0_X(shrSite);
-		if(htv.isTomcat8_0_X(connector))  return new HttpdTomcatSharedSiteManager_8_0_X(shrSite);
-		if(htv.isTomcat8_5_X(connector))  return new HttpdTomcatSharedSiteManager_8_5_X(shrSite);
-		if(htv.isTomcat9_0_X(connector))  return new HttpdTomcatSharedSiteManager_9_0_X(shrSite);
-		if(htv.isTomcat10_0_X(connector)) return new HttpdTomcatSharedSiteManager_10_0_X(shrSite);
-		throw new SQLException("Unsupported version of shared Tomcat: "+htv.getTechnologyVersion(connector).getVersion()+" on "+shrSite);
-	}
+    Version htv=shrSite.getHttpdTomcatSite().getHttpdTomcatVersion();
+    if (htv.isTomcat3_1(connector)) {
+      return new HttpdTomcatSharedSiteManager_3_1(shrSite);
+    }
+    if (htv.isTomcat3_2_4(connector)) {
+      return new HttpdTomcatSharedSiteManager_3_2_4(shrSite);
+    }
+    if (htv.isTomcat4_1_X(connector)) {
+      return new HttpdTomcatSharedSiteManager_4_1_X(shrSite);
+    }
+    if (htv.isTomcat5_5_X(connector)) {
+      return new HttpdTomcatSharedSiteManager_5_5_X(shrSite);
+    }
+    if (htv.isTomcat6_0_X(connector)) {
+      return new HttpdTomcatSharedSiteManager_6_0_X(shrSite);
+    }
+    if (htv.isTomcat7_0_X(connector)) {
+      return new HttpdTomcatSharedSiteManager_7_0_X(shrSite);
+    }
+    if (htv.isTomcat8_0_X(connector)) {
+      return new HttpdTomcatSharedSiteManager_8_0_X(shrSite);
+    }
+    if (htv.isTomcat8_5_X(connector)) {
+      return new HttpdTomcatSharedSiteManager_8_5_X(shrSite);
+    }
+    if (htv.isTomcat9_0_X(connector)) {
+      return new HttpdTomcatSharedSiteManager_9_0_X(shrSite);
+    }
+    if (htv.isTomcat10_0_X(connector)) {
+      return new HttpdTomcatSharedSiteManager_10_0_X(shrSite);
+    }
+    throw new SQLException("Unsupported version of shared Tomcat: "+htv.getTechnologyVersion(connector).getVersion()+" on "+shrSite);
+  }
 
-	protected final SharedTomcatSite tomcatSharedSite;
+  protected final SharedTomcatSite tomcatSharedSite;
 
-	HttpdTomcatSharedSiteManager(SharedTomcatSite tomcatSharedSite) throws SQLException, IOException {
-		super(tomcatSharedSite.getHttpdTomcatSite());
-		this.tomcatSharedSite = tomcatSharedSite;
-	}
+  HttpdTomcatSharedSiteManager(SharedTomcatSite tomcatSharedSite) throws SQLException, IOException {
+    super(tomcatSharedSite.getHttpdTomcatSite());
+    this.tomcatSharedSite = tomcatSharedSite;
+  }
 
-	/**
-	 * Worker is associated with the shared JVM.
-	 */
-	@Override
-	protected Worker getHttpdWorker() throws IOException, SQLException {
-		Worker hw = tomcatSharedSite.getHttpdSharedTomcat().getTomcat4Worker();
-		if(hw==null) throw new SQLException("Unable to find shared Worker");
-		return hw;
-	}
+  /**
+   * Worker is associated with the shared JVM.
+   */
+  @Override
+  protected Worker getHttpdWorker() throws IOException, SQLException {
+    Worker hw = tomcatSharedSite.getHttpdSharedTomcat().getTomcat4Worker();
+    if (hw == null) {
+      throw new SQLException("Unable to find shared Worker");
+    }
+    return hw;
+  }
 
-	@Override
-	public PosixFile getPidFile() throws IOException, SQLException {
-		return new PosixFile(
-			HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSharedTomcatsDirectory()
-			+ "/"
-			+ tomcatSharedSite.getHttpdSharedTomcat().getName()
-			+ "/var/run/tomcat.pid"
-		);
-	}
+  @Override
+  public PosixFile getPidFile() throws IOException, SQLException {
+    return new PosixFile(
+      HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSharedTomcatsDirectory()
+      + "/"
+      + tomcatSharedSite.getHttpdSharedTomcat().getName()
+      + "/var/run/tomcat.pid"
+    );
+  }
 
-	@Override
-	public boolean isStartable() throws IOException, SQLException {
-		if(httpdSite.isDisabled()) return false;
-		SharedTomcat sharedTomcat = tomcatSharedSite.getHttpdSharedTomcat();
-		// Has at least one enabled site: this one
-		return
-			!sharedTomcat.isDisabled()
-			&& (
-				!sharedTomcat.isManual()
-				// Script may not exist while in manual mode
-				|| new PosixFile(HttpdSharedTomcatManager.getInstance(sharedTomcat).getStartStopScriptPath().toString()).getStat().exists()
-			);
-	}
+  @Override
+  public boolean isStartable() throws IOException, SQLException {
+    if (httpdSite.isDisabled()) {
+      return false;
+    }
+    SharedTomcat sharedTomcat = tomcatSharedSite.getHttpdSharedTomcat();
+    // Has at least one enabled site: this one
+    return
+      !sharedTomcat.isDisabled()
+      && (
+        !sharedTomcat.isManual()
+        // Script may not exist while in manual mode
+        || new PosixFile(HttpdSharedTomcatManager.getInstance(sharedTomcat).getStartStopScriptPath().toString()).getStat().exists()
+      );
+  }
 
-	@Override
-	public PosixPath getStartStopScriptPath() throws IOException, SQLException {
-		try {
-			return PosixPath.valueOf(
-				HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSharedTomcatsDirectory()
-				+ "/"
-				+ tomcatSharedSite.getHttpdSharedTomcat().getName()
-				+ "/bin/tomcat"
-			);
-		} catch(ValidationException e) {
-			throw new IOException(e);
-		}
-	}
+  @Override
+  public PosixPath getStartStopScriptPath() throws IOException, SQLException {
+    try {
+      return PosixPath.valueOf(
+        HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSharedTomcatsDirectory()
+        + "/"
+        + tomcatSharedSite.getHttpdSharedTomcat().getName()
+        + "/bin/tomcat"
+      );
+    } catch (ValidationException e) {
+      throw new IOException(e);
+    }
+  }
 
-	@Override
-	public User.Name getStartStopScriptUsername() throws IOException, SQLException {
-		return tomcatSharedSite.getHttpdSharedTomcat().getLinuxServerAccount().getLinuxAccount_username_id();
-	}
+  @Override
+  public User.Name getStartStopScriptUsername() throws IOException, SQLException {
+    return tomcatSharedSite.getHttpdSharedTomcat().getLinuxServerAccount().getLinuxAccount_username_id();
+  }
 
-	@Override
-	public File getStartStopScriptWorkingDirectory() throws IOException, SQLException {
-		return new File(
-			HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSharedTomcatsDirectory()
-			+ "/"
-			+ tomcatSharedSite.getHttpdSharedTomcat().getName()
-		);
-	}
+  @Override
+  public File getStartStopScriptWorkingDirectory() throws IOException, SQLException {
+    return new File(
+      HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSharedTomcatsDirectory()
+      + "/"
+      + tomcatSharedSite.getHttpdSharedTomcat().getName()
+    );
+  }
 
-	@Override
-	protected void flagNeedsRestart(Set<Site> sitesNeedingRestarted, Set<SharedTomcat> sharedTomcatsNeedingRestarted) throws SQLException, IOException {
-		sharedTomcatsNeedingRestarted.add(tomcatSharedSite.getHttpdSharedTomcat());
-	}
+  @Override
+  protected void flagNeedsRestart(Set<Site> sitesNeedingRestarted, Set<SharedTomcat> sharedTomcatsNeedingRestarted) throws SQLException, IOException {
+    sharedTomcatsNeedingRestarted.add(tomcatSharedSite.getHttpdSharedTomcat());
+  }
 
-	/**
-	 * Shared sites don't need to do anything to enable/disable.
-	 * The SharedTomcat manager will update the profile.sites file
-	 * and restart to take care of this.
-	 */
-	@Override
-	@SuppressWarnings("NoopMethodInAbstractClass")
-	protected void enableDisable(PosixFile siteDirectory) {
-		// Do nothing
-	}
+  /**
+   * Shared sites don't need to do anything to enable/disable.
+   * The SharedTomcat manager will update the profile.sites file
+   * and restart to take care of this.
+   */
+  @Override
+  @SuppressWarnings("NoopMethodInAbstractClass")
+  protected void enableDisable(PosixFile siteDirectory) {
+    // Do nothing
+  }
 
-	/**
-	 * Does not use any README.txt for change detection.
-	 */
-	@Override
-	protected byte[] generateReadmeTxt(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException, SQLException {
-		return null;
-	}
+  /**
+   * Does not use any README.txt for change detection.
+   */
+  @Override
+  protected byte[] generateReadmeTxt(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException, SQLException {
+    return null;
+  }
 }

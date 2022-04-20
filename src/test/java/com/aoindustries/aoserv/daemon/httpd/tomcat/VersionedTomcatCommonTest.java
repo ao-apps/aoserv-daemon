@@ -30,24 +30,24 @@ import org.junit.Test;
 
 public class VersionedTomcatCommonTest {
 
-	@Test
-	public void testVersion1() {
-		VersionedTomcatCommon.Version version1 = new VersionedTomcatCommon.Version(
-			new PackageManager.Version("9.0.53"),
-			new PackageManager.Version("1")
-		);
-		assertEquals(0, version1.compareTo("9.0.53-1"));
-		assertTrue(version1.compareTo("9.0.53-2") < 0);
-	}
+  @Test
+  public void testVersion1() {
+    VersionedTomcatCommon.Version version1 = new VersionedTomcatCommon.Version(
+      new PackageManager.Version("9.0.53"),
+      new PackageManager.Version("1")
+    );
+    assertEquals(0, version1.compareTo("9.0.53-1"));
+    assertTrue(version1.compareTo("9.0.53-2") < 0);
+  }
 
-	@Test
-	public void testVersion2() {
-		VersionedTomcatCommon.Version version2 = new VersionedTomcatCommon.Version(
-			new PackageManager.Version("9.0.53"),
-			new PackageManager.Version("2")
-		);
-		assertTrue(version2.compareTo("9.0.53-1") > 0);
-		assertEquals(0, version2.compareTo("9.0.53-2"));
-		assertTrue(version2.compareTo("9.0.53-3") < 0);
-	}
+  @Test
+  public void testVersion2() {
+    VersionedTomcatCommon.Version version2 = new VersionedTomcatCommon.Version(
+      new PackageManager.Version("9.0.53"),
+      new PackageManager.Version("2")
+    );
+    assertTrue(version2.compareTo("9.0.53-1") > 0);
+    assertEquals(0, version2.compareTo("9.0.53-2"));
+    assertTrue(version2.compareTo("9.0.53-3") < 0);
+  }
 }

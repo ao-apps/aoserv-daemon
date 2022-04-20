@@ -51,166 +51,180 @@ import java.util.logging.Logger;
  */
 public final class MySQLHostManager extends BuilderThread {
 
-	private static final Logger logger = Logger.getLogger(MySQLHostManager.class.getName());
+  private static final Logger logger = Logger.getLogger(MySQLHostManager.class.getName());
 
-	private MySQLHostManager() {
-		// Do nothing
-	}
+  private MySQLHostManager() {
+    // Do nothing
+  }
 
-	private static final Object rebuildLock = new Object();
-	@Override
-	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
-	protected boolean doRebuild() {
-		try {
-			com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
-			OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
-			int osvId = osv.getPkey();
-			if(
-				osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-				&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
-			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+  private static final Object rebuildLock = new Object();
+  @Override
+  @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
+  protected boolean doRebuild() {
+    try {
+      com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+      OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
+      int osvId = osv.getPkey();
+      if (
+        osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+        && osvId != OperatingSystemVersion.CENTOS_7_X86_64
+      ) {
+        throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+      }
 
-			AOServConnector connector = AOServDaemon.getConnector();
-			synchronized (rebuildLock) {
-				for(Server mysqlServer : connector.getMysql().getServer()) {
-					String version=mysqlServer.getVersion().getVersion();
-					// hosts no longer exists in MySQL 5.6.7+
-					if(
-						version.startsWith(Server.VERSION_4_0_PREFIX)
-						|| version.startsWith(Server.VERSION_4_1_PREFIX)
-						|| version.startsWith(Server.VERSION_5_0_PREFIX)
-						|| version.startsWith(Server.VERSION_5_1_PREFIX)
-					) {
-						boolean modified = false;
-						// Get the connection to work through
-						try (Connection conn = MySQLServerManager.getPool(mysqlServer).getConnection()) {
-							try {
-								// Get the list of all existing hosts
-								Set<String> existing = new HashSet<>();
-								String currentSQL = null;
-								try (
-									Statement stmt = conn.createStatement();
-									ResultSet results = stmt.executeQuery(currentSQL = "SELECT host FROM host")
-								) {
-									while (results.next()) {
-										String host = results.getString(1);
-										if(!existing.add(host)) throw new SQLException("Duplicate host: " + host);
-									}
-								} catch(Error | RuntimeException | SQLException e) {
-									ErrorPrinter.addSQL(e, currentSQL);
-									throw e;
-								}
+      AOServConnector connector = AOServDaemon.getConnector();
+      synchronized (rebuildLock) {
+        for (Server mysqlServer : connector.getMysql().getServer()) {
+          String version=mysqlServer.getVersion().getVersion();
+          // hosts no longer exists in MySQL 5.6.7+
+          if (
+            version.startsWith(Server.VERSION_4_0_PREFIX)
+            || version.startsWith(Server.VERSION_4_1_PREFIX)
+            || version.startsWith(Server.VERSION_5_0_PREFIX)
+            || version.startsWith(Server.VERSION_5_1_PREFIX)
+          ) {
+            boolean modified = false;
+            // Get the connection to work through
+            try (Connection conn = MySQLServerManager.getPool(mysqlServer).getConnection()) {
+              try {
+                // Get the list of all existing hosts
+                Set<String> existing = new HashSet<>();
+                String currentSQL = null;
+                try (
+                  Statement stmt = conn.createStatement();
+                  ResultSet results = stmt.executeQuery(currentSQL = "SELECT host FROM host")
+                ) {
+                  while (results.next()) {
+                    String host = results.getString(1);
+                    if (!existing.add(host)) {
+                      throw new SQLException("Duplicate host: " + host);
+                    }
+                  }
+                } catch (Error | RuntimeException | SQLException e) {
+                  ErrorPrinter.addSQL(e, currentSQL);
+                  throw e;
+                }
 
-								// Get the list of all hosts that should exist
-								Set<String> hosts=new HashSet<>();
-								// Always include loopback, just in case of data errors
-								hosts.add(IpAddress.LOOPBACK_IP);
-								hosts.add("localhost");
-								hosts.add("localhost.localdomain");
-								// Include all of the local IP addresses
-								for(Device nd : thisServer.getHost().getNetDevices()) {
-									for(IpAddress ia : nd.getIPAddresses()) {
-										InetAddress ip = ia.getInetAddress();
-										if(!ip.isUnspecified()) {
-											String ipString = ip.toString();
-											if(!hosts.contains(ipString)) hosts.add(ipString);
-										}
-									}
-								}
+                // Get the list of all hosts that should exist
+                Set<String> hosts=new HashSet<>();
+                // Always include loopback, just in case of data errors
+                hosts.add(IpAddress.LOOPBACK_IP);
+                hosts.add("localhost");
+                hosts.add("localhost.localdomain");
+                // Include all of the local IP addresses
+                for (Device nd : thisServer.getHost().getNetDevices()) {
+                  for (IpAddress ia : nd.getIPAddresses()) {
+                    InetAddress ip = ia.getInetAddress();
+                    if (!ip.isUnspecified()) {
+                      String ipString = ip.toString();
+                      if (!hosts.contains(ipString)) {
+                        hosts.add(ipString);
+                      }
+                    }
+                  }
+                }
 
-								// Add the hosts that do not exist and should
-								String insertSQL;
-								if(version.startsWith(Server.VERSION_4_0_PREFIX))      insertSQL = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
-								else if(version.startsWith(Server.VERSION_4_1_PREFIX)) insertSQL = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
-								else if(version.startsWith(Server.VERSION_5_0_PREFIX)) insertSQL = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
-								else if(version.startsWith(Server.VERSION_5_1_PREFIX)) insertSQL = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
-								else throw new SQLException("Unsupported MySQL version: "+version);
+                // Add the hosts that do not exist and should
+                String insertSQL;
+                if (version.startsWith(Server.VERSION_4_0_PREFIX)) {
+                  insertSQL = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
+                } else if (version.startsWith(Server.VERSION_4_1_PREFIX)) {
+                  insertSQL = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
+                } else if (version.startsWith(Server.VERSION_5_0_PREFIX)) {
+                  insertSQL = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
+                } else if (version.startsWith(Server.VERSION_5_1_PREFIX)) {
+                  insertSQL = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
+                } else {
+                  throw new SQLException("Unsupported MySQL version: "+version);
+                }
 
-								currentSQL = null;
-								try (PreparedStatement pstmt = conn.prepareStatement(currentSQL = insertSQL)) {
-									for (String hostname : hosts) {
-										if(!existing.remove(hostname)) {
-											// Add the host
-											pstmt.setString(1, hostname);
-											pstmt.executeUpdate();
-											modified = true;
-										}
-									}
-								} catch(Error | RuntimeException | SQLException e) {
-									ErrorPrinter.addSQL(e, currentSQL);
-									throw e;
-								}
+                currentSQL = null;
+                try (PreparedStatement pstmt = conn.prepareStatement(currentSQL = insertSQL)) {
+                  for (String hostname : hosts) {
+                    if (!existing.remove(hostname)) {
+                      // Add the host
+                      pstmt.setString(1, hostname);
+                      pstmt.executeUpdate();
+                      modified = true;
+                    }
+                  }
+                } catch (Error | RuntimeException | SQLException e) {
+                  ErrorPrinter.addSQL(e, currentSQL);
+                  throw e;
+                }
 
-								// Remove the extra hosts
-								if (!existing.isEmpty()) {
-									currentSQL = null;
-									try (PreparedStatement pstmt = conn.prepareStatement(currentSQL = "DELETE FROM host WHERE host=?")) {
-										for (String dbName : existing) {
-											// Remove the extra host entry
-											pstmt.setString(1, dbName);
-											pstmt.executeUpdate();
-										}
-									} catch(Error | RuntimeException | SQLException e) {
-										ErrorPrinter.addSQL(e, currentSQL);
-										throw e;
-									}
-									modified = true;
-								}
-							} catch(SQLException e) {
-								conn.abort(AOServDaemon.executorService);
-								throw e;
-							}
-						}
-						if(modified) MySQLServerManager.flushPrivileges(mysqlServer);
-					}
-				}
-			}
-			return true;
-		} catch(ThreadDeath td) {
-			throw td;
-		} catch(Throwable t) {
-			logger.log(Level.SEVERE, null, t);
-			return false;
-		}
-	}
+                // Remove the extra hosts
+                if (!existing.isEmpty()) {
+                  currentSQL = null;
+                  try (PreparedStatement pstmt = conn.prepareStatement(currentSQL = "DELETE FROM host WHERE host=?")) {
+                    for (String dbName : existing) {
+                      // Remove the extra host entry
+                      pstmt.setString(1, dbName);
+                      pstmt.executeUpdate();
+                    }
+                  } catch (Error | RuntimeException | SQLException e) {
+                    ErrorPrinter.addSQL(e, currentSQL);
+                    throw e;
+                  }
+                  modified = true;
+                }
+              } catch (SQLException e) {
+                conn.abort(AOServDaemon.executorService);
+                throw e;
+              }
+            }
+            if (modified) {
+              MySQLServerManager.flushPrivileges(mysqlServer);
+            }
+          }
+        }
+      }
+      return true;
+    } catch (ThreadDeath td) {
+      throw td;
+    } catch (Throwable t) {
+      logger.log(Level.SEVERE, null, t);
+      return false;
+    }
+  }
 
-	private static MySQLHostManager mysqlHostManager;
-	@SuppressWarnings("UseOfSystemOutOrSystemErr")
-	public static void start() throws IOException, SQLException {
-		com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
-		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
-		int osvId = osv.getPkey();
+  private static MySQLHostManager mysqlHostManager;
+  @SuppressWarnings("UseOfSystemOutOrSystemErr")
+  public static void start() throws IOException, SQLException {
+    com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+    OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
+    int osvId = osv.getPkey();
 
-		synchronized(System.out) {
-			if(
-				// Nothing is done for these operating systems
-				osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-				&& osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-				// Check config after OS check so config entry not needed
-				&& AOServDaemonConfiguration.isManagerEnabled(MySQLHostManager.class)
-				&& mysqlHostManager == null
-			) {
-				System.out.print("Starting MySQLHostManager: ");
-				// Must be a supported operating system
-				if(
-					osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-					|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
-				) {
-					AOServConnector conn = AOServDaemon.getConnector();
-					mysqlHostManager = new MySQLHostManager();
-					conn.getNet().getIpAddress().addTableListener(mysqlHostManager, 0);
-					conn.getMysql().getServer().addTableListener(mysqlHostManager, 0);
-					System.out.println("Done");
-				} else {
-					System.out.println("Unsupported OperatingSystemVersion: " + osv);
-				}
-			}
-		}
-	}
+    synchronized (System.out) {
+      if (
+        // Nothing is done for these operating systems
+        osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+        && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+        && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+        // Check config after OS check so config entry not needed
+        && AOServDaemonConfiguration.isManagerEnabled(MySQLHostManager.class)
+        && mysqlHostManager == null
+      ) {
+        System.out.print("Starting MySQLHostManager: ");
+        // Must be a supported operating system
+        if (
+          osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+          || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+        ) {
+          AOServConnector conn = AOServDaemon.getConnector();
+          mysqlHostManager = new MySQLHostManager();
+          conn.getNet().getIpAddress().addTableListener(mysqlHostManager, 0);
+          conn.getMysql().getServer().addTableListener(mysqlHostManager, 0);
+          System.out.println("Done");
+        } else {
+          System.out.println("Unsupported OperatingSystemVersion: " + osv);
+        }
+      }
+    }
+  }
 
-	@Override
-	public String getProcessTimerDescription() {
-		return "Rebuild MySQL Hosts";
-	}
+  @Override
+  public String getProcessTimerDescription() {
+    return "Rebuild MySQL Hosts";
+  }
 }

@@ -38,68 +38,68 @@ import java.util.logging.Logger;
  */
 public abstract class SocketServerThread extends Thread {
 
-	private static final Logger logger = Logger.getLogger(SocketServerThread.class.getName());
+  private static final Logger logger = Logger.getLogger(SocketServerThread.class.getName());
 
-	final InetAddress ipAddress;
-	final int port;
+  final InetAddress ipAddress;
+  final int port;
 
-	protected SocketServerThread(String name, InetAddress ipAddress, int port) {
-		super(name+" on "+ipAddress.toBracketedString()+":"+port);
-		this.ipAddress=ipAddress;
-		this.port=port;
-	}
+  protected SocketServerThread(String name, InetAddress ipAddress, int port) {
+    super(name+" on "+ipAddress.toBracketedString()+":"+port);
+    this.ipAddress=ipAddress;
+    this.port=port;
+  }
 
-	public InetAddress getIPAddress() {
-		return ipAddress;
-	}
+  public InetAddress getIPAddress() {
+    return ipAddress;
+  }
 
-	public int getPort() {
-		return port;
-	}
+  public int getPort() {
+    return port;
+  }
 
-	boolean runMore = true;
+  boolean runMore = true;
 
-	private ServerSocket ss;
+  private ServerSocket ss;
 
-	@Override
-	public void run() {
-		while(runMore && !Thread.currentThread().isInterrupted()) {
-			try {
-				ss = new ServerSocket(port, 50, java.net.InetAddress.getByName(ipAddress.toString()));
-				try {
-					while(runMore && !Thread.currentThread().isInterrupted()) {
-						Socket socket = ss.accept();
-						socket.setKeepAlive(true);
-						socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
-						//socket.setTcpNoDelay(true);
-						socketConnected(socket);
-					}
-				} finally {
-					ss.close();
-				}
-			} catch(ThreadDeath td) {
-				throw td;
-			} catch(Throwable t) {
-				logger.log(Level.SEVERE, null, t);
-				try {
-					Thread.sleep(60000);
-				} catch(InterruptedException err) {
-					logger.log(Level.WARNING, null, err);
-					// Restore the interrupted status
-					Thread.currentThread().interrupt();
-				}
-			}
-		}
-	}
+  @Override
+  public void run() {
+    while (runMore && !Thread.currentThread().isInterrupted()) {
+      try {
+        ss = new ServerSocket(port, 50, java.net.InetAddress.getByName(ipAddress.toString()));
+        try {
+          while (runMore && !Thread.currentThread().isInterrupted()) {
+            Socket socket = ss.accept();
+            socket.setKeepAlive(true);
+            socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
+            //socket.setTcpNoDelay(true);
+            socketConnected(socket);
+          }
+        } finally {
+          ss.close();
+        }
+      } catch (ThreadDeath td) {
+        throw td;
+      } catch (Throwable t) {
+        logger.log(Level.SEVERE, null, t);
+        try {
+          Thread.sleep(60000);
+        } catch (InterruptedException err) {
+          logger.log(Level.WARNING, null, err);
+          // Restore the interrupted status
+          Thread.currentThread().interrupt();
+        }
+      }
+    }
+  }
 
-	public final void close() {
-		runMore=false;
-		try {
-			ss.close();
-		} catch(IOException err) {
-			logger.log(Level.SEVERE, null, err);
-		}
-	}
+  public final void close() {
+    runMore=false;
+    try {
+      ss.close();
+    } catch (IOException err) {
+      logger.log(Level.SEVERE, null, err);
+    }
+  }
 
-	protected abstract void socketConnected(Socket socket) throws IOException;
+  protected abstract void socketConnected(Socket socket) throws IOException;
 }

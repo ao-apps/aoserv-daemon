@@ -34,67 +34,67 @@ import java.io.IOException;
  */
 public abstract class PosixProcess {
 
-	protected int pid;
+  protected int pid;
 
-	/**
-	 * Constructs a POSIX process given its process ID.
-	 */
-	protected PosixProcess(int pid) {
-		this.pid=pid;
-	}
+  /**
+   * Constructs a POSIX process given its process ID.
+   */
+  protected PosixProcess(int pid) {
+    this.pid=pid;
+  }
 
-	/**
-	 * Determines the group ID of a process.  The subclasses of
-	 * <code>PosixProcess</code> must implement this functionality.  Calling
-	 * the method on a <code>PosixProcess</code> will result in an
-	 * <code>IOException</code>.
-	 */
-	public abstract int getGid() throws IOException;
+  /**
+   * Determines the group ID of a process.  The subclasses of
+   * <code>PosixProcess</code> must implement this functionality.  Calling
+   * the method on a <code>PosixProcess</code> will result in an
+   * <code>IOException</code>.
+   */
+  public abstract int getGid() throws IOException;
 
-	/**
-	 * Determines the user ID of a process.  The subclasses of
-	 * <code>PosixProcess</code> must implement this functionality.  Calling
-	 * the method on a <code>PosixProcess</code> will result in an
-	 * <code>IOException</code>.
-	 */
-	public abstract int getUid() throws IOException;
+  /**
+   * Determines the user ID of a process.  The subclasses of
+   * <code>PosixProcess</code> must implement this functionality.  Calling
+   * the method on a <code>PosixProcess</code> will result in an
+   * <code>IOException</code>.
+   */
+  public abstract int getUid() throws IOException;
 
-	/**
-	 * Determines if the process is currently running.  The subclasses of
-	 * <code>PosixProcess</code> must implement this functionality.  Calling
-	 * the method on a <code>PosixProcess</code> will result in an
-	 * <code>IOException</code>.
-	 */
-	public abstract boolean isRunning() throws IOException;
+  /**
+   * Determines if the process is currently running.  The subclasses of
+   * <code>PosixProcess</code> must implement this functionality.  Calling
+   * the method on a <code>PosixProcess</code> will result in an
+   * <code>IOException</code>.
+   */
+  public abstract boolean isRunning() throws IOException;
 
-	/**
-	 * Kills this process.  Sends a term signal once, waits two seconds,
-	 * then sends a kill signal.  The signals are sent to the execution of the
-	 * <code>/bin/kill</code> executable.
-	 */
-	public void killProc() throws IOException, InterruptedException {
-		String pidS = String.valueOf(pid);
-		if(isRunning()) {
-			AOServDaemon.exec("/bin/kill", "-SIGTERM", pidS);
-			Thread.sleep(100);
-		}
-		if(isRunning()) {
-			Thread.sleep(1900);
-		}
-		if(isRunning()) {
-			AOServDaemon.exec("/bin/kill", "-SIGKILL", pidS);
-		}
-	}
+  /**
+   * Kills this process.  Sends a term signal once, waits two seconds,
+   * then sends a kill signal.  The signals are sent to the execution of the
+   * <code>/bin/kill</code> executable.
+   */
+  public void killProc() throws IOException, InterruptedException {
+    String pidS = String.valueOf(pid);
+    if (isRunning()) {
+      AOServDaemon.exec("/bin/kill", "-SIGTERM", pidS);
+      Thread.sleep(100);
+    }
+    if (isRunning()) {
+      Thread.sleep(1900);
+    }
+    if (isRunning()) {
+      AOServDaemon.exec("/bin/kill", "-SIGKILL", pidS);
+    }
+  }
 
-	/**
-	 * Sends a signal to this process.  The signals are sent to the execution of the
-	 * <code>/bin/kill</code> executable.
-	 */
-	public void signal(String signalName) throws IOException {
-		AOServDaemon.exec(
-			"/bin/kill",
-			"-"+signalName,
-			Integer.toString(pid)
-		);
-	}
+  /**
+   * Sends a signal to this process.  The signals are sent to the execution of the
+   * <code>/bin/kill</code> executable.
+   */
+  public void signal(String signalName) throws IOException {
+    AOServDaemon.exec(
+      "/bin/kill",
+      "-"+signalName,
+      Integer.toString(pid)
+    );
+  }
 }

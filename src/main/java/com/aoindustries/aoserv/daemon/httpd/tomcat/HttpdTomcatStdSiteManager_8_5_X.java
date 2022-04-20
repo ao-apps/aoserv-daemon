@@ -34,12 +34,12 @@ import java.sql.SQLException;
  */
 class HttpdTomcatStdSiteManager_8_5_X extends VersionedTomcatStdSiteManager<TomcatCommon_8_5_X> {
 
-	HttpdTomcatStdSiteManager_8_5_X(PrivateTomcatSite tomcatStdSite) throws SQLException, IOException {
-		super(tomcatStdSite);
-	}
+  HttpdTomcatStdSiteManager_8_5_X(PrivateTomcatSite tomcatStdSite) throws SQLException, IOException {
+    super(tomcatStdSite);
+  }
 
-	@Override
-	public TomcatCommon_8_5_X getTomcatCommon() {
-		return TomcatCommon_8_5_X.getInstance();
-	}
+  @Override
+  public TomcatCommon_8_5_X getTomcatCommon() {
+    return TomcatCommon_8_5_X.getInstance();
+  }
 }

@@ -44,65 +44,67 @@ import java.util.Set;
  */
 abstract class VersionedTomcatSharedSiteManager<TC extends VersionedTomcatCommon> extends HttpdTomcatSharedSiteManager<TC> {
 
-	VersionedTomcatSharedSiteManager(SharedTomcatSite tomcatSharedSite) throws SQLException, IOException {
-		super(tomcatSharedSite);
-	}
+  VersionedTomcatSharedSiteManager(SharedTomcatSite tomcatSharedSite) throws SQLException, IOException {
+    super(tomcatSharedSite);
+  }
 
-	/**
-	 * TODO: Support upgrades in-place
-	 */
-	@Override
-	protected void buildSiteDirectoryContents(String optSlash, PosixFile siteDirectory, boolean isUpgrade) throws IOException, SQLException {
-		if(isUpgrade) throw new IllegalArgumentException("In-place upgrade not supported");
-		/*
-		 * Resolve and allocate stuff used throughout the method
-		 */
-		final String siteDir = siteDirectory.getPath();
-		final int uid = httpdSite.getLinuxServerAccount().getUid().getId();
-		final int gid = httpdSite.getLinuxServerGroup().getGid().getId();
+  /**
+   * TODO: Support upgrades in-place
+   */
+  @Override
+  protected void buildSiteDirectoryContents(String optSlash, PosixFile siteDirectory, boolean isUpgrade) throws IOException, SQLException {
+    if (isUpgrade) {
+      throw new IllegalArgumentException("In-place upgrade not supported");
+    }
+    /*
+     * Resolve and allocate stuff used throughout the method
+     */
+    final String siteDir = siteDirectory.getPath();
+    final int uid = httpdSite.getLinuxServerAccount().getUid().getId();
+    final int gid = httpdSite.getLinuxServerGroup().getGid().getId();
 
-		final TC tomcatCommon = getTomcatCommon();
-		final String apacheTomcatDir = tomcatCommon.getApacheTomcatDir();
+    final TC tomcatCommon = getTomcatCommon();
+    final String apacheTomcatDir = tomcatCommon.getApacheTomcatDir();
 
-		/*
-		 * Create the skeleton of the site, the directories and links.
-		 */
-		DaemonFileUtils.mkdir(siteDir + "/bin", 0770, uid, gid);
-		DaemonFileUtils.mkdir(siteDir + "/conf", 0775, uid, gid);
-		DaemonFileUtils.mkdir(siteDir + "/daemon", 0770, uid, gid);
-		DaemonFileUtils.mkdir(siteDir + "/webapps", 0775, uid, gid);
-		DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE, 0775, uid, gid);
-		// TODO: Do no create these on upgrade:
-		DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF", 0770, uid, gid);
-		DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/classes", 0770, uid, gid);
-		DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/lib", 0770, uid, gid);
+    /*
+     * Create the skeleton of the site, the directories and links.
+     */
+    DaemonFileUtils.mkdir(siteDir + "/bin", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/conf", 0775, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/daemon", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/webapps", 0775, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE, 0775, uid, gid);
+    // TODO: Do no create these on upgrade:
+    DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/classes", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/lib", 0770, uid, gid);
 
-		Server thisServer = AOServDaemon.getThisServer();
-		int uid_min = thisServer.getUidMin().getId();
-		int gid_min = thisServer.getGidMin().getId();
+    Server thisServer = AOServDaemon.getThisServer();
+    int uid_min = thisServer.getUidMin().getId();
+    int gid_min = thisServer.getGidMin().getId();
 
-		/*
-		 * Write the ROOT/WEB-INF/web.xml file.
-		 */
-		// TODO: Do no create these on upgrade:
-		String webXML = siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/web.xml";
-		try (
-			InputStream in = new FileInputStream("/opt/" + apacheTomcatDir + "/webapps/ROOT/WEB-INF/web.xml");
-			OutputStream out = new PosixFile(webXML).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
-		) {
-			IoUtils.copy(in, out);
-		}
-	}
+    /*
+     * Write the ROOT/WEB-INF/web.xml file.
+     */
+    // TODO: Do no create these on upgrade:
+    String webXML = siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/web.xml";
+    try (
+      InputStream in = new FileInputStream("/opt/" + apacheTomcatDir + "/webapps/ROOT/WEB-INF/web.xml");
+      OutputStream out = new PosixFile(webXML).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+    ) {
+      IoUtils.copy(in, out);
+    }
+  }
 
-	@Override
-	protected boolean rebuildConfigFiles(PosixFile siteDirectory, Set<PosixFile> restorecon) {
-		// No configs to rebuild
-		return false;
-	}
+  @Override
+  protected boolean rebuildConfigFiles(PosixFile siteDirectory, Set<PosixFile> restorecon) {
+    // No configs to rebuild
+    return false;
+  }
 
-	@Override
-	protected boolean upgradeSiteDirectoryContents(String optSlash, PosixFile siteDirectory) throws IOException, SQLException {
-		// Nothing to do
-		return false;
-	}
+  @Override
+  protected boolean upgradeSiteDirectoryContents(String optSlash, PosixFile siteDirectory) throws IOException, SQLException {
+    // Nothing to do
+    return false;
+  }
 }

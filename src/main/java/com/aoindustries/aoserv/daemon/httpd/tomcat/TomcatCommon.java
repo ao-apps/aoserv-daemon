@@ -38,36 +38,40 @@ import java.util.Set;
  */
 public abstract class TomcatCommon {
 
-	TomcatCommon() {
-		// Do nothing
-	}
+  TomcatCommon() {
+    // Do nothing
+  }
 
-	/**
-	 * Gets any packages that must be installed for this site.
-	 */
-	protected abstract Set<PackageManager.PackageName> getRequiredPackages() throws IOException, SQLException;
+  /**
+   * Gets any packages that must be installed for this site.
+   */
+  protected abstract Set<PackageManager.PackageName> getRequiredPackages() throws IOException, SQLException;
 
-	/**
-	 * Writes a single parameter.
-	 */
-	public void writeHttpdTomcatParameter(ContextParameter parameter, ChainWriter out) throws IOException {
-		out.print("          <Parameter\n"
-				+ "            name=\"").textInXmlAttribute(parameter.getName()).print("\"\n"
-				+ "            value=\"").textInXmlAttribute(parameter.getValue()).print("\"\n");
-		boolean override = parameter.getOverride();
-		if(!override) out.print("            override=\"").textInXmlAttribute(override).print("\"\n");
-		String description = parameter.getDescription();
-		if(description != null) out.print("            description=\"").textInXmlAttribute(description).print("\"\n");
-		out.print("          />\n");
-	}
+  /**
+   * Writes a single parameter.
+   */
+  public void writeHttpdTomcatParameter(ContextParameter parameter, ChainWriter out) throws IOException {
+    out.print("          <Parameter\n"
+        + "            name=\"").textInXmlAttribute(parameter.getName()).print("\"\n"
+        + "            value=\"").textInXmlAttribute(parameter.getValue()).print("\"\n");
+    boolean override = parameter.getOverride();
+    if (!override) {
+      out.print("            override=\"").textInXmlAttribute(override).print("\"\n");
+    }
+    String description = parameter.getDescription();
+    if (description != null) {
+      out.print("            description=\"").textInXmlAttribute(description).print("\"\n");
+    }
+    out.print("          />\n");
+  }
 
-	/**
-	 * Writes a single data source.
-	 */
-	public abstract void writeHttpdTomcatDataSource(ContextDataSource dataSource, ChainWriter out) throws IOException, SQLException;
+  /**
+   * Writes a single data source.
+   */
+  public abstract void writeHttpdTomcatDataSource(ContextDataSource dataSource, ChainWriter out) throws IOException, SQLException;
 
-	/**
-	 * Gets the name of the Tomcat directory under <code>/opt/</code>.
-	 */
-	protected abstract String getApacheTomcatDir();
+  /**
+   * Gets the name of the Tomcat directory under <code>/opt/</code>.
+   */
+  protected abstract String getApacheTomcatDir();
 }

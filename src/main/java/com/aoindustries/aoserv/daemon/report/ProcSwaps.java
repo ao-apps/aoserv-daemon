@@ -32,14 +32,14 @@ import com.aoapps.lang.EmptyArrays;
  */
 public final class ProcSwaps {
 
-	public final int[]
-		device_majors,
-		device_minors,
-		totals,
-		useds
-	;
+  public final int[]
+    device_majors,
+    device_minors,
+    totals,
+    useds
+  ;
 
-	public ProcSwaps() {
-		device_majors=device_minors=totals=useds = EmptyArrays.EMPTY_INT_ARRAY;
-	}
+  public ProcSwaps() {
+    device_majors=device_minors=totals=useds = EmptyArrays.EMPTY_INT_ARRAY;
+  }
 }

@@ -38,73 +38,77 @@ import java.sql.SQLException;
  */
 public final class Uptime {
 
-	private static final String[] cmd={"/usr/bin/uptime"};
+  private static final String[] cmd={"/usr/bin/uptime"};
 
-	public final int numUsers;
-	public final float load;
+  public final int numUsers;
+  public final float load;
 
-	public Uptime() throws IOException, SQLException {
-		String line = AOServDaemon.execCall(
-			stdout -> {
-				try (BufferedReader in = new BufferedReader(new InputStreamReader(stdout))) {
-					return in.readLine();
-				}
-			},
-			cmd
-		);
-		if(line==null) throw new EOFException("Nothing output by /usr/bin/uptime");
+  public Uptime() throws IOException, SQLException {
+    String line = AOServDaemon.execCall(
+      stdout -> {
+        try (BufferedReader in = new BufferedReader(new InputStreamReader(stdout))) {
+          return in.readLine();
+        }
+      },
+      cmd
+    );
+    if (line == null) {
+      throw new EOFException("Nothing output by /usr/bin/uptime");
+    }
 
-		// Find the third colon, then back two commas
-		int pos=line.lastIndexOf(':');
-		pos=line.lastIndexOf(',', pos-1);
-		pos=line.lastIndexOf(',', pos-1)+1;
+    // Find the third colon, then back two commas
+    int pos=line.lastIndexOf(':');
+    pos=line.lastIndexOf(',', pos-1);
+    pos=line.lastIndexOf(',', pos-1)+1;
 
-		// skip past spaces
-		int len=line.length();
-		while(pos<len && line.charAt(pos)==' ') pos++;
+    // skip past spaces
+    int len=line.length();
+    while (pos<len && line.charAt(pos) == ' ') pos++;
 
-		// find next space
-		int pos2=pos+1;
-		while(pos2<len && line.charAt(pos2)!=' ') pos2++;
+    // find next space
+    int pos2=pos+1;
+    while (pos2<len && line.charAt(pos2) != ' ') pos2++;
 
-		// Parse the number of users
-		numUsers=Integer.parseInt(line.substring(pos, pos2));
+    // Parse the number of users
+    numUsers=Integer.parseInt(line.substring(pos, pos2));
 
-		// Only the top-level server keeps track of load
-		if(AOServDaemon.getThisServer().getFailoverServer() == null) {
-			// Find the next colon
-			pos=line.indexOf(':', pos2+1)+1;
+    // Only the top-level server keeps track of load
+    if (AOServDaemon.getThisServer().getFailoverServer() == null) {
+      // Find the next colon
+      pos=line.indexOf(':', pos2+1)+1;
 
-			// Skip any whitespace
-			while(pos<len && line.charAt(pos)==' ') pos++;
+      // Skip any whitespace
+      while (pos<len && line.charAt(pos) == ' ') pos++;
 
-			// Find the next comma
-			pos2=line.indexOf(',', pos);
+      // Find the next comma
+      pos2=line.indexOf(',', pos);
 
-			load=Float.parseFloat(line.substring(pos, pos2));
-		} else load=0.00f;
-	}
+      load=Float.parseFloat(line.substring(pos, pos2));
+    } else {
+      load=0.00f;
+    }
+  }
 
-	@SuppressWarnings("UseOfSystemOutOrSystemErr")
-	public static void main(String[] args) {
-		try {
-			System.err.println(new Uptime());
-			System.exit(0);
-		} catch(IOException err) {
-			ErrorPrinter.printStackTraces(err, System.err);
-			System.exit(1);
-		} catch(SQLException err) {
-			ErrorPrinter.printStackTraces(err, System.err);
-			System.exit(2);
-		}
-	}
+  @SuppressWarnings("UseOfSystemOutOrSystemErr")
+  public static void main(String[] args) {
+    try {
+      System.err.println(new Uptime());
+      System.exit(0);
+    } catch (IOException err) {
+      ErrorPrinter.printStackTraces(err, System.err);
+      System.exit(1);
+    } catch (SQLException err) {
+      ErrorPrinter.printStackTraces(err, System.err);
+      System.exit(2);
+    }
+  }
 
-	@Override
-	public String toString() {
-		return
-			getClass().getName()
-			+"?numUsers="+numUsers
-			+"&load="+load
-		;
-	}
+  @Override
+  public String toString() {
+    return
+      getClass().getName()
+      +"?numUsers="+numUsers
+      +"&load="+load
+    ;
+  }
 }

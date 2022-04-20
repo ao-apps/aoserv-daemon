@@ -32,12 +32,12 @@ import com.aoapps.lang.EmptyArrays;
  */
 public final class MDStat {
 
-	public final int[] device_majors;       // *** In data
-	public final int[] device_minors;       // *** In data
-	public final int[] total_partitions;    // *** In data
-	public final int[] active_partitions;   // *** In data
+  public final int[] device_majors;       // *** In data
+  public final int[] device_minors;       // *** In data
+  public final int[] total_partitions;    // *** In data
+  public final int[] active_partitions;   // *** In data
 
-	public MDStat() {
-		device_majors=device_minors=total_partitions=active_partitions = EmptyArrays.EMPTY_INT_ARRAY;
-	}
+  public MDStat() {
+    device_majors=device_minors=total_partitions=active_partitions = EmptyArrays.EMPTY_INT_ARRAY;
+  }
 }

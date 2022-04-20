@@ -45,225 +45,234 @@ import java.util.List;
  */
 public abstract class VersionedTomcatCommon extends TomcatCommon {
 
-	private static final String BACKUP_DATE_SEPARATOR = "-";
-	public static final String BACKUP_SEPARATOR = ".";
-	public static final String BACKUP_EXTENSION = ".bak";
+  private static final String BACKUP_DATE_SEPARATOR = "-";
+  public static final String BACKUP_SEPARATOR = ".";
+  public static final String BACKUP_EXTENSION = ".bak";
 
-	/**
-	 * Gets the suffix to put after an existing file, but before the extension.
-	 */
-	public static String getBackupSuffix() {
-		return BACKUP_DATE_SEPARATOR + CalendarUtils.formatDate(new GregorianCalendar());
-	}
+  /**
+   * Gets the suffix to put after an existing file, but before the extension.
+   */
+  public static String getBackupSuffix() {
+    return BACKUP_DATE_SEPARATOR + CalendarUtils.formatDate(new GregorianCalendar());
+  }
 
-	public static final int KILL_DELAY_ATTEMPTS = 50;
-	public static final float KILL_DELAY_INTERVAL = 0.1f;
+  public static final int KILL_DELAY_ATTEMPTS = 50;
+  public static final float KILL_DELAY_INTERVAL = 0.1f;
 
-	VersionedTomcatCommon() {
-		// Do nothing
-	}
+  VersionedTomcatCommon() {
+    // Do nothing
+  }
 
-	/**
-	 * See:
-	 * <ol>
-	 * <li><a href="https://commons.apache.org/proper/commons-dbcp/configuration.html">DBCP – BasicDataSource Configuration</a></li>
-	 * <li>Tomcat 8.5:
-	 *   <ol type="a">
-	 *   <li><a href="https://tomcat.apache.org/tomcat-8.5-doc/jndi-datasource-examples-howto.html">JNDI Datasource HOW-TO</a></li>
-	 *   <li><a href="https://tomcat.apache.org/tomcat-8.5-doc/jdbc-pool.html">The Tomcat JDBC Connection Pool</a></li>
-	 *   </ol>
-	 * </li>
-	 * <li>Tomcat 9.0:
-	 *   <ol type="a">
-	 *   <li><a href="https://tomcat.apache.org/tomcat-9.0-doc/jndi-datasource-examples-howto.html">JNDI Datasource HOW-TO</a></li>
-	 *   <li><a href="https://tomcat.apache.org/tomcat-9.0-doc/jdbc-pool.html">The Tomcat JDBC Connection Pool</a></li>
-	 *   </ol>
-	 * </li>
-	 * <li>Tomcat 10.0:
-	 *   <ol type="a">
-	 *   <li><a href="https://tomcat.apache.org/tomcat-10.0-doc/jndi-datasource-examples-howto.html">JNDI Datasource HOW-TO</a></li>
-	 *   <li><a href="https://tomcat.apache.org/tomcat-10.0-doc/jdbc-pool.html">The Tomcat JDBC Connection Pool</a></li>
-	 *   </ol>
-	 * </li>
-	 * </ol>
-	 */
-	@Override
-	public void writeHttpdTomcatDataSource(ContextDataSource dataSource, ChainWriter out) throws IOException, SQLException {
-		int maxActive = dataSource.getMaxActive();
-		out.print("          <Resource\n"
-				+ "            name=\"").textInXmlAttribute(dataSource.getName()).print("\"\n"
-				+ "            auth=\"Container\"\n"
-				+ "            type=\"javax.sql.DataSource\"\n");
-		String username = dataSource.getUsername();
-		if(username != null && !username.isEmpty()) {
-			out.print("            username=\"").textInXmlAttribute(username).print("\"\n");
-		}
-		String password = dataSource.getPassword();
-		if(password != null && !password.isEmpty()) {
-			out.print("            password=\"").textInXmlAttribute(password).print("\"\n");
-		}
-		String driverClassName = dataSource.getDriverClassName();
-		if(driverClassName != null && !driverClassName.isEmpty()) {
-			out.print("            driverClassName=\"").textInXmlAttribute(driverClassName).print("\"\n");
-		}
-		out.print("            url=\"").textInXmlAttribute(dataSource.getUrl()).print("\"\n"
-				+ "            maxTotal=\"").textInXmlAttribute(maxActive).print("\"\n"
-				+ "            maxIdle=\"").textInXmlAttribute(dataSource.getMaxIdle()).print("\"\n"
-				+ "            maxWaitMillis=\"").textInXmlAttribute(dataSource.getMaxWait()).print("\"\n");
-		if(dataSource.getValidationQuery()!=null) {
-			out.print("            validationQuery=\"").textInXmlAttribute(dataSource.getValidationQuery()).print("\"\n"
-					+ "            validationQueryTimeout=\"30\"\n"
-					+ "            testWhileIdle=\"true\"\n");
-					// The default is "true": + "            testOnBorrow=\"true\"\n");
-		}
-		int timeBetweenEvictionRunsMillis = 30000; // Clean every 30 seconds
-		int numTestsPerEvictionRun;
-		if(maxActive > 0) {
-			numTestsPerEvictionRun = maxActive / 4; // Clean up to a quarter of the pool all at once
-			if(numTestsPerEvictionRun < 3) numTestsPerEvictionRun = 3; // 3 is the default
-		} else {
-			numTestsPerEvictionRun = 50;
-		}
+  /**
+   * See:
+   * <ol>
+   * <li><a href="https://commons.apache.org/proper/commons-dbcp/configuration.html">DBCP – BasicDataSource Configuration</a></li>
+   * <li>Tomcat 8.5:
+   *   <ol type="a">
+   *   <li><a href="https://tomcat.apache.org/tomcat-8.5-doc/jndi-datasource-examples-howto.html">JNDI Datasource HOW-TO</a></li>
+   *   <li><a href="https://tomcat.apache.org/tomcat-8.5-doc/jdbc-pool.html">The Tomcat JDBC Connection Pool</a></li>
+   *   </ol>
+   * </li>
+   * <li>Tomcat 9.0:
+   *   <ol type="a">
+   *   <li><a href="https://tomcat.apache.org/tomcat-9.0-doc/jndi-datasource-examples-howto.html">JNDI Datasource HOW-TO</a></li>
+   *   <li><a href="https://tomcat.apache.org/tomcat-9.0-doc/jdbc-pool.html">The Tomcat JDBC Connection Pool</a></li>
+   *   </ol>
+   * </li>
+   * <li>Tomcat 10.0:
+   *   <ol type="a">
+   *   <li><a href="https://tomcat.apache.org/tomcat-10.0-doc/jndi-datasource-examples-howto.html">JNDI Datasource HOW-TO</a></li>
+   *   <li><a href="https://tomcat.apache.org/tomcat-10.0-doc/jdbc-pool.html">The Tomcat JDBC Connection Pool</a></li>
+   *   </ol>
+   * </li>
+   * </ol>
+   */
+  @Override
+  public void writeHttpdTomcatDataSource(ContextDataSource dataSource, ChainWriter out) throws IOException, SQLException {
+    int maxActive = dataSource.getMaxActive();
+    out.print("          <Resource\n"
+        + "            name=\"").textInXmlAttribute(dataSource.getName()).print("\"\n"
+        + "            auth=\"Container\"\n"
+        + "            type=\"javax.sql.DataSource\"\n");
+    String username = dataSource.getUsername();
+    if (username != null && !username.isEmpty()) {
+      out.print("            username=\"").textInXmlAttribute(username).print("\"\n");
+    }
+    String password = dataSource.getPassword();
+    if (password != null && !password.isEmpty()) {
+      out.print("            password=\"").textInXmlAttribute(password).print("\"\n");
+    }
+    String driverClassName = dataSource.getDriverClassName();
+    if (driverClassName != null && !driverClassName.isEmpty()) {
+      out.print("            driverClassName=\"").textInXmlAttribute(driverClassName).print("\"\n");
+    }
+    out.print("            url=\"").textInXmlAttribute(dataSource.getUrl()).print("\"\n"
+        + "            maxTotal=\"").textInXmlAttribute(maxActive).print("\"\n"
+        + "            maxIdle=\"").textInXmlAttribute(dataSource.getMaxIdle()).print("\"\n"
+        + "            maxWaitMillis=\"").textInXmlAttribute(dataSource.getMaxWait()).print("\"\n");
+    if (dataSource.getValidationQuery() != null) {
+      out.print("            validationQuery=\"").textInXmlAttribute(dataSource.getValidationQuery()).print("\"\n"
+          + "            validationQueryTimeout=\"30\"\n"
+          + "            testWhileIdle=\"true\"\n");
+          // The default is "true": + "            testOnBorrow=\"true\"\n");
+    }
+    int timeBetweenEvictionRunsMillis = 30000; // Clean every 30 seconds
+    int numTestsPerEvictionRun;
+    if (maxActive > 0) {
+      numTestsPerEvictionRun = maxActive / 4; // Clean up to a quarter of the pool all at once
+      if (numTestsPerEvictionRun < 3) {
+        // 3 is the default
+        numTestsPerEvictionRun = 3;
+      }
+    } else {
+      numTestsPerEvictionRun = 50;
+    }
 
-		out.print("            timeBetweenEvictionRunsMillis=\"").textInXmlAttribute(timeBetweenEvictionRunsMillis).print("\"\n"
-				+ "            numTestsPerEvictionRun=\"").textInXmlAttribute(numTestsPerEvictionRun).print("\"\n"
-				+ "            removeAbandonedOnMaintenance=\"true\"\n"
-				+ "            removeAbandonedOnBorrow=\"true\"\n"
-				// The default is 300: + "            removeAbandonedTimeout=\"300\"\n"
-				// Disabled to avoid overhead: Default is "false": + "            logAbandoned=\"true\"\n"
-				+ "          />\n");
-	}
+    out.print("            timeBetweenEvictionRunsMillis=\"").textInXmlAttribute(timeBetweenEvictionRunsMillis).print("\"\n"
+        + "            numTestsPerEvictionRun=\"").textInXmlAttribute(numTestsPerEvictionRun).print("\"\n"
+        + "            removeAbandonedOnMaintenance=\"true\"\n"
+        + "            removeAbandonedOnBorrow=\"true\"\n"
+        // The default is 300: + "            removeAbandonedTimeout=\"300\"\n"
+        // Disabled to avoid overhead: Default is "false": + "            logAbandoned=\"true\"\n"
+        + "          />\n");
+  }
 
-	protected static byte[] generateProfileCatalinaSh(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException {
-		ByteArrayOutputStream bout = new ByteArrayOutputStream();
-		try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
-			out.print("export CATALINA_BASE=\"").print(installDir).print("\"\n"
-					+ "export CATALINA_HOME=\"").print(installDir).print("\"\n"
-					+ "export CATALINA_TEMP=\"").print(installDir).print("/temp\"\n"
-					+ "\n"
-					+ "export PATH=\"$PATH:").print(installDir).print("/bin\"\n");
-		}
-		return bout.toByteArray();
-	}
+  protected static byte[] generateProfileCatalinaSh(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException {
+    ByteArrayOutputStream bout = new ByteArrayOutputStream();
+    try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
+      out.print("export CATALINA_BASE=\"").print(installDir).print("\"\n"
+          + "export CATALINA_HOME=\"").print(installDir).print("\"\n"
+          + "export CATALINA_TEMP=\"").print(installDir).print("/temp\"\n"
+          + "\n"
+          + "export PATH=\"$PATH:").print(installDir).print("/bin\"\n");
+    }
+    return bout.toByteArray();
+  }
 
-	protected static byte[] generateProfileJavaDisableUsageTrackingSh(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException {
-		ByteArrayOutputStream bout = new ByteArrayOutputStream();
-		try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
-			out.print("export JAVA_OPTS=\"${JAVA_OPTS:-}${JAVA_OPTS+ }-Djdk.disableLastUsageTracking=true\"\n");
-		}
-		return bout.toByteArray();
-	}
+  protected static byte[] generateProfileJavaDisableUsageTrackingSh(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException {
+    ByteArrayOutputStream bout = new ByteArrayOutputStream();
+    try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
+      out.print("export JAVA_OPTS=\"${JAVA_OPTS:-}${JAVA_OPTS+ }-Djdk.disableLastUsageTracking=true\"\n");
+    }
+    return bout.toByteArray();
+  }
 
-	protected static byte[] generateProfileJavaHeadlessSh(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException {
-		ByteArrayOutputStream bout = new ByteArrayOutputStream();
-		try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
-			out.print("export JAVA_OPTS=\"${JAVA_OPTS:-}${JAVA_OPTS+ }-Djava.awt.headless=true\"\n");
-		}
-		return bout.toByteArray();
-	}
+  protected static byte[] generateProfileJavaHeadlessSh(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException {
+    ByteArrayOutputStream bout = new ByteArrayOutputStream();
+    try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
+      out.print("export JAVA_OPTS=\"${JAVA_OPTS:-}${JAVA_OPTS+ }-Djava.awt.headless=true\"\n");
+    }
+    return bout.toByteArray();
+  }
 
-	protected static byte[] generateProfileJavaHeapsizeSh(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException {
-		ByteArrayOutputStream bout = new ByteArrayOutputStream();
-		try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
-			out.print("export JAVA_OPTS=\"${JAVA_OPTS:-}${JAVA_OPTS+ }-Xmx128M\"\n");
-		}
-		return bout.toByteArray();
-	}
+  protected static byte[] generateProfileJavaHeapsizeSh(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException {
+    ByteArrayOutputStream bout = new ByteArrayOutputStream();
+    try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
+      out.print("export JAVA_OPTS=\"${JAVA_OPTS:-}${JAVA_OPTS+ }-Xmx128M\"\n");
+    }
+    return bout.toByteArray();
+  }
 
-	// Java 18: Add "-Djava.security.manager=allow" by default for Tomcat?
+  // Java 18: Add "-Djava.security.manager=allow" by default for Tomcat?
 
-	protected static byte[] generateProfileJavaServerSh(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException {
-		ByteArrayOutputStream bout = new ByteArrayOutputStream();
-		try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
-			out.print("export JAVA_OPTS=\"${JAVA_OPTS:-}${JAVA_OPTS+ }-server\"\n");
-		}
-		return bout.toByteArray();
-	}
+  protected static byte[] generateProfileJavaServerSh(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException {
+    ByteArrayOutputStream bout = new ByteArrayOutputStream();
+    try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
+      out.print("export JAVA_OPTS=\"${JAVA_OPTS:-}${JAVA_OPTS+ }-server\"\n");
+    }
+    return bout.toByteArray();
+  }
 
-	protected static String generateProfileJdkShTarget(String optSlash) throws IOException, SQLException {
-		final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
-		String jdkProfileSh = osConfig.getDefaultJdkProfileSh().toString();
-		if(!jdkProfileSh.startsWith("/opt/")) throw new IllegalStateException("jdkProfileSh does not start with \"/opt/\": " + jdkProfileSh);
-		return "../../" + optSlash + jdkProfileSh.substring("/opt/".length());
-	}
+  protected static String generateProfileJdkShTarget(String optSlash) throws IOException, SQLException {
+    final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
+    String jdkProfileSh = osConfig.getDefaultJdkProfileSh().toString();
+    if (!jdkProfileSh.startsWith("/opt/")) {
+      throw new IllegalStateException("jdkProfileSh does not start with \"/opt/\": " + jdkProfileSh);
+    }
+    return "../../" + optSlash + jdkProfileSh.substring("/opt/".length());
+  }
 
-	protected static byte[] generateProfileUmaskSh(String optSlash, String apacheTomcatDir, PosixFile installDir) {
-		return (
-			"umask 0027\n"
-			+ "export UMASK=0027\n"
-		).getBytes(StandardCharsets.UTF_8);
-	}
+  protected static byte[] generateProfileUmaskSh(String optSlash, String apacheTomcatDir, PosixFile installDir) {
+    return (
+      "umask 0027\n"
+      + "export UMASK=0027\n"
+    ).getBytes(StandardCharsets.UTF_8);
+  }
 
-	protected static byte[] generateShutdownSh(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException {
-		ByteArrayOutputStream bout = new ByteArrayOutputStream();
-		try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
-			out.print("#!/bin/sh\n"
-					+ "#\n"
-					+ "# Generated by ").print(VersionedTomcatCommon.class.getName()).print("\n"
-					+ "#\n"
-					+ "exec \"").print(installDir).print("/bin/tomcat\" stop\n");
-		}
-		return bout.toByteArray();
-	}
+  protected static byte[] generateShutdownSh(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException {
+    ByteArrayOutputStream bout = new ByteArrayOutputStream();
+    try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
+      out.print("#!/bin/sh\n"
+          + "#\n"
+          + "# Generated by ").print(VersionedTomcatCommon.class.getName()).print("\n"
+          + "#\n"
+          + "exec \"").print(installDir).print("/bin/tomcat\" stop\n");
+    }
+    return bout.toByteArray();
+  }
 
-	protected static byte[] generateStartupSh(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException {
-		ByteArrayOutputStream bout = new ByteArrayOutputStream();
-		try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
-			out.print("#!/bin/sh\n"
-					+ "#\n"
-					+ "# Generated by ").print(VersionedTomcatCommon.class.getName()).print("\n"
-					+ "#\n"
-					+ "exec \"").print(installDir).print("/bin/tomcat\" start\n");
-		}
-		return bout.toByteArray();
-	}
+  protected static byte[] generateStartupSh(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException {
+    ByteArrayOutputStream bout = new ByteArrayOutputStream();
+    try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
+      out.print("#!/bin/sh\n"
+          + "#\n"
+          + "# Generated by ").print(VersionedTomcatCommon.class.getName()).print("\n"
+          + "#\n"
+          + "exec \"").print(installDir).print("/bin/tomcat\" start\n");
+    }
+    return bout.toByteArray();
+  }
 
-	/**
-	 * Gets the set of files that are installed during install and upgrade/downgrade.
-	 * Each path is relative to CATALINA_HOME/CATALINA_BASE.
-	 */
-	protected abstract List<Install> getInstallFiles(String optSlash, PosixFile installDir, int confMode) throws IOException, SQLException;
+  /**
+   * Gets the set of files that are installed during install and upgrade/downgrade.
+   * Each path is relative to CATALINA_HOME/CATALINA_BASE.
+   */
+  protected abstract List<Install> getInstallFiles(String optSlash, PosixFile installDir, int confMode) throws IOException, SQLException;
 
-	/**
-	 * Combines version and release for simpler comparison.
-	 */
-	static class Version extends Tuple2<PackageManager.Version, PackageManager.Version> implements Comparable<Version> {
+  /**
+   * Combines version and release for simpler comparison.
+   */
+  static class Version extends Tuple2<PackageManager.Version, PackageManager.Version> implements Comparable<Version> {
 
-		Version(PackageManager.Version version, PackageManager.Version release) {
-			super(version, release);
-		}
+    Version(PackageManager.Version version, PackageManager.Version release) {
+      super(version, release);
+    }
 
-		@Override
-		public String toString() {
-			return getElement1() + "_" + getElement2();
-		}
+    @Override
+    public String toString() {
+      return getElement1() + "_" + getElement2();
+    }
 
-		@Override
-		public int compareTo(Version o) {
-			int diff = getElement1().compareTo(o.getElement1());
-			if(diff != 0) return diff;
-			return getElement2().compareTo(o.getElement2());
-		}
+    @Override
+    public int compareTo(Version o) {
+      int diff = getElement1().compareTo(o.getElement1());
+      if (diff != 0) {
+        return diff;
+      }
+      return getElement2().compareTo(o.getElement2());
+    }
 
-		/**
-		 * Compares to the given version and release, separated by last "-".
-		 */
-		public int compareTo(String versionAndRelase) {
-			int last = versionAndRelase.lastIndexOf('-');
-			if(last == -1) throw new IllegalArgumentException("No hyphen in combined version and release: " + versionAndRelase);
-			return compareTo(
-				new Version(
-					new PackageManager.Version(versionAndRelase.substring(0, last)),
-					new PackageManager.Version(versionAndRelase.substring(last + 1))
-				)
-			);
-		}
-	}
+    /**
+     * Compares to the given version and release, separated by last "-".
+     */
+    public int compareTo(String versionAndRelase) {
+      int last = versionAndRelase.lastIndexOf('-');
+      if (last == -1) {
+        throw new IllegalArgumentException("No hyphen in combined version and release: " + versionAndRelase);
+      }
+      return compareTo(
+        new Version(
+          new PackageManager.Version(versionAndRelase.substring(0, last)),
+          new PackageManager.Version(versionAndRelase.substring(last + 1))
+        )
+      );
+    }
+  }
 
-	/**
-	 * Upgrades the Tomcat installed in the provided directory.
-	 *
-	 * @param optSlash  Relative path from the CATALINA_HOME to /opt/, including trailing slash, such as <code>../../opt/</code>.
-	 */
-	protected abstract boolean upgradeTomcatDirectory(String optSlash, PosixFile tomcatDirectory, int uid, int gid) throws IOException, SQLException;
+  /**
+   * Upgrades the Tomcat installed in the provided directory.
+   *
+   * @param optSlash  Relative path from the CATALINA_HOME to /opt/, including trailing slash, such as <code>../../opt/</code>.
+   */
+  protected abstract boolean upgradeTomcatDirectory(String optSlash, PosixFile tomcatDirectory, int uid, int gid) throws IOException, SQLException;
 }

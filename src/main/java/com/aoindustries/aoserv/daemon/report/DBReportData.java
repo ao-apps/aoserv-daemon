@@ -28,17 +28,17 @@ package com.aoindustries.aoserv.daemon.report;
  */
 public abstract class DBReportData {
 
-	public int numUsers;
+  public int numUsers;
 
-	protected DBReportData() {
-		// Do nothing
-	}
+  protected DBReportData() {
+    // Do nothing
+  }
 
-	@Override
-	public String toString() {
-		return
-			getClass().getName()
-			+"?numUsers="+numUsers
-		;
-	}
+  @Override
+  public String toString() {
+    return
+      getClass().getName()
+      +"?numUsers="+numUsers
+    ;
+  }
 }

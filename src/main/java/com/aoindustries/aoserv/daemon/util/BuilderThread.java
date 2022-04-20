@@ -39,196 +39,200 @@ import java.util.logging.Logger;
  */
 public abstract class BuilderThread implements TableListener, PackageManager.PackageListener {
 
-	private static final Logger logger = Logger.getLogger(BuilderThread.class.getName());
+  private static final Logger logger = Logger.getLogger(BuilderThread.class.getName());
 
-	public static final long
-		DEFAULT_PROCESS_TIMER_MAXIMUM_TIME = 5L * 60 * 1000,
-		DEFAULT_PROCESS_TIMER_REMINDER_INTERVAL = 15L * 60 * 1000
-	;
-	public static final int
-		DEFAULT_MINIMUM_DELAY = 5 * 1000,
-		DEFAULT_MAXIMUM_DELAY = 35 * 1000
-	;
+  public static final long
+    DEFAULT_PROCESS_TIMER_MAXIMUM_TIME = 5L * 60 * 1000,
+    DEFAULT_PROCESS_TIMER_REMINDER_INTERVAL = 15L * 60 * 1000
+  ;
+  public static final int
+    DEFAULT_MINIMUM_DELAY = 5 * 1000,
+    DEFAULT_MAXIMUM_DELAY = 35 * 1000
+  ;
 
-	private volatile Thread rebuildThread;
-	private long lastUpdated;
-	private long lastRebuild;
-	private final Object sleepLock = new Object();
+  private volatile Thread rebuildThread;
+  private long lastUpdated;
+  private long lastRebuild;
+  private final Object sleepLock = new Object();
 
-	protected BuilderThread() {
-		// Always rebuild the configs after start-up
-		delayAndRebuild();
-	}
+  protected BuilderThread() {
+    // Always rebuild the configs after start-up
+    delayAndRebuild();
+  }
 
-	@Override
-	public void tableUpdated(Table<?> table) {
-		delayAndRebuild();
-	}
+  @Override
+  public void tableUpdated(Table<?> table) {
+    delayAndRebuild();
+  }
 
-	@Override
-	public void packageListUpdated(SortedSet<PackageManager.RPM> allRpms) {
-		delayAndRebuild();
-	}
+  @Override
+  public void packageListUpdated(SortedSet<PackageManager.RPM> allRpms) {
+    delayAndRebuild();
+  }
 
-	/**
-	 * Will wait a random amount of time and then call doRebuild()
-	 */
-	private void delayAndRebuild() {
-		synchronized(this) {
-			lastUpdated = System.currentTimeMillis();
-			if (rebuildThread == null) {
-				rebuildThread = new Thread() {
-					@Override
-					@SuppressWarnings({"SleepWhileInLoop", "BroadCatchBlock", "TooBroadCatch"})
-					public void run() {
-						try {
-							long lastBuilt = -1;
-							long updateCopy;
-							synchronized (BuilderThread.this) {
-								updateCopy = lastUpdated;
-							}
-							while (
-								(lastBuilt == -1 || lastBuilt < updateCopy)
-								&& !Thread.currentThread().isInterrupted()
-							) {
-								if(waitForBuildCount == 0) {
-									try {
-										synchronized(sleepLock) {
-											sleepLock.wait(getRandomDelay());
-										}
-									} catch (InterruptedException err) {
-										// Restore the interrupted status
-										Thread.currentThread().interrupt();
-									}
-								}
-								try {
-									try (
-										ProcessTimer timer=new ProcessTimer(
-											logger,
-											BuilderThread.this.getClass().getName(),
-											"delayAndRebuild",
-											getProcessTimerSubject(),
-											getProcessTimerDescription(),
-											getProcessTimerMaximumTime(),
-											getProcessTimerReminderInterval()
-										)
-									) {
-										AOServDaemon.executorService.submit(timer);
-										long buildStart=System.currentTimeMillis();
-										while(!doRebuild() && !Thread.currentThread().isInterrupted()) {
-											try {
-												synchronized(sleepLock) {
-													sleepLock.wait(getRandomDelay());
-												}
-											} catch(InterruptedException err) {
-												logger.logp(Level.WARNING, BuilderThread.this.getClass().getName(), "run", null, err);
-												// Restore the interrupted status
-												Thread.currentThread().interrupt();
-											}
-										}
-										lastBuilt = buildStart;
-										synchronized(BuilderThread.this) {
-											lastRebuild=buildStart;
-											BuilderThread.this.notifyAll();
-										}
-									}
-								} catch(ThreadDeath td) {
-									throw td;
-								} catch(Throwable t) {
-									logger.logp(Level.SEVERE, BuilderThread.this.getClass().getName(), "run", null, t);
-									try {
-										synchronized(sleepLock) {
-											sleepLock.wait(getRandomDelay());
-										}
-									} catch(InterruptedException err) {
-										logger.logp(Level.WARNING, BuilderThread.this.getClass().getName(), "run", null, err);
-										// Restore the interrupted status
-										Thread.currentThread().interrupt();
-									}
-								}
-								synchronized(BuilderThread.this) {
-									updateCopy = lastUpdated;
-								}
-							}
-							BuilderThread.this.rebuildThread = null;
-						} catch(ThreadDeath td) {
-							throw td;
-						} catch(Throwable t) {
-							logger.logp(Level.SEVERE, BuilderThread.this.getClass().getName(), "run", null, t);
-						}
-					}
-				};
-				rebuildThread.start();
-			}
-		}
-	}
+  /**
+   * Will wait a random amount of time and then call doRebuild()
+   */
+  private void delayAndRebuild() {
+    synchronized (this) {
+      lastUpdated = System.currentTimeMillis();
+      if (rebuildThread == null) {
+        rebuildThread = new Thread() {
+          @Override
+          @SuppressWarnings({"SleepWhileInLoop", "BroadCatchBlock", "TooBroadCatch"})
+          public void run() {
+            try {
+              long lastBuilt = -1;
+              long updateCopy;
+              synchronized (BuilderThread.this) {
+                updateCopy = lastUpdated;
+              }
+              while (
+                (lastBuilt == -1 || lastBuilt < updateCopy)
+                && !Thread.currentThread().isInterrupted()
+              ) {
+                if (waitForBuildCount == 0) {
+                  try {
+                    synchronized (sleepLock) {
+                      sleepLock.wait(getRandomDelay());
+                    }
+                  } catch (InterruptedException err) {
+                    // Restore the interrupted status
+                    Thread.currentThread().interrupt();
+                  }
+                }
+                try {
+                  try (
+                    ProcessTimer timer=new ProcessTimer(
+                      logger,
+                      BuilderThread.this.getClass().getName(),
+                      "delayAndRebuild",
+                      getProcessTimerSubject(),
+                      getProcessTimerDescription(),
+                      getProcessTimerMaximumTime(),
+                      getProcessTimerReminderInterval()
+                    )
+                  ) {
+                    AOServDaemon.executorService.submit(timer);
+                    long buildStart=System.currentTimeMillis();
+                    while (!doRebuild() && !Thread.currentThread().isInterrupted()) {
+                      try {
+                        synchronized (sleepLock) {
+                          sleepLock.wait(getRandomDelay());
+                        }
+                      } catch (InterruptedException err) {
+                        logger.logp(Level.WARNING, BuilderThread.this.getClass().getName(), "run", null, err);
+                        // Restore the interrupted status
+                        Thread.currentThread().interrupt();
+                      }
+                    }
+                    lastBuilt = buildStart;
+                    synchronized (BuilderThread.this) {
+                      lastRebuild=buildStart;
+                      BuilderThread.this.notifyAll();
+                    }
+                  }
+                } catch (ThreadDeath td) {
+                  throw td;
+                } catch (Throwable t) {
+                  logger.logp(Level.SEVERE, BuilderThread.this.getClass().getName(), "run", null, t);
+                  try {
+                    synchronized (sleepLock) {
+                      sleepLock.wait(getRandomDelay());
+                    }
+                  } catch (InterruptedException err) {
+                    logger.logp(Level.WARNING, BuilderThread.this.getClass().getName(), "run", null, err);
+                    // Restore the interrupted status
+                    Thread.currentThread().interrupt();
+                  }
+                }
+                synchronized (BuilderThread.this) {
+                  updateCopy = lastUpdated;
+                }
+              }
+              BuilderThread.this.rebuildThread = null;
+            } catch (ThreadDeath td) {
+              throw td;
+            } catch (Throwable t) {
+              logger.logp(Level.SEVERE, BuilderThread.this.getClass().getName(), "run", null, t);
+            }
+          }
+        };
+        rebuildThread.start();
+      }
+    }
+  }
 
-	/**
-	 * @return  <code>true</code> if successful or <code>false</code> if unsuccessful and needs to be retried.
-	 */
-	protected abstract boolean doRebuild();
+  /**
+   * @return  <code>true</code> if successful or <code>false</code> if unsuccessful and needs to be retried.
+   */
+  protected abstract boolean doRebuild();
 
-	private int waitForBuildCount=0;
-	public void waitForBuild() {
-		synchronized(this) {
-			waitForBuildCount++;
-			try {
-				// Notify rebuild thread if it is waiting on the batch
-				synchronized(sleepLock) {
-					sleepLock.notify(); // notifyAll() not needed, since will only ever be one thread
-				}
+  private int waitForBuildCount=0;
+  public void waitForBuild() {
+    synchronized (this) {
+      waitForBuildCount++;
+      try {
+        // Notify rebuild thread if it is waiting on the batch
+        synchronized (sleepLock) {
+          sleepLock.notify(); // notifyAll() not needed, since will only ever be one thread
+        }
 
-				long updated = lastUpdated;
-				while(updated <= lastUpdated && updated > lastRebuild && !Thread.currentThread().isInterrupted()) {
-					try {
-						wait();
-					} catch(InterruptedException err) {
-						logger.log(Level.WARNING, null, err);
-						// Restore the interrupted status
-						Thread.currentThread().interrupt();
-					}
-				}
-			} finally {
-				waitForBuildCount--;
-				notifyAll();
-			}
-		}
-	}
+        long updated = lastUpdated;
+        while (updated <= lastUpdated && updated > lastRebuild && !Thread.currentThread().isInterrupted()) {
+          try {
+            wait();
+          } catch (InterruptedException err) {
+            logger.log(Level.WARNING, null, err);
+            // Restore the interrupted status
+            Thread.currentThread().interrupt();
+          }
+        }
+      } finally {
+        waitForBuildCount--;
+        notifyAll();
+      }
+    }
+  }
 
-	public String getProcessTimerSubject() {
-		return getProcessTimerDescription()+" is taking too long";
-	}
+  public String getProcessTimerSubject() {
+    return getProcessTimerDescription()+" is taking too long";
+  }
 
-	public abstract String getProcessTimerDescription();
+  public abstract String getProcessTimerDescription();
 
-	public long getProcessTimerMaximumTime() {
-		return DEFAULT_PROCESS_TIMER_MAXIMUM_TIME;
-	}
+  public long getProcessTimerMaximumTime() {
+    return DEFAULT_PROCESS_TIMER_MAXIMUM_TIME;
+  }
 
-	public long getProcessTimerReminderInterval() {
-		return DEFAULT_PROCESS_TIMER_REMINDER_INTERVAL;
-	}
+  public long getProcessTimerReminderInterval() {
+    return DEFAULT_PROCESS_TIMER_REMINDER_INTERVAL;
+  }
 
-	public final int getRandomDelay() {
-		int min=getMinimumDelay();
-		int max=getMaximumDelay();
-		if(min>max) throw new RuntimeException("getMinimumDelay() is greater than getMaximumDelay()");
-		int deviation=max-min;
-		if(deviation==0) return min;
-		return min+AOServDaemon.getFastRandom().nextInt(deviation);
-	}
+  public final int getRandomDelay() {
+    int min=getMinimumDelay();
+    int max=getMaximumDelay();
+    if (min>max) {
+      throw new RuntimeException("getMinimumDelay() is greater than getMaximumDelay()");
+    }
+    int deviation=max-min;
+    if (deviation == 0) {
+      return min;
+    }
+    return min+AOServDaemon.getFastRandom().nextInt(deviation);
+  }
 
-	/**
-	 * The delay is random between the minimum and maximum.
-	 */
-	public int getMinimumDelay() {
-		return DEFAULT_MINIMUM_DELAY;
-	}
+  /**
+   * The delay is random between the minimum and maximum.
+   */
+  public int getMinimumDelay() {
+    return DEFAULT_MINIMUM_DELAY;
+  }
 
-	/**
-	 * The delay is random between the minimum and maximum.
-	 */
-	public int getMaximumDelay() {
-		return DEFAULT_MAXIMUM_DELAY;
-	}
+  /**
+   * The delay is random between the minimum and maximum.
+   */
+  public int getMaximumDelay() {
+    return DEFAULT_MAXIMUM_DELAY;
+  }
 }

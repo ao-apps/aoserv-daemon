@@ -38,69 +38,69 @@ import java.io.InputStreamReader;
  */
 public final class MySQLAdmin extends DBReportData {
 
-	public final int questions;
-	public final int slow_queries;
-	public final int opens;
-	public final int flush_tables;
-	public final int open_tables;
-	public final float queries_per_second;
+  public final int questions;
+  public final int slow_queries;
+  public final int opens;
+  public final int flush_tables;
+  public final int open_tables;
+  public final float queries_per_second;
 
-	public MySQLAdmin() throws IOException {
-		// TODO: Do once per MySQLServer instance
-		// TODO: Implement in NOC
-		String user = "TODO"; // AOServDaemonConfiguration.getMySqlUser();
-		String password = "TODO"; // AOServDaemonConfiguration.getMySqlPassword();
-		if(user!=null && user.length()>0 && password!=null && password.length()>0) {
-			String line = AOServDaemon.execCall(
-				stdout -> {
-					try (BufferedReader lineIn = new BufferedReader(new InputStreamReader(stdout))) {
-						return lineIn.readLine();
-					}
-				},
-				"/usr/bin/mysqladmin",
-				"-h",
-				IpAddress.LOOPBACK_IP,
-				"-u",
-				user,
-				"--password="+password, // TODO: use --login-path
-				"status"
-			);
-			// Parse out the number of users
-			String[] words = Strings.split(line);
-			numUsers=Integer.parseInt(words[3]);
-			questions=Integer.parseInt(words[5]);
-			slow_queries=Integer.parseInt(words[8]);
-			opens=Integer.parseInt(words[10]);
-			flush_tables=Integer.parseInt(words[13]);
-			open_tables=Integer.parseInt(words[16]);
-			queries_per_second=Float.parseFloat(words[21]);
-		} else {
-			numUsers=questions=slow_queries=opens=flush_tables=open_tables=0;
-			queries_per_second=0;
-		}
-	}
+  public MySQLAdmin() throws IOException {
+    // TODO: Do once per MySQLServer instance
+    // TODO: Implement in NOC
+    String user = "TODO"; // AOServDaemonConfiguration.getMySqlUser();
+    String password = "TODO"; // AOServDaemonConfiguration.getMySqlPassword();
+    if (user != null && user.length()>0 && password != null && password.length()>0) {
+      String line = AOServDaemon.execCall(
+        stdout -> {
+          try (BufferedReader lineIn = new BufferedReader(new InputStreamReader(stdout))) {
+            return lineIn.readLine();
+          }
+        },
+        "/usr/bin/mysqladmin",
+        "-h",
+        IpAddress.LOOPBACK_IP,
+        "-u",
+        user,
+        "--password="+password, // TODO: use --login-path
+        "status"
+      );
+      // Parse out the number of users
+      String[] words = Strings.split(line);
+      numUsers=Integer.parseInt(words[3]);
+      questions=Integer.parseInt(words[5]);
+      slow_queries=Integer.parseInt(words[8]);
+      opens=Integer.parseInt(words[10]);
+      flush_tables=Integer.parseInt(words[13]);
+      open_tables=Integer.parseInt(words[16]);
+      queries_per_second=Float.parseFloat(words[21]);
+    } else {
+      numUsers=questions=slow_queries=opens=flush_tables=open_tables=0;
+      queries_per_second=0;
+    }
+  }
 
-	@SuppressWarnings("UseOfSystemOutOrSystemErr")
-	public static void main(String[] args) {
-		try {
-			System.err.println(new MySQLAdmin());
-			System.exit(0);
-		} catch(IOException err) {
-			ErrorPrinter.printStackTraces(err, System.err);
-			System.exit(1);
-		}
-	}
+  @SuppressWarnings("UseOfSystemOutOrSystemErr")
+  public static void main(String[] args) {
+    try {
+      System.err.println(new MySQLAdmin());
+      System.exit(0);
+    } catch (IOException err) {
+      ErrorPrinter.printStackTraces(err, System.err);
+      System.exit(1);
+    }
+  }
 
-	@Override
-	public String toString() {
-		return
-			super.toString()
-			+ "&questions="+questions
-			+ "&slow_queries="+slow_queries
-			+ "&opens="+opens
-			+ "&flush_tables="+flush_tables
-			+ "&open_tables="+open_tables
-			+ "&queries_per_second="+queries_per_second
-		;
-	}
+  @Override
+  public String toString() {
+    return
+      super.toString()
+      + "&questions="+questions
+      + "&slow_queries="+slow_queries
+      + "&opens="+opens
+      + "&flush_tables="+flush_tables
+      + "&open_tables="+open_tables
+      + "&queries_per_second="+queries_per_second
+    ;
+  }
 }

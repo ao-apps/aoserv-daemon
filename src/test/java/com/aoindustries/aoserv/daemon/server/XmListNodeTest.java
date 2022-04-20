@@ -37,22 +37,22 @@ import junit.framework.TestSuite;
  */
 public class XmListNodeTest extends TestCase {
 
-	public XmListNodeTest(String testName) {
-		super(testName);
-	}
+  public XmListNodeTest(String testName) {
+    super(testName);
+  }
 
-	public static Test suite() {
-		TestSuite suite = new TestSuite(XmListNodeTest.class);
-		return suite;
-	}
+  public static Test suite() {
+    TestSuite suite = new TestSuite(XmListNodeTest.class);
+    return suite;
+  }
 
-	public void testXmListNode() throws IOException, ParseException {
-		String parseme;
-		try (Reader in = new InputStreamReader(XmListNodeTest.class.getResourceAsStream("XmListNode-test1.txt"))) {
-			StringBuilder sb = new StringBuilder();
-			IoUtils.copy(in, sb);
-			parseme = sb.toString();
-		}
-		XmListNode.parseResult(parseme);
-	}
+  public void testXmListNode() throws IOException, ParseException {
+    String parseme;
+    try (Reader in = new InputStreamReader(XmListNodeTest.class.getResourceAsStream("XmListNode-test1.txt"))) {
+      StringBuilder sb = new StringBuilder();
+      IoUtils.copy(in, sb);
+      parseme = sb.toString();
+    }
+    XmListNode.parseResult(parseme);
+  }
 }

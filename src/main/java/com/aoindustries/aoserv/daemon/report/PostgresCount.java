@@ -38,63 +38,65 @@ import java.sql.SQLException;
  */
 public final class PostgresCount extends DBReportData {
 
-	private static final File proc = new File("/proc");
+  private static final File proc = new File("/proc");
 
-	public PostgresCount() throws IOException, SQLException {
-		int total=0;
-		// Only the outer-most server counts the postgres processes
-		if(AOServDaemon.getThisServer().getFailoverServer() == null) {
-			String[] list=proc.list();
-			int len=list.length;
-			for(int c=0;c<len;c++) {
-				String filename=list[c];
-				char ch=filename.charAt(0);
-				if(ch>='0' && ch<='9') {
-					File file=new File(proc, filename);
-					if(file.isDirectory()) {
-						try {
-							try (FileInputStream in = new FileInputStream(new File(file, "cmdline"))) {
-								if(
-									in.read()=='/'
-									&& in.read()=='u'
-									&& in.read()=='s'
-									&& in.read()=='r'
-									&& in.read()=='/'
-									&& in.read()=='b'
-									&& in.read()=='i'
-									&& in.read()=='n'
-									&& in.read()=='/'
-									&& in.read()=='p'
-									&& in.read()=='o'
-									&& in.read()=='s'
-									&& in.read()=='t'
-									&& in.read()=='g'
-									&& in.read()=='r'
-									&& in.read()=='e'
-									&& in.read()=='s'
-								) total++;
-							}
-						} catch(FileNotFoundException err) {
-							// Normal, if process has exited
-						}
-					}
-				}
-			}
-		}
-		numUsers=total;
-	}
+  public PostgresCount() throws IOException, SQLException {
+    int total=0;
+    // Only the outer-most server counts the postgres processes
+    if (AOServDaemon.getThisServer().getFailoverServer() == null) {
+      String[] list=proc.list();
+      int len=list.length;
+      for (int c=0;c<len;c++) {
+        String filename=list[c];
+        char ch=filename.charAt(0);
+        if (ch >= '0' && ch <= '9') {
+          File file=new File(proc, filename);
+          if (file.isDirectory()) {
+            try {
+              try (FileInputStream in = new FileInputStream(new File(file, "cmdline"))) {
+                if (
+                  in.read() == '/'
+                  && in.read() == 'u'
+                  && in.read() == 's'
+                  && in.read() == 'r'
+                  && in.read() == '/'
+                  && in.read() == 'b'
+                  && in.read() == 'i'
+                  && in.read() == 'n'
+                  && in.read() == '/'
+                  && in.read() == 'p'
+                  && in.read() == 'o'
+                  && in.read() == 's'
+                  && in.read() == 't'
+                  && in.read() == 'g'
+                  && in.read() == 'r'
+                  && in.read() == 'e'
+                  && in.read() == 's'
+                ) {
+                  total++;
+                }
+              }
+            } catch (FileNotFoundException err) {
+              // Normal, if process has exited
+            }
+          }
+        }
+      }
+    }
+    numUsers=total;
+  }
 
-	@SuppressWarnings("UseOfSystemOutOrSystemErr")
-	public static void main(String[] args) {
-		try {
-			System.err.println(new PostgresCount());
-			System.exit(0);
-		} catch(IOException err) {
-			ErrorPrinter.printStackTraces(err, System.err);
-			System.exit(1);
-		} catch(SQLException err) {
-			ErrorPrinter.printStackTraces(err, System.err);
-			System.exit(2);
-		}
-	}
+  @SuppressWarnings("UseOfSystemOutOrSystemErr")
+  public static void main(String[] args) {
+    try {
+      System.err.println(new PostgresCount());
+      System.exit(0);
+    } catch (IOException err) {
+      ErrorPrinter.printStackTraces(err, System.err);
+      System.exit(1);
+    } catch (SQLException err) {
+      ErrorPrinter.printStackTraces(err, System.err);
+      System.exit(2);
+    }
+  }
 }

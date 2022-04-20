@@ -43,200 +43,200 @@ import java.nio.charset.StandardCharsets;
  */
 public abstract class Install {
 
-	protected final String path;
+  protected final String path;
 
-	protected Install(String path) {
-		this.path = path;
-	}
+  protected Install(String path) {
+    this.path = path;
+  }
 
-	public String getPath() {
-		return path;
-	}
+  public String getPath() {
+    return path;
+  }
 
-	public abstract void install(String optSlash, String apacheTomcatDir, PosixFile installDir, int uid, int gid, String backupSuffix) throws IOException;
+  public abstract void install(String optSlash, String apacheTomcatDir, PosixFile installDir, int uid, int gid, String backupSuffix) throws IOException;
 
-	public static class Delete extends Install {
+  public static class Delete extends Install {
 
-		public Delete(String path) {
-			super(path);
-		}
+    public Delete(String path) {
+      super(path);
+    }
 
-		@Override
-		public void install(String optSlash, String apacheTomcatDir, PosixFile installDir, int uid, int gid, String backupSuffix) throws IOException {
-			PosixFile uf = new PosixFile(installDir, path, true);
-			if(uf.getStat().exists()) {
-				uf.renameTo(DaemonFileUtils.findUnusedBackup(uf + backupSuffix, BACKUP_SEPARATOR, BACKUP_EXTENSION));
-			}
-		}
-	}
+    @Override
+    public void install(String optSlash, String apacheTomcatDir, PosixFile installDir, int uid, int gid, String backupSuffix) throws IOException {
+      PosixFile uf = new PosixFile(installDir, path, true);
+      if (uf.getStat().exists()) {
+        uf.renameTo(DaemonFileUtils.findUnusedBackup(uf + backupSuffix, BACKUP_SEPARATOR, BACKUP_EXTENSION));
+      }
+    }
+  }
 
-	public static class Mkdir extends Install {
+  public static class Mkdir extends Install {
 
-		protected final int mode;
+    protected final int mode;
 
-		public Mkdir(String path, int mode) {
-			super(path);
-			this.mode = mode;
-		}
+    public Mkdir(String path, int mode) {
+      super(path);
+      this.mode = mode;
+    }
 
-		public int getMode() {
-			return mode;
-		}
+    public int getMode() {
+      return mode;
+    }
 
-		@Override
-		public void install(String optSlash, String apacheTomcatDir, PosixFile installDir, int uid, int gid, String backupSuffix) throws IOException {
-			PosixFile uf = new PosixFile(installDir, path, true);
-			DaemonFileUtils.mkdir(
-				uf, mode, uid, gid,
-				DaemonFileUtils.findUnusedBackup(uf + backupSuffix, BACKUP_SEPARATOR, BACKUP_EXTENSION)
-			);
-		}
-	}
+    @Override
+    public void install(String optSlash, String apacheTomcatDir, PosixFile installDir, int uid, int gid, String backupSuffix) throws IOException {
+      PosixFile uf = new PosixFile(installDir, path, true);
+      DaemonFileUtils.mkdir(
+        uf, mode, uid, gid,
+        DaemonFileUtils.findUnusedBackup(uf + backupSuffix, BACKUP_SEPARATOR, BACKUP_EXTENSION)
+      );
+    }
+  }
 
-	public static class Symlink extends Install {
+  public static class Symlink extends Install {
 
-		protected final String target;
+    protected final String target;
 
-		public Symlink(String path, String target) {
-			super(path);
-			this.target = target;
-		}
+    public Symlink(String path, String target) {
+      super(path);
+      this.target = target;
+    }
 
-		public Symlink(String path) {
-			this(path, null);
-		}
+    public Symlink(String path) {
+      this(path, null);
+    }
 
-		public String getTarget() {
-			return target;
-		}
+    public String getTarget() {
+      return target;
+    }
 
-		@Override
-		public void install(String optSlash, String apacheTomcatDir, PosixFile installDir, int uid, int gid, String backupSuffix) throws IOException {
-			PosixFile uf = new PosixFile(installDir, path, true);
-			DaemonFileUtils.ln(
-				(target == null)
-					? ("../" + optSlash + apacheTomcatDir + "/" + path)
-					: target,
-				uf, uid, gid,
-				DaemonFileUtils.findUnusedBackup(uf + backupSuffix, BACKUP_SEPARATOR, BACKUP_EXTENSION)
-			);
-		}
-	}
+    @Override
+    public void install(String optSlash, String apacheTomcatDir, PosixFile installDir, int uid, int gid, String backupSuffix) throws IOException {
+      PosixFile uf = new PosixFile(installDir, path, true);
+      DaemonFileUtils.ln(
+        (target == null)
+          ? ("../" + optSlash + apacheTomcatDir + "/" + path)
+          : target,
+        uf, uid, gid,
+        DaemonFileUtils.findUnusedBackup(uf + backupSuffix, BACKUP_SEPARATOR, BACKUP_EXTENSION)
+      );
+    }
+  }
 
-	public static class SymlinkAll extends Install {
+  public static class SymlinkAll extends Install {
 
-		public SymlinkAll(String path) {
-			super(path);
-		}
+    public SymlinkAll(String path) {
+      super(path);
+    }
 
-		@Override
-		public void install(String optSlash, String apacheTomcatDir, PosixFile installDir, int uid, int gid, String backupSuffix) throws IOException {
-			PosixFile uf = new PosixFile(installDir, path, true);
-			DaemonFileUtils.lnAll(
-				"../" + optSlash + apacheTomcatDir + "/" + path + "/",
-				uf, uid, gid,
-				backupSuffix, BACKUP_SEPARATOR, BACKUP_EXTENSION
-			);
-		}
-	}
+    @Override
+    public void install(String optSlash, String apacheTomcatDir, PosixFile installDir, int uid, int gid, String backupSuffix) throws IOException {
+      PosixFile uf = new PosixFile(installDir, path, true);
+      DaemonFileUtils.lnAll(
+        "../" + optSlash + apacheTomcatDir + "/" + path + "/",
+        uf, uid, gid,
+        backupSuffix, BACKUP_SEPARATOR, BACKUP_EXTENSION
+      );
+    }
+  }
 
-	public static class Copy extends Install {
+  public static class Copy extends Install {
 
-		protected final int mode;
+    protected final int mode;
 
-		public Copy(String path, int mode) {
-			super(path);
-			this.mode = mode;
-		}
+    public Copy(String path, int mode) {
+      super(path);
+      this.mode = mode;
+    }
 
-		public int getMode() {
-			return mode;
-		}
+    public int getMode() {
+      return mode;
+    }
 
-		@Override
-		public void install(String optSlash, String apacheTomcatDir, PosixFile installDir, int uid, int gid, String backupSuffix) throws IOException {
-			PosixFile uf = new PosixFile(installDir, path, true);
-			ByteArrayOutputStream bout = new ByteArrayOutputStream();
-			try (InputStream in = new FileInputStream("/opt/" + apacheTomcatDir + "/" + path)) {
-				IoUtils.copy(in, bout);
-			}
-			DaemonFileUtils.atomicWrite(
-				uf, bout.toByteArray(), mode, uid, gid,
-				DaemonFileUtils.findUnusedBackup(uf + backupSuffix, BACKUP_SEPARATOR, BACKUP_EXTENSION),
-				null
-			);
-		}
-	}
+    @Override
+    public void install(String optSlash, String apacheTomcatDir, PosixFile installDir, int uid, int gid, String backupSuffix) throws IOException {
+      PosixFile uf = new PosixFile(installDir, path, true);
+      ByteArrayOutputStream bout = new ByteArrayOutputStream();
+      try (InputStream in = new FileInputStream("/opt/" + apacheTomcatDir + "/" + path)) {
+        IoUtils.copy(in, bout);
+      }
+      DaemonFileUtils.atomicWrite(
+        uf, bout.toByteArray(), mode, uid, gid,
+        DaemonFileUtils.findUnusedBackup(uf + backupSuffix, BACKUP_SEPARATOR, BACKUP_EXTENSION),
+        null
+      );
+    }
+  }
 
-	public static class Generated extends Install {
+  public static class Generated extends Install {
 
-		@FunctionalInterface
-		public static interface ContentGenerator {
-			byte[] generateContent(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException;
-		}
+    @FunctionalInterface
+    public static interface ContentGenerator {
+      byte[] generateContent(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException;
+    }
 
-		protected final int mode;
+    protected final int mode;
 
-		protected final ContentGenerator contentGenerator;
+    protected final ContentGenerator contentGenerator;
 
-		public Generated(String path, int mode, ContentGenerator contentGenerator) {
-			super(path);
-			this.mode = mode;
-			this.contentGenerator = contentGenerator;
-		}
+    public Generated(String path, int mode, ContentGenerator contentGenerator) {
+      super(path);
+      this.mode = mode;
+      this.contentGenerator = contentGenerator;
+    }
 
-		public int getMode() {
-			return mode;
-		}
+    public int getMode() {
+      return mode;
+    }
 
-		public ContentGenerator getContentGenerator() {
-			return contentGenerator;
-		}
+    public ContentGenerator getContentGenerator() {
+      return contentGenerator;
+    }
 
-		@Override
-		public void install(String optSlash, String apacheTomcatDir, PosixFile installDir, int uid, int gid, String backupSuffix) throws IOException {
-			PosixFile uf = new PosixFile(installDir, path, true);
-			DaemonFileUtils.atomicWrite(
-				uf, contentGenerator.generateContent(optSlash, apacheTomcatDir, installDir), mode, uid, gid,
-				DaemonFileUtils.findUnusedBackup(uf + backupSuffix, BACKUP_SEPARATOR, BACKUP_EXTENSION),
-				null
-			);
-		}
-	}
+    @Override
+    public void install(String optSlash, String apacheTomcatDir, PosixFile installDir, int uid, int gid, String backupSuffix) throws IOException {
+      PosixFile uf = new PosixFile(installDir, path, true);
+      DaemonFileUtils.atomicWrite(
+        uf, contentGenerator.generateContent(optSlash, apacheTomcatDir, installDir), mode, uid, gid,
+        DaemonFileUtils.findUnusedBackup(uf + backupSuffix, BACKUP_SEPARATOR, BACKUP_EXTENSION),
+        null
+      );
+    }
+  }
 
-	public static class ProfileScript extends Generated {
+  public static class ProfileScript extends Generated {
 
-		public ProfileScript(String path, int mode) {
-			super(
-				path,
-				mode,
-				(optSlash, apacheTomcatDir, installDir) -> {
-					ByteArrayOutputStream bout = new ByteArrayOutputStream();
-					try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
-						out.print("#!/bin/sh\n"
-								+ "#\n"
-								+ "# Generated by ").print(ProfileScript.class.getName()).print("\n"
-								+ "#\n"
-								+ "\n"
-								+ "# Reset environment\n"
-								+ "if [ \"${AOSERV_PROFILE_RESET:-}\" != 'true' ]; then\n"
-								+ "    exec env -i AOSERV_PROFILE_RESET='true' \"$0\" \"$@\"\n"
-								+ "fi\n"
-								+ "unset AOSERV_PROFILE_RESET\n"
-								+ "\n"
-								+ "# Load application environment\n"
-								+ "export AOSERV_PROFILE_D='").print(installDir).print("/bin/profile.d'\n"
-								+ ". /etc/profile\n"
-								+ "\n"
-								+ "exec '/opt/").print(apacheTomcatDir).print('/').print(path).print("' \"$@\"\n");
-					}
-					return bout.toByteArray();
-				}
-			);
-		}
+    public ProfileScript(String path, int mode) {
+      super(
+        path,
+        mode,
+        (optSlash, apacheTomcatDir, installDir) -> {
+          ByteArrayOutputStream bout = new ByteArrayOutputStream();
+          try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
+            out.print("#!/bin/sh\n"
+                + "#\n"
+                + "# Generated by ").print(ProfileScript.class.getName()).print("\n"
+                + "#\n"
+                + "\n"
+                + "# Reset environment\n"
+                + "if [ \"${AOSERV_PROFILE_RESET:-}\" != 'true' ]; then\n"
+                + "    exec env -i AOSERV_PROFILE_RESET='true' \"$0\" \"$@\"\n"
+                + "fi\n"
+                + "unset AOSERV_PROFILE_RESET\n"
+                + "\n"
+                + "# Load application environment\n"
+                + "export AOSERV_PROFILE_D='").print(installDir).print("/bin/profile.d'\n"
+                + ". /etc/profile\n"
+                + "\n"
+                + "exec '/opt/").print(apacheTomcatDir).print('/').print(path).print("' \"$@\"\n");
+          }
+          return bout.toByteArray();
+        }
+      );
+    }
 
-		public ProfileScript(String path) {
-			this(path, 0700);
-		}
-	}
+    public ProfileScript(String path) {
+      this(path, 0700);
+    }
+  }
 }

@@ -32,14 +32,14 @@ import com.aoapps.lang.EmptyArrays;
  */
 public final class DF {
 
-	public final int[] device_majors;
-	public final int[] device_minors;
-	public final long[] totals;
-	public final long[] useds;
-	public final long[] frees;
+  public final int[] device_majors;
+  public final int[] device_minors;
+  public final long[] totals;
+  public final long[] useds;
+  public final long[] frees;
 
-	public DF() {
-		device_majors=device_minors = EmptyArrays.EMPTY_INT_ARRAY;
-		totals=useds=frees = EmptyArrays.EMPTY_LONG_ARRAY;
-	}
+  public DF() {
+    device_majors=device_minors = EmptyArrays.EMPTY_INT_ARRAY;
+    totals=useds=frees = EmptyArrays.EMPTY_LONG_ARRAY;
+  }
 }

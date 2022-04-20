@@ -33,24 +33,24 @@ import java.sql.SQLException;
  */
 public interface StopStartable {
 
-	/**
-	 * Determines if the persistent processes for this site should be running.
-	 */
-	boolean isStartable() throws IOException, SQLException;
+  /**
+   * Determines if the persistent processes for this site should be running.
+   */
+  boolean isStartable() throws IOException, SQLException;
 
-	/**
-	 * Stops all processes for this website if it is running.
-	 *
-	 * @return  <code>true</code> if actually stopped or <code>false</code> if was already stopped
-	 *          or {@code null} when unknown
-	 */
-	Boolean stop() throws IOException, SQLException;
+  /**
+   * Stops all processes for this website if it is running.
+   *
+   * @return  <code>true</code> if actually stopped or <code>false</code> if was already stopped
+   *          or {@code null} when unknown
+   */
+  Boolean stop() throws IOException, SQLException;
 
-	/**
-	 * Starts all processes for this website if it is not running.
-	 *
-	 * @return  <code>true</code> if actually started or <code>false</code> if was already started
-	 *          or {@code null} when unknown
-	 */
-	Boolean start() throws IOException, SQLException;
+  /**
+   * Starts all processes for this website if it is not running.
+   *
+   * @return  <code>true</code> if actually started or <code>false</code> if was already started
+   *          or {@code null} when unknown
+   */
+  Boolean start() throws IOException, SQLException;
 }

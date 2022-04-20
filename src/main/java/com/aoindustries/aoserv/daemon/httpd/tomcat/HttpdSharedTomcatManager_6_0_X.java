@@ -65,509 +65,542 @@ import java.util.logging.Logger;
  */
 class HttpdSharedTomcatManager_6_0_X extends HttpdSharedTomcatManager<TomcatCommon_6_0_X> {
 
-	private static final Logger logger = Logger.getLogger(HttpdSharedTomcatManager_6_0_X.class.getName());
+  private static final Logger logger = Logger.getLogger(HttpdSharedTomcatManager_6_0_X.class.getName());
 
-	HttpdSharedTomcatManager_6_0_X(SharedTomcat sharedTomcat) {
-		super(sharedTomcat);
-	}
+  HttpdSharedTomcatManager_6_0_X(SharedTomcat sharedTomcat) {
+    super(sharedTomcat);
+  }
 
-	@Override
-	TomcatCommon_6_0_X getTomcatCommon() {
-		return TomcatCommon_6_0_X.getInstance();
-	}
+  @Override
+  TomcatCommon_6_0_X getTomcatCommon() {
+    return TomcatCommon_6_0_X.getInstance();
+  }
 
-	@Override
-	void buildSharedTomcatDirectory(String optSlash, PosixFile sharedTomcatDirectory, List<File> deleteFileList, Set<SharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
-		/*
-		 * Get values used in the rest of the loop.
-		 */
-		final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
-		final HttpdOperatingSystemConfiguration httpdConfig = osConfig.getHttpdOperatingSystemConfiguration();
-		final Server thisServer = AOServDaemon.getThisServer();
-		int uid_min = thisServer.getUidMin().getId();
-		int gid_min = thisServer.getGidMin().getId();
-		final TomcatCommon_6_0_X tomcatCommon = getTomcatCommon();
-		final UserServer lsa = sharedTomcat.getLinuxServerAccount();
-		final int lsaUID = lsa.getUid().getId();
-		final GroupServer lsg = sharedTomcat.getLinuxServerGroup();
-		final int lsgGID = lsg.getGid().getId();
-		final String wwwGroupDir = sharedTomcatDirectory.getPath();
-		final PosixFile bin = new PosixFile(sharedTomcatDirectory, "bin", false);
-		final PosixFile tomcatUF = new PosixFile(bin, "tomcat", false);
-		final PosixPath wwwDirectory = httpdConfig.getHttpdSitesDirectory();
-		final PosixFile sitesFile = new PosixFile(bin, "profile.sites", false);
-		final PosixFile conf = new PosixFile(sharedTomcatDirectory, "conf", false);
-		final PosixFile daemonUF = new PosixFile(sharedTomcatDirectory, "daemon", false);
+  @Override
+  void buildSharedTomcatDirectory(String optSlash, PosixFile sharedTomcatDirectory, List<File> deleteFileList, Set<SharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
+    /*
+     * Get values used in the rest of the loop.
+     */
+    final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
+    final HttpdOperatingSystemConfiguration httpdConfig = osConfig.getHttpdOperatingSystemConfiguration();
+    final Server thisServer = AOServDaemon.getThisServer();
+    int uid_min = thisServer.getUidMin().getId();
+    int gid_min = thisServer.getGidMin().getId();
+    final TomcatCommon_6_0_X tomcatCommon = getTomcatCommon();
+    final UserServer lsa = sharedTomcat.getLinuxServerAccount();
+    final int lsaUID = lsa.getUid().getId();
+    final GroupServer lsg = sharedTomcat.getLinuxServerGroup();
+    final int lsgGID = lsg.getGid().getId();
+    final String wwwGroupDir = sharedTomcatDirectory.getPath();
+    final PosixFile bin = new PosixFile(sharedTomcatDirectory, "bin", false);
+    final PosixFile tomcatUF = new PosixFile(bin, "tomcat", false);
+    final PosixPath wwwDirectory = httpdConfig.getHttpdSitesDirectory();
+    final PosixFile sitesFile = new PosixFile(bin, "profile.sites", false);
+    final PosixFile conf = new PosixFile(sharedTomcatDirectory, "conf", false);
+    final PosixFile daemonUF = new PosixFile(sharedTomcatDirectory, "daemon", false);
 
-		// Create and fill in the directory if it does not exist or is owned by root.
-		PosixFile workUF = new PosixFile(sharedTomcatDirectory, "work", false);
-		PosixFile innerWorkUF = new PosixFile(workUF, "Catalina", false);
+    // Create and fill in the directory if it does not exist or is owned by root.
+    PosixFile workUF = new PosixFile(sharedTomcatDirectory, "work", false);
+    PosixFile innerWorkUF = new PosixFile(workUF, "Catalina", false);
 
-		boolean needRestart=false;
-		Stat sharedTomcatStat = sharedTomcatDirectory.getStat();
-		if (!sharedTomcatStat.exists() || sharedTomcatStat.getUid() == PosixFile.ROOT_GID) {
+    boolean needRestart=false;
+    Stat sharedTomcatStat = sharedTomcatDirectory.getStat();
+    if (!sharedTomcatStat.exists() || sharedTomcatStat.getUid() == PosixFile.ROOT_GID) {
 
-			// Create the /wwwgroup/name/...
+      // Create the /wwwgroup/name/...
 
-			// 001
-			if (!sharedTomcatStat.exists()) sharedTomcatDirectory.mkdir();
-			sharedTomcatDirectory.setMode(0770);
-			bin.mkdir().chown(lsaUID, lsgGID).setMode(0770);
-			conf.mkdir().chown(lsaUID, lsgGID).setMode(0770);
-			new PosixFile(conf, "Catalina", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
-			daemonUF.mkdir().chown(lsaUID, lsgGID).setMode(0770);
-			DaemonFileUtils.ln("var/log", wwwGroupDir+"/logs", lsaUID, lsgGID);
-			DaemonFileUtils.mkdir(wwwGroupDir+"/temp", 0770, lsaUID, lsgGID);
-			PosixFile varUF = new PosixFile(sharedTomcatDirectory, "var", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
-			new PosixFile(varUF, "log", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
-			new PosixFile(varUF, "run", false).mkdir().chown(lsaUID, lsgGID).setMode(0700);
+      // 001
+      if (!sharedTomcatStat.exists()) {
+        sharedTomcatDirectory.mkdir();
+      }
+      sharedTomcatDirectory.setMode(0770);
+      bin.mkdir().chown(lsaUID, lsgGID).setMode(0770);
+      conf.mkdir().chown(lsaUID, lsgGID).setMode(0770);
+      new PosixFile(conf, "Catalina", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
+      daemonUF.mkdir().chown(lsaUID, lsgGID).setMode(0770);
+      DaemonFileUtils.ln("var/log", wwwGroupDir+"/logs", lsaUID, lsgGID);
+      DaemonFileUtils.mkdir(wwwGroupDir+"/temp", 0770, lsaUID, lsgGID);
+      PosixFile varUF = new PosixFile(sharedTomcatDirectory, "var", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
+      new PosixFile(varUF, "log", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
+      new PosixFile(varUF, "run", false).mkdir().chown(lsaUID, lsgGID).setMode(0700);
 
-			workUF.mkdir().chown(lsaUID, lsgGID).setMode(0750);
-			DaemonFileUtils.mkdir(innerWorkUF.getPath(), 0750, lsaUID, lsgGID);
+      workUF.mkdir().chown(lsaUID, lsgGID).setMode(0750);
+      DaemonFileUtils.mkdir(innerWorkUF.getPath(), 0750, lsaUID, lsgGID);
 
-			DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-6.0/bin/bootstrap.jar", wwwGroupDir+"/bin/bootstrap.jar", lsaUID, lsgGID);
-			DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-6.0/bin/catalina.sh", wwwGroupDir+"/bin/catalina.sh", lsaUID, lsgGID);
-			DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-6.0/bin/commons-daemon.jar", wwwGroupDir+"/bin/commons-daemon.jar", lsaUID, lsgGID);
-			DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-6.0/bin/digest.sh", wwwGroupDir+"/bin/digest.sh", lsaUID, lsgGID);
+      DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-6.0/bin/bootstrap.jar", wwwGroupDir+"/bin/bootstrap.jar", lsaUID, lsgGID);
+      DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-6.0/bin/catalina.sh", wwwGroupDir+"/bin/catalina.sh", lsaUID, lsgGID);
+      DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-6.0/bin/commons-daemon.jar", wwwGroupDir+"/bin/commons-daemon.jar", lsaUID, lsgGID);
+      DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-6.0/bin/digest.sh", wwwGroupDir+"/bin/digest.sh", lsaUID, lsgGID);
 
-			PosixFile profileUF = new PosixFile(bin, "profile", false);
-			LinuxAccountManager.setBashProfile(lsa, profileUF.getPath());
+      PosixFile profileUF = new PosixFile(bin, "profile", false);
+      LinuxAccountManager.setBashProfile(lsa, profileUF.getPath());
 
-			try (
-				ChainWriter out = new ChainWriter(
-					new BufferedOutputStream(
-						profileUF.getSecureOutputStream(lsaUID, lsgGID, 0750, false, uid_min, gid_min)
-					)
-				)
-			) {
-				out.print("#!/bin/sh\n"
-						  + "\n");
+      try (
+        ChainWriter out = new ChainWriter(
+          new BufferedOutputStream(
+            profileUF.getSecureOutputStream(lsaUID, lsgGID, 0750, false, uid_min, gid_min)
+          )
+        )
+      ) {
+        out.print("#!/bin/sh\n"
+              + "\n");
 
-				out.print(". /etc/profile\n"
-						+ ". ").print(osConfig.getDefaultJdkProfileSh()).print('\n');
-				out.print("\n"
-						+ "umask 002\n"
-						+ "\n"
-						+ "export CATALINA_BASE=\"").print(wwwGroupDir).print("\"\n"
-						+ "export CATALINA_HOME=\"").print(wwwGroupDir).print("\"\n"
-						+ "export CATALINA_TEMP=\"").print(wwwGroupDir).print("/temp\"\n"
-				);
-				out.print("\n"
-						+ "export PATH=\"${PATH}:").print(bin).print("\"\n"
-						+ "\n"
-						+ "export JAVA_OPTS='-server -Djava.awt.headless=true -Xmx128M -Djdk.disableLastUsageTracking=true'\n"
-						+ "\n");
-				out.print(". ").print(sitesFile).print("\n"
-						+ "\n"
-						+ "for SITE in $SITES\n"
-						+ "do\n"
-						+ "    export PATH=\"${PATH}:").print(wwwDirectory).print("/${SITE}/bin\"\n"
-						+ "done\n");
-			}
+        out.print(". /etc/profile\n"
+            + ". ").print(osConfig.getDefaultJdkProfileSh()).print('\n');
+        out.print("\n"
+            + "umask 002\n"
+            + "\n"
+            + "export CATALINA_BASE=\"").print(wwwGroupDir).print("\"\n"
+            + "export CATALINA_HOME=\"").print(wwwGroupDir).print("\"\n"
+            + "export CATALINA_TEMP=\"").print(wwwGroupDir).print("/temp\"\n"
+        );
+        out.print("\n"
+            + "export PATH=\"${PATH}:").print(bin).print("\"\n"
+            + "\n"
+            + "export JAVA_OPTS='-server -Djava.awt.headless=true -Xmx128M -Djdk.disableLastUsageTracking=true'\n"
+            + "\n");
+        out.print(". ").print(sitesFile).print("\n"
+            + "\n"
+            + "for SITE in $SITES\n"
+            + "do\n"
+            + "    export PATH=\"${PATH}:").print(wwwDirectory).print("/${SITE}/bin\"\n"
+            + "done\n");
+      }
 
-			try (
-				ChainWriter out = new ChainWriter(
-					new BufferedOutputStream(
-						tomcatUF.getSecureOutputStream(lsaUID, lsgGID, 0700, false, uid_min, gid_min)
-					)
-				)
-			) {
-				out.print("#!/bin/sh\n"
-						+ "\n"
-						+ "TOMCAT_HOME=\"").print(wwwGroupDir).print("\"\n"
-						+ "\n"
-						+ "if [ \"$1\" = \"start\" ]; then\n"
-						+ "    # Stop any running Tomcat\n"
-						+ "    \"$0\" stop\n"
-						+ "    # Start Tomcat wrapper in the background\n"
-						+ "    nohup \"$0\" daemon </dev/null >&/dev/null &\n"
-						+ "    echo \"$!\" >\"${TOMCAT_HOME}/var/run/tomcat.pid\"\n"
-						+ "elif [ \"$1\" = \"stop\" ]; then\n"
-						+ "    if [ -f \"${TOMCAT_HOME}/var/run/tomcat.pid\" ]; then\n"
-						+ "        kill `cat \"${TOMCAT_HOME}/var/run/tomcat.pid\"`\n"
-						+ "        rm -f \"${TOMCAT_HOME}/var/run/tomcat.pid\"\n"
-						+ "    fi\n"
-						+ "    if [ -f \"${TOMCAT_HOME}/var/run/java.pid\" ]; then\n"
-						+ "        . \"$TOMCAT_HOME/bin/profile\"\n"
-						+ "        if [ \"$SITES\" != \"\" ]; then\n"
-						+ "            cd \"$TOMCAT_HOME\"\n"
-						+ "            \"${TOMCAT_HOME}/bin/catalina.sh\" stop 2>&1 >>\"${TOMCAT_HOME}/var/log/tomcat_err\"\n"
-						+ "        fi\n"
-						+ "        kill `cat \"${TOMCAT_HOME}/var/run/java.pid\"` &>/dev/null\n"
-						+ "        rm -f \"${TOMCAT_HOME}/var/run/java.pid\"\n"
-						+ "    fi\n"
-						+ "elif [ \"$1\" = \"daemon\" ]; then\n"
-						+ "    cd \"$TOMCAT_HOME\"\n"
-						+ "    . \"$TOMCAT_HOME/bin/profile\"\n"
-						+ "\n"
-						+ "    if [ \"$SITES\" != \"\" ]; then\n"
-						+ "        while [ 1 ]; do\n"
-						+ "            mv -f \"${TOMCAT_HOME}/var/log/tomcat_err\" \"${TOMCAT_HOME}/var/log/tomcat_err_$(date +%Y%m%d_%H%M%S)\"\n"
-						+ "            \"${TOMCAT_HOME}/bin/catalina.sh\" run >&\"${TOMCAT_HOME}/var/log/tomcat_err\" &\n"
-						+ "            echo \"$!\" >\"${TOMCAT_HOME}/var/run/java.pid\"\n"
-						+ "            wait\n"
-						+ "            RETCODE=\"$?\"\n"
-						+ "            echo \"`date`: JVM died with a return code of $RETCODE, restarting in 5 seconds\" >>\"${TOMCAT_HOME}/var/log/jvm_crashes.log\"\n"
-						+ "            sleep 5\n"
-						+ "        done\n"
-						+ "    fi\n"
-						+ "    rm -f \"${TOMCAT_HOME}/var/run/tomcat.pid\"\n"
-						+ "else\n"
-						+ "    echo \"Usage:\"\n"
-						+ "    echo \"tomcat {start|stop}\"\n"
-						+ "    echo \"        start - start tomcat\"\n"
-						+ "    echo \"        stop  - stop tomcat\"\n"
-						+ "fi\n"
-				);
-			}
+      try (
+        ChainWriter out = new ChainWriter(
+          new BufferedOutputStream(
+            tomcatUF.getSecureOutputStream(lsaUID, lsgGID, 0700, false, uid_min, gid_min)
+          )
+        )
+      ) {
+        out.print("#!/bin/sh\n"
+            + "\n"
+            + "TOMCAT_HOME=\"").print(wwwGroupDir).print("\"\n"
+            + "\n"
+            + "if [ \"$1\" = \"start\" ]; then\n"
+            + "    # Stop any running Tomcat\n"
+            + "    \"$0\" stop\n"
+            + "    # Start Tomcat wrapper in the background\n"
+            + "    nohup \"$0\" daemon </dev/null >&/dev/null &\n"
+            + "    echo \"$!\" >\"${TOMCAT_HOME}/var/run/tomcat.pid\"\n"
+            + "elif [ \"$1\" = \"stop\" ]; then\n"
+            + "    if [ -f \"${TOMCAT_HOME}/var/run/tomcat.pid\" ]; then\n"
+            + "        kill `cat \"${TOMCAT_HOME}/var/run/tomcat.pid\"`\n"
+            + "        rm -f \"${TOMCAT_HOME}/var/run/tomcat.pid\"\n"
+            + "    fi\n"
+            + "    if [ -f \"${TOMCAT_HOME}/var/run/java.pid\" ]; then\n"
+            + "        . \"$TOMCAT_HOME/bin/profile\"\n"
+            + "        if [ \"$SITES\" != \"\" ]; then\n"
+            + "            cd \"$TOMCAT_HOME\"\n"
+            + "            \"${TOMCAT_HOME}/bin/catalina.sh\" stop 2>&1 >>\"${TOMCAT_HOME}/var/log/tomcat_err\"\n"
+            + "        fi\n"
+            + "        kill `cat \"${TOMCAT_HOME}/var/run/java.pid\"` &>/dev/null\n"
+            + "        rm -f \"${TOMCAT_HOME}/var/run/java.pid\"\n"
+            + "    fi\n"
+            + "elif [ \"$1\" = \"daemon\" ]; then\n"
+            + "    cd \"$TOMCAT_HOME\"\n"
+            + "    . \"$TOMCAT_HOME/bin/profile\"\n"
+            + "\n"
+            + "    if [ \"$SITES\" != \"\" ]; then\n"
+            + "        while [ 1 ]; do\n"
+            + "            mv -f \"${TOMCAT_HOME}/var/log/tomcat_err\" \"${TOMCAT_HOME}/var/log/tomcat_err_$(date +%Y%m%d_%H%M%S)\"\n"
+            + "            \"${TOMCAT_HOME}/bin/catalina.sh\" run >&\"${TOMCAT_HOME}/var/log/tomcat_err\" &\n"
+            + "            echo \"$!\" >\"${TOMCAT_HOME}/var/run/java.pid\"\n"
+            + "            wait\n"
+            + "            RETCODE=\"$?\"\n"
+            + "            echo \"`date`: JVM died with a return code of $RETCODE, restarting in 5 seconds\" >>\"${TOMCAT_HOME}/var/log/jvm_crashes.log\"\n"
+            + "            sleep 5\n"
+            + "        done\n"
+            + "    fi\n"
+            + "    rm -f \"${TOMCAT_HOME}/var/run/tomcat.pid\"\n"
+            + "else\n"
+            + "    echo \"Usage:\"\n"
+            + "    echo \"tomcat {start|stop}\"\n"
+            + "    echo \"        start - start tomcat\"\n"
+            + "    echo \"        stop  - stop tomcat\"\n"
+            + "fi\n"
+        );
+      }
 
-			DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-6.0/bin/setclasspath.sh", wwwGroupDir+"/bin/setclasspath.sh", lsaUID, lsgGID);
+      DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-6.0/bin/setclasspath.sh", wwwGroupDir+"/bin/setclasspath.sh", lsaUID, lsgGID);
 
-			PosixFile shutdown = new PosixFile(bin, "shutdown.sh", false);
-			try (ChainWriter out = new ChainWriter(shutdown.getSecureOutputStream(lsaUID, lsgGID, 0700, true, uid_min, gid_min))) {
-				out.print("#!/bin/sh\n"
-						+ "exec \"").print(tomcatUF).print("\" stop\n");
-			}
+      PosixFile shutdown = new PosixFile(bin, "shutdown.sh", false);
+      try (ChainWriter out = new ChainWriter(shutdown.getSecureOutputStream(lsaUID, lsgGID, 0700, true, uid_min, gid_min))) {
+        out.print("#!/bin/sh\n"
+            + "exec \"").print(tomcatUF).print("\" stop\n");
+      }
 
-			PosixFile startup = new PosixFile(bin, "startup.sh", false);
-			try (ChainWriter out = new ChainWriter(startup.getSecureOutputStream(lsaUID, lsgGID, 0700, true, uid_min, gid_min))) {
-				out.print("#!/bin/sh\n"
-						+ "exec \"").print(tomcatUF).print("\" start\n");
-			}
+      PosixFile startup = new PosixFile(bin, "startup.sh", false);
+      try (ChainWriter out = new ChainWriter(startup.getSecureOutputStream(lsaUID, lsgGID, 0700, true, uid_min, gid_min))) {
+        out.print("#!/bin/sh\n"
+            + "exec \"").print(tomcatUF).print("\" start\n");
+      }
 
-			DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-6.0/bin/tomcat-juli.jar", wwwGroupDir+"/bin/tomcat-juli.jar", lsaUID, lsgGID);
-			DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-6.0/bin/tool-wrapper.sh", wwwGroupDir+"/bin/tool-wrapper.sh", lsaUID, lsgGID);
-			DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-6.0/bin/version.sh", wwwGroupDir+"/bin/version.sh", lsaUID, lsgGID);
+      DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-6.0/bin/tomcat-juli.jar", wwwGroupDir+"/bin/tomcat-juli.jar", lsaUID, lsgGID);
+      DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-6.0/bin/tool-wrapper.sh", wwwGroupDir+"/bin/tool-wrapper.sh", lsaUID, lsgGID);
+      DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-6.0/bin/version.sh", wwwGroupDir+"/bin/version.sh", lsaUID, lsgGID);
 
-			// Create the lib directory and all contents
-			DaemonFileUtils.mkdir(wwwGroupDir+"/lib", 0770, lsaUID, lsgGID);
-			DaemonFileUtils.lnAll("../" + optSlash + "apache-tomcat-6.0/lib/", wwwGroupDir+"/lib/", lsaUID, lsgGID);
+      // Create the lib directory and all contents
+      DaemonFileUtils.mkdir(wwwGroupDir+"/lib", 0770, lsaUID, lsgGID);
+      DaemonFileUtils.lnAll("../" + optSlash + "apache-tomcat-6.0/lib/", wwwGroupDir+"/lib/", lsaUID, lsgGID);
 
-			// Write the conf/ files
-			{
-				PosixFile cp = new PosixFile(conf, "catalina.policy", false);
-				new PosixFile("/opt/apache-tomcat-6.0/conf/catalina.policy").copyTo(cp, false);
-				cp.chown(lsaUID, lsgGID).setMode(0660);
-			}
-			{
-				PosixFile cp = new PosixFile(conf, "catalina.properties", false);
-				new PosixFile("/opt/apache-tomcat-6.0/conf/catalina.properties").copyTo(cp, false);
-				cp.chown(lsaUID, lsgGID).setMode(0660);
-			}
-			{
-				PosixFile cp = new PosixFile(conf, "context.xml", false);
-				new PosixFile("/opt/apache-tomcat-6.0/conf/context.xml").copyTo(cp, false);
-				cp.chown(lsaUID, lsgGID).setMode(0660);
-			}
-			{
-				PosixFile cp = new PosixFile(conf, "logging.properties", false);
-				new PosixFile("/opt/apache-tomcat-6.0/conf/logging.properties").copyTo(cp, false);
-				cp.chown(lsaUID, lsgGID).setMode(0660);
-			}
-			{
-				PosixFile tuUF = new PosixFile(conf, "tomcat-users.xml", false);
-				new PosixFile("/opt/apache-tomcat-6.0/conf/tomcat-users.xml").copyTo(tuUF, false);
-				tuUF.chown(lsaUID, lsgGID).setMode(0660);
-			}
-			{
-				PosixFile webUF = new PosixFile(conf, "web.xml", false);
-				new PosixFile("/opt/apache-tomcat-6.0/conf/web.xml").copyTo(webUF, false);
-				webUF.chown(lsaUID, lsgGID).setMode(0660);
-			}
+      // Write the conf/ files
+      {
+        PosixFile cp = new PosixFile(conf, "catalina.policy", false);
+        new PosixFile("/opt/apache-tomcat-6.0/conf/catalina.policy").copyTo(cp, false);
+        cp.chown(lsaUID, lsgGID).setMode(0660);
+      }
+      {
+        PosixFile cp = new PosixFile(conf, "catalina.properties", false);
+        new PosixFile("/opt/apache-tomcat-6.0/conf/catalina.properties").copyTo(cp, false);
+        cp.chown(lsaUID, lsgGID).setMode(0660);
+      }
+      {
+        PosixFile cp = new PosixFile(conf, "context.xml", false);
+        new PosixFile("/opt/apache-tomcat-6.0/conf/context.xml").copyTo(cp, false);
+        cp.chown(lsaUID, lsgGID).setMode(0660);
+      }
+      {
+        PosixFile cp = new PosixFile(conf, "logging.properties", false);
+        new PosixFile("/opt/apache-tomcat-6.0/conf/logging.properties").copyTo(cp, false);
+        cp.chown(lsaUID, lsgGID).setMode(0660);
+      }
+      {
+        PosixFile tuUF = new PosixFile(conf, "tomcat-users.xml", false);
+        new PosixFile("/opt/apache-tomcat-6.0/conf/tomcat-users.xml").copyTo(tuUF, false);
+        tuUF.chown(lsaUID, lsgGID).setMode(0660);
+      }
+      {
+        PosixFile webUF = new PosixFile(conf, "web.xml", false);
+        new PosixFile("/opt/apache-tomcat-6.0/conf/web.xml").copyTo(webUF, false);
+        webUF.chown(lsaUID, lsgGID).setMode(0660);
+      }
 
-			// Set the ownership to avoid future rebuilds of this directory
-			sharedTomcatDirectory.chown(lsaUID, lsgGID);
+      // Set the ownership to avoid future rebuilds of this directory
+      sharedTomcatDirectory.chown(lsaUID, lsgGID);
 
-			needRestart=true;
-		}
+      needRestart=true;
+    }
 
-		// always rebuild profile.sites file
-		List<SharedTomcatSite> sites = sharedTomcat.getHttpdTomcatSharedSites();
-		if(
-			!sharedTomcat.isManual()
-			// bin directory may not exist while in manual mode
-			|| bin.getStat().exists()
-		) {
-			PosixFile newSitesFile = new PosixFile(bin, "profile.sites.new", false);
-			try (
-				ChainWriter out = new ChainWriter(
-					new BufferedOutputStream(
-						newSitesFile.getSecureOutputStream(lsaUID, lsgGID, 0750, true, uid_min, gid_min)
-					)
-				)
-			) {
-				out.print("export SITES=\"");
-				boolean didOne=false;
-				for(SharedTomcatSite site : sites) {
-					com.aoindustries.aoserv.client.web.Site hs = site.getHttpdTomcatSite().getHttpdSite();
-					if(!hs.isDisabled()) {
-						if(didOne) out.print(' ');
-						else didOne=true;
-						out.print(hs.getName());
-					}
-				}
-				out.print("\"\n");
-			}
-			// flag as needing a restart if this file is different than any existing
-			Stat sitesStat = sitesFile.getStat();
-			if(!sitesStat.exists() || !newSitesFile.contentEquals(sitesFile)) {
-				needRestart=true;
-				if(sitesStat.exists()) {
-					PosixFile backupFile = new PosixFile(bin, "profile.sites.old", false);
-					sitesFile.renameTo(backupFile);
-				}
-				newSitesFile.renameTo(sitesFile);
-			} else newSitesFile.delete();
-		}
+    // always rebuild profile.sites file
+    List<SharedTomcatSite> sites = sharedTomcat.getHttpdTomcatSharedSites();
+    if (
+      !sharedTomcat.isManual()
+      // bin directory may not exist while in manual mode
+      || bin.getStat().exists()
+    ) {
+      PosixFile newSitesFile = new PosixFile(bin, "profile.sites.new", false);
+      try (
+        ChainWriter out = new ChainWriter(
+          new BufferedOutputStream(
+            newSitesFile.getSecureOutputStream(lsaUID, lsgGID, 0750, true, uid_min, gid_min)
+          )
+        )
+      ) {
+        out.print("export SITES=\"");
+        boolean didOne=false;
+        for (SharedTomcatSite site : sites) {
+          com.aoindustries.aoserv.client.web.Site hs = site.getHttpdTomcatSite().getHttpdSite();
+          if (!hs.isDisabled()) {
+            if (didOne) {
+              out.print(' ');
+            } else {
+              didOne=true;
+            }
+            out.print(hs.getName());
+          }
+        }
+        out.print("\"\n");
+      }
+      // flag as needing a restart if this file is different than any existing
+      Stat sitesStat = sitesFile.getStat();
+      if (!sitesStat.exists() || !newSitesFile.contentEquals(sitesFile)) {
+        needRestart=true;
+        if (sitesStat.exists()) {
+          PosixFile backupFile = new PosixFile(bin, "profile.sites.old", false);
+          sitesFile.renameTo(backupFile);
+        }
+        newSitesFile.renameTo(sitesFile);
+      } else {
+        newSitesFile.delete();
+      }
+    }
 
-		// make work directories and remove extra work dirs
-		if(
-			!sharedTomcat.isManual()
-			// work directory may not exist while in manual mode
-			|| innerWorkUF.getStat().exists()
-		) {
-			List<String> workFiles = new SortedArrayList<>();
-			String[] wlist = innerWorkUF.getFile().list();
-			if(wlist!=null) {
-				workFiles.addAll(Arrays.asList(wlist));
-			}
-			for (SharedTomcatSite site : sites) {
-				com.aoindustries.aoserv.client.web.Site hs = site.getHttpdTomcatSite().getHttpdSite();
-				if (!hs.isDisabled()) {
-					String subwork = hs.getPrimaryHttpdSiteURL().getHostname().toString();
-					workFiles.remove(subwork);
-					PosixFile workDir = new PosixFile(innerWorkUF, subwork, false);
-					if (!workDir.getStat().exists()) {
-						workDir
-							.mkdir().chown(lsaUID, site.getHttpdTomcatSite().getHttpdSite().getLinuxServerGroup().getGid().getId()).setMode(0750);
-					}
-				}
-			}
-			for(String workFile : workFiles) {
-				File toDelete = new File(innerWorkUF.getFile(), workFile);
-				if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
-				deleteFileList.add(toDelete);
-			}
-		}
+    // make work directories and remove extra work dirs
+    if (
+      !sharedTomcat.isManual()
+      // work directory may not exist while in manual mode
+      || innerWorkUF.getStat().exists()
+    ) {
+      List<String> workFiles = new SortedArrayList<>();
+      String[] wlist = innerWorkUF.getFile().list();
+      if (wlist != null) {
+        workFiles.addAll(Arrays.asList(wlist));
+      }
+      for (SharedTomcatSite site : sites) {
+        com.aoindustries.aoserv.client.web.Site hs = site.getHttpdTomcatSite().getHttpdSite();
+        if (!hs.isDisabled()) {
+          String subwork = hs.getPrimaryHttpdSiteURL().getHostname().toString();
+          workFiles.remove(subwork);
+          PosixFile workDir = new PosixFile(innerWorkUF, subwork, false);
+          if (!workDir.getStat().exists()) {
+            workDir
+              .mkdir().chown(lsaUID, site.getHttpdTomcatSite().getHttpdSite().getLinuxServerGroup().getGid().getId()).setMode(0750);
+          }
+        }
+      }
+      for (String workFile : workFiles) {
+        File toDelete = new File(innerWorkUF.getFile(), workFile);
+        if (logger.isLoggable(Level.INFO)) {
+          logger.info("Scheduling for removal: " + toDelete);
+        }
+        deleteFileList.add(toDelete);
+      }
+    }
 
-		if(
-			!sharedTomcat.isManual()
-			// conf directory may not exist while in manual mode
-			|| conf.getStat().exists()
-		) {
-			// Rebuild the server.xml
-			String autoWarning = getAutoWarningXml();
-			String autoWarningOld = getAutoWarningXmlOld();
-			PosixFile confServerXML = new PosixFile(conf, "server.xml", false);
-			if(!sharedTomcat.isManual() || !confServerXML.getStat().exists()) {
-				PosixFile newConfServerXML = new PosixFile(conf, "server.xml.new", false);
-				try (
-					ChainWriter out = new ChainWriter(
-						new BufferedOutputStream(
-							newConfServerXML.getSecureOutputStream(lsaUID, lsgGID, 0660, true, uid_min, gid_min)
-						)
-					)
-				) {
-					Worker hw=sharedTomcat.getTomcat4Worker();
-					if(!sharedTomcat.isManual()) out.print(autoWarning);
-					Bind shutdownPort = sharedTomcat.getTomcat4ShutdownPort();
-					if(shutdownPort==null) throw new SQLException("Unable to find shutdown key for SharedTomcat: "+sharedTomcat);
-					String shutdownKey=sharedTomcat.getTomcat4ShutdownKey();
-					if(shutdownKey==null) throw new SQLException("Unable to find shutdown key for SharedTomcat: "+sharedTomcat);
-					out.print("<Server port=\"").textInXmlAttribute(shutdownPort.getPort().getPort()).print("\" shutdown=\"").textInXmlAttribute(shutdownKey).print("\">\n"
-							+ "  <Listener className=\"org.apache.catalina.core.AprLifecycleListener\" SSLEngine=\"on\" />\n"
-							+ "  <Listener className=\"org.apache.catalina.core.JasperListener\" />\n"
-							+ "  <Listener className=\"org.apache.catalina.mbeans.ServerLifecycleListener\" />\n"
-							+ "  <Listener className=\"org.apache.catalina.mbeans.GlobalResourcesLifecycleListener\" />\n"
-							+ "  <GlobalNamingResources>\n"
-							+ "    <Resource name=\"UserDatabase\" auth=\"Container\"\n"
-							+ "              type=\"org.apache.catalina.UserDatabase\"\n"
-							+ "              description=\"User database that can be updated and saved\"\n"
-							+ "              factory=\"org.apache.catalina.users.MemoryUserDatabaseFactory\"\n"
-							+ "              pathname=\"conf/tomcat-users.xml\" />\n"
-							+ "  </GlobalNamingResources>\n"
-							+ "  <Service name=\"Catalina\">\n"
-							+ "    <Connector\n"
-							+ "      port=\"").textInXmlAttribute(hw.getBind().getPort().getPort()).print("\"\n"
-							+ "      address=\"").textInXmlAttribute(IpAddress.LOOPBACK_IP).print("\"\n"
-							+ "      maxPostSize=\"").textInXmlAttribute(sharedTomcat.getMaxPostSize()).print("\"\n"
-							+ "      protocol=\"AJP/1.3\"\n"
-							+ "      redirectPort=\"8443\"\n");
-					// Do not include when is default "true"
-					if(!sharedTomcat.getTomcatAuthentication()) {
-						out.print("      tomcatAuthentication=\"false\"\n");
-					}
-					out.print("    />\n"
-							+ "    <Engine name=\"Catalina\" defaultHost=\"localhost\">\n"
-							+ "      <Realm className=\"org.apache.catalina.realm.UserDatabaseRealm\"\n"
-							+ "             resourceName=\"UserDatabase\" />\"\n");
-					for (SharedTomcatSite site : sites) {
-						com.aoindustries.aoserv.client.web.Site hs = site.getHttpdTomcatSite().getHttpdSite();
-						if(!hs.isDisabled()) {
-							DomainName primaryHostname=hs.getPrimaryHttpdSiteURL().getHostname();
-							out.print("      <Host\n"
-									+ "        name=\"").textInXmlAttribute(primaryHostname.toString()).print("\"\n"
-									+ "        appBase=\"").textInXmlAttribute(wwwDirectory).print('/').textInXmlAttribute(hs.getName()).print("/webapps\"\n"
-									+ "        unpackWARs=\"").textInXmlAttribute(sharedTomcat.getUnpackWARs()).print("\"\n"
-									+ "        autoDeploy=\"").textInXmlAttribute(sharedTomcat.getAutoDeploy()).print("\"\n"
-									+ "        xmlValidation=\"false\"\n"
-									+ "        xmlNamespaceAware=\"false\"\n"
-									+ "      >\n");
-							List<String> usedHostnames=new SortedArrayList<>();
-							usedHostnames.add(primaryHostname.toString());
-							List<VirtualHost> binds=hs.getHttpdSiteBinds();
-							for (VirtualHost bind : binds) {
-								List<VirtualHostName> urls=bind.getHttpdSiteURLs();
-								for (VirtualHostName url : urls) {
-									DomainName hostname = url.getHostname();
-									if(!usedHostnames.contains(hostname.toString())) {
-										out.print("        <Alias>").textInXhtml(hostname).print("</Alias>\n");
-										usedHostnames.add(hostname.toString());
-									}
-								}
-								// When listed first, also include the IP addresses as aliases
-								if(hs.getListFirst()) {
-									String ip=bind.getHttpdBind().getNetBind().getIpAddress().getInetAddress().toString();
-									if(!usedHostnames.contains(ip)) {
-										out.print("        <Alias>").textInXhtml(ip).print("</Alias>\n");
-										usedHostnames.add(ip);
-									}
-								}
-							}
-							Site tomcatSite=hs.getHttpdTomcatSite();
-							for(Context htc : tomcatSite.getHttpdTomcatContexts()) {
-								if(!htc.isServerXmlConfigured()) out.print("        <!--\n");
-								out.print("        <Context\n");
-								if(htc.getClassName()!=null) out.print("          className=\"").textInXmlAttribute(htc.getClassName()).print("\"\n");
-								out.print("          cookies=\"").textInXmlAttribute(htc.useCookies()).print("\"\n"
-										+ "          crossContext=\"").textInXmlAttribute(htc.allowCrossContext()).print("\"\n"
-										+ "          docBase=\"").textInXmlAttribute(htc.getDocBase()).print("\"\n"
-										+ "          override=\"").textInXmlAttribute(htc.allowOverride()).print("\"\n"
-										+ "          path=\"").textInXmlAttribute(htc.getPath()).print("\"\n"
-										+ "          privileged=\"").textInXmlAttribute(htc.isPrivileged()).print("\"\n"
-										+ "          reloadable=\"").textInXmlAttribute(htc.isReloadable()).print("\"\n"
-										+ "          useNaming=\"").textInXmlAttribute(htc.useNaming()).print("\"\n");
-								if(htc.getWrapperClass()!=null) out.print("          wrapperClass=\"").textInXmlAttribute(htc.getWrapperClass()).print("\"\n");
-								out.print("          debug=\"").textInXmlAttribute(htc.getDebugLevel()).print("\"\n");
-								if(htc.getWorkDir()!=null) out.print("          workDir=\"").textInXmlAttribute(htc.getWorkDir()).print("\"\n");
-								List<ContextParameter> parameters=htc.getHttpdTomcatParameters();
-								List<ContextDataSource> dataSources=htc.getHttpdTomcatDataSources();
-								if(parameters.isEmpty() && dataSources.isEmpty()) {
-									out.print("        />\n");
-								} else {
-									out.print("        >\n");
-									// Parameters
-									for(ContextParameter parameter : parameters) {
-										tomcatCommon.writeHttpdTomcatParameter(parameter, out);
-									}
-									// Data Sources
-									for(ContextDataSource dataSource : dataSources) {
-										tomcatCommon.writeHttpdTomcatDataSource(dataSource, out);
-									}
-									out.print("        </Context>\n");
-								}
-								if(!htc.isServerXmlConfigured()) out.print("        -->\n");
-							}
-							out.print("      </Host>\n");
-						}
-					}
-					out.print("    </Engine>\n"
-							+ "  </Service>\n"
-							+ "</Server>\n");
-				}
+    if (
+      !sharedTomcat.isManual()
+      // conf directory may not exist while in manual mode
+      || conf.getStat().exists()
+    ) {
+      // Rebuild the server.xml
+      String autoWarning = getAutoWarningXml();
+      String autoWarningOld = getAutoWarningXmlOld();
+      PosixFile confServerXML = new PosixFile(conf, "server.xml", false);
+      if (!sharedTomcat.isManual() || !confServerXML.getStat().exists()) {
+        PosixFile newConfServerXML = new PosixFile(conf, "server.xml.new", false);
+        try (
+          ChainWriter out = new ChainWriter(
+            new BufferedOutputStream(
+              newConfServerXML.getSecureOutputStream(lsaUID, lsgGID, 0660, true, uid_min, gid_min)
+            )
+          )
+        ) {
+          Worker hw=sharedTomcat.getTomcat4Worker();
+          if (!sharedTomcat.isManual()) {
+            out.print(autoWarning);
+          }
+          Bind shutdownPort = sharedTomcat.getTomcat4ShutdownPort();
+          if (shutdownPort == null) {
+            throw new SQLException("Unable to find shutdown key for SharedTomcat: "+sharedTomcat);
+          }
+          String shutdownKey=sharedTomcat.getTomcat4ShutdownKey();
+          if (shutdownKey == null) {
+            throw new SQLException("Unable to find shutdown key for SharedTomcat: "+sharedTomcat);
+          }
+          out.print("<Server port=\"").textInXmlAttribute(shutdownPort.getPort().getPort()).print("\" shutdown=\"").textInXmlAttribute(shutdownKey).print("\">\n"
+              + "  <Listener className=\"org.apache.catalina.core.AprLifecycleListener\" SSLEngine=\"on\" />\n"
+              + "  <Listener className=\"org.apache.catalina.core.JasperListener\" />\n"
+              + "  <Listener className=\"org.apache.catalina.mbeans.ServerLifecycleListener\" />\n"
+              + "  <Listener className=\"org.apache.catalina.mbeans.GlobalResourcesLifecycleListener\" />\n"
+              + "  <GlobalNamingResources>\n"
+              + "    <Resource name=\"UserDatabase\" auth=\"Container\"\n"
+              + "              type=\"org.apache.catalina.UserDatabase\"\n"
+              + "              description=\"User database that can be updated and saved\"\n"
+              + "              factory=\"org.apache.catalina.users.MemoryUserDatabaseFactory\"\n"
+              + "              pathname=\"conf/tomcat-users.xml\" />\n"
+              + "  </GlobalNamingResources>\n"
+              + "  <Service name=\"Catalina\">\n"
+              + "    <Connector\n"
+              + "      port=\"").textInXmlAttribute(hw.getBind().getPort().getPort()).print("\"\n"
+              + "      address=\"").textInXmlAttribute(IpAddress.LOOPBACK_IP).print("\"\n"
+              + "      maxPostSize=\"").textInXmlAttribute(sharedTomcat.getMaxPostSize()).print("\"\n"
+              + "      protocol=\"AJP/1.3\"\n"
+              + "      redirectPort=\"8443\"\n");
+          // Do not include when is default "true"
+          if (!sharedTomcat.getTomcatAuthentication()) {
+            out.print("      tomcatAuthentication=\"false\"\n");
+          }
+          out.print("    />\n"
+              + "    <Engine name=\"Catalina\" defaultHost=\"localhost\">\n"
+              + "      <Realm className=\"org.apache.catalina.realm.UserDatabaseRealm\"\n"
+              + "             resourceName=\"UserDatabase\" />\"\n");
+          for (SharedTomcatSite site : sites) {
+            com.aoindustries.aoserv.client.web.Site hs = site.getHttpdTomcatSite().getHttpdSite();
+            if (!hs.isDisabled()) {
+              DomainName primaryHostname=hs.getPrimaryHttpdSiteURL().getHostname();
+              out.print("      <Host\n"
+                  + "        name=\"").textInXmlAttribute(primaryHostname.toString()).print("\"\n"
+                  + "        appBase=\"").textInXmlAttribute(wwwDirectory).print('/').textInXmlAttribute(hs.getName()).print("/webapps\"\n"
+                  + "        unpackWARs=\"").textInXmlAttribute(sharedTomcat.getUnpackWARs()).print("\"\n"
+                  + "        autoDeploy=\"").textInXmlAttribute(sharedTomcat.getAutoDeploy()).print("\"\n"
+                  + "        xmlValidation=\"false\"\n"
+                  + "        xmlNamespaceAware=\"false\"\n"
+                  + "      >\n");
+              List<String> usedHostnames=new SortedArrayList<>();
+              usedHostnames.add(primaryHostname.toString());
+              List<VirtualHost> binds=hs.getHttpdSiteBinds();
+              for (VirtualHost bind : binds) {
+                List<VirtualHostName> urls=bind.getHttpdSiteURLs();
+                for (VirtualHostName url : urls) {
+                  DomainName hostname = url.getHostname();
+                  if (!usedHostnames.contains(hostname.toString())) {
+                    out.print("        <Alias>").textInXhtml(hostname).print("</Alias>\n");
+                    usedHostnames.add(hostname.toString());
+                  }
+                }
+                // When listed first, also include the IP addresses as aliases
+                if (hs.getListFirst()) {
+                  String ip=bind.getHttpdBind().getNetBind().getIpAddress().getInetAddress().toString();
+                  if (!usedHostnames.contains(ip)) {
+                    out.print("        <Alias>").textInXhtml(ip).print("</Alias>\n");
+                    usedHostnames.add(ip);
+                  }
+                }
+              }
+              Site tomcatSite=hs.getHttpdTomcatSite();
+              for (Context htc : tomcatSite.getHttpdTomcatContexts()) {
+                if (!htc.isServerXmlConfigured()) {
+                  out.print("        <!--\n");
+                }
+                out.print("        <Context\n");
+                if (htc.getClassName() != null) {
+                  out.print("          className=\"").textInXmlAttribute(htc.getClassName()).print("\"\n");
+                }
+                out.print("          cookies=\"").textInXmlAttribute(htc.useCookies()).print("\"\n"
+                    + "          crossContext=\"").textInXmlAttribute(htc.allowCrossContext()).print("\"\n"
+                    + "          docBase=\"").textInXmlAttribute(htc.getDocBase()).print("\"\n"
+                    + "          override=\"").textInXmlAttribute(htc.allowOverride()).print("\"\n"
+                    + "          path=\"").textInXmlAttribute(htc.getPath()).print("\"\n"
+                    + "          privileged=\"").textInXmlAttribute(htc.isPrivileged()).print("\"\n"
+                    + "          reloadable=\"").textInXmlAttribute(htc.isReloadable()).print("\"\n"
+                    + "          useNaming=\"").textInXmlAttribute(htc.useNaming()).print("\"\n");
+                if (htc.getWrapperClass() != null) {
+                  out.print("          wrapperClass=\"").textInXmlAttribute(htc.getWrapperClass()).print("\"\n");
+                }
+                out.print("          debug=\"").textInXmlAttribute(htc.getDebugLevel()).print("\"\n");
+                if (htc.getWorkDir() != null) {
+                  out.print("          workDir=\"").textInXmlAttribute(htc.getWorkDir()).print("\"\n");
+                }
+                List<ContextParameter> parameters=htc.getHttpdTomcatParameters();
+                List<ContextDataSource> dataSources=htc.getHttpdTomcatDataSources();
+                if (parameters.isEmpty() && dataSources.isEmpty()) {
+                  out.print("        />\n");
+                } else {
+                  out.print("        >\n");
+                  // Parameters
+                  for (ContextParameter parameter : parameters) {
+                    tomcatCommon.writeHttpdTomcatParameter(parameter, out);
+                  }
+                  // Data Sources
+                  for (ContextDataSource dataSource : dataSources) {
+                    tomcatCommon.writeHttpdTomcatDataSource(dataSource, out);
+                  }
+                  out.print("        </Context>\n");
+                }
+                if (!htc.isServerXmlConfigured()) {
+                  out.print("        -->\n");
+                }
+              }
+              out.print("      </Host>\n");
+            }
+          }
+          out.print("    </Engine>\n"
+              + "  </Service>\n"
+              + "</Server>\n");
+        }
 
-				// Must restart JVM if this file has changed
-				if(
-					!confServerXML.getStat().exists()
-					|| !newConfServerXML.contentEquals(confServerXML)
-				) {
-					needRestart=true;
-					newConfServerXML.renameTo(confServerXML);
-				} else newConfServerXML.delete();
-			} else {
-				try {
-					DaemonFileUtils.stripFilePrefix(
-						confServerXML,
-						autoWarningOld,
-						uid_min,
-						gid_min
-					);
-					DaemonFileUtils.stripFilePrefix(
-						confServerXML,
-						autoWarning,
-						uid_min,
-						gid_min
-					);
-				} catch(IOException err) {
-					// Errors OK because this is done in manual mode and they might have symbolic linked stuff
-				}
-			}
-		}
+        // Must restart JVM if this file has changed
+        if (
+          !confServerXML.getStat().exists()
+          || !newConfServerXML.contentEquals(confServerXML)
+        ) {
+          needRestart=true;
+          newConfServerXML.renameTo(confServerXML);
+        } else {
+          newConfServerXML.delete();
+        }
+      } else {
+        try {
+          DaemonFileUtils.stripFilePrefix(
+            confServerXML,
+            autoWarningOld,
+            uid_min,
+            gid_min
+          );
+          DaemonFileUtils.stripFilePrefix(
+            confServerXML,
+            autoWarning,
+            uid_min,
+            gid_min
+          );
+        } catch (IOException err) {
+          // Errors OK because this is done in manual mode and they might have symbolic linked stuff
+        }
+      }
+    }
 
-		// Enable/Disable
-		boolean hasEnabledSite = false;
-		for(SharedTomcatSite htss : sharedTomcat.getHttpdTomcatSharedSites()) {
-			if(!htss.getHttpdTomcatSite().getHttpdSite().isDisabled()) {
-				hasEnabledSite = true;
-				break;
-			}
-		}
-		PosixFile daemonSymlink = new PosixFile(daemonUF, "tomcat", false);
-		if(
-			!sharedTomcat.isDisabled()
-			&& hasEnabledSite
-			&& (
-				!sharedTomcat.isManual()
-				// Script may not exist while in manual mode
-				|| tomcatUF.getStat().exists()
-			)
-		) {
-			// Enabled
-			if(!daemonSymlink.getStat().exists()) {
-				daemonSymlink
-					.symLink("../bin/tomcat")
-					.chown(lsaUID, lsgGID);
-			}
-			// Start if needed
-			if(needRestart) sharedTomcatsNeedingRestarted.add(sharedTomcat);
-		} else {
-			// Disabled
-			if(daemonSymlink.getStat().exists()) daemonSymlink.delete();
-		}
-	}
+    // Enable/Disable
+    boolean hasEnabledSite = false;
+    for (SharedTomcatSite htss : sharedTomcat.getHttpdTomcatSharedSites()) {
+      if (!htss.getHttpdTomcatSite().getHttpdSite().isDisabled()) {
+        hasEnabledSite = true;
+        break;
+      }
+    }
+    PosixFile daemonSymlink = new PosixFile(daemonUF, "tomcat", false);
+    if (
+      !sharedTomcat.isDisabled()
+      && hasEnabledSite
+      && (
+        !sharedTomcat.isManual()
+        // Script may not exist while in manual mode
+        || tomcatUF.getStat().exists()
+      )
+    ) {
+      // Enabled
+      if (!daemonSymlink.getStat().exists()) {
+        daemonSymlink
+          .symLink("../bin/tomcat")
+          .chown(lsaUID, lsgGID);
+      }
+      // Start if needed
+      if (needRestart) {
+        sharedTomcatsNeedingRestarted.add(sharedTomcat);
+      }
+    } else {
+      // Disabled
+      if (daemonSymlink.getStat().exists()) {
+        daemonSymlink.delete();
+      }
+    }
+  }
 
-	@Override
-	protected boolean upgradeSharedTomcatDirectory(String optSlash, PosixFile siteDirectory) throws IOException, SQLException {
-		// Upgrade Tomcat
-		boolean needsRestart = getTomcatCommon().upgradeTomcatDirectory(
-			optSlash,
-			siteDirectory,
-			sharedTomcat.getLinuxServerAccount().getUid().getId(),
-			sharedTomcat.getLinuxServerGroup().getGid().getId()
-		);
+  @Override
+  protected boolean upgradeSharedTomcatDirectory(String optSlash, PosixFile siteDirectory) throws IOException, SQLException {
+    // Upgrade Tomcat
+    boolean needsRestart = getTomcatCommon().upgradeTomcatDirectory(
+      optSlash,
+      siteDirectory,
+      sharedTomcat.getLinuxServerAccount().getUid().getId(),
+      sharedTomcat.getLinuxServerGroup().getGid().getId()
+    );
 
-		// Update bin/tomcat script
-		/*
-		OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
-		if(osConfig==OperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) {
-			// Replace /usr/aoserv/sbin/filtersites in bin/tomcat
-			String results = AOServDaemon.execAndCapture(
-				new String[] {
-					osConfig.getReplaceCommand(),
-					"    SITES=`/usr/aoserv/sbin/filtersites", // Leading spaces prevent repetitive updates
-					"    # SITES=`/usr/aoserv/sbin/filtersites",
+    // Update bin/tomcat script
+    /*
+    OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
+    if (osConfig == OperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) {
+      // Replace /usr/aoserv/sbin/filtersites in bin/tomcat
+      String results = AOServDaemon.execAndCapture(
+        new String[] {
+          osConfig.getReplaceCommand(),
+          "    SITES=`/usr/aoserv/sbin/filtersites", // Leading spaces prevent repetitive updates
+          "    # SITES=`/usr/aoserv/sbin/filtersites",
 
-					// Fix upgrade mistake
-					"# # SITES=`/usr/aoserv/sbin/filtersites",
-					"# SITES=`/usr/aoserv/sbin/filtersites",
+          // Fix upgrade mistake
+          "# # SITES=`/usr/aoserv/sbin/filtersites",
+          "# SITES=`/usr/aoserv/sbin/filtersites",
 
-					"--",
-					siteDirectory.getPath()+"/bin/tomcat"
-				}
-			);
-			if(results.length()>0) needsRestart = true;
-		}
-		 */
-		return needsRestart;
-	}
+          "--",
+          siteDirectory.getPath()+"/bin/tomcat"
+        }
+      );
+      if (results.length()>0) {
+        needsRestart = true;
+      }
+    }
+     */
+    return needsRestart;
+  }
 }

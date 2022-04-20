@@ -40,127 +40,127 @@ import java.util.logging.Logger;
  */
 public abstract class SocketServerManager {
 
-	private static final Logger logger = Logger.getLogger(SocketServerManager.class.getName());
+  private static final Logger logger = Logger.getLogger(SocketServerManager.class.getName());
 
-	/** All of the servers that are currently running */
-	private final List<SocketServerThread> socketServers=new ArrayList<>();
+  /** All of the servers that are currently running */
+  private final List<SocketServerThread> socketServers=new ArrayList<>();
 
-	protected SocketServerManager() {
-		// Do nothing
-	}
+  protected SocketServerManager() {
+    // Do nothing
+  }
 
-	private boolean started=false;
-	@SuppressWarnings({"UseOfSystemOutOrSystemErr", "UseSpecificCatch", "SleepWhileInLoop", "BroadCatchBlock", "TooBroadCatch", "SleepWhileHoldingLock"})
-	public final void start() throws IOException, SQLException {
-		if(!started) {
-			synchronized(System.out) {
-				if(!started) {
-					System.out.print("Starting ");
-					System.out.print(getManagerName());
-					System.out.println(":");
-					startImpl();
-					while(!started && !Thread.currentThread().isInterrupted()) {
-						try {
-							verifySocketServers();
-							started = true;
-						} catch(ThreadDeath td) {
-							throw td;
-						} catch(Throwable t) {
-							logger.log(Level.SEVERE, null, t);
-							try {
-								Thread.sleep(15000);
-							} catch(InterruptedException err) {
-								logger.log(Level.WARNING, null, err);
-								// Restore the interrupted status
-								Thread.currentThread().interrupt();
-							}
-						}
-					}
-				}
-			}
-		}
-	}
+  private boolean started=false;
+  @SuppressWarnings({"UseOfSystemOutOrSystemErr", "UseSpecificCatch", "SleepWhileInLoop", "BroadCatchBlock", "TooBroadCatch", "SleepWhileHoldingLock"})
+  public final void start() throws IOException, SQLException {
+    if (!started) {
+      synchronized (System.out) {
+        if (!started) {
+          System.out.print("Starting ");
+          System.out.print(getManagerName());
+          System.out.println(":");
+          startImpl();
+          while (!started && !Thread.currentThread().isInterrupted()) {
+            try {
+              verifySocketServers();
+              started = true;
+            } catch (ThreadDeath td) {
+              throw td;
+            } catch (Throwable t) {
+              logger.log(Level.SEVERE, null, t);
+              try {
+                Thread.sleep(15000);
+              } catch (InterruptedException err) {
+                logger.log(Level.WARNING, null, err);
+                // Restore the interrupted status
+                Thread.currentThread().interrupt();
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 
-	@SuppressWarnings("NoopMethodInAbstractClass")
-	protected void startImpl() throws IOException, SQLException {
-		// No default action
-	}
+  @SuppressWarnings("NoopMethodInAbstractClass")
+  protected void startImpl() throws IOException, SQLException {
+    // No default action
+  }
 
-	@SuppressWarnings("UseOfSystemOutOrSystemErr")
-	protected void verifySocketServers() throws IOException, SQLException {
-		synchronized(this) {
-			Bind[] nbs=getNetBinds();
+  @SuppressWarnings("UseOfSystemOutOrSystemErr")
+  protected void verifySocketServers() throws IOException, SQLException {
+    synchronized (this) {
+      Bind[] nbs=getNetBinds();
 
-			// Create the existing list
-			List<SocketServerThread> existing=new ArrayList<>(socketServers.size());
-			for(SocketServerThread socketServer : socketServers) {
-				existing.add(socketServer);
-			}
+      // Create the existing list
+      List<SocketServerThread> existing=new ArrayList<>(socketServers.size());
+      for (SocketServerThread socketServer : socketServers) {
+        existing.add(socketServer);
+      }
 
-			for(Bind nb : nbs) {
-				InetAddress nbIP = nb.getIpAddress().getInetAddress();
-				if(
-					!nbIP.isLoopback()
-					&& !nbIP.isUnspecified()
-				) {
-					int nbPort=nb.getPort().getPort();
+      for (Bind nb : nbs) {
+        InetAddress nbIP = nb.getIpAddress().getInetAddress();
+        if (
+          !nbIP.isLoopback()
+          && !nbIP.isUnspecified()
+        ) {
+          int nbPort=nb.getPort().getPort();
 
-					// Find in the existing list
-					boolean found=false;
-					for(int d=0;d<existing.size();d++) {
-						SocketServerThread socketServer=existing.get(d);
-						if(socketServer.runMore && socketServer.ipAddress.equals(nbIP) && socketServer.port==nbPort) {
-							existing.remove(d);
-							found=true;
-							break;
-						}
-					}
-					if(!found) {
-						// Add a new one
-						synchronized(System.out) {
-							System.out.print("Starting ");
-							System.out.print(getServiceName());
-							System.out.print(" on ");
-							System.out.print(nbIP.toBracketedString());
-							System.out.print(':');
-							System.out.print(nbPort);
-							System.out.print(": ");
-							SocketServerThread newServer=createSocketServerThread(nbIP, nbPort);
-							socketServers.add(newServer);
-							newServer.start();
-							System.out.println("Done");
-						}
-					}
-				}
-			}
-			// Shut down the extra ones
-			for(SocketServerThread socketServer : existing) {
-				synchronized(System.out) {
-					System.out.print("Stopping ");
-					System.out.print(getServiceName());
-					System.out.print(" on ");
-					System.out.print(socketServer.ipAddress.toBracketedString());
-					System.out.print(':');
-					System.out.print(socketServer.port);
-					System.out.print(": ");
-					socketServer.close();
-					for(int d=0;d<socketServers.size();d++) {
-						if(socketServers.get(d)==socketServer) {
-							socketServers.remove(d);
-							break;
-						}
-					}
-					System.out.println("Done");
-				}
-			}
-		}
-	}
+          // Find in the existing list
+          boolean found=false;
+          for (int d=0;d<existing.size();d++) {
+            SocketServerThread socketServer=existing.get(d);
+            if (socketServer.runMore && socketServer.ipAddress.equals(nbIP) && socketServer.port == nbPort) {
+              existing.remove(d);
+              found=true;
+              break;
+            }
+          }
+          if (!found) {
+            // Add a new one
+            synchronized (System.out) {
+              System.out.print("Starting ");
+              System.out.print(getServiceName());
+              System.out.print(" on ");
+              System.out.print(nbIP.toBracketedString());
+              System.out.print(':');
+              System.out.print(nbPort);
+              System.out.print(": ");
+              SocketServerThread newServer=createSocketServerThread(nbIP, nbPort);
+              socketServers.add(newServer);
+              newServer.start();
+              System.out.println("Done");
+            }
+          }
+        }
+      }
+      // Shut down the extra ones
+      for (SocketServerThread socketServer : existing) {
+        synchronized (System.out) {
+          System.out.print("Stopping ");
+          System.out.print(getServiceName());
+          System.out.print(" on ");
+          System.out.print(socketServer.ipAddress.toBracketedString());
+          System.out.print(':');
+          System.out.print(socketServer.port);
+          System.out.print(": ");
+          socketServer.close();
+          for (int d=0;d<socketServers.size();d++) {
+            if (socketServers.get(d) == socketServer) {
+              socketServers.remove(d);
+              break;
+            }
+          }
+          System.out.println("Done");
+        }
+      }
+    }
+  }
 
-	public abstract Bind[] getNetBinds() throws IOException, SQLException;
+  public abstract Bind[] getNetBinds() throws IOException, SQLException;
 
-	public abstract String getManagerName();
+  public abstract String getManagerName();
 
-	public abstract String getServiceName();
+  public abstract String getServiceName();
 
-	public abstract SocketServerThread createSocketServerThread(InetAddress ipAddress, int port);
+  public abstract SocketServerThread createSocketServerThread(InetAddress ipAddress, int port);
 }

@@ -40,67 +40,67 @@ import java.util.Set;
  */
 final class TomcatCommon_5_5_X extends TomcatCommon {
 
-	private static final TomcatCommon_5_5_X instance = new TomcatCommon_5_5_X();
-	static TomcatCommon_5_5_X getInstance() {
-		return instance;
-	}
+  private static final TomcatCommon_5_5_X instance = new TomcatCommon_5_5_X();
+  static TomcatCommon_5_5_X getInstance() {
+    return instance;
+  }
 
-	private TomcatCommon_5_5_X() {
-		// Do nothing
-	}
+  private TomcatCommon_5_5_X() {
+    // Do nothing
+  }
 
-	@Override
-	protected Set<PackageManager.PackageName> getRequiredPackages() throws IOException, SQLException {
-		return EnumSet.of(
-			OperatingSystemConfiguration.getOperatingSystemConfiguration().getJdk17PackageName(),
-			PackageManager.PackageName.APACHE_TOMCAT_5_5
-		);
-	}
+  @Override
+  protected Set<PackageManager.PackageName> getRequiredPackages() throws IOException, SQLException {
+    return EnumSet.of(
+      OperatingSystemConfiguration.getOperatingSystemConfiguration().getJdk17PackageName(),
+      PackageManager.PackageName.APACHE_TOMCAT_5_5
+    );
+  }
 
-	@Override
-	public void writeHttpdTomcatDataSource(ContextDataSource dataSource, ChainWriter out) throws SQLException, IOException {
-		out.print("          <Resource\n"
-				+ "            name=\"").textInXmlAttribute(dataSource.getName()).print("\"\n"
-				+ "            auth=\"Container\"\n"
-				+ "            type=\"javax.sql.DataSource\"\n");
-		String username = dataSource.getUsername();
-		if(username != null && !username.isEmpty()) {
-			out.print("            username=\"").textInXmlAttribute(username).print("\"\n");
-		}
-		String password = dataSource.getPassword();
-		if(password != null && !password.isEmpty()) {
-			out.print("            password=\"").textInXmlAttribute(password).print("\"\n");
-		}
-		String driverClassName = dataSource.getDriverClassName();
-		if(driverClassName != null && !driverClassName.isEmpty()) {
-			out.print("            driverClassName=\"").textInXmlAttribute(driverClassName).print("\"\n");
-		}
-		out.print("            url=\"").textInXmlAttribute(dataSource.getUrl()).print("\"\n"
-				+ "            maxActive=\"").textInXmlAttribute(dataSource.getMaxActive()).print("\"\n"
-				+ "            maxIdle=\"").textInXmlAttribute(dataSource.getMaxIdle()).print("\"\n"
-				+ "            maxWait=\"").textInXmlAttribute(dataSource.getMaxWait()).print("\"\n");
-		if(dataSource.getValidationQuery()!=null) {
-			out.print("            validationQuery=\"").textInXmlAttribute(dataSource.getValidationQuery()).print("\"\n");
-		}
-		out.print("            removeAbandoned=\"true\"\n"
-				+ "            removeAbandonedTimeout=\"300\"\n"
-				+ "            logAbandoned=\"true\"\n"
-				+ "          />\n");
-	}
+  @Override
+  public void writeHttpdTomcatDataSource(ContextDataSource dataSource, ChainWriter out) throws SQLException, IOException {
+    out.print("          <Resource\n"
+        + "            name=\"").textInXmlAttribute(dataSource.getName()).print("\"\n"
+        + "            auth=\"Container\"\n"
+        + "            type=\"javax.sql.DataSource\"\n");
+    String username = dataSource.getUsername();
+    if (username != null && !username.isEmpty()) {
+      out.print("            username=\"").textInXmlAttribute(username).print("\"\n");
+    }
+    String password = dataSource.getPassword();
+    if (password != null && !password.isEmpty()) {
+      out.print("            password=\"").textInXmlAttribute(password).print("\"\n");
+    }
+    String driverClassName = dataSource.getDriverClassName();
+    if (driverClassName != null && !driverClassName.isEmpty()) {
+      out.print("            driverClassName=\"").textInXmlAttribute(driverClassName).print("\"\n");
+    }
+    out.print("            url=\"").textInXmlAttribute(dataSource.getUrl()).print("\"\n"
+        + "            maxActive=\"").textInXmlAttribute(dataSource.getMaxActive()).print("\"\n"
+        + "            maxIdle=\"").textInXmlAttribute(dataSource.getMaxIdle()).print("\"\n"
+        + "            maxWait=\"").textInXmlAttribute(dataSource.getMaxWait()).print("\"\n");
+    if (dataSource.getValidationQuery() != null) {
+      out.print("            validationQuery=\"").textInXmlAttribute(dataSource.getValidationQuery()).print("\"\n");
+    }
+    out.print("            removeAbandoned=\"true\"\n"
+        + "            removeAbandonedTimeout=\"300\"\n"
+        + "            logAbandoned=\"true\"\n"
+        + "          />\n");
+  }
 
-	/**
-	 * Upgrades the Tomcat 5.5.X installed in the provided directory.
-	 *
-	 * @param optSlash  Relative path from the CATALINA_HOME to /opt/, including trailing slash, such as <code>../../opt/</code>.
-	 */
-	boolean upgradeTomcatDirectory(String optSlash, PosixFile tomcatDirectory, int uid, int gid) {
-		boolean needsRestart = false;
-		// Nothing to do
-		return needsRestart;
-	}
+  /**
+   * Upgrades the Tomcat 5.5.X installed in the provided directory.
+   *
+   * @param optSlash  Relative path from the CATALINA_HOME to /opt/, including trailing slash, such as <code>../../opt/</code>.
+   */
+  boolean upgradeTomcatDirectory(String optSlash, PosixFile tomcatDirectory, int uid, int gid) {
+    boolean needsRestart = false;
+    // Nothing to do
+    return needsRestart;
+  }
 
-	@Override
-	protected String getApacheTomcatDir() {
-		return "apache-tomcat-5.5";
-	}
+  @Override
+  protected String getApacheTomcatDir() {
+    return "apache-tomcat-5.5";
+  }
 }

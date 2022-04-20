@@ -32,17 +32,17 @@ import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
  */
 class HttpdSharedTomcatManager_3_1 extends HttpdSharedTomcatManager_3_X<TomcatCommon_3_1> {
 
-	HttpdSharedTomcatManager_3_1(SharedTomcat sharedTomcat) {
-		super(sharedTomcat);
-	}
+  HttpdSharedTomcatManager_3_1(SharedTomcat sharedTomcat) {
+    super(sharedTomcat);
+  }
 
-	@Override
-	TomcatCommon_3_1 getTomcatCommon() {
-		return TomcatCommon_3_1.getInstance();
-	}
+  @Override
+  TomcatCommon_3_1 getTomcatCommon() {
+    return TomcatCommon_3_1.getInstance();
+  }
 
-	@Override
-	protected String getOptDir() {
-		return "apache-tomcat-3.1";
-	}
+  @Override
+  protected String getOptDir() {
+    return "apache-tomcat-3.1";
+  }
 }
