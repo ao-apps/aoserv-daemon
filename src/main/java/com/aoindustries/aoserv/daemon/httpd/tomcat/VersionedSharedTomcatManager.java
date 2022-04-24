@@ -91,10 +91,10 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
    * @param out  Is in UTF-8 encoding.
    */
   protected void writeServerXml(
-    String autoWarning,
-    ChainWriter out,
-    SharedTomcat sharedTomcat,
-    List<SharedTomcatSite> sites
+      String autoWarning,
+      ChainWriter out,
+      SharedTomcat sharedTomcat,
+      List<SharedTomcatSite> sites
   ) throws IOException, SQLException {
     final TC tomcatCommon = getTomcatCommon();
     final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
@@ -152,14 +152,14 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
     // Do not include when is default "true"
     if (!sharedTomcat.getTomcatAuthentication()) {
       out.print("      tomcatAuthentication=\"false\"\n"
-        + "      tomcatAuthorization=\"true\"\n");
+          + "      tomcatAuthorization=\"true\"\n");
     }
     out.print("    />\n"
         + "\n");
     // Find the first host (same order as hosts added below)
     String defaultHostPrimaryHostname = null;
     FIND_FIRST :
-    for (boolean listFirst : new boolean[] {true, false}) {
+    for (boolean listFirst : new boolean[]{true, false}) {
       for (SharedTomcatSite site : sites) {
         com.aoindustries.aoserv.client.web.Site hs = site.getHttpdTomcatSite().getHttpdSite();
         if (hs.getListFirst() == listFirst && !hs.isDisabled()) {
@@ -179,7 +179,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
         + "        <Realm className=\"org.apache.catalina.realm.UserDatabaseRealm\"\n"
         + "               resourceName=\"UserDatabase\"/>\n"
         + "      </Realm>\n");
-    for (boolean listFirst : new boolean[] {true, false}) {
+    for (boolean listFirst : new boolean[]{true, false}) {
       for (SharedTomcatSite site : sites) {
         com.aoindustries.aoserv.client.web.Site hs = site.getHttpdTomcatSite().getHttpdSite();
         if (hs.getListFirst() == listFirst && !hs.isDisabled()) {
@@ -296,8 +296,8 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
     // Create and fill in the directory if it does not exist or is owned by root.
     final Stat sharedTomcatStat = sharedTomcatDirectory.getStat();
     final boolean isInstall =
-      !sharedTomcatStat.exists()
-      || sharedTomcatStat.getUid() == PosixFile.ROOT_UID;
+        !sharedTomcatStat.exists()
+            || sharedTomcatStat.getUid() == PosixFile.ROOT_UID;
 
     // Perform upgrade in-place when not doing a full install and the README.txt file missing or changed
     final byte[] readmeTxtContent = generateReadmeTxt(optSlash, apacheTomcatDir, sharedTomcatDirectory);
@@ -306,13 +306,13 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
     {
       final Stat readmeTxtStat;
       isUpgrade =
-        !isInstall
-        && !sharedTomcat.isManual()
-        && !(
-          (readmeTxtStat = readmeTxt.getStat()).exists()
-          && readmeTxtStat.isRegularFile()
-          && readmeTxt.contentEquals(readmeTxtContent)
-        );
+          !isInstall
+              && !sharedTomcat.isManual()
+              && !(
+              (readmeTxtStat = readmeTxt.getStat()).exists()
+                  && readmeTxtStat.isRegularFile()
+                  && readmeTxt.contentEquals(readmeTxtContent)
+          );
     }
     assert !(isInstall && isUpgrade);
     if (isInstall || isUpgrade) {
@@ -332,8 +332,8 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 
       // Create or replace the README.txt
       DaemonFileUtils.atomicWrite(
-        readmeTxt, readmeTxtContent, 0440, lsaUID, lsgGID,
-        null, null
+          readmeTxt, readmeTxtContent, 0440, lsaUID, lsgGID,
+          null, null
       );
 
       // Set the ownership to avoid future rebuilds of this directory
@@ -347,9 +347,9 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
     // always rebuild bin/profile.d/httpd-sites.sh
     List<SharedTomcatSite> sites = sharedTomcat.getHttpdTomcatSharedSites();
     if (
-      !sharedTomcat.isManual()
-      // bin/profile.d directory may not exist while in manual mode
-      || binProfileD.getStat().exists()
+        !sharedTomcat.isManual()
+            // bin/profile.d directory may not exist while in manual mode
+            || binProfileD.getStat().exists()
     ) {
       bout.reset();
       try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
@@ -376,11 +376,11 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
       }
       PosixFile httpdSitesSh = new PosixFile(binProfileD, "httpd-sites.sh", false);
       if (
-        DaemonFileUtils.atomicWrite(
-          httpdSitesSh, bout.toByteArray(), 0640, lsaUID, lsgGID,
-          DaemonFileUtils.findUnusedBackup(httpdSitesSh + backupSuffix, BACKUP_SEPARATOR, BACKUP_EXTENSION),
-          null
-        )
+          DaemonFileUtils.atomicWrite(
+              httpdSitesSh, bout.toByteArray(), 0640, lsaUID, lsgGID,
+              DaemonFileUtils.findUnusedBackup(httpdSitesSh + backupSuffix, BACKUP_SEPARATOR, BACKUP_EXTENSION),
+              null
+          )
       ) {
         needRestart = true;
       }
@@ -388,9 +388,9 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 
     // make work directories and remove extra work dirs
     if (
-      !sharedTomcat.isManual()
-      // work directory may not exist while in manual mode
-      || workCatalina.getStat().exists()
+        !sharedTomcat.isManual()
+            // work directory may not exist while in manual mode
+            || workCatalina.getStat().exists()
     ) {
       List<String> workFiles = new SortedArrayList<>();
       String[] wlist = workCatalina.getFile().list();
@@ -403,9 +403,9 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
           String subwork = hs.getPrimaryHttpdSiteURL().getHostname().toString();
           workFiles.remove(subwork);
           if (
-            DaemonFileUtils.mkdir(
-              new PosixFile(workCatalina, subwork, false), 0750, lsaUID, hs.getLinuxServerGroup().getGid().getId()
-            )
+              DaemonFileUtils.mkdir(
+                  new PosixFile(workCatalina, subwork, false), 0750, lsaUID, hs.getLinuxServerGroup().getGid().getId()
+              )
           ) {
             needRestart = true;
           }
@@ -421,9 +421,9 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
     }
 
     if (
-      !sharedTomcat.isManual()
-      // conf directory may not exist while in manual mode
-      || conf.getStat().exists()
+        !sharedTomcat.isManual()
+            // conf directory may not exist while in manual mode
+            || conf.getStat().exists()
     ) {
       // Rebuild the server.xml
       String autoWarning = getAutoWarningXml();
@@ -434,11 +434,11 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
           writeServerXml(autoWarning, out, sharedTomcat, sites);
         }
         if (
-          DaemonFileUtils.atomicWrite(
-            serverXml, bout.toByteArray(), 0640, lsaUID, lsgGID,
-            DaemonFileUtils.findUnusedBackup(serverXml + backupSuffix, BACKUP_SEPARATOR, BACKUP_EXTENSION),
-            null
-          )
+            DaemonFileUtils.atomicWrite(
+                serverXml, bout.toByteArray(), 0640, lsaUID, lsgGID,
+                DaemonFileUtils.findUnusedBackup(serverXml + backupSuffix, BACKUP_SEPARATOR, BACKUP_EXTENSION),
+                null
+            )
         ) {
           // Must restart JVM if this file has changed
           needRestart = true;
@@ -449,16 +449,16 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
           int uid_min = thisServer.getUidMin().getId();
           int gid_min = thisServer.getGidMin().getId();
           DaemonFileUtils.stripFilePrefix(
-            serverXml,
-            autoWarningOld,
-            uid_min,
-            gid_min
+              serverXml,
+              autoWarningOld,
+              uid_min,
+              gid_min
           );
           DaemonFileUtils.stripFilePrefix(
-            serverXml,
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + autoWarning,
-            uid_min,
-            gid_min
+              serverXml,
+              "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + autoWarning,
+              uid_min,
+              gid_min
           );
         } catch (IOException err) {
           // Errors OK because this is done in manual mode and they might have symbolic linked stuff
@@ -477,19 +477,19 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
     PosixFile tomcatUF = new PosixFile(bin, "tomcat", false);
     PosixFile daemonSymlink = new PosixFile(daemon, "tomcat", false);
     if (
-      !sharedTomcat.isDisabled()
-      && hasEnabledSite
-      && (
-        !sharedTomcat.isManual()
-        // Script may not exist while in manual mode
-        || tomcatUF.getStat().exists()
-      )
+        !sharedTomcat.isDisabled()
+            && hasEnabledSite
+            && (
+            !sharedTomcat.isManual()
+                // Script may not exist while in manual mode
+                || tomcatUF.getStat().exists()
+        )
     ) {
       // Enabled
       if (!daemonSymlink.getStat().exists()) {
         daemonSymlink
-          .symLink("../bin/tomcat")
-          .chown(lsaUID, lsgGID);
+            .symLink("../bin/tomcat")
+            .chown(lsaUID, lsgGID);
       }
       // Start if needed
       if (needRestart) {
@@ -607,38 +607,38 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
     try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
       out.print(
           "Warning: This file is automatically created by VersionedSharedTomcatManager,\n"
-        + "which is part of HttpdManager.\n"
-        + "\n"
-        + "This file is used to detect when a new version of Tomcat has been selected.\n"
-        + "Alteration or removal of this file will trigger a major rebuild of this Tomcat\n"
-        + "installation on the next configuration verification pass.\n"
-        + "\n"
-        + "To set the Tomcat major version, please use one of the following options:\n"
-        + "\n"
-        + "Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP.ao?pkey=").print(sharedTomcat.getPkey()).print("\n"
-        + "\n"
-        + "AOSH: " + Command.SET_HTTPD_SHARED_TOMCAT_VERSION + " ").print(sharedTomcat.getName()).print(' ').print(sharedTomcat.getLinuxServer().getHostname()).print(" {series}.{major}\n"
-        + "\n"
-        + "Changing the major version will trigger a full rebuild of this Tomcat\n"
-        + "installation.  During the major rebuild, any file altered is backed-up with\n"
-        + "an extension of \".bak\".  These *.bak files will not interfere with the\n"
-        + "operation of the Tomcat installation.  Once the applications are thoroughly\n"
-        + "tested with the new major Tomcat version, the backup files may be removed with\n"
-        + "the following:\n"
-        + "\n"
-        + "find \"").print(installDir).print("\" -mindepth 1 \\( -name '*.bak' -or -path '*.bak/*' \\) -print -delete\n"
-        + "\n"
-        + "Minor version upgrades are performed on a regular basis as updates to Tomcat\n"
-        + "become available.  A minor rebuild differs from a major rebuild in that it only\n"
-        + "touches the specific files changed in that specific minor update, which is\n"
-        + "typically only the replacement of symbolic links within the lib/ directory.\n"
-        + "\n"
-        + "support@aoindustries.com\n"
-        + "(205) 454-2556\n"
-        + "\n"
-        + "\n"
-        + "*** Change Detection ***\n"
-        + "Source: /opt/").print(apacheTomcatDir).print('\n');
+              + "which is part of HttpdManager.\n"
+              + "\n"
+              + "This file is used to detect when a new version of Tomcat has been selected.\n"
+              + "Alteration or removal of this file will trigger a major rebuild of this Tomcat\n"
+              + "installation on the next configuration verification pass.\n"
+              + "\n"
+              + "To set the Tomcat major version, please use one of the following options:\n"
+              + "\n"
+              + "Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP.ao?pkey=").print(sharedTomcat.getPkey()).print("\n"
+          + "\n"
+          + "AOSH: " + Command.SET_HTTPD_SHARED_TOMCAT_VERSION + " ").print(sharedTomcat.getName()).print(' ').print(sharedTomcat.getLinuxServer().getHostname()).print(" {series}.{major}\n"
+          + "\n"
+          + "Changing the major version will trigger a full rebuild of this Tomcat\n"
+          + "installation.  During the major rebuild, any file altered is backed-up with\n"
+          + "an extension of \".bak\".  These *.bak files will not interfere with the\n"
+          + "operation of the Tomcat installation.  Once the applications are thoroughly\n"
+          + "tested with the new major Tomcat version, the backup files may be removed with\n"
+          + "the following:\n"
+          + "\n"
+          + "find \"").print(installDir).print("\" -mindepth 1 \\( -name '*.bak' -or -path '*.bak/*' \\) -print -delete\n"
+          + "\n"
+          + "Minor version upgrades are performed on a regular basis as updates to Tomcat\n"
+          + "become available.  A minor rebuild differs from a major rebuild in that it only\n"
+          + "touches the specific files changed in that specific minor update, which is\n"
+          + "typically only the replacement of symbolic links within the lib/ directory.\n"
+          + "\n"
+          + "support@aoindustries.com\n"
+          + "(205) 454-2556\n"
+          + "\n"
+          + "\n"
+          + "*** Change Detection ***\n"
+          + "Source: /opt/").print(apacheTomcatDir).print('\n');
     }
     return bout.toByteArray();
   }
@@ -668,10 +668,10 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
     String apacheTomcatDir = tomcatCommon.getApacheTomcatDir();
     // Upgrade Tomcat
     boolean needsRestart = getTomcatCommon().upgradeTomcatDirectory(
-      optSlash,
-      siteDirectory,
-      uid,
-      gid
+        optSlash,
+        siteDirectory,
+        uid,
+        gid
     );
     // Verify RELEASE-NOTES, looking for any update that doesn't change symlinks
     PosixFile newReleaseNotes = new PosixFile(siteDirectory, "RELEASE-NOTES", true);
@@ -680,10 +680,10 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
       IoUtils.copy(in, bout);
     }
     if (
-      DaemonFileUtils.atomicWrite(
-        newReleaseNotes, bout.toByteArray(), 0440, uid, gid,
-        null, null
-      )
+        DaemonFileUtils.atomicWrite(
+            newReleaseNotes, bout.toByteArray(), 0440, uid, gid,
+            null, null
+        )
     ) {
       needsRestart = true;
     }

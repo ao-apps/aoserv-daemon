@@ -43,13 +43,14 @@ public abstract class SocketServerManager {
   private static final Logger logger = Logger.getLogger(SocketServerManager.class.getName());
 
   /** All of the servers that are currently running */
-  private final List<SocketServerThread> socketServers=new ArrayList<>();
+  private final List<SocketServerThread> socketServers = new ArrayList<>();
 
   protected SocketServerManager() {
     // Do nothing
   }
 
-  private boolean started=false;
+  private boolean started = false;
+
   @SuppressWarnings({"UseOfSystemOutOrSystemErr", "UseSpecificCatch", "SleepWhileInLoop", "BroadCatchBlock", "TooBroadCatch", "SleepWhileHoldingLock"})
   public final void start() throws IOException, SQLException {
     if (!started) {
@@ -89,10 +90,10 @@ public abstract class SocketServerManager {
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   protected void verifySocketServers() throws IOException, SQLException {
     synchronized (this) {
-      Bind[] nbs=getNetBinds();
+      Bind[] nbs = getNetBinds();
 
       // Create the existing list
-      List<SocketServerThread> existing=new ArrayList<>(socketServers.size());
+      List<SocketServerThread> existing = new ArrayList<>(socketServers.size());
       for (SocketServerThread socketServer : socketServers) {
         existing.add(socketServer);
       }
@@ -100,18 +101,18 @@ public abstract class SocketServerManager {
       for (Bind nb : nbs) {
         InetAddress nbIP = nb.getIpAddress().getInetAddress();
         if (
-          !nbIP.isLoopback()
-          && !nbIP.isUnspecified()
+            !nbIP.isLoopback()
+                && !nbIP.isUnspecified()
         ) {
-          int nbPort=nb.getPort().getPort();
+          int nbPort = nb.getPort().getPort();
 
           // Find in the existing list
-          boolean found=false;
-          for (int d=0;d<existing.size();d++) {
-            SocketServerThread socketServer=existing.get(d);
+          boolean found = false;
+          for (int d = 0; d < existing.size(); d++) {
+            SocketServerThread socketServer = existing.get(d);
             if (socketServer.runMore && socketServer.ipAddress.equals(nbIP) && socketServer.port == nbPort) {
               existing.remove(d);
-              found=true;
+              found = true;
               break;
             }
           }
@@ -125,7 +126,7 @@ public abstract class SocketServerManager {
               System.out.print(':');
               System.out.print(nbPort);
               System.out.print(": ");
-              SocketServerThread newServer=createSocketServerThread(nbIP, nbPort);
+              SocketServerThread newServer = createSocketServerThread(nbIP, nbPort);
               socketServers.add(newServer);
               newServer.start();
               System.out.println("Done");
@@ -144,7 +145,7 @@ public abstract class SocketServerManager {
           System.out.print(socketServer.port);
           System.out.print(": ");
           socketServer.close();
-          for (int d=0;d<socketServers.size();d++) {
+          for (int d = 0; d < socketServers.size(); d++) {
             if (socketServers.get(d) == socketServer) {
               socketServers.remove(d);
               break;

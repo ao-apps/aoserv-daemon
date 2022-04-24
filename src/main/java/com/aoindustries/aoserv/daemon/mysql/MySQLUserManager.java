@@ -61,6 +61,7 @@ public final class MySQLUserManager extends BuilderThread {
   }
 
   private static final Object rebuildLock = new Object();
+
   @Override
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
   protected boolean doRebuild() {
@@ -70,8 +71,8 @@ public final class MySQLUserManager extends BuilderThread {
       OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
       int osvId = osv.getPkey();
       if (
-        osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-        && osvId != OperatingSystemVersion.CENTOS_7_X86_64
+          osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+              && osvId != OperatingSystemVersion.CENTOS_7_X86_64
       ) {
         throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
       }
@@ -94,7 +95,7 @@ public final class MySQLUserManager extends BuilderThread {
             if (!foundRoot) {
               logger.severe(User.ROOT + " user not found; refusing to rebuild config: " + mysqlServer);
             } else {
-              final String version=mysqlServer.getVersion().getVersion();
+              final String version = mysqlServer.getVersion().getVersion();
 
               boolean modified = false;
 
@@ -107,12 +108,12 @@ public final class MySQLUserManager extends BuilderThread {
                   try (
                     Statement stmt = conn.createStatement();
                     ResultSet results = stmt.executeQuery(currentSQL = "SELECT host, user FROM user")
-                  ) {
+                      ) {
                     try {
                       while (results.next()) {
                         Tuple2<String, User.Name> tuple = new Tuple2<>(
-                          results.getString(1),
-                          User.Name.valueOf(results.getString(2))
+                            results.getString(1),
+                            User.Name.valueOf(results.getString(2))
                         );
                         if (!existing.add(tuple)) {
                           throw new SQLException("Duplicate (host, user): " + tuple);
@@ -306,8 +307,8 @@ public final class MySQLUserManager extends BuilderThread {
                         + "    OR max_user_connections != ?\n"
                         + "  )";
                   } else if (
-                    version.startsWith(Server.VERSION_5_1_PREFIX)
-                    || version.startsWith(Server.VERSION_5_6_PREFIX)
+                      version.startsWith(Server.VERSION_5_1_PREFIX)
+                          || version.startsWith(Server.VERSION_5_6_PREFIX)
                   ) {
                     updateSQL = "UPDATE user SET\n"
                         + "  Select_priv=?,\n"
@@ -491,10 +492,10 @@ public final class MySQLUserManager extends BuilderThread {
                         pstmt.setString(pos++, mu.isReplicationSlave() ? "Y" : "N");
                         pstmt.setString(pos++, mu.isReplicationClient() ? "Y" : "N");
                         if (
-                          version.startsWith(Server.VERSION_5_0_PREFIX)
-                          || version.startsWith(Server.VERSION_5_1_PREFIX)
-                          || version.startsWith(Server.VERSION_5_6_PREFIX)
-                          || version.startsWith(Server.VERSION_5_7_PREFIX)
+                            version.startsWith(Server.VERSION_5_0_PREFIX)
+                                || version.startsWith(Server.VERSION_5_1_PREFIX)
+                                || version.startsWith(Server.VERSION_5_6_PREFIX)
+                                || version.startsWith(Server.VERSION_5_7_PREFIX)
                         ) {
                           pstmt.setString(pos++, mu.canCreateView() ? "Y" : "N");
                           pstmt.setString(pos++, mu.canShowView() ? "Y" : "N");
@@ -502,9 +503,9 @@ public final class MySQLUserManager extends BuilderThread {
                           pstmt.setString(pos++, mu.canAlterRoutine() ? "Y" : "N");
                           pstmt.setString(pos++, mu.canCreateUser() ? "Y" : "N");
                           if (
-                            version.startsWith(Server.VERSION_5_1_PREFIX)
-                            || version.startsWith(Server.VERSION_5_6_PREFIX)
-                            || version.startsWith(Server.VERSION_5_7_PREFIX)
+                              version.startsWith(Server.VERSION_5_1_PREFIX)
+                                  || version.startsWith(Server.VERSION_5_6_PREFIX)
+                                  || version.startsWith(Server.VERSION_5_7_PREFIX)
                           ) {
                             pstmt.setString(pos++, mu.canEvent() ? "Y" : "N");
                             pstmt.setString(pos++, mu.canTrigger() ? "Y" : "N");
@@ -514,17 +515,17 @@ public final class MySQLUserManager extends BuilderThread {
                         pstmt.setInt(pos++, msu.getMaxUpdates());
                         pstmt.setInt(pos++, msu.getMaxConnections());
                         if (
-                          version.startsWith(Server.VERSION_5_0_PREFIX)
-                          || version.startsWith(Server.VERSION_5_1_PREFIX)
-                          || version.startsWith(Server.VERSION_5_6_PREFIX)
-                          || version.startsWith(Server.VERSION_5_7_PREFIX)
+                            version.startsWith(Server.VERSION_5_0_PREFIX)
+                                || version.startsWith(Server.VERSION_5_1_PREFIX)
+                                || version.startsWith(Server.VERSION_5_6_PREFIX)
+                                || version.startsWith(Server.VERSION_5_7_PREFIX)
                         ) {
                           pstmt.setInt(pos++, msu.getMaxUserConnections());
                         }
                         boolean locked =
-                          username.equals(User.MYSQL_SESSION)
-                          || username.equals(User.MYSQL_SYS)
-                          || msu.isDisabled()
+                            username.equals(User.MYSQL_SESSION)
+                                || username.equals(User.MYSQL_SYS)
+                                || msu.isDisabled()
                         ;
                         if (version.startsWith(Server.VERSION_5_7_PREFIX)) {
                           pstmt.setString(pos++, locked ? "Y" : "N");
@@ -554,10 +555,10 @@ public final class MySQLUserManager extends BuilderThread {
                         pstmt.setString(pos++, mu.isReplicationSlave() ? "Y" : "N");
                         pstmt.setString(pos++, mu.isReplicationClient() ? "Y" : "N");
                         if (
-                          version.startsWith(Server.VERSION_5_0_PREFIX)
-                          || version.startsWith(Server.VERSION_5_1_PREFIX)
-                          || version.startsWith(Server.VERSION_5_6_PREFIX)
-                          || version.startsWith(Server.VERSION_5_7_PREFIX)
+                            version.startsWith(Server.VERSION_5_0_PREFIX)
+                                || version.startsWith(Server.VERSION_5_1_PREFIX)
+                                || version.startsWith(Server.VERSION_5_6_PREFIX)
+                                || version.startsWith(Server.VERSION_5_7_PREFIX)
                         ) {
                           pstmt.setString(pos++, mu.canCreateView() ? "Y" : "N");
                           pstmt.setString(pos++, mu.canShowView() ? "Y" : "N");
@@ -565,9 +566,9 @@ public final class MySQLUserManager extends BuilderThread {
                           pstmt.setString(pos++, mu.canAlterRoutine() ? "Y" : "N");
                           pstmt.setString(pos++, mu.canCreateUser() ? "Y" : "N");
                           if (
-                            version.startsWith(Server.VERSION_5_1_PREFIX)
-                            || version.startsWith(Server.VERSION_5_6_PREFIX)
-                            || version.startsWith(Server.VERSION_5_7_PREFIX)
+                              version.startsWith(Server.VERSION_5_1_PREFIX)
+                                  || version.startsWith(Server.VERSION_5_6_PREFIX)
+                                  || version.startsWith(Server.VERSION_5_7_PREFIX)
                           ) {
                             pstmt.setString(pos++, mu.canEvent() ? "Y" : "N");
                             pstmt.setString(pos++, mu.canTrigger() ? "Y" : "N");
@@ -577,10 +578,10 @@ public final class MySQLUserManager extends BuilderThread {
                         pstmt.setInt(pos++, msu.getMaxUpdates());
                         pstmt.setInt(pos++, msu.getMaxConnections());
                         if (
-                          version.startsWith(Server.VERSION_5_0_PREFIX)
-                          || version.startsWith(Server.VERSION_5_1_PREFIX)
-                          || version.startsWith(Server.VERSION_5_6_PREFIX)
-                          || version.startsWith(Server.VERSION_5_7_PREFIX)
+                            version.startsWith(Server.VERSION_5_0_PREFIX)
+                                || version.startsWith(Server.VERSION_5_1_PREFIX)
+                                || version.startsWith(Server.VERSION_5_6_PREFIX)
+                                || version.startsWith(Server.VERSION_5_7_PREFIX)
                         ) {
                           pstmt.setInt(pos++, msu.getMaxUserConnections());
                         }
@@ -601,15 +602,15 @@ public final class MySQLUserManager extends BuilderThread {
                   // Add the users that do not exist and should
                   String insertSQL;
                   if (version.startsWith(Server.VERSION_4_0_PREFIX)) {
-                    insertSQL = "INSERT INTO user VALUES (?,?,'"+User.NO_PASSWORD_DB_VALUE+"',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?)";
+                    insertSQL = "INSERT INTO user VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?)";
                   } else if (version.startsWith(Server.VERSION_4_1_PREFIX)) {
-                    insertSQL = "INSERT INTO user VALUES (?,?,'"+User.NO_PASSWORD_DB_VALUE+"',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?)";
+                    insertSQL = "INSERT INTO user VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?)";
                   } else if (version.startsWith(Server.VERSION_5_0_PREFIX)) {
-                    insertSQL = "INSERT INTO user VALUES (?,?,'"+User.NO_PASSWORD_DB_VALUE+"',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?,?)";
+                    insertSQL = "INSERT INTO user VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?,?)";
                   } else if (version.startsWith(Server.VERSION_5_1_PREFIX)) {
-                    insertSQL = "INSERT INTO user VALUES (?,?,'"+User.NO_PASSWORD_DB_VALUE+"',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?,?)";
+                    insertSQL = "INSERT INTO user VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?,?)";
                   } else if (version.startsWith(Server.VERSION_5_6_PREFIX)) {
-                    insertSQL = "INSERT INTO user VALUES (?,?,'"+User.NO_PASSWORD_DB_VALUE+"',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'N','','','','',?,?,?,?,'',NULL,'N')";
+                    insertSQL = "INSERT INTO user VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'N','','','','',?,?,?,?,'',NULL,'N')";
                   } else if (version.startsWith(Server.VERSION_5_7_PREFIX)) {
                     insertSQL = "INSERT INTO user VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'N','','','','',?,?,?,?,'mysql_native_password','" + User.NO_PASSWORD_DB_VALUE + "','N',NOW(),NULL,?)";
                   } else {
@@ -630,12 +631,12 @@ public final class MySQLUserManager extends BuilderThread {
                         // Add the user
                         if (mu.isSpecial()) {
                           logger.log(
-                            Level.WARNING,
-                            null,
-                            new SQLException("Refusing to create special user: " + username + " on " + mysqlServer.getName())
+                              Level.WARNING,
+                              null,
+                              new SQLException("Refusing to create special user: " + username + " on " + mysqlServer.getName())
                           );
                         } else {
-                          int pos=1;
+                          int pos = 1;
                           pstmt.setString(pos++, host);
                           pstmt.setString(pos++, username.toString());
                           pstmt.setString(pos++, mu.canSelect() ? "Y" : "N");
@@ -660,10 +661,10 @@ public final class MySQLUserManager extends BuilderThread {
                           pstmt.setString(pos++, mu.isReplicationSlave() ? "Y" : "N");
                           pstmt.setString(pos++, mu.isReplicationClient() ? "Y" : "N");
                           if (
-                            version.startsWith(Server.VERSION_5_0_PREFIX)
-                            || version.startsWith(Server.VERSION_5_1_PREFIX)
-                            || version.startsWith(Server.VERSION_5_6_PREFIX)
-                            || version.startsWith(Server.VERSION_5_7_PREFIX)
+                              version.startsWith(Server.VERSION_5_0_PREFIX)
+                                  || version.startsWith(Server.VERSION_5_1_PREFIX)
+                                  || version.startsWith(Server.VERSION_5_6_PREFIX)
+                                  || version.startsWith(Server.VERSION_5_7_PREFIX)
                           ) {
                             pstmt.setString(pos++, mu.canCreateView() ? "Y" : "N");
                             pstmt.setString(pos++, mu.canShowView() ? "Y" : "N");
@@ -671,9 +672,9 @@ public final class MySQLUserManager extends BuilderThread {
                             pstmt.setString(pos++, mu.canAlterRoutine() ? "Y" : "N");
                             pstmt.setString(pos++, mu.canCreateUser() ? "Y" : "N");
                             if (
-                              version.startsWith(Server.VERSION_5_1_PREFIX)
-                              || version.startsWith(Server.VERSION_5_6_PREFIX)
-                              || version.startsWith(Server.VERSION_5_7_PREFIX)
+                                version.startsWith(Server.VERSION_5_1_PREFIX)
+                                    || version.startsWith(Server.VERSION_5_6_PREFIX)
+                                    || version.startsWith(Server.VERSION_5_7_PREFIX)
                             ) {
                               pstmt.setString(pos++, mu.canEvent() ? "Y" : "N");
                               pstmt.setString(pos++, mu.canTrigger() ? "Y" : "N");
@@ -683,10 +684,10 @@ public final class MySQLUserManager extends BuilderThread {
                           pstmt.setInt(pos++, msu.getMaxUpdates());
                           pstmt.setInt(pos++, msu.getMaxConnections());
                           if (
-                            version.startsWith(Server.VERSION_5_0_PREFIX)
-                            || version.startsWith(Server.VERSION_5_1_PREFIX)
-                            || version.startsWith(Server.VERSION_5_6_PREFIX)
-                            || version.startsWith(Server.VERSION_5_7_PREFIX)
+                              version.startsWith(Server.VERSION_5_0_PREFIX)
+                                  || version.startsWith(Server.VERSION_5_1_PREFIX)
+                                  || version.startsWith(Server.VERSION_5_6_PREFIX)
+                                  || version.startsWith(Server.VERSION_5_7_PREFIX)
                           ) {
                             pstmt.setInt(pos++, msu.getMaxUserConnections());
                           }
@@ -715,9 +716,9 @@ public final class MySQLUserManager extends BuilderThread {
                         User.Name user = key.getElement2();
                         if (User.isSpecial(user)) {
                           logger.log(
-                            Level.WARNING,
-                            null,
-                            new SQLException("Refusing to drop special user: " + user + " user for host " + host + " on " + mysqlServer.getName())
+                              Level.WARNING,
+                              null,
+                              new SQLException("Refusing to drop special user: " + user + " user for host " + host + " on " + mysqlServer.getName())
                           );
                         } else {
                           pstmt.setString(1, host);
@@ -739,11 +740,11 @@ public final class MySQLUserManager extends BuilderThread {
 
               // Disable and enable accounts
               if (
-                version.startsWith(Server.VERSION_4_0_PREFIX)
-                || version.startsWith(Server.VERSION_4_1_PREFIX)
-                || version.startsWith(Server.VERSION_5_0_PREFIX)
-                || version.startsWith(Server.VERSION_5_1_PREFIX)
-                || version.startsWith(Server.VERSION_5_6_PREFIX)
+                  version.startsWith(Server.VERSION_4_0_PREFIX)
+                      || version.startsWith(Server.VERSION_4_1_PREFIX)
+                      || version.startsWith(Server.VERSION_5_0_PREFIX)
+                      || version.startsWith(Server.VERSION_5_1_PREFIX)
+                      || version.startsWith(Server.VERSION_5_6_PREFIX)
               ) {
                 // Older versions of MySQL are disabled by stashing the encrypted password and replacing it with an invalid hash
                 for (UserServer msu : users) {
@@ -794,11 +795,11 @@ public final class MySQLUserManager extends BuilderThread {
     final String version = mysqlServer.getVersion().getVersion();
     String sql;
     if (
-      version.startsWith(Server.VERSION_4_0_PREFIX)
-      || version.startsWith(Server.VERSION_4_1_PREFIX)
-      || version.startsWith(Server.VERSION_5_0_PREFIX)
-      || version.startsWith(Server.VERSION_5_1_PREFIX)
-      || version.startsWith(Server.VERSION_5_6_PREFIX)
+        version.startsWith(Server.VERSION_4_0_PREFIX)
+            || version.startsWith(Server.VERSION_4_1_PREFIX)
+            || version.startsWith(Server.VERSION_5_0_PREFIX)
+            || version.startsWith(Server.VERSION_5_1_PREFIX)
+            || version.startsWith(Server.VERSION_5_6_PREFIX)
     ) {
       // Older MySQL: password stored in "password" column
       sql = "SELECT password FROM user WHERE user=?";
@@ -847,11 +848,11 @@ public final class MySQLUserManager extends BuilderThread {
           // Disable the account
           String sql;
           if (
-            version.startsWith(Server.VERSION_4_0_PREFIX)
-            || version.startsWith(Server.VERSION_4_1_PREFIX)
-            || version.startsWith(Server.VERSION_5_0_PREFIX)
-            || version.startsWith(Server.VERSION_5_1_PREFIX)
-            || version.startsWith(Server.VERSION_5_6_PREFIX)
+              version.startsWith(Server.VERSION_4_0_PREFIX)
+                  || version.startsWith(Server.VERSION_4_1_PREFIX)
+                  || version.startsWith(Server.VERSION_5_0_PREFIX)
+                  || version.startsWith(Server.VERSION_5_1_PREFIX)
+                  || version.startsWith(Server.VERSION_5_6_PREFIX)
           ) {
             sql = "UPDATE user SET password='" + User.NO_PASSWORD_DB_VALUE + "' WHERE user=?";
           } else if (version.startsWith(Server.VERSION_5_7_PREFIX)) {
@@ -870,11 +871,11 @@ public final class MySQLUserManager extends BuilderThread {
           // Reset the password
           String sql;
           if (
-            version.startsWith(Server.VERSION_4_0_PREFIX)
-            || version.startsWith(Server.VERSION_4_1_PREFIX)
-            || version.startsWith(Server.VERSION_5_0_PREFIX)
-            || version.startsWith(Server.VERSION_5_1_PREFIX)
-            || version.startsWith(Server.VERSION_5_6_PREFIX)
+              version.startsWith(Server.VERSION_4_0_PREFIX)
+                  || version.startsWith(Server.VERSION_4_1_PREFIX)
+                  || version.startsWith(Server.VERSION_5_0_PREFIX)
+                  || version.startsWith(Server.VERSION_5_1_PREFIX)
+                  || version.startsWith(Server.VERSION_5_6_PREFIX)
           ) {
             sql = "UPDATE user SET password=PASSWORD(?) WHERE user=?";
           } else if (version.startsWith(Server.VERSION_5_7_PREFIX)) {
@@ -914,11 +915,11 @@ public final class MySQLUserManager extends BuilderThread {
           // Disable the account
           String sql;
           if (
-            version.startsWith(Server.VERSION_4_0_PREFIX)
-            || version.startsWith(Server.VERSION_4_1_PREFIX)
-            || version.startsWith(Server.VERSION_5_0_PREFIX)
-            || version.startsWith(Server.VERSION_5_1_PREFIX)
-            || version.startsWith(Server.VERSION_5_6_PREFIX)
+              version.startsWith(Server.VERSION_4_0_PREFIX)
+                  || version.startsWith(Server.VERSION_4_1_PREFIX)
+                  || version.startsWith(Server.VERSION_5_0_PREFIX)
+                  || version.startsWith(Server.VERSION_5_1_PREFIX)
+                  || version.startsWith(Server.VERSION_5_6_PREFIX)
           ) {
             sql = "UPDATE user SET password='" + User.NO_PASSWORD_DB_VALUE + "' WHERE user=?";
           } else if (version.startsWith(Server.VERSION_5_7_PREFIX)) {
@@ -937,11 +938,11 @@ public final class MySQLUserManager extends BuilderThread {
           // Reset the password
           String sql;
           if (
-            version.startsWith(Server.VERSION_4_0_PREFIX)
-            || version.startsWith(Server.VERSION_4_1_PREFIX)
-            || version.startsWith(Server.VERSION_5_0_PREFIX)
-            || version.startsWith(Server.VERSION_5_1_PREFIX)
-            || version.startsWith(Server.VERSION_5_6_PREFIX)
+              version.startsWith(Server.VERSION_4_0_PREFIX)
+                  || version.startsWith(Server.VERSION_4_1_PREFIX)
+                  || version.startsWith(Server.VERSION_5_0_PREFIX)
+                  || version.startsWith(Server.VERSION_5_1_PREFIX)
+                  || version.startsWith(Server.VERSION_5_6_PREFIX)
           ) {
             sql = "UPDATE user SET password=? WHERE user=?";
           } else if (version.startsWith(Server.VERSION_5_7_PREFIX)) {
@@ -967,6 +968,7 @@ public final class MySQLUserManager extends BuilderThread {
   }
 
   private static MySQLUserManager mysqlUserManager;
+
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() throws IOException, SQLException {
     com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
@@ -975,19 +977,19 @@ public final class MySQLUserManager extends BuilderThread {
 
     synchronized (System.out) {
       if (
-        // Nothing is done for these operating systems
-        osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
-        && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-        && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-        // Check config after OS check so config entry not needed
-        && AOServDaemonConfiguration.isManagerEnabled(MySQLUserManager.class)
-        && mysqlUserManager == null
+          // Nothing is done for these operating systems
+          osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+              && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+              && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+              // Check config after OS check so config entry not needed
+              && AOServDaemonConfiguration.isManagerEnabled(MySQLUserManager.class)
+              && mysqlUserManager == null
       ) {
         System.out.print("Starting MySQLUserManager: ");
         // Must be a supported operating system
         if (
-          osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-          || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+            osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                || osvId == OperatingSystemVersion.CENTOS_7_X86_64
         ) {
           AOServConnector conn = AOServDaemon.getConnector();
           mysqlUserManager = new MySQLUserManager();

@@ -220,14 +220,14 @@ public final class FailoverFileReplicationManager {
    */
   private static final boolean SAFE_DELETE = false;
 
-  private static final String SAFE_DELETE_EXTENSION=".deleted";
+  private static final String SAFE_DELETE_EXTENSION = ".deleted";
 
   /**
    * The last two completed deleted passes are kept as "XXX.recycled" instead of actually deleted.  These are then reused
    * in favor of making a new directory.  This allows the system to do fewer links and unlinks to save on disk IO.  This
    * is especially important for meta-data journalling filesystems, such as reiserfs, to maximize scalability.
    */
-  private static final String RECYCLED_EXTENSION=".recycled";
+  private static final String RECYCLED_EXTENSION = ".recycled";
 
   /**
    * The directory name that contains the data index.
@@ -238,13 +238,14 @@ public final class FailoverFileReplicationManager {
    * The time that orphans will be cleaned.
    */
   private static final Schedule CLEAN_ORPHANS_SCHEDULE =
-    (int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) -> (minute == 49 && hour == 1)
+      (int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) -> (minute == 49 && hour == 1)
   ;
 
   /**
    * TODO: Move this into a backup settings table.
    */
   private static final Set<String> encryptedLoopFilePaths = new HashSet<>();
+
   static {
     encryptedLoopFilePaths.add("/ao.aes128.img");
     encryptedLoopFilePaths.add("/ao.aes256.img");
@@ -269,6 +270,7 @@ public final class FailoverFileReplicationManager {
     //encryptedLoopFilePaths.add("/home/kaori.aes256.img");
     //encryptedLoopFilePaths.add("/home/orion.aes256.img");
   }
+
   private static boolean isEncryptedLoopFile(String path) {
     return encryptedLoopFilePaths.contains(path);
   }
@@ -295,7 +297,7 @@ public final class FailoverFileReplicationManager {
    * This extension is used instead of simply ".partial" to distinguish when the update is from the most
    * recent pass or when it is from an older pass.
    */
-  private static final String RECYCLED_PARTIAL_EXTENSION=".recycled.partial";
+  private static final String RECYCLED_PARTIAL_EXTENSION = ".recycled.partial";
 
   /**
    * Checks a path for sanity:
@@ -339,10 +341,10 @@ public final class FailoverFileReplicationManager {
     }
     // Must not end with "/.."
     if (
-      pathLen >= 3
-      && path.charAt(pathLen - 3) == '/'
-      && path.charAt(pathLen - 2) == '.'
-      && path.charAt(pathLen - 1) == '.'
+        pathLen >= 3
+            && path.charAt(pathLen - 3) == '/'
+            && path.charAt(pathLen - 2) == '.'
+            && path.charAt(pathLen - 1) == '.'
     ) {
       throw new IOException("Illegal path: Must not end with \"/..\": " + path);
     }
@@ -352,9 +354,9 @@ public final class FailoverFileReplicationManager {
     }
     // Must not end with "/."
     if (
-      pathLen >= 2
-      && path.charAt(pathLen - 2) == '/'
-      && path.charAt(pathLen - 1) == '.'
+        pathLen >= 2
+            && path.charAt(pathLen - 2) == '/'
+            && path.charAt(pathLen - 1) == '.'
     ) {
       throw new IOException("Illegal path: Must not end with \"/.\": " + path);
     }
@@ -388,18 +390,18 @@ public final class FailoverFileReplicationManager {
 
   private static void updated(int retention, PostPassChecklist postPassChecklist, String relativePath) {
     if (
-      retention == 1
-      && !postPassChecklist.restartMySQLs
-      && (
-        relativePath.startsWith("/etc/rc.d/init.d/mysql-")
-        || relativePath.startsWith("/etc/sysconfig/mysql-")
-        || relativePath.startsWith("/opt/mysql-")
-      )
+        retention == 1
+            && !postPassChecklist.restartMySQLs
+            && (
+            relativePath.startsWith("/etc/rc.d/init.d/mysql-")
+                || relativePath.startsWith("/etc/sysconfig/mysql-")
+                || relativePath.startsWith("/opt/mysql-")
+        )
     ) {
       if (logger.isLoggable(Level.FINE)) {
-        logger.fine("Flagging postPassChecklist.restartMySQLs=true for path="+relativePath);
+        logger.fine("Flagging postPassChecklist.restartMySQLs=true for path=" + relativePath);
       }
-      postPassChecklist.restartMySQLs=true;
+      postPassChecklist.restartMySQLs = true;
     }
   }
 
@@ -413,10 +415,10 @@ public final class FailoverFileReplicationManager {
     private Object message4;
 
     private synchronized void update(
-      Object message1,
-      Object message2,
-      Object message3,
-      Object message4
+        Object message1,
+        Object message2,
+        Object message3,
+        Object message4
     ) {
       this.time = System.currentTimeMillis();
       this.message1 = message1;
@@ -427,27 +429,28 @@ public final class FailoverFileReplicationManager {
 
     private void update(Object message) {
       update(
-        message,
-        null,
-        null,
-        null
+          message,
+          null,
+          null,
+          null
       );
     }
 
     private void update(Object message1, Object message2) {
       update(
-        message1,
-        message2,
-        null,
-        null
+          message1,
+          message2,
+          null,
+          null
       );
     }
+
     private void update(Object message1, Object message2, Object message3) {
       update(
-        message1,
-        message2,
-        message3,
-        null
+          message1,
+          message2,
+          message3,
+          null
       );
     }
 
@@ -510,6 +513,7 @@ public final class FailoverFileReplicationManager {
    * Tracks the most recent action on a per-FileReplication basis.
    */
   private static final Map<Integer, Activity> activities = new HashMap<>();
+
   public static Activity getActivity(Integer failoverFileReplicationPkey) {
     synchronized (activities) {
       Activity activity = activities.get(failoverFileReplicationPkey);
@@ -539,11 +543,11 @@ public final class FailoverFileReplicationManager {
     }
     activity.update("file: mktemp: ", new File(dir, name));
     return new PosixFile(
-      Files.createTempFile(
-        dir.toPath(),
-        name,
-        null
-      ).toFile()
+        Files.createTempFile(
+            dir.toPath(),
+            name,
+            null
+        ).toFile()
     );
   }
 
@@ -580,10 +584,10 @@ public final class FailoverFileReplicationManager {
   private static void mkdir(Activity activity, PosixFile uf, boolean makeParents, long mode, int uid, int gid) throws IOException {
     activity.update("file: mkdir: ", uf);
     uf.mkdir(
-      makeParents,
-      mode,
-      uid,
-      gid
+        makeParents,
+        mode,
+        uid,
+        gid
     );
   }
 
@@ -640,15 +644,16 @@ public final class FailoverFileReplicationManager {
   private static void renameToNoExists(Logger logger, Activity activity, PosixFile from, PosixFile to) throws IOException {
     boolean isFine = logger.isLoggable(Level.FINE);
     if (isFine) {
-      logger.fine("Renaming \""+from+"\" to \""+to+'"');
+      logger.fine("Renaming \"" + from + "\" to \"" + to + '"');
     }
     if (stat(activity, to).exists()) {
-      throw new IOException("to exists: "+to);
+      throw new IOException("to exists: " + to);
     }
     rename(activity, from, to);
   }
 
   private static final Map<String, DedupDataIndex> dedupIndexes = new HashMap<>();
+
   /**
    * Only one data index is created per backup partition, and a cron job is created
    * for daily cleaning.  The cron job is also launched immediately in quick mode.
@@ -659,8 +664,8 @@ public final class FailoverFileReplicationManager {
       if (dedupIndex == null) {
         PosixFileSystem fileSystem = DefaultPosixFileSystem.getInstance();
         Path dataIndexDir = new Path(
-          fileSystem.parsePath(backupPartition),
-          DATA_INDEX_DIRECTORY_NAME
+            fileSystem.parsePath(backupPartition),
+            DATA_INDEX_DIRECTORY_NAME
         );
         activity.update("data-index: Opening data index: ", dataIndexDir);
         DedupDataIndex newDedupIndex = DedupDataIndex.getInstance(fileSystem, dataIndexDir);
@@ -674,7 +679,7 @@ public final class FailoverFileReplicationManager {
           }
           @Override
           public String getName() {
-            return DedupDataIndex.class.getName()+".cleanOrphans()";
+            return DedupDataIndex.class.getName() + ".cleanOrphans()";
           }
           @Override
           public void run(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
@@ -688,13 +693,13 @@ public final class FailoverFileReplicationManager {
         CronDaemon.addCronJob(cleanupJob, logger);
         // Quick verification once on startup
         new Thread(
-          () -> {
-            try {
-              newDedupIndex.verify(true);
-            } catch (IOException e) {
-              logger.log(Level.SEVERE, "quick verify index failed", e);
+            () -> {
+              try {
+                newDedupIndex.verify(true);
+              } catch (IOException e) {
+                logger.log(Level.SEVERE, "quick verify index failed", e);
+              }
             }
-          }
         ).start();
         dedupIndex = newDedupIndex;
         dedupIndexes.put(backupPartition, dedupIndex);
@@ -712,21 +717,21 @@ public final class FailoverFileReplicationManager {
    */
   @SuppressWarnings({"UnusedAssignment", "UseSpecificCatch", "TooBroadCatch"})
   public static void failoverServer(
-    final Socket socket,
-    final StreamableInput rawIn,
-    final StreamableOutput out,
-    final AOServDaemonProtocol.Version protocolVersion,
-    final int failoverFileReplicationPkey,
-    final String fromServer,
-    final boolean useCompression,
-    final short retention,
-    final String backupPartition, // TODO: Make sure this partition is enabled
-    final short fromServerYear,
-    final short fromServerMonth,
-    final short fromServerDay,
-    final List<Server.Name> replicatedMySQLServers,
-    final List<String> replicatedMySQLMinorVersions,
-    final int quota_gid
+      final Socket socket,
+      final StreamableInput rawIn,
+      final StreamableOutput out,
+      final AOServDaemonProtocol.Version protocolVersion,
+      final int failoverFileReplicationPkey,
+      final String fromServer,
+      final boolean useCompression,
+      final short retention,
+      final String backupPartition, // TODO: Make sure this partition is enabled
+      final short fromServerYear,
+      final short fromServerMonth,
+      final short fromServerDay,
+      final List<Server.Name> replicatedMySQLServers,
+      final List<String> replicatedMySQLMinorVersions,
+      final int quota_gid
   ) throws IOException, SQLException {
     boolean success = false;
     final Activity activity = getActivity(failoverFileReplicationPkey);
@@ -741,43 +746,43 @@ public final class FailoverFileReplicationManager {
       try {
         if (isInfo) {
           logger.info(
-            "Receiving transfer:\n"
-            + "    fromServer=\"" + fromServer + "\"\n"
-            + "    useCompression=" + useCompression + "\n"
-            + "    retention=" + retention + "\n"
-            + "    backupPartition=\"" + backupPartition + "\"\n"
-            + "    fromServerYear=" + fromServerYear + "\n"
-            + "    fromServerMonth=" + fromServerMonth + "\n"
-            + "    fromServerDay=" + fromServerDay + "\n"
-            + "    quota_gid=" + quota_gid + "\n"
-            + "    toPath=\"" + toPath + "\"\n"
-            + "    thread.id=" + Thread.currentThread().getId()
+              "Receiving transfer:\n"
+                  + "    fromServer=\"" + fromServer + "\"\n"
+                  + "    useCompression=" + useCompression + "\n"
+                  + "    retention=" + retention + "\n"
+                  + "    backupPartition=\"" + backupPartition + "\"\n"
+                  + "    fromServerYear=" + fromServerYear + "\n"
+                  + "    fromServerMonth=" + fromServerMonth + "\n"
+                  + "    fromServerDay=" + fromServerDay + "\n"
+                  + "    quota_gid=" + quota_gid + "\n"
+                  + "    toPath=\"" + toPath + "\"\n"
+                  + "    thread.id=" + Thread.currentThread().getId()
           );
         }
-        if (fromServerYear<1000 || fromServerYear>9999) {
-          throw new IOException("Invalid fromServerYear (1000-9999): "+fromServerYear);
+        if (fromServerYear < 1000 || fromServerYear > 9999) {
+          throw new IOException("Invalid fromServerYear (1000-9999): " + fromServerYear);
         }
-        if (fromServerMonth<1 || fromServerMonth>12) {
-          throw new IOException("Invalid fromServerMonth (1-12): "+fromServerMonth);
+        if (fromServerMonth < 1 || fromServerMonth > 12) {
+          throw new IOException("Invalid fromServerMonth (1-12): " + fromServerMonth);
         }
-        if (fromServerDay<1 || fromServerDay>31) {
-          throw new IOException("Invalid fromServerDay (1-31): "+fromServerDay);
+        if (fromServerDay < 1 || fromServerDay > 31) {
+          throw new IOException("Invalid fromServerDay (1-31): " + fromServerDay);
         }
 
         for (Server.Name replicatedMySQLServer : replicatedMySQLServers) {
           if (isFine) {
-            logger.fine("failoverServer from \""+fromServer+"\", replicatedMySQLServer: "+replicatedMySQLServer);
+            logger.fine("failoverServer from \"" + fromServer + "\", replicatedMySQLServer: " + replicatedMySQLServer);
           }
         }
         for (String replicatedMySQLMinorVersion : replicatedMySQLMinorVersions) {
           if (isFine) {
-            logger.fine("failoverServer from \""+fromServer+"\", replicatedMySQLMinorVersion: "+replicatedMySQLMinorVersion);
+            logger.fine("failoverServer from \"" + fromServer + "\", replicatedMySQLMinorVersion: " + replicatedMySQLMinorVersion);
           }
           if (
-            replicatedMySQLMinorVersion.indexOf('/') != -1
-            || replicatedMySQLMinorVersion.contains("..")
+              replicatedMySQLMinorVersion.indexOf('/') != -1
+                  || replicatedMySQLMinorVersion.contains("..")
           ) {
-            throw new IOException("Invalid replicatedMySQLMinorVersion: "+replicatedMySQLMinorVersion);
+            throw new IOException("Invalid replicatedMySQLMinorVersion: " + replicatedMySQLMinorVersion);
           }
         }
 
@@ -787,15 +792,15 @@ public final class FailoverFileReplicationManager {
           Stat dirStat = stat(activity, toPathUF);
           if (!dirStat.exists()) {
             mkdir(
-              activity,
-              toPathUF,
-              true,
-              quota_gid == -1 ? 0700 : 0750,
-              PosixFile.ROOT_UID,
-              quota_gid == -1 ? PosixFile.ROOT_GID : quota_gid
+                activity,
+                toPathUF,
+                true,
+                quota_gid == -1 ? 0700 : 0750,
+                PosixFile.ROOT_UID,
+                quota_gid == -1 ? PosixFile.ROOT_GID : quota_gid
             );
           } else if (!dirStat.isDirectory()) {
-            throw new IOException("toPath exists but is not a directory: "+toPath);
+            throw new IOException("toPath exists but is not a directory: " + toPath);
           }
         }
 
@@ -821,8 +826,8 @@ public final class FailoverFileReplicationManager {
           dataIndex = null;
         } else {
           if (
-            DATA_INDEX_DIRECTORY_NAME.equals(fromServer)
-            || fromServer.startsWith(DATA_INDEX_DIRECTORY_NAME + '/')
+              DATA_INDEX_DIRECTORY_NAME.equals(fromServer)
+                  || fromServer.startsWith(DATA_INDEX_DIRECTORY_NAME + '/')
           ) {
             throw new IOException("fromServer conflicts with data index: " + fromServer);
           }
@@ -900,15 +905,15 @@ public final class FailoverFileReplicationManager {
                     // This is not y10k compliant - this is assuming lexical order is the same as chronological order.
                     Arrays.sort(list);
                     // Find most recent partial
-                    for (int c=list.length-1;c >= 0;c--) {
+                    for (int c = list.length - 1; c >= 0; c--) {
                       String filename = list[c];
                       if (filename.endsWith(PARTIAL_EXTENSION)) {
                         isRecycling = filename.endsWith(RECYCLED_PARTIAL_EXTENSION);
                         renameToNoExists(
-                          logger,
-                          activity,
-                          new PosixFile(perDateRoot, filename, false),
-                          isRecycling ? recycledPartialUF : partialUF
+                            logger,
+                            activity,
+                            new PosixFile(perDateRoot, filename, false),
+                            isRecycling ? recycledPartialUF : partialUF
                         );
                         foundPartial = true;
                         break;
@@ -917,14 +922,14 @@ public final class FailoverFileReplicationManager {
 
                     if (!foundPartial) {
                       // Find most recent recycled pass
-                      for (int c=list.length-1;c >= 0;c--) {
+                      for (int c = list.length - 1; c >= 0; c--) {
                         String filename = list[c];
                         if (filename.endsWith(RECYCLED_EXTENSION)) {
                           renameToNoExists(
-                            logger,
-                            activity,
-                            new PosixFile(perDateRoot, filename, false),
-                            recycledPartialUF
+                              logger,
+                              activity,
+                              new PosixFile(perDateRoot, filename, false),
+                              recycledPartialUF
                           );
                           isRecycling = true;
                           break;
@@ -950,18 +955,18 @@ public final class FailoverFileReplicationManager {
                 // Find most recent complete pass
                 for (int c = list.length - 1; c >= 0; c--) {
                   String filename = list[c];
-                  String fullFilename = toPath+"/"+filename;
+                  String fullFilename = toPath + "/" + filename;
                   if (fullFilename.equals(finalMirrorRoot)) {
                     throw new AssertionError("finalMirrorRoot exists, but should have already been renamed to .partial");
                   }
                   if (
-                    filename.length() == 10
-                    // && !fullFilename.equals(partialMirrorRoot)
-                    // && !fullFilename.equals(recycledPartialMirrorRoot);
-                    && !filename.endsWith(PARTIAL_EXTENSION)
-                    && !filename.endsWith(SAFE_DELETE_EXTENSION)
-                    && !filename.endsWith(RECYCLED_EXTENSION)
-                    // && !filename.endsWith(RECYCLED_PARTIAL_EXTENSION)
+                      filename.length() == 10
+                          // && !fullFilename.equals(partialMirrorRoot)
+                          // && !fullFilename.equals(recycledPartialMirrorRoot);
+                          && !filename.endsWith(PARTIAL_EXTENSION)
+                          && !filename.endsWith(SAFE_DELETE_EXTENSION)
+                          && !filename.endsWith(RECYCLED_EXTENSION)
+                  // && !filename.endsWith(RECYCLED_PARTIAL_EXTENSION)
                   ) {
                     linkToRoot = fullFilename;
                     break;
@@ -1003,30 +1008,30 @@ public final class FailoverFileReplicationManager {
           }
         }
         if (isFine) {
-          logger.fine("partialMirrorRoot="+partialMirrorRoot);
-          logger.fine("recycledPartialMirrorRoot="+recycledPartialMirrorRoot);
-          logger.fine("finalMirrorRoot="+finalMirrorRoot);
-          logger.fine("linkToRoot="+linkToRoot);
-          logger.fine("isRecycling="+isRecycling);
+          logger.fine("partialMirrorRoot=" + partialMirrorRoot);
+          logger.fine("recycledPartialMirrorRoot=" + recycledPartialMirrorRoot);
+          logger.fine("finalMirrorRoot=" + finalMirrorRoot);
+          logger.fine("linkToRoot=" + linkToRoot);
+          logger.fine("isRecycling=" + isRecycling);
         }
         // Safety checks to make sure above logic isn't linking in obviously incorrect ways
         if (linkToRoot != null) {
           if (linkToRoot.equals(partialMirrorRoot)) {
-            throw new AssertionError("linkToRoot == partialMirrorRoot: "+linkToRoot);
+            throw new AssertionError("linkToRoot == partialMirrorRoot: " + linkToRoot);
           }
           if (linkToRoot.equals(recycledPartialMirrorRoot)) {
-            throw new AssertionError("linkToRoot == recycledPartialMirrorRoot: "+linkToRoot);
+            throw new AssertionError("linkToRoot == recycledPartialMirrorRoot: " + linkToRoot);
           }
           if (linkToRoot.equals(finalMirrorRoot)) {
-            throw new AssertionError("linkToRoot == finalMirrorRoot: "+linkToRoot);
+            throw new AssertionError("linkToRoot == finalMirrorRoot: " + linkToRoot);
           }
         }
 
         final StreamableInput in =
-          useCompression && protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_84_19) >= 0
-          ? new StreamableInput(new GZIPInputStream(rawIn, AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_GZIP_BUFFER_SIZE))
-          // ? new StreamableInput(new GZIPInputStream(NoCloseInputStream.wrap(rawIn), BufferManager.BUFFER_SIZE))
-          : rawIn
+            useCompression && protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_84_19) >= 0
+                ? new StreamableInput(new GZIPInputStream(rawIn, AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_GZIP_BUFFER_SIZE))
+                // ? new StreamableInput(new GZIPInputStream(NoCloseInputStream.wrap(rawIn), BufferManager.BUFFER_SIZE))
+                : rawIn
         ;
 
         String[] paths = null;
@@ -1103,7 +1108,7 @@ public final class FailoverFileReplicationManager {
               Stat linkToUFStat;
               PosixFile linkToParent;
               if (linkToRoot != null) {
-                String linkToPath = linkToRoot+relativePath;
+                String linkToPath = linkToRoot + relativePath;
                 linkToUF = new PosixFile(linkToPath);
                 linkToUFStat = stat(activity, linkToUF);
                 linkToParent = linkToUF.getParent();
@@ -1148,8 +1153,8 @@ public final class FailoverFileReplicationManager {
               }
               long deviceID;
               if (
-                PosixFile.isBlockDevice(mode)
-                || PosixFile.isCharacterDevice(mode)
+                  PosixFile.isBlockDevice(mode)
+                      || PosixFile.isCharacterDevice(mode)
               ) {
                 activity.update("socket: read: Reading deviceID ", batchPosObj, " of ", batchSizeObj);
                 deviceID = in.readLong();
@@ -1199,14 +1204,14 @@ public final class FailoverFileReplicationManager {
               }
               if (PosixFile.isBlockDevice(mode)) {
                 if (
-                  ufStat.exists()
-                  && (
-                    !ufStat.isBlockDevice()
-                    || ufStat.getDeviceIdentifier() != deviceID
-                  )
+                    ufStat.exists()
+                        && (
+                        !ufStat.isBlockDevice()
+                            || ufStat.getDeviceIdentifier() != deviceID
+                    )
                 ) {
                   if (isTrace) {
-                    logger.finer("Deleting to create block device: "+uf.getPath());
+                    logger.finer("Deleting to create block device: " + uf.getPath());
                   }
                   // Update caches
                   removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
@@ -1221,28 +1226,28 @@ public final class FailoverFileReplicationManager {
                     assert linkToUFStat != null;
                     // Only modified if not in last backup set, too
                     if (
-                      !linkToUFStat.exists()
-                      || !linkToUFStat.isBlockDevice()
-                      || linkToUFStat.getDeviceIdentifier() != deviceID
+                        !linkToUFStat.exists()
+                            || !linkToUFStat.isBlockDevice()
+                            || linkToUFStat.getDeviceIdentifier() != deviceID
                     ) {
-                      result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
+                      result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
                       updated(retention, postPassChecklist, relativePath);
                     }
                   } else {
-                    result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
+                    result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
                     updated(retention, postPassChecklist, relativePath);
                   }
                 }
               } else if (PosixFile.isCharacterDevice(mode)) {
                 if (
-                  ufStat.exists()
-                  && (
-                    !ufStat.isCharacterDevice()
-                    || ufStat.getDeviceIdentifier() != deviceID
-                  )
+                    ufStat.exists()
+                        && (
+                        !ufStat.isCharacterDevice()
+                            || ufStat.getDeviceIdentifier() != deviceID
+                    )
                 ) {
                   if (isTrace) {
-                    logger.finer("Deleting to create character device: "+uf.getPath());
+                    logger.finer("Deleting to create character device: " + uf.getPath());
                   }
                   // Update caches
                   removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
@@ -1257,25 +1262,25 @@ public final class FailoverFileReplicationManager {
                     assert linkToUFStat != null;
                     // Only modified if not in last backup set, too
                     if (
-                      !linkToUFStat.exists()
-                      || !linkToUFStat.isCharacterDevice()
-                      || linkToUFStat.getDeviceIdentifier() != deviceID
+                        !linkToUFStat.exists()
+                            || !linkToUFStat.isCharacterDevice()
+                            || linkToUFStat.getDeviceIdentifier() != deviceID
                     ) {
-                      result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
+                      result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
                       updated(retention, postPassChecklist, relativePath);
                     }
                   } else {
-                    result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
+                    result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
                     updated(retention, postPassChecklist, relativePath);
                   }
                 }
               } else if (PosixFile.isDirectory(mode)) {
                 if (
-                  ufStat.exists()
-                  && !ufStat.isDirectory()
+                    ufStat.exists()
+                        && !ufStat.isDirectory()
                 ) {
                   if (isTrace) {
-                    logger.finer("Deleting to create directory: "+uf.getPath());
+                    logger.finer("Deleting to create directory: " + uf.getPath());
                   }
                   // Update caches
                   removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
@@ -1290,8 +1295,8 @@ public final class FailoverFileReplicationManager {
                     assert linkToUFStat != null;
                     // Only modified if not in last backup set, too
                     if (
-                      !linkToUFStat.exists()
-                      || !linkToUFStat.isDirectory()
+                        !linkToUFStat.exists()
+                            || !linkToUFStat.isDirectory()
                     ) {
                       result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
                       updated(retention, postPassChecklist, relativePath);
@@ -1301,7 +1306,7 @@ public final class FailoverFileReplicationManager {
                     updated(retention, postPassChecklist, relativePath);
                   }
                 } else if (ufStat.getModifyTime() != modifyTime) {
-                  result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
+                  result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
                   updated(retention, postPassChecklist, relativePath);
                 }
                 directoryUFs.push(uf);
@@ -1313,11 +1318,11 @@ public final class FailoverFileReplicationManager {
                 directoryContents.push(new HashSet<>());
               } else if (PosixFile.isFifo(mode)) {
                 if (
-                  ufStat.exists()
-                  && !ufStat.isFifo()
+                    ufStat.exists()
+                        && !ufStat.isFifo()
                 ) {
                   if (isTrace) {
-                    logger.finer("Deleting to create FIFO: "+uf.getPath());
+                    logger.finer("Deleting to create FIFO: " + uf.getPath());
                   }
                   // Update caches
                   removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
@@ -1332,14 +1337,14 @@ public final class FailoverFileReplicationManager {
                     assert linkToUFStat != null;
                     // Only modified if not in last backup set, too
                     if (
-                      !linkToUFStat.exists()
-                      || !linkToUFStat.isFifo()
+                        !linkToUFStat.exists()
+                            || !linkToUFStat.isFifo()
                     ) {
-                      result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
+                      result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
                       updated(retention, postPassChecklist, relativePath);
                     }
                   } else {
-                    result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
+                    result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
                     updated(retention, postPassChecklist, relativePath);
                   }
                 }
@@ -1385,10 +1390,10 @@ public final class FailoverFileReplicationManager {
                 // Look in the current directory for an exact match
                 final boolean isEncryptedLoopFile = isEncryptedLoopFile(relativePath);
                 if (
-                  !isEncryptedLoopFile
-                  && ufStat.exists()
-                  && ufStat.getSize() == length
-                  && ufStat.getModifyTime() == modifyTime
+                    !isEncryptedLoopFile
+                        && ufStat.exists()
+                        && ufStat.getSize() == length
+                        && ufStat.getModifyTime() == modifyTime
                 ) {
                   assert ufStat.isRegularFile() : "All non-regular files should have been deleted";
                   // Found in current directory, simply use default result = NO_CHANGE
@@ -1398,12 +1403,12 @@ public final class FailoverFileReplicationManager {
 
                   // Look in the linkTo directory for an exact match
                   if (
-                    !isEncryptedLoopFile
-                    && linkToUFStat != null
-                    && linkToUFStat.exists()
-                    && linkToUFStat.isRegularFile()
-                    && linkToUFStat.getSize() == length
-                    && linkToUFStat.getModifyTime() == modifyTime
+                      !isEncryptedLoopFile
+                          && linkToUFStat != null
+                          && linkToUFStat.exists()
+                          && linkToUFStat.isRegularFile()
+                          && linkToUFStat.getSize() == length
+                          && linkToUFStat.getModifyTime() == modifyTime
                   ) {
                     // Found match in linkTo, link to linkTo directory
                     if (ufStat.exists()) {
@@ -1445,10 +1450,10 @@ public final class FailoverFileReplicationManager {
                       // Look for another file with the same size and modify time in this partial directory
                       PosixFile oldLogUF = null;
                       ModifyTimeAndSizeCache modifyTimeAndSizeCache =
-                        // isEmpty checked first to avoid hashing for the common case of no caches
-                        modifyTimeAndSizeCaches.isEmpty()
-                        ? null
-                        : modifyTimeAndSizeCaches.get(ufParent)
+                          // isEmpty checked first to avoid hashing for the common case of no caches
+                          modifyTimeAndSizeCaches.isEmpty()
+                              ? null
+                              : modifyTimeAndSizeCaches.get(ufParent)
                       ;
                       if (modifyTimeAndSizeCache == null) {
                         // Not in cache, load from disk
@@ -1466,10 +1471,10 @@ public final class FailoverFileReplicationManager {
                         // disk first, thus the old implementation will have the advantage of the disk cache.
                         // Therefore, if the new implementation is still faster, it is clearly the winner.
                         ModifyTimeAndSizeCache modifyTimeAndSizeCache2 =
-                          // isEmpty checked first to avoid hashing for the common case of no caches
-                          modifyTimeAndSizeCaches.isEmpty()
-                          ? null
-                          : modifyTimeAndSizeCaches.get(linkToParent)
+                            // isEmpty checked first to avoid hashing for the common case of no caches
+                            modifyTimeAndSizeCaches.isEmpty()
+                                ? null
+                                : modifyTimeAndSizeCaches.get(linkToParent)
                         ;
                         if (modifyTimeAndSizeCache2 == null) {
                           // Not in cache, load from disk
@@ -1518,12 +1523,12 @@ public final class FailoverFileReplicationManager {
                     if (!linkedOldLogFile) {
                       boolean chunkingFile = false;
                       if (
-                        useCompression
-                        // File is not so large that chunking can't possibly store md5's in the arrays (larger than 2 ^ (31 + 20) = 2 Pebibytes currently)
-                        && (
-                          length
-                          < (((long)Integer.MAX_VALUE) << AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE_BITS)
-                        )
+                          useCompression
+                              // File is not so large that chunking can't possibly store md5's in the arrays (larger than 2 ^ (31 + 20) = 2 Pebibytes currently)
+                              && (
+                              length
+                                  < (((long) Integer.MAX_VALUE) << AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE_BITS)
+                          )
                       ) {
                         // Next we will try chunking.  For chunking, we will start by determining what we are chunking from.
                         PosixFile chunkingFrom;
@@ -1531,14 +1536,14 @@ public final class FailoverFileReplicationManager {
                         if (isRecycling) {
                           // When recycling, try linkToUF then uf
                           if (
-                            linkToUFStat != null
-                            && linkToUFStat.exists()
-                            && linkToUFStat.isRegularFile()
+                              linkToUFStat != null
+                                  && linkToUFStat.exists()
+                                  && linkToUFStat.isRegularFile()
                           ) {
                             chunkingFrom = linkToUF;
                             chunkingFromStat = linkToUFStat;
                           } else if (
-                            ufStat.exists()
+                              ufStat.exists()
                           ) {
                             assert ufStat.isRegularFile() : "All non-regular files should have been deleted";
                             chunkingFrom = uf;
@@ -1550,15 +1555,15 @@ public final class FailoverFileReplicationManager {
                         } else {
                           // When not recycling, try uf then linkToUF
                           if (
-                            ufStat.exists()
+                              ufStat.exists()
                           ) {
                             assert ufStat.isRegularFile() : "All non-regular files should have been deleted";
                             chunkingFrom = uf;
                             chunkingFromStat = ufStat;
                           } else if (
-                            linkToUFStat != null
-                            && linkToUFStat.exists()
-                            && linkToUFStat.isRegularFile()
+                              linkToUFStat != null
+                                  && linkToUFStat.exists()
+                                  && linkToUFStat.isRegularFile()
                           ) {
                             chunkingFrom = linkToUF;
                             chunkingFromStat = linkToUFStat;
@@ -1572,15 +1577,15 @@ public final class FailoverFileReplicationManager {
                           assert md5 != null;
                           // Now we figure out what we are chunking to.
                           if (
-                            ufStat.exists()
-                            || retention == 1
-                            || (!isRecycling && linkToUF != null)
+                              ufStat.exists()
+                                  || retention == 1
+                                  || (!isRecycling && linkToUF != null)
                           ) {
                             // When uf exists, chunk to a temp file
                             PosixFile tempUF = mktemp(activity, uf);
                             tempNewFiles[c] = tempUF;
                             if (isTrace) {
-                              logger.finer("Using temp file (chunked): "+tempUF.getPath());
+                              logger.finer("Using temp file (chunked): " + tempUF.getPath());
                             }
                             // modifyTimeAndSizeCaches is not updated here, it will be updated below when the data is received
                           } else {
@@ -1597,7 +1602,7 @@ public final class FailoverFileReplicationManager {
                           final int numChunks;
                           {
                             long numChunksL = chunkingSize >> AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE_BITS;
-                            if ((chunkingSize & (AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE-1)) != 0) {
+                            if ((chunkingSize & (AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE - 1)) != 0) {
                               numChunksL++;
                             }
                             numChunks = SafeMath.castInt(numChunksL);
@@ -1661,7 +1666,7 @@ public final class FailoverFileReplicationManager {
                           PosixFile tempUF = mktemp(activity, uf);
                           tempNewFiles[c] = tempUF;
                           if (isTrace) {
-                            logger.finer("Using temp file (not chunked): "+tempUF.getPath());
+                            logger.finer("Using temp file (not chunked): " + tempUF.getPath());
                           }
                           // modifyTimeAndSizeCaches is not updated here, it will be updated below when the data is received
                         }
@@ -1671,14 +1676,14 @@ public final class FailoverFileReplicationManager {
                 }
               } else if (PosixFile.isSymLink(mode)) {
                 if (
-                  ufStat.exists()
-                  && (
-                    !ufStat.isSymLink()
-                    || !readLink(activity, uf).equals(symlinkTarget)
-                  )
+                    ufStat.exists()
+                        && (
+                        !ufStat.isSymLink()
+                            || !readLink(activity, uf).equals(symlinkTarget)
+                    )
                 ) {
                   if (isTrace) {
-                    logger.finer("Deleting to create sybolic link: "+uf.getPath());
+                    logger.finer("Deleting to create sybolic link: " + uf.getPath());
                   }
                   // Update cache
                   removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
@@ -1693,9 +1698,9 @@ public final class FailoverFileReplicationManager {
                   if (linkToUFStat != null) {
                     // Only modified if not in last backup set, too
                     if (
-                      !linkToUFStat.exists()
-                      || !linkToUFStat.isSymLink()
-                      || !readLink(activity, linkToUF).equals(symlinkTarget)
+                        !linkToUFStat.exists()
+                            || !linkToUFStat.isSymLink()
+                            || !readLink(activity, linkToUF).equals(symlinkTarget)
                     ) {
                       result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
                       updated(retention, postPassChecklist, relativePath);
@@ -1706,7 +1711,7 @@ public final class FailoverFileReplicationManager {
                   }
                 }
               } else {
-                throw new IOException("Unknown mode type: "+Long.toOctalString(mode&PosixFile.TYPE_MASK));
+                throw new IOException("Unknown mode type: " + Long.toOctalString(mode & PosixFile.TYPE_MASK));
               }
 
               // Update the permissions (mode)
@@ -1720,31 +1725,31 @@ public final class FailoverFileReplicationManager {
                 effectiveUFStat = stat(activity, effectiveUF);
               }
               if (
-                !PosixFile.isSymLink(mode)
-                && (
-                  (effectiveUFStat.getRawMode() & (PosixFile.TYPE_MASK|PosixFile.PERMISSION_MASK))
-                  != (mode & (PosixFile.TYPE_MASK|PosixFile.PERMISSION_MASK))
-                )
+                  !PosixFile.isSymLink(mode)
+                      && (
+                      (effectiveUFStat.getRawMode() & (PosixFile.TYPE_MASK | PosixFile.PERMISSION_MASK))
+                          != (mode & (PosixFile.TYPE_MASK | PosixFile.PERMISSION_MASK))
+                  )
               ) {
                 //try {
                   if (retention != 1) {
-                    copyIfHardLinked(activity, effectiveUF, effectiveUFStat);
-                  }
-                  activity.update("file: setMode: ", effectiveUF);
-                  effectiveUF.setMode(mode & (PosixFile.TYPE_MASK|PosixFile.PERMISSION_MASK));
-                  effectiveUFStat = stat(activity, effectiveUF);
+                  copyIfHardLinked(activity, effectiveUF, effectiveUFStat);
+                }
+                activity.update("file: setMode: ", effectiveUF);
+                effectiveUF.setMode(mode & (PosixFile.TYPE_MASK | PosixFile.PERMISSION_MASK));
+                effectiveUFStat = stat(activity, effectiveUF);
                 //} catch (FileNotFoundException err) {
                   //logger.log(Level.WARNING, "path="+path+", mode="+Long.toOctalString(mode), err);
                 //}
                 if (result == AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_NO_CHANGE) {
                   // Only modified if wrong permission in last backup set, too
                   if (
-                    linkToUFStat == null
-                    || !linkToUFStat.exists()
-                    || (
-                      (linkToUFStat.getRawMode() & (PosixFile.TYPE_MASK|PosixFile.PERMISSION_MASK))
-                      != (mode & (PosixFile.TYPE_MASK|PosixFile.PERMISSION_MASK))
-                    )
+                      linkToUFStat == null
+                          || !linkToUFStat.exists()
+                          || (
+                          (linkToUFStat.getRawMode() & (PosixFile.TYPE_MASK | PosixFile.PERMISSION_MASK))
+                              != (mode & (PosixFile.TYPE_MASK | PosixFile.PERMISSION_MASK))
+                      )
                   ) {
                     result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
                     updated(retention, postPassChecklist, relativePath);
@@ -1754,9 +1759,9 @@ public final class FailoverFileReplicationManager {
 
               // Update the ownership
               if (
-                effectiveUFStat.getUid() != uid
-                // TODO: Store GID in xattr (if not 0)
-                || effectiveUFStat.getGid() != (quota_gid == -1 ? gid : quota_gid)
+                  effectiveUFStat.getUid() != uid
+                      // TODO: Store GID in xattr (if not 0)
+                      || effectiveUFStat.getGid() != (quota_gid == -1 ? gid : quota_gid)
               ) {
                 if (retention != 1) {
                   copyIfHardLinked(activity, effectiveUF, effectiveUFStat);
@@ -1768,13 +1773,13 @@ public final class FailoverFileReplicationManager {
                 if (result == AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_NO_CHANGE) {
                   // Only modified if not in last backup set, too
                   if (
-                    linkToUFStat == null
-                    || !linkToUFStat.exists()
-                    || linkToUFStat.getUid() != uid
-                    // TODO: Store GID in xattr
-                    || linkToUFStat.getGid() != (quota_gid == -1 ? gid : quota_gid)
+                      linkToUFStat == null
+                          || !linkToUFStat.exists()
+                          || linkToUFStat.getUid() != uid
+                          // TODO: Store GID in xattr
+                          || linkToUFStat.getGid() != (quota_gid == -1 ? gid : quota_gid)
                   ) {
-                    result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
+                    result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
                     updated(retention, postPassChecklist, relativePath);
                   }
                 }
@@ -1782,10 +1787,10 @@ public final class FailoverFileReplicationManager {
 
               // Update the modified time
               if (
-                !PosixFile.isSymLink(mode)
-                && !PosixFile.isRegularFile(mode) // Regular files will be re-transferred below when their modified times don't match, so no need to set the modified time here
-                && !PosixFile.isDirectory(mode) // Directory modification times are set on the way out of the directories
-                && effectiveUFStat.getModifyTime() != modifyTime
+                  !PosixFile.isSymLink(mode)
+                      && !PosixFile.isRegularFile(mode) // Regular files will be re-transferred below when their modified times don't match, so no need to set the modified time here
+                      && !PosixFile.isDirectory(mode) // Directory modification times are set on the way out of the directories
+                      && effectiveUFStat.getModifyTime() != modifyTime
               ) {
                 if (retention != 1) {
                   copyIfHardLinked(activity, effectiveUF, effectiveUFStat);
@@ -1796,16 +1801,16 @@ public final class FailoverFileReplicationManager {
                 if (result == AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_NO_CHANGE) {
                   // Only modified if not in last backup set, too
                   if (
-                    linkToUFStat == null
-                    || !linkToUFStat.exists()
-                    || linkToUFStat.getModifyTime() != modifyTime
+                      linkToUFStat == null
+                          || !linkToUFStat.exists()
+                          || linkToUFStat.getModifyTime() != modifyTime
                   ) {
-                    result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
+                    result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
                     updated(retention, postPassChecklist, relativePath);
                   }
                 }
               }
-              results[c]=result;
+              results[c] = result;
             } else {
               paths[c] = null;
             }
@@ -1844,8 +1849,8 @@ public final class FailoverFileReplicationManager {
             if (path != null) {
               int result = results[c];
               if (
-                result == AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED_REQUEST_DATA
-                || result == AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED_REQUEST_DATA_CHUNKED
+                  result == AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED_REQUEST_DATA
+                      || result == AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED_REQUEST_DATA_CHUNKED
               ) {
                 // tempNewFiles[c] is only possibly set for the data transfer results
                 PosixFile tempUF = tempNewFiles[c];
@@ -1884,7 +1889,7 @@ public final class FailoverFileReplicationManager {
                     if (response == -1) {
                       throw new EOFException();
                     } else if (response != AOServDaemonProtocol.DONE) {
-                      throw new IOException("Unexpected response code: "+response);
+                      throw new IOException("Unexpected response code: " + response);
                     }
                   } else if (result == AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED_REQUEST_DATA_CHUNKED) {
                     if (!useCompression) {
@@ -1928,7 +1933,7 @@ public final class FailoverFileReplicationManager {
                             if (chunkSizeL >= AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE) {
                               partialChunkPos = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE;
                             } else {
-                              partialChunkPos = (int)chunkSizeL;
+                              partialChunkPos = (int) chunkSizeL;
                             }
                           }
                           activity.update("file: read: ", chunkingFromUF, " at ", filePos);
@@ -1955,13 +1960,13 @@ public final class FailoverFileReplicationManager {
                       if (response == -1) {
                         throw new EOFException();
                       } else if (response != AOServDaemonProtocol.DONE) {
-                        throw new IOException("Unexpected response code: "+response);
+                        throw new IOException("Unexpected response code: " + response);
                       }
                     } finally {
                       close(activity, chunkingFromUF, chunkingFromRaf);
                     }
                   } else {
-                    throw new RuntimeException("Unexpected value for result: "+result);
+                    throw new RuntimeException("Unexpected value for result: " + result);
                   }
                   newFileComplete = true;
                 } finally {
@@ -1971,15 +1976,15 @@ public final class FailoverFileReplicationManager {
                   // and we are doing a backup to a temporary file, move the temp file over the old file
                   // if it is longer
                   if (
-                    !newFileComplete
-                    && retention != 1
-                    && tempUF != null
+                      !newFileComplete
+                          && retention != 1
+                          && tempUF != null
                   ) {
                     Stat ufStat = stat(activity, uf);
                     if (!ufStat.exists()) {
                       // If it doesn't exist, can't compare file sizes, just rename
                       if (isFine) {
-                        logger.fine("Renaming partial temp file to final filename because final filename doesn't exist: "+uf.getPath());
+                        logger.fine("Renaming partial temp file to final filename because final filename doesn't exist: " + uf.getPath());
                       }
                       renameToNoExists(logger, activity, tempUF, uf);
                       // This should only happen during exceptions, so no need to keep directory caches synchronized
@@ -1988,7 +1993,7 @@ public final class FailoverFileReplicationManager {
                       long tempUFSize = stat(activity, tempUF).getSize();
                       if (tempUFSize > ufSize) {
                         if (isFine) {
-                          logger.fine("Renaming partial temp file to final filename because temp file is longer than the final file: "+uf.getPath());
+                          logger.fine("Renaming partial temp file to final filename because temp file is longer than the final file: " + uf.getPath());
                         }
                         rename(activity, tempUF, uf);
                         // This should only happen during exceptions, so no need to keep directory caches synchronized
@@ -2049,7 +2054,7 @@ public final class FailoverFileReplicationManager {
           }
 
           // For any directories that were completed during this batch, removeByValue caches, clean extra files and set its modify time
-          for (int c=0; c<directoryFinalizeUFs.size(); c++) {
+          for (int c = 0; c < directoryFinalizeUFs.size(); c++) {
             PosixFile dirUF = directoryFinalizeUFs.get(c);
             PosixFile dirLinkToUF = directoryFinalizeLinkToUFs == null ? null : directoryFinalizeLinkToUFs.get(c);
             String relativePath = directoryFinalizeUFRelativePaths.get(c);
@@ -2072,15 +2077,15 @@ public final class FailoverFileReplicationManager {
               for (String filename : list) {
                 String fullpath = dirPath + filename;
                 if (!dirContents.contains(fullpath)) {
-                  if (deleteOnCleanup(fromServer, retention, relativePath+'/'+filename, replicatedMySQLServers, replicatedMySQLMinorVersions)) {
+                  if (deleteOnCleanup(fromServer, retention, relativePath + '/' + filename, replicatedMySQLServers, replicatedMySQLMinorVersions)) {
                     if (isTrace) {
-                      logger.finer("Deleting extra file: "+fullpath);
+                      logger.finer("Deleting extra file: " + fullpath);
                     }
                     try {
                       PosixFile deleteMe = new PosixFile(fullpath);
                       deleteRecursive(activity, deleteMe);
                     } catch (FileNotFoundException err) {
-                      logger.log(Level.SEVERE, "fullpath="+fullpath, err);
+                      logger.log(Level.SEVERE, "fullpath=" + fullpath, err);
                     }
                   }
                 }
@@ -2114,22 +2119,22 @@ public final class FailoverFileReplicationManager {
             directoryLinkToUFs.pop();
           }
           String relativePath = directoryUFRelativePaths.pop();
-          long dirModifyTime=directoryModifyTimes.pop();
-          Set<String> dirContents=directoryContents.pop();
+          long dirModifyTime = directoryModifyTimes.pop();
+          Set<String> dirContents = directoryContents.pop();
           String[] list = list(activity, dirUF);
           if (list != null) {
             for (String filename : list) {
               String fullpath = dirPath + filename;
               if (!dirContents.contains(fullpath)) {
-                if (deleteOnCleanup(fromServer, retention, relativePath+'/'+filename, replicatedMySQLServers, replicatedMySQLMinorVersions)) {
+                if (deleteOnCleanup(fromServer, retention, relativePath + '/' + filename, replicatedMySQLServers, replicatedMySQLMinorVersions)) {
                   if (isTrace) {
-                    logger.finer("Deleting final clean-up: "+fullpath);
+                    logger.finer("Deleting final clean-up: " + fullpath);
                   }
                   try {
                     PosixFile deleteMe = new PosixFile(fullpath);
                     deleteRecursive(activity, deleteMe);
                   } catch (FileNotFoundException err) {
-                    logger.log(Level.SEVERE, "fullpath="+fullpath, err);
+                    logger.log(Level.SEVERE, "fullpath=" + fullpath, err);
                   }
                 }
               }
@@ -2144,7 +2149,7 @@ public final class FailoverFileReplicationManager {
 
         // Log the final stats
         if (isInfo) {
-          logger.info("modifyTimeAndSizeCachesSize="+modifyTimeAndSizeCachesSize);
+          logger.info("modifyTimeAndSizeCachesSize=" + modifyTimeAndSizeCachesSize);
         }
 
         if (retention != 1) {
@@ -2168,7 +2173,7 @@ public final class FailoverFileReplicationManager {
       try {
         if (postPassChecklist.restartMySQLs && retention == 1) {
           for (Server.Name mysqlServer : replicatedMySQLServers) {
-            String message = "Restarting MySQL "+mysqlServer+" in \""+toPath+'"';
+            String message = "Restarting MySQL " + mysqlServer + " in \"" + toPath + '"';
             activity.update("logic: ", message);
             if (isFine) {
               logger.fine(message);
@@ -2180,21 +2185,21 @@ public final class FailoverFileReplicationManager {
               File serviceFile = new File("/etc/systemd/system/" + serviceName);
               if (serviceFile.exists()) {
                 // Run via systemctl
-                command = new String[] {
-                  "/usr/bin/systemctl",
-                  "try-restart", // Do not start if not currently running
-                  serviceName
+                command = new String[]{
+                    "/usr/bin/systemctl",
+                    "try-restart", // Do not start if not currently running
+                    serviceName
                 };
               } else {
                 String initPath = "/etc/rc.d/init.d/mysql-" + mysqlServer;
                 File initFile = new File(toPath + initPath);
                 if (initFile.exists()) {
                   // Run via chroot /etc/rc.d/init.d
-                  command = new String[] {
-                    "/usr/sbin/chroot",
-                    toPath,
-                    initPath,
-                    "restart"
+                  command = new String[]{
+                      "/usr/sbin/chroot",
+                      toPath,
+                      initPath,
+                      "restart"
                   };
                 } else {
                   throw new IOException("Unable to restart MySQL via either \"" + serviceFile + "\" or \"" + initFile + "\"");
@@ -2213,7 +2218,7 @@ public final class FailoverFileReplicationManager {
       }
       if (t0 != null) {
         if (t0 instanceof SQLException) {
-          throw (SQLException)t0;
+          throw (SQLException) t0;
         }
         throw Throwables.wrap(t0, IOException.class, IOException::new);
       } else {
@@ -2251,8 +2256,8 @@ public final class FailoverFileReplicationManager {
           Map.Entry<PosixFile, ModifyTimeAndSizeCache> entry = iter.next();
           PosixFile key = entry.getKey();
           if (
-            key.equals(uf)
-            || key.getPath().startsWith(prefix)
+              key.equals(uf)
+                  || key.getPath().startsWith(prefix)
           ) {
             iter.remove();
           }
@@ -2269,8 +2274,8 @@ public final class FailoverFileReplicationManager {
       ModifyTimeAndSizeCache modifyTimeAndSizeCache = modifyTimeAndSizeCaches.get(ufParent);
       if (modifyTimeAndSizeCache != null) {
         modifyTimeAndSizeCache.added(
-          uf.getFile().getName(),
-          ufModifyTimeAndSize
+            uf.getFile().getName(),
+            ufModifyTimeAndSize
         );
       }
     }
@@ -2284,8 +2289,8 @@ public final class FailoverFileReplicationManager {
       ModifyTimeAndSizeCache modifyTimeAndSizeCache = modifyTimeAndSizeCaches.get(ufParent);
       if (modifyTimeAndSizeCache != null) {
         modifyTimeAndSizeCache.renamed(
-          oldUF.getFile().getName(),
-          newUF.getFile().getName()
+            oldUF.getFile().getName(),
+            newUF.getFile().getName()
         );
       }
     }
@@ -2306,7 +2311,7 @@ public final class FailoverFileReplicationManager {
 
     @Override
     public int hashCode() {
-      return (int)(modifyTime * 31 + size);
+      return (int) (modifyTime * 31 + size);
     }
 
     @Override
@@ -2314,10 +2319,10 @@ public final class FailoverFileReplicationManager {
       if (!(obj instanceof ModifyTimeAndSize)) {
         return false;
       }
-      ModifyTimeAndSize other = (ModifyTimeAndSize)obj;
+      ModifyTimeAndSize other = (ModifyTimeAndSize) obj;
       return
-        modifyTime == other.modifyTime
-        && size == other.size
+          modifyTime == other.modifyTime
+              && size == other.size
       ;
     }
   }
@@ -2341,8 +2346,8 @@ public final class FailoverFileReplicationManager {
           PosixFile file = new PosixFile(directory, filename, false);
           Stat stat = stat(activity, file);
           if (
-            stat.exists()
-            && stat.isRegularFile()
+              stat.exists()
+                  && stat.isRegularFile()
           ) {
             ModifyTimeAndSize modifyTimeAndSize = new ModifyTimeAndSize(stat.getModifyTime(), stat.getSize());
             filenameMap.put(filename, modifyTimeAndSize);
@@ -2380,14 +2385,14 @@ public final class FailoverFileReplicationManager {
     void removing(String filename) {
       ModifyTimeAndSize modifyTimeAndSize = filenameMap.remove(filename);
       if (modifyTimeAndSize == null) {
-        throw new AssertionError("filenameMap doesn't contain filename: filename="+filename);
+        throw new AssertionError("filenameMap doesn't contain filename: filename=" + filename);
       }
       List<String> filenames = modifyTimeAndSizeMap.get(modifyTimeAndSize);
       if (filenames == null) {
         throw new AssertionError("modifyTimeAndSizeMap doesn't contain modifyTimeAndSize");
       }
       if (!filenames.remove(filename)) {
-        throw new AssertionError("filenames didn't contain filename: filename="+filename);
+        throw new AssertionError("filenames didn't contain filename: filename=" + filename);
       }
       if (filenames.isEmpty()) {
         modifyTimeAndSizeMap.remove(modifyTimeAndSize);
@@ -2400,13 +2405,13 @@ public final class FailoverFileReplicationManager {
     void renamed(String oldFilename, String newFilename) {
       // The new filename must not exist
       if (filenameMap.containsKey(newFilename)) {
-        throw new AssertionError("filenameMap already contains newFilename: newFilename="+newFilename);
+        throw new AssertionError("filenameMap already contains newFilename: newFilename=" + newFilename);
       }
       // Move in the filenameMap
       ModifyTimeAndSize modifyTimeAndSize = filenameMap.remove(oldFilename);
       // The old filename must exist in the cache, otherwise we have a cache coherency problem
       if (modifyTimeAndSize == null) {
-        throw new AssertionError("oldFilename not in filenameMap: oldFilename="+oldFilename);
+        throw new AssertionError("oldFilename not in filenameMap: oldFilename=" + oldFilename);
       }
       filenameMap.put(newFilename, modifyTimeAndSize);
       // Update in the modifyTimeAndSizeMap map
@@ -2460,7 +2465,7 @@ public final class FailoverFileReplicationManager {
     void added(String filename, ModifyTimeAndSize modifyTimeAndSize) {
       // The filename must not exist in the cache
       if (filenameMap.containsKey(filename)) {
-        throw new AssertionError("filenameMap already contains filename: filename="+filename);
+        throw new AssertionError("filenameMap already contains filename: filename=" + filename);
       }
       // Add to the maps
       filenameMap.put(filename, modifyTimeAndSize);
@@ -2479,53 +2484,53 @@ public final class FailoverFileReplicationManager {
   private static boolean deleteOnCleanup(String fromServer, int retention, String relativePath, List<Server.Name> replicatedMySQLServers, List<String> replicatedMySQLMinorVersions) {
     boolean isDebug = logger.isLoggable(Level.FINE);
     if (
-      relativePath.equals("/proc")
-      || relativePath.startsWith("/proc/")
-      || relativePath.equals("/sys")
-      || relativePath.startsWith("/sys/")
-      || relativePath.equals("/selinux")
-      || relativePath.startsWith("/selinux/")
-      || relativePath.equals("/dev/pts")
-      || relativePath.startsWith("/dev/pts/")
+        relativePath.equals("/proc")
+            || relativePath.startsWith("/proc/")
+            || relativePath.equals("/sys")
+            || relativePath.startsWith("/sys/")
+            || relativePath.equals("/selinux")
+            || relativePath.startsWith("/selinux/")
+            || relativePath.equals("/dev/pts")
+            || relativePath.startsWith("/dev/pts/")
     ) {
       if (isDebug) {
-        logger.fine("Skipping delete on cleanup: \""+fromServer+"\":"+relativePath);
+        logger.fine("Skipping delete on cleanup: \"" + fromServer + "\":" + relativePath);
       }
       return false;
     }
     if (retention == 1) {
       for (Server.Name name : replicatedMySQLServers) {
         if (
-          (
-            relativePath.startsWith("/var/lib/mysql/")
-            && (
-                   relativePath.equals("/var/lib/mysql/"+name)
-              || relativePath.startsWith("/var/lib/mysql/"+name+"/")
-              ||     relativePath.equals("/var/lib/mysql/"+name+"-old")
-              || relativePath.startsWith("/var/lib/mysql/"+name+"-old/")
-              ||     relativePath.equals("/var/lib/mysql/"+name+"-new")
-              || relativePath.startsWith("/var/lib/mysql/"+name+"-new/")
-              ||     relativePath.equals("/var/lib/mysql/"+name+"-fast")
-              || relativePath.startsWith("/var/lib/mysql/"+name+"-fast/")
-              ||     relativePath.equals("/var/lib/mysql/"+name+"-slow")
-              || relativePath.startsWith("/var/lib/mysql/"+name+"-slow/")
-            )
-          ) || (
-            relativePath.startsWith("/var/lib/mysql-fast/")
-            && (
-                   relativePath.equals("/var/lib/mysql-fast/"+name)
-              || relativePath.startsWith("/var/lib/mysql-fast/"+name+"/")
-            )
-          ) || (
-            relativePath.startsWith("/var/lib/mysql-slow/")
-            && (
-                   relativePath.equals("/var/lib/mysql-slow/"+name)
-              || relativePath.startsWith("/var/lib/mysql-slow/"+name+"/")
-            )
-          ) || relativePath.equals("/var/lock/subsys/mysql-"+name)
+            (
+                relativePath.startsWith("/var/lib/mysql/")
+                    && (
+                    relativePath.equals("/var/lib/mysql/" + name)
+                        || relativePath.startsWith("/var/lib/mysql/" + name + "/")
+                        ||     relativePath.equals("/var/lib/mysql/" + name + "-old")
+                        || relativePath.startsWith("/var/lib/mysql/" + name + "-old/")
+                        ||     relativePath.equals("/var/lib/mysql/" + name + "-new")
+                        || relativePath.startsWith("/var/lib/mysql/" + name + "-new/")
+                        ||     relativePath.equals("/var/lib/mysql/" + name + "-fast")
+                        || relativePath.startsWith("/var/lib/mysql/" + name + "-fast/")
+                        ||     relativePath.equals("/var/lib/mysql/" + name + "-slow")
+                        || relativePath.startsWith("/var/lib/mysql/" + name + "-slow/")
+                )
+            ) || (
+                relativePath.startsWith("/var/lib/mysql-fast/")
+                    && (
+                    relativePath.equals("/var/lib/mysql-fast/" + name)
+                        || relativePath.startsWith("/var/lib/mysql-fast/" + name + "/")
+                )
+            ) || (
+                relativePath.startsWith("/var/lib/mysql-slow/")
+                    && (
+                    relativePath.equals("/var/lib/mysql-slow/" + name)
+                        || relativePath.startsWith("/var/lib/mysql-slow/" + name + "/")
+                )
+            ) || relativePath.equals("/var/lock/subsys/mysql-" + name)
         ) {
           if (isDebug) {
-            logger.fine("Skipping delete on cleanup: \""+fromServer+"\":"+relativePath);
+            logger.fine("Skipping delete on cleanup: \"" + fromServer + "\":" + relativePath);
           }
           return false;
         }
@@ -2541,7 +2546,7 @@ public final class FailoverFileReplicationManager {
       // Build the lists of directories based on age, skipping safe deleted and recycled directories
       GregorianCalendar gcal = new GregorianCalendar();
       gcal.set(Calendar.YEAR, fromServerYear);
-      gcal.set(Calendar.MONTH, fromServerMonth-1);
+      gcal.set(Calendar.MONTH, fromServerMonth - 1);
       gcal.set(Calendar.DAY_OF_MONTH, fromServerDay);
       gcal.set(Calendar.HOUR_OF_DAY, 0);
       gcal.set(Calendar.MINUTE, 0);
@@ -2571,47 +2576,47 @@ public final class FailoverFileReplicationManager {
                       gcal.set(Calendar.SECOND, 0);
                       gcal.set(Calendar.MILLISECOND, 0);
                       int age = SafeMath.castInt(
-                        (fromServerDate - gcal.getTimeInMillis())
-                        /
-                        (24L * 60 * 60 * 1000)
+                          (fromServerDate - gcal.getTimeInMillis())
+                              /
+                              (24L * 60 * 60 * 1000)
                       );
                       if (age >= 0) {
                         // Must also be a date directory with no extension, or one of the expected extensions to delete:
                         if (
-                          // Is a date only
-                          filename.length() == 10
-                          || (
-                            // Is date + partial
-                            filename.length() == (10 + PARTIAL_EXTENSION.length())
-                            && filename.endsWith(PARTIAL_EXTENSION)
-                          ) || (
-                            // Is date + recycled + partial
-                            filename.length() == (10 + RECYCLED_PARTIAL_EXTENSION.length())
-                            && filename.endsWith(RECYCLED_PARTIAL_EXTENSION)
-                          )
+                            // Is a date only
+                            filename.length() == 10
+                                || (
+                                // Is date + partial
+                                filename.length() == (10 + PARTIAL_EXTENSION.length())
+                                    && filename.endsWith(PARTIAL_EXTENSION)
+                            ) || (
+                                // Is date + recycled + partial
+                                filename.length() == (10 + RECYCLED_PARTIAL_EXTENSION.length())
+                                    && filename.endsWith(RECYCLED_PARTIAL_EXTENSION)
+                            )
                         ) {
                           List<String> directories = directoriesByAge.get(age);
                           if (directories == null) {
-                            directoriesByAge.put(age, directories=new ArrayList<>());
+                            directoriesByAge.put(age, directories = new ArrayList<>());
                           }
                           directories.add(filename);
                         } else {
-                          logger.log(Level.WARNING, null, new IOException("Skipping unexpected directory: "+filename));
+                          logger.log(Level.WARNING, null, new IOException("Skipping unexpected directory: " + filename));
                         }
                       } else {
-                        logger.log(Level.WARNING, null, new IOException("Directory date in future: "+filename));
+                        logger.log(Level.WARNING, null, new IOException("Directory date in future: " + filename));
                       }
                     } else {
-                      logger.log(Level.WARNING, null, new IOException("Unable to parse filename: "+filename));
+                      logger.log(Level.WARNING, null, new IOException("Unable to parse filename: " + filename));
                     }
                   } else {
-                    logger.log(Level.WARNING, null, new IOException("Unable to parse filename: "+filename));
+                    logger.log(Level.WARNING, null, new IOException("Unable to parse filename: " + filename));
                   }
                 } catch (NumberFormatException err) {
-                  logger.log(Level.WARNING, null, new IOException("Unable to parse filename: "+filename));
+                  logger.log(Level.WARNING, null, new IOException("Unable to parse filename: " + filename));
                 }
               } else {
-                logger.log(Level.WARNING, null, new IOException("Filename too short: "+filename));
+                logger.log(Level.WARNING, null, new IOException("Filename too short: " + filename));
               }
             }
           }
@@ -2638,7 +2643,7 @@ public final class FailoverFileReplicationManager {
         lastHasSuccess = false;
         // delete everything after the # of complete passes equalling the retention
         int completeCount = 0;
-        for (int age=0;age <= retention;age++) {
+        for (int age = 0; age <= retention; age++) {
           if (completeCount <= retention) {
             if (hasComplete(directoriesByAge, age, deleteFilenames)) {
               completeCount++;
@@ -2663,12 +2668,12 @@ public final class FailoverFileReplicationManager {
               lastHasSuccess = false;
               // Delete all but the oldest successful between 8-14
               boolean foundSuccessful = false;
-              for (int age=currentLevel;age >= (lastLevel+1);age--) {
+              for (int age = currentLevel; age >= (lastLevel + 1); age--) {
                 if (!foundSuccessful) {
                   if (hasComplete(directoriesByAge, age, deleteFilenames)) {
                     foundSuccessful = true;
                     lastHasSuccess = true;
-                    for (int deleteAge = age+1;deleteAge<currentLevel;deleteAge++) {
+                    for (int deleteAge = age + 1; deleteAge < currentLevel; deleteAge++) {
                       if (directoriesByAge.containsKey(deleteAge)) {
                         delete(directoriesByAge, deleteAge, deleteFilenames);
                         directoriesByAge.remove(deleteAge);
@@ -2719,20 +2724,20 @@ public final class FailoverFileReplicationManager {
       // 1) and 2) above
       for (String directory : deleteFilenames) {
         if (
-          directory.length() == 10
-          && !directory.endsWith(PARTIAL_EXTENSION)
-          && !directory.endsWith(SAFE_DELETE_EXTENSION)
-          && !directory.endsWith(RECYCLED_EXTENSION)
+            directory.length() == 10
+                && !directory.endsWith(PARTIAL_EXTENSION)
+                && !directory.endsWith(SAFE_DELETE_EXTENSION)
+                && !directory.endsWith(RECYCLED_EXTENSION)
         ) {
           // 1) Flag all those that were completed as recycled
           final PosixFile currentUF = new PosixFile(serverRootUF, directory, false);
-          final PosixFile newUF = new PosixFile(serverRootUF, directory+RECYCLED_EXTENSION, false);
+          final PosixFile newUF = new PosixFile(serverRootUF, directory + RECYCLED_EXTENSION, false);
           renameToNoExists(logger, activity, currentUF, newUF);
         } else {
           // 2) Flag all those that where not completed directly as .deleted, schedule for delete
           if (!directory.endsWith(SAFE_DELETE_EXTENSION)) {
             final PosixFile currentUF = new PosixFile(serverRootUF, directory, false);
-            final PosixFile newUF = new PosixFile(serverRootUF, directory+SAFE_DELETE_EXTENSION, false);
+            final PosixFile newUF = new PosixFile(serverRootUF, directory + SAFE_DELETE_EXTENSION, false);
             renameToNoExists(logger, activity, currentUF, newUF);
           }
         }
@@ -2746,14 +2751,14 @@ public final class FailoverFileReplicationManager {
         if (list != null && list.length > 0) {
           Arrays.sort(list);
           int recycledFoundCount = 0;
-          for (int c=list.length-1;c >= 0;c--) {
+          for (int c = list.length - 1; c >= 0; c--) {
             String directory = list[c];
             if (directory.endsWith(RECYCLED_EXTENSION)) {
-              if (recycledFoundCount<numRecycle) {
+              if (recycledFoundCount < numRecycle) {
                 recycledFoundCount++;
               } else {
                 // Rename to .deleted
-                String newFilename = directory.substring(0, directory.length()-RECYCLED_EXTENSION.length())+SAFE_DELETE_EXTENSION;
+                String newFilename = directory.substring(0, directory.length() - RECYCLED_EXTENSION.length()) + SAFE_DELETE_EXTENSION;
                 final PosixFile currentUF = new PosixFile(serverRootUF, directory, false);
                 final PosixFile newUF = new PosixFile(serverRootUF, newFilename, false);
                 renameToNoExists(logger, activity, currentUF, newUF);
@@ -2774,7 +2779,7 @@ public final class FailoverFileReplicationManager {
               //found=true;
               PosixFile deleteUf = new PosixFile(serverRootUF, directory, false);
               if (isFine) {
-                logger.fine("Deleting: "+deleteUf.getPath());
+                logger.fine("Deleting: " + deleteUf.getPath());
               }
               directories.add(deleteUf.getFile());
             }
@@ -2786,9 +2791,9 @@ public final class FailoverFileReplicationManager {
                 if (directories.size() == 1) {
                   // Single directory - no parallel benefits, use system rm command
                   AOServDaemon.exec(
-                    "/bin/rm",
-                    "-rf",
-                    directories.get(0).getPath()
+                      "/bin/rm",
+                      "-rf",
+                      directories.get(0).getPath()
                   );
                 } else {
                   ParallelDelete.parallelDelete(directories, null, false);
@@ -2812,11 +2817,11 @@ public final class FailoverFileReplicationManager {
     if (directories != null) {
       for (String directory : directories) {
         if (
-          directory.length() == 10
-          && !deleteFilenames.contains(directory)
-          && !directory.endsWith(PARTIAL_EXTENSION)
-          && !directory.endsWith(SAFE_DELETE_EXTENSION)
-          && !directory.endsWith(RECYCLED_EXTENSION)
+            directory.length() == 10
+                && !deleteFilenames.contains(directory)
+                && !directory.endsWith(PARTIAL_EXTENSION)
+                && !directory.endsWith(SAFE_DELETE_EXTENSION)
+                && !directory.endsWith(RECYCLED_EXTENSION)
         ) {
           return true;
         }
@@ -2830,9 +2835,9 @@ public final class FailoverFileReplicationManager {
     if (directories != null) {
       for (String directory : directories) {
         if (
-          !deleteFilenames.contains(directory)
-          && !directory.endsWith(SAFE_DELETE_EXTENSION)
-          && !directory.endsWith(RECYCLED_EXTENSION)
+            !deleteFilenames.contains(directory)
+                && !directory.endsWith(SAFE_DELETE_EXTENSION)
+                && !directory.endsWith(RECYCLED_EXTENSION)
         ) {
           deleteFilenames.add(directory);
         }
@@ -2841,6 +2846,7 @@ public final class FailoverFileReplicationManager {
   }
 
   private static boolean started = false;
+
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() throws IOException, SQLException {
     if (AOServDaemonConfiguration.isManagerEnabled(FailoverFileReplicationManager.class)) {
@@ -2866,9 +2872,9 @@ public final class FailoverFileReplicationManager {
    * @return  true if any changes were made.  This could be combined with a restat if necessary
    */
   private static boolean copyIfHardLinked(Activity activity, PosixFile uf, Stat ufStat) throws IOException {
-    if (ufStat.isRegularFile() && ufStat.getNumberLinks()>1) {
+    if (ufStat.isRegularFile() && ufStat.getNumberLinks() > 1) {
       if (logger.isLoggable(Level.FINER)) {
-        logger.finer("Copying file due to hard link: "+uf);
+        logger.finer("Copying file due to hard link: " + uf);
       }
       PosixFile temp = mktemp(activity, uf);
       activity.update("file: copy: ", uf, " to ", temp);

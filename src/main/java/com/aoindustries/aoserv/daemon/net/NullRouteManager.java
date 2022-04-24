@@ -68,10 +68,10 @@ public final class NullRouteManager {
    * When an IP address is repeatedly null routed, its duration is increased.
    */
   private static final long[] durations = {
-    1L * 60L * 1000L, // 1 minute
-    2L * 60L * 1000L, // 2 minutes
-    5L * 60L * 1000L, // 5 minutes
-    10L * 60L * 1000L, // 10 minutes
+      1L * 60L * 1000L, // 1 minute
+      2L * 60L * 1000L, // 2 minutes
+      5L * 60L * 1000L, // 5 minutes
+      10L * 60L * 1000L, // 10 minutes
   };
 
   /**
@@ -94,20 +94,20 @@ public final class NullRouteManager {
 
     synchronized (System.out) {
       if (
-        // Nothing is done for these operating systems
-        osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-        && osvId != OperatingSystemVersion.CENTOS_7_X86_64
-        // Check config after OS check so config entry not needed
-        && AOServDaemonConfiguration.isManagerEnabled(NullRouteManager.class)
-        && instance == null
+          // Nothing is done for these operating systems
+          osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+              && osvId != OperatingSystemVersion.CENTOS_7_X86_64
+              // Check config after OS check so config entry not needed
+              && AOServDaemonConfiguration.isManagerEnabled(NullRouteManager.class)
+              && instance == null
       ) {
         System.out.print("Starting NullRouteManager: ");
         // Must be a supported operating system
         if (
-          // Only runs on Xen dom0 (firewalling done outside virtual servers)
-          osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
-          || osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-          || osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+            // Only runs on Xen dom0 (firewalling done outside virtual servers)
+            osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
+                || osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+                || osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
         ) {
           AOServConnector conn = AOServDaemon.getConnector();
           Administrator administrator = conn.getCurrentAdministrator();
@@ -195,7 +195,7 @@ public final class NullRouteManager {
      * Increases the null route level and starts a new null route time period
      */
     void increaseLevel(long currentTime) {
-      level = Math.min(level+1, durations.length-1);
+      level = Math.min(level + 1, durations.length - 1);
       startTime = currentTime;
       endTime = currentTime + durations[level];
       if (DEBUG) {
@@ -247,9 +247,9 @@ public final class NullRouteManager {
                         // Never null-route private IP addresses, such as those used for communication between routers for BGP sessions
                         if (!inetAddress.isUniqueLocal()) {
                           newContents
-                            .append("route ")
-                            .append(ipString)
-                            .append("/32 drop;\n")
+                              .append("route ")
+                              .append(ipString)
+                              .append("/32 drop;\n")
                           ;
                         }
                         // Find the null route that expires next
@@ -267,22 +267,22 @@ public final class NullRouteManager {
                     byte[] newBytes = newContents.toString().getBytes(StandardCharsets.UTF_8.name()); // .name() only for JDK < 1.6 compatibility
                     // See if file has changed
                     if (
-                      DaemonFileUtils.atomicWrite(
-                        BIRD_NULL_CONFIG,
-                        newBytes,
-                        0640,
-                        PosixFile.ROOT_UID,
-                        BIRD_GID, // TODO: Enable LinuxAccountManager on CentOS 7.dom0 and get this from the existing "bird" linux_server_group
-                        null,
-                        null // SELinux disabled on dom0
-                      )
+                        DaemonFileUtils.atomicWrite(
+                            BIRD_NULL_CONFIG,
+                            newBytes,
+                            0640,
+                            PosixFile.ROOT_UID,
+                            BIRD_GID, // TODO: Enable LinuxAccountManager on CentOS 7.dom0 and get this from the existing "bird" linux_server_group
+                            null,
+                            null // SELinux disabled on dom0
+                        )
                     ) {
                       Server thisServer = AOServDaemon.getThisServer();
                       OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
                       int osvId = osv.getPkey();
                       if (
-                        osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
-                        || osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+                          osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
+                              || osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
                       ) {
                         // kill -HUP bird if updated
                         int pid = VirtualServerManager.findPid("/opt/bird/sbin/bird\u0000-u\u0000bird\u0000-g\u0000bird");

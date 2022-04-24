@@ -71,14 +71,14 @@ public final class AOServDaemonServer extends Thread {
    * Creates a new, running <code>AOServServer</code>.
    */
   public AOServDaemonServer(com.aoapps.net.InetAddress serverBind, int serverPort, String protocol) {
-    super(AOServDaemonServer.class.getName()+"?address="+serverBind+"&port="+serverPort+"&protocol="+protocol);
+    super(AOServDaemonServer.class.getName() + "?address=" + serverBind + "&port=" + serverPort + "&protocol=" + protocol);
     this.serverBind = serverBind;
     this.serverPort = serverPort;
     this.protocol = protocol;
   }
 
-  private static final Map<Long, DaemonAccessEntry> accessKeys=new HashMap<>();
-  private static long lastAccessKeyCleaning=-1;
+  private static final Map<Long, DaemonAccessEntry> accessKeys = new HashMap<>();
+  private static long lastAccessKeyCleaning = -1;
 
   public static void grantDaemonAccess(long key, int command, String param1, String param2, String param3, String param4) {
     synchronized (accessKeys) {
@@ -89,7 +89,7 @@ public final class AOServDaemonServer extends Thread {
         long timeSince = System.currentTimeMillis() - lastAccessKeyCleaning;
         if (timeSince < 0 || timeSince >= (5L * 60 * 1000)) {
           // Build a list of keys that should be removed
-          List<Long> removeKeys=new ArrayList<>();
+          List<Long> removeKeys = new ArrayList<>();
           Iterator<Long> iter = accessKeys.keySet().iterator();
           while (iter.hasNext()) {
             Long keyLong = iter.next();
@@ -106,7 +106,7 @@ public final class AOServDaemonServer extends Thread {
           }
 
           // Reset the clean time
-          lastAccessKeyCleaning=System.currentTimeMillis();
+          lastAccessKeyCleaning = System.currentTimeMillis();
         }
       }
 
@@ -128,7 +128,7 @@ public final class AOServDaemonServer extends Thread {
   public void run() {
     while (!Thread.currentThread().isInterrupted()) {
       try {
-        InetAddress address=InetAddress.getByName(serverBind.toString());
+        InetAddress address = InetAddress.getByName(serverBind.toString());
         synchronized (System.out) {
           System.out.print("Accepting connections on ");
           System.out.print(serverBind.toBracketedString());
@@ -152,8 +152,8 @@ public final class AOServDaemonServer extends Thread {
             }
             break;
           case AppProtocol.AOSERV_DAEMON_SSL:
-            SSLServerSocketFactory factory = (SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
-            SSLServerSocket ss = (SSLServerSocket)factory.createServerSocket(serverPort, 50, address);
+            SSLServerSocketFactory factory = (SSLServerSocketFactory) SSLServerSocketFactory.getDefault();
+            SSLServerSocket ss = (SSLServerSocket) factory.createServerSocket(serverPort, 50, address);
             try {
               while (!Thread.currentThread().isInterrupted()) {
                 Socket socket = ss.accept();
@@ -174,7 +174,7 @@ public final class AOServDaemonServer extends Thread {
             }
             break;
           default:
-            throw new IllegalArgumentException("Unsupported protocol: "+protocol);
+            throw new IllegalArgumentException("Unsupported protocol: " + protocol);
         }
       } catch (ThreadDeath td) {
         throw td;

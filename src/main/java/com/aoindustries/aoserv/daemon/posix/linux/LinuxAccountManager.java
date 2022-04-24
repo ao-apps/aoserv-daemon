@@ -138,6 +138,7 @@ public final class LinuxAccountManager extends BuilderThread {
   }
 
   private static final Object rebuildLock = new Object();
+
   @Override
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
   protected boolean doRebuild() {
@@ -160,8 +161,8 @@ public final class LinuxAccountManager extends BuilderThread {
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
     if (
-      osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-      && osvId != OperatingSystemVersion.CENTOS_7_X86_64
+        osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+            && osvId != OperatingSystemVersion.CENTOS_7_X86_64
     ) {
       throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
     }
@@ -194,7 +195,7 @@ public final class LinuxAccountManager extends BuilderThread {
         try (
           FileChannel fileChannel = FileChannel.open(PWD_LOCK.toPath(), StandardOpenOption.WRITE, StandardOpenOption.CREATE);
           FileLock fileLock = fileChannel.lock();
-        ) {
+            ) {
           // Add any system groups found, updating lsgs
           {
             Map<Group.Name, GroupFile.Entry> groupFile;
@@ -205,19 +206,19 @@ public final class LinuxAccountManager extends BuilderThread {
             for (GroupFile.Entry entry : groupFile.values()) {
               Group.Name groupName = entry.getGroupName();
               if (
-                entry.getGid() < gidMin
-                || entry.getGid() > gidMax
-                || groupName.equals(Group.AOADMIN)
-                // AOServ Schema:
-                || groupName.equals(Group.ACCOUNTING)
-                || groupName.equals(Group.BILLING)
-                || groupName.equals(Group.DISTRIBUTION)
-                || groupName.equals(Group.INFRASTRUCTURE)
-                || groupName.equals(Group.MANAGEMENT)
-                || groupName.equals(Group.MONITORING)
-                || groupName.equals(Group.RESELLER)
-                // Amazon EC2 cloud-init
-                || groupName.equals(Group.CENTOS)
+                  entry.getGid() < gidMin
+                      || entry.getGid() > gidMax
+                      || groupName.equals(Group.AOADMIN)
+                      // AOServ Schema:
+                      || groupName.equals(Group.ACCOUNTING)
+                      || groupName.equals(Group.BILLING)
+                      || groupName.equals(Group.DISTRIBUTION)
+                      || groupName.equals(Group.INFRASTRUCTURE)
+                      || groupName.equals(Group.MANAGEMENT)
+                      || groupName.equals(Group.MONITORING)
+                      || groupName.equals(Group.RESELLER)
+                      // Amazon EC2 cloud-init
+                      || groupName.equals(Group.CENTOS)
               ) {
                 boolean found = false;
                 for (GroupServer lsg : lsgs) {
@@ -250,19 +251,19 @@ public final class LinuxAccountManager extends BuilderThread {
             for (PasswdFile.Entry entry : passwdFile.values()) {
               User.Name username = entry.getUsername();
               if (
-                entry.getUid() < uidMin
-                || entry.getUid() > uidMax
-                || username.equals(User.AOADMIN)
-                // AOServ Schema:
-                || username.equals(User.ACCOUNTING)
-                || username.equals(User.BILLING)
-                || username.equals(User.DISTRIBUTION)
-                || username.equals(User.INFRASTRUCTURE)
-                || username.equals(User.MANAGEMENT)
-                || username.equals(User.MONITORING)
-                || username.equals(User.RESELLER)
-                // Amazon EC2 cloud-init
-                || username.equals(User.CENTOS)
+                  entry.getUid() < uidMin
+                      || entry.getUid() > uidMax
+                      || username.equals(User.AOADMIN)
+                      // AOServ Schema:
+                      || username.equals(User.ACCOUNTING)
+                      || username.equals(User.BILLING)
+                      || username.equals(User.DISTRIBUTION)
+                      || username.equals(User.INFRASTRUCTURE)
+                      || username.equals(User.MANAGEMENT)
+                      || username.equals(User.MONITORING)
+                      || username.equals(User.RESELLER)
+                      // Amazon EC2 cloud-init
+                      || username.equals(User.CENTOS)
               ) {
                 boolean found = false;
                 for (UserServer lsa : lsas) {
@@ -277,15 +278,15 @@ public final class LinuxAccountManager extends BuilderThread {
                     logger.fine("Adding system user: " + username + " #" + uid);
                   }
                   thisServer.addSystemUser(
-                    username,
-                    uid,
-                    entry.getGid(),
-                    entry.getFullName(),
-                    entry.getOfficeLocation(),
-                    entry.getOfficePhone(),
-                    entry.getHomePhone(),
-                    entry.getHome(),
-                    entry.getShell()
+                      username,
+                      uid,
+                      entry.getGid(),
+                      entry.getFullName(),
+                      entry.getOfficeLocation(),
+                      entry.getOfficePhone(),
+                      entry.getHomePhone(),
+                      entry.getHome(),
+                      entry.getShell()
                   );
                   modified = true;
                 }
@@ -300,8 +301,8 @@ public final class LinuxAccountManager extends BuilderThread {
           for (UserServer lsa : lsas) {
             PosixPath shellPath = lsa.getLinuxAccount().getShell().getPath();
             if (
-              shellPath.equals(Shell.FTPONLY)
-              || shellPath.equals(Shell.FTPPASSWD)
+                shellPath.equals(Shell.FTPONLY)
+                    || shellPath.equals(Shell.FTPPASSWD)
             ) {
               hasFtpShell = true;
               break;
@@ -353,9 +354,9 @@ public final class LinuxAccountManager extends BuilderThread {
               // This ugly hack allows us to store the new version, and it will be converted
               // for compatibility with CentOS 5 on-the-fly.
               if (
-                osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-                && username.equals(User.CYRUS)
-                && shell.equals(Shell.NOLOGIN)
+                  osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                      && username.equals(User.CYRUS)
+                      && shell.equals(Shell.NOLOGIN)
               ) {
                 if (logger.isLoggable(Level.INFO)) {
                   logger.info("Converting " + shell + " to " + Shell.BASH + " for " + username);
@@ -372,20 +373,20 @@ public final class LinuxAccountManager extends BuilderThread {
 //                }
               }
               if (
-                passwdEntries.put(
-                  username,
-                  new PasswdFile.Entry(
-                    username,
-                    lsa.getUid().getId(),
-                    primaryGroup.getGid().getId(),
-                    la.getName(),
-                    la.getOfficeLocation(),
-                    la.getOfficePhone(),
-                    la.getHomePhone(),
-                    home,
-                    shell
-                  )
-                ) != null
+                  passwdEntries.put(
+                      username,
+                      new PasswdFile.Entry(
+                          username,
+                          lsa.getUid().getId(),
+                          primaryGroup.getGid().getId(),
+                          la.getName(),
+                          la.getOfficeLocation(),
+                          la.getOfficePhone(),
+                          la.getHomePhone(),
+                          home,
+                          shell
+                      )
+                  ) != null
               ) {
                 throw new SQLException("Duplicate username: " + username);
               }
@@ -419,14 +420,14 @@ public final class LinuxAccountManager extends BuilderThread {
                 throw new SQLException("Duplicate group name: " + groupName);
               }
               if (
-                groupEntries.put(
-                  groupName,
-                  new GroupFile.Entry(
-                    groupName,
-                    lsg.getGid().getId(),
-                    groupMembers
-                  )
-                ) != null
+                  groupEntries.put(
+                      groupName,
+                      new GroupFile.Entry(
+                          groupName,
+                          lsg.getGid().getId(),
+                          groupMembers
+                      )
+                  ) != null
               ) {
                 throw new SQLException("Duplicate group name: " + groupName);
               }
@@ -444,13 +445,13 @@ public final class LinuxAccountManager extends BuilderThread {
               synchronized (GroupFile.groupLock) {
                 synchronized (GShadowFile.gshadowLock) {
                   // Build new file contents
-                  byte[] newPasswdContent  = PasswdFile .buildPasswdFile (passwdEntries, uidMin, uidMax);
-                  byte[] newShadowContent  = ShadowFile .buildShadowFile (usernames);
+                  byte[] newPasswdContent  = PasswdFile .buildPasswdFile(passwdEntries, uidMin, uidMax);
+                  byte[] newShadowContent  = ShadowFile .buildShadowFile(usernames);
                   byte[] newGroupContent   = GroupFile  .buildGroupFile  (groupEntries, gidMin, gidMax);
                   byte[] newGShadowContent = GShadowFile.buildGShadowFile(groups);
                   // Write any updates
-                  PasswdFile .writePasswdFile (newPasswdContent,  restorecon);
-                  ShadowFile .writeShadowFile (newShadowContent,  restorecon);
+                  PasswdFile .writePasswdFile(newPasswdContent,  restorecon);
+                  ShadowFile .writeShadowFile(newShadowContent,  restorecon);
                   GroupFile  .writeGroupFile  (newGroupContent,   restorecon);
                   GShadowFile.writeGShadowFile(newGShadowContent, restorecon);
                 }
@@ -501,11 +502,11 @@ public final class LinuxAccountManager extends BuilderThread {
               }
             }
             if (
-              oldHome != null
-              // Don't move a home directory still being used
-              && !homeDirs.contains(oldHome.getPath())
-              // Only move when exists
-              && oldHome.getStat().exists()
+                oldHome != null
+                    // Don't move a home directory still being used
+                    && !homeDirs.contains(oldHome.getPath())
+                    // Only move when exists
+                    && oldHome.getStat().exists()
             ) {
               // Move the home directory from old location
               if (logger.isLoggable(Level.INFO)) {
@@ -527,26 +528,26 @@ public final class LinuxAccountManager extends BuilderThread {
           final String homeStr = homeDir.getPath();
           // Homes in /www will have all the skel copied, but will not set the directory perms
           boolean isWWWAndUser =
-            homeStr.startsWith(osConfig.getHttpdSitesDirectory().toString() + '/')
-            && (type.equals(UserType.USER) || type.equals(UserType.APPLICATION))
-            && la.getFTPGuestUser() == null
+              homeStr.startsWith(osConfig.getHttpdSitesDirectory().toString() + '/')
+                  && (type.equals(UserType.USER) || type.equals(UserType.APPLICATION))
+                  && la.getFTPGuestUser() == null
           ;
           // Only build directories for accounts that are in /home/ or user account in /www/
           if (
-            isWWWAndUser
-            || homeStr.startsWith("/home/")
+              isWWWAndUser
+                  || homeStr.startsWith("/home/")
           ) {
             boolean chownHome;
             {
               Stat homeDirStat = homeDir.getStat();
               chownHome = (
-                !isWWWAndUser
-                && (
-                  homeDirStat.getUid() == PosixFile.ROOT_UID
-                  || homeDirStat.getGid() == PosixFile.ROOT_GID
-                )
-                // Do not set permissions for encrypted home directories
-                && !(new PosixFile(homeStr + ".aes256.img").getStat().exists())
+                  !isWWWAndUser
+                      && (
+                      homeDirStat.getUid() == PosixFile.ROOT_UID
+                          || homeDirStat.getGid() == PosixFile.ROOT_GID
+                  )
+                      // Do not set permissions for encrypted home directories
+                      && !(new PosixFile(homeStr + ".aes256.img").getStat().exists())
               );
               if (chownHome) {
                 copySkel = true;
@@ -554,9 +555,9 @@ public final class LinuxAccountManager extends BuilderThread {
             }
             // Copy the /etc/skel directory
             if (
-              copySkel
-              // Only copy the files for user accounts
-              && (type.equals(UserType.USER) || type.equals(UserType.APPLICATION))
+                copySkel
+                    // Only copy the files for user accounts
+                    && (type.equals(UserType.USER) || type.equals(UserType.APPLICATION))
             ) {
               File skel = new File("/etc/skel");
               String[] skelList = skel.list();
@@ -596,7 +597,7 @@ public final class LinuxAccountManager extends BuilderThread {
          * Remove any home directories that should not exist.
          */
         Set<String> keepHashDirs = new HashSet<>();
-        for (char ch='a'; ch <= 'z'; ch++) {
+        for (char ch = 'a'; ch <= 'z'; ch++) {
           PosixFile hashDir = new PosixFile("/home/" + ch);
           if (homeDirs.contains(hashDir.getPath())) {
             if (logger.isLoggable(Level.FINE)) {
@@ -718,14 +719,14 @@ public final class LinuxAccountManager extends BuilderThread {
               bout.reset();
               try (Writer out = new OutputStreamWriter(bout, StandardCharsets.UTF_8)) {
                 out.write("##\n"
-                  + "## Configured by ");
+                    + "## Configured by ");
                 out.write(LinuxAccountManager.class.getName());
                 out.write("\n"
-                  + "## \n"
-                  + "## See ");
+                    + "## \n"
+                    + "## See ");
                 out.write(UserServer.class.getName());
                 out.write(".getSudo()\n"
-                  + "##\n");
+                    + "##\n");
                 out.write(username);
                 out.write(' ');
                 out.write(sudo);
@@ -733,9 +734,9 @@ public final class LinuxAccountManager extends BuilderThread {
               }
               String sudoersFilename;
               if (
-                // Amazon EC2 cloud-init
-                username.equals(User.CENTOS.toString())
-                && PackageManager.getInstalledPackage(PackageManager.PackageName.CLOUD_INIT) != null
+                  // Amazon EC2 cloud-init
+                  username.equals(User.CENTOS.toString())
+                      && PackageManager.getInstalledPackage(PackageManager.PackageName.CLOUD_INIT) != null
               ) {
                 // Overwrite the file that is created by the "cloud-init" package on boot
                 sudoersFilename = "90-cloud-init-users";
@@ -743,13 +744,13 @@ public final class LinuxAccountManager extends BuilderThread {
                 sudoersFilename = username;
               }
               DaemonFileUtils.atomicWrite(
-                new PosixFile(SUDOERS_D, sudoersFilename, true),
-                bout.toByteArray(),
-                0440,
-                PosixFile.ROOT_UID,
-                PosixFile.ROOT_GID,
-                null,
-                restorecon
+                  new PosixFile(SUDOERS_D, sudoersFilename, true),
+                  bout.toByteArray(),
+                  0440,
+                  PosixFile.ROOT_UID,
+                  PosixFile.ROOT_GID,
+                  null,
+                  restorecon
               );
               sudoersFiles.add(sudoersFilename);
             }
@@ -835,7 +836,7 @@ public final class LinuxAccountManager extends BuilderThread {
               boolean allNum = true;
               for (int d = 0; d < flen; d++) {
                 char ch = filename.charAt(d);
-                if (ch<'0' || ch>'9') {
+                if (ch < '0' || ch > '9') {
                   allNum = false;
                   break;
                 }
@@ -850,17 +851,17 @@ public final class LinuxAccountManager extends BuilderThread {
                     // Search each server
                     UserServer lsa;
                     if (
-                      !uids.contains(uid)
-                      || (lsa = thisServer.getLinuxServerAccount(LinuxId.valueOf(uid))) == null
-                      || lsa.isDisabled()
+                        !uids.contains(uid)
+                            || (lsa = thisServer.getLinuxServerAccount(LinuxId.valueOf(uid))) == null
+                            || lsa.isDisabled()
                     ) {
                       // Also must not be in a nested server
                       boolean foundInNested = false;
                       for (Server nestedServer : nestedServers) {
                         lsa = nestedServer.getLinuxServerAccount(LinuxId.valueOf(uid));
                         if (
-                          lsa != null
-                          && !lsa.isDisabled()
+                            lsa != null
+                                && !lsa.isDisabled()
                         ) {
                           foundInNested = true;
                           break;
@@ -935,16 +936,16 @@ public final class LinuxAccountManager extends BuilderThread {
       Server thisServer = AOServDaemon.getThisServer();
       try (
         InputStream in = new BufferedInputStream(
-          file.getSecureInputStream(
-            thisServer.getUidMin().getId(),
-            thisServer.getGidMin().getId()
+              file.getSecureInputStream(
+                  thisServer.getUidMin().getId(),
+                  thisServer.getGidMin().getId()
+              )
           )
-        )
-      ) {
+          ) {
         // TODO: This is assuming ISO-8859-1 encoding.  Is this correct here?
         int ch;
         while ((ch = in.read()) != -1) {
-          sb.append((char)ch);
+          sb.append((char) ch);
         }
       }
       content = sb.toString();
@@ -963,7 +964,7 @@ public final class LinuxAccountManager extends BuilderThread {
         // TODO: This is assuming ISO-8859-1 encoding.  Is this correct here?
         int ch;
         while ((ch = in.read()) != -1) {
-          sb.append((char)ch);
+          sb.append((char) ch);
         }
       }
       cronTable = sb.toString();
@@ -999,8 +1000,8 @@ public final class LinuxAccountManager extends BuilderThread {
         while ((line = in.readLine()) != null) {
           line = line.trim();
           if (
-            line.equals(profileLine)
-            || line.equals(oldProfileLine)
+              line.equals(profileLine)
+                  || line.equals(oldProfileLine)
           ) {
             found = true;
             break;
@@ -1023,7 +1024,7 @@ public final class LinuxAccountManager extends BuilderThread {
     Server thisServer = AOServDaemon.getThisServer();
     int uid_min = thisServer.getUidMin().getId();
     int gid_min = thisServer.getGidMin().getId();
-    File file=new File(path.toString());
+    File file = new File(path.toString());
     synchronized (rebuildLock) {
       if (content == null) {
         if (file.exists()) {
@@ -1032,11 +1033,11 @@ public final class LinuxAccountManager extends BuilderThread {
       } else {
         try (
           PrintWriter out = new PrintWriter(
-            new BufferedOutputStream(
-              new PosixFile(file).getSecureOutputStream(uid, gid, 0600, true, uid_min, gid_min)
+                new BufferedOutputStream(
+                    new PosixFile(file).getSecureOutputStream(uid, gid, 0600, true, uid_min, gid_min)
+                )
             )
-          )
-        ) {
+            ) {
           out.print(content);
         }
       }
@@ -1056,18 +1057,18 @@ public final class LinuxAccountManager extends BuilderThread {
       } else {
         try (
           PrintWriter out = new PrintWriter(
-            new BufferedOutputStream(
-              new PosixFile(cronFile).getSecureOutputStream(
-                PosixFile.ROOT_UID,
-                thisServer.getLinuxServerAccount(username).getPrimaryLinuxServerGroup().getGid().getId(),
-                0600,
-                true,
-                uid_min,
-                gid_min
-              )
+                new BufferedOutputStream(
+                    new PosixFile(cronFile).getSecureOutputStream(
+                        PosixFile.ROOT_UID,
+                        thisServer.getLinuxServerAccount(username).getPrimaryLinuxServerGroup().getGid().getId(),
+                        0600,
+                        true,
+                        uid_min,
+                        gid_min
+                    )
+                )
             )
-          )
-        ) {
+            ) {
           out.print(cronTable);
         }
       }
@@ -1109,6 +1110,7 @@ public final class LinuxAccountManager extends BuilderThread {
   }
 
   private static LinuxAccountManager linuxAccountManager;
+
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() throws IOException, SQLException {
     Server thisServer = AOServDaemon.getThisServer();
@@ -1117,19 +1119,19 @@ public final class LinuxAccountManager extends BuilderThread {
 
     synchronized (System.out) {
       if (
-        // Nothing is done for these operating systems
-        osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
-        && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-        && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-        // Check config after OS check so config entry not needed
-        && AOServDaemonConfiguration.isManagerEnabled(LinuxAccountManager.class)
-        && linuxAccountManager == null
+          // Nothing is done for these operating systems
+          osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+              && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+              && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+              // Check config after OS check so config entry not needed
+              && AOServDaemonConfiguration.isManagerEnabled(LinuxAccountManager.class)
+              && linuxAccountManager == null
       ) {
         System.out.print("Starting LinuxAccountManager: ");
         // Must be a supported operating system
         if (
-          osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-          || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+            osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                || osvId == OperatingSystemVersion.CENTOS_7_X86_64
         ) {
           AOServConnector conn = AOServDaemon.getConnector();
           linuxAccountManager = new LinuxAccountManager();
@@ -1156,15 +1158,15 @@ public final class LinuxAccountManager extends BuilderThread {
     try (
       TempFileContext tempFileContext = new TempFileContext();
       TempFile tempFile = tempFileContext.createTempFile("tar_home_directory_", ".tar")
-    ) {
+        ) {
       AOServDaemon.exec(
-        "/bin/tar",
-        "-c",
-        "-C",
-        home.toString(),
-        "-f",
-        tempFile.getFile().getPath(),
-        "."
+          "/bin/tar",
+          "-c",
+          "-C",
+          home.toString(),
+          "-f",
+          tempFile.getFile().getPath(),
+          "."
       );
       try (InputStream in = new FileInputStream(tempFile.getFile())) {
         byte[] buff = BufferManager.getBytes();
@@ -1192,7 +1194,7 @@ public final class LinuxAccountManager extends BuilderThread {
       try (
         TempFileContext tempFileContext = new TempFileContext();
         TempFile tempFile = tempFileContext.createTempFile("untar_home_directory_", ".tar")
-      ) {
+          ) {
         int code;
         try (OutputStream out = new FileOutputStream(tempFile.getFile())) {
           byte[] buff = BufferManager.getBytes();
@@ -1216,12 +1218,12 @@ public final class LinuxAccountManager extends BuilderThread {
           }
         }
         AOServDaemon.exec(
-          "/bin/tar",
-          "-x",
-          "-C",
-          home.toString(),
-          "-f",
-          tempFile.getFile().getPath()
+            "/bin/tar",
+            "-x",
+            "-C",
+            home.toString(),
+            "-f",
+            tempFile.getFile().getPath()
         );
       }
     }

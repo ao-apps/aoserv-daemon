@@ -75,9 +75,9 @@ public final class Fail2banManager extends BuilderThread {
   @SuppressWarnings({"unchecked"})
   private static <T> Set<T> getSet(T ... values) {
     return AoCollections.optimalUnmodifiableSet(
-      new HashSet<>(
-        Arrays.asList(values)
-      )
+        new HashSet<>(
+            Arrays.asList(values)
+        )
     );
   }
 
@@ -85,39 +85,39 @@ public final class Fail2banManager extends BuilderThread {
     CYRUS_IMAP(
       "cyrus-imap",
       getSet(
-        AppProtocol.POP3,
-        AppProtocol.IMAP2,
-        AppProtocol.SIMAP,
-        AppProtocol.SPOP3
+          AppProtocol.POP3,
+          AppProtocol.IMAP2,
+          AppProtocol.SIMAP,
+          AppProtocol.SPOP3
       ),
       true,
       null
-    ),
+  ),
     SENDMAIL_AUTH(
-      "sendmail-auth",
-      getSet(
-        AppProtocol.SMTP,
-        AppProtocol.SMTPS,
-        AppProtocol.SUBMISSION
-      ),
-      true,
-      null
+        "sendmail-auth",
+        getSet(
+            AppProtocol.SMTP,
+            AppProtocol.SMTPS,
+            AppProtocol.SUBMISSION
+        ),
+        true,
+        null
     ),
     SENDMAIL_DISCONNECT(
-      "sendmail-disconnect",
-      getSet(
-        AppProtocol.SMTP,
-        AppProtocol.SMTPS,
-        AppProtocol.SUBMISSION
-      ),
-      false,
-      PackageManager.PackageName.FAIL2BAN_FILTER_SENDMAIL_DISCONNECT
+        "sendmail-disconnect",
+        getSet(
+            AppProtocol.SMTP,
+            AppProtocol.SMTPS,
+            AppProtocol.SUBMISSION
+        ),
+        false,
+        PackageManager.PackageName.FAIL2BAN_FILTER_SENDMAIL_DISCONNECT
     ),
     SSHD(
-      "sshd",
-      getSet(AppProtocol.SSH),
-      true,
-      null
+        "sshd",
+        getSet(AppProtocol.SSH),
+        true,
+        null
     );
 
     private final String name;
@@ -127,11 +127,11 @@ public final class Fail2banManager extends BuilderThread {
     private final PackageManager.PackageName filterPackage;
 
     private Jail(
-      String name,
-      Set<String> protocols,
-      String jaildFilename,
-      String removeOldJaildFilename,
-      PackageManager.PackageName filterPackage
+        String name,
+        Set<String> protocols,
+        String jaildFilename,
+        String removeOldJaildFilename,
+        PackageManager.PackageName filterPackage
     ) {
       this.name = name;
       this.protocols = protocols;
@@ -141,17 +141,17 @@ public final class Fail2banManager extends BuilderThread {
     }
 
     private Jail(
-      String name,
-      Set<String> protocols,
-      boolean removeOldJaildFile,
-      PackageManager.PackageName filterPackage
+        String name,
+        Set<String> protocols,
+        boolean removeOldJaildFile,
+        PackageManager.PackageName filterPackage
     ) {
       this(
-        name,
-        protocols,
-        "50-" + name + ".local",
-        removeOldJaildFile ? "50-" + name + ".conf" : null,
-        filterPackage
+          name,
+          protocols,
+          "50-" + name + ".local",
+          removeOldJaildFile ? "50-" + name + ".conf" : null,
+          filterPackage
       );
     }
 
@@ -188,6 +188,7 @@ public final class Fail2banManager extends BuilderThread {
   }
 
   private static final Object rebuildLock = new Object();
+
   @Override
   @SuppressWarnings({"BroadCatchBlock", "TooBroadCatch", "UseSpecificCatch"})
   protected boolean doRebuild() {
@@ -257,14 +258,14 @@ public final class Fail2banManager extends BuilderThread {
               fail2banInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.FAIL2BAN_SERVER) != null;
             } else {
               PackageManager.installPackage(
-                PackageManager.PackageName.FAIL2BAN_SERVER,
-                () -> updated[0] = true
+                  PackageManager.PackageName.FAIL2BAN_SERVER,
+                  () -> updated[0] = true
               );
               fail2banInstalled = true;
               if (firewalldInstalled) {
                 PackageManager.installPackage(
-                  PackageManager.PackageName.FAIL2BAN_FIREWALLD,
-                  () -> updated[0] = true
+                    PackageManager.PackageName.FAIL2BAN_FIREWALLD,
+                    () -> updated[0] = true
                 );
               }
             }
@@ -293,16 +294,16 @@ public final class Fail2banManager extends BuilderThread {
                   // Install any required packages
                   if (filterPackage != null && requiredPackages.add(filterPackage)) {
                     PackageManager.installPackage(
-                      filterPackage,
-                      () -> updated[0] = true
+                        filterPackage,
+                        () -> updated[0] = true
                     );
                   }
                   if (jail == Jail.CYRUS_IMAP) {
                     hasSecondaryCyrusImapService = ImapManager.hasSecondaryService();
                     if (hasSecondaryCyrusImapService) {
                       PackageManager.installPackage(
-                        PackageManager.PackageName.FAIL2BAN_FILTER_CYRUS_IMAP_MORE_SERVICES,
-                        () -> updated[0] = true
+                          PackageManager.PackageName.FAIL2BAN_FILTER_CYRUS_IMAP_MORE_SERVICES,
+                          () -> updated[0] = true
                       );
                     }
                   }
@@ -319,15 +320,15 @@ public final class Fail2banManager extends BuilderThread {
                     out.print('\n');
                   }
                   if (
-                    DaemonFileUtils.atomicWrite(
-                      jailUF,
-                      bout.toByteArray(),
-                      0644,
-                      PosixFile.ROOT_UID,
-                      PosixFile.ROOT_GID,
-                      null,
-                      restorecon
-                    )
+                      DaemonFileUtils.atomicWrite(
+                          jailUF,
+                          bout.toByteArray(),
+                          0644,
+                          PosixFile.ROOT_UID,
+                          PosixFile.ROOT_GID,
+                          null,
+                          restorecon
+                      )
                   ) {
                     updated[0] = true;
                   }
@@ -403,13 +404,13 @@ public final class Fail2banManager extends BuilderThread {
     int osvId = osv.getPkey();
     synchronized (System.out) {
       if (
-        osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
-        && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-        && osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-        && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-        // Check config after OS check so config entry not needed
-        && AOServDaemonConfiguration.isManagerEnabled(Fail2banManager.class)
-        && fail2banManager == null
+          osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+              && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+              && osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+              && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+              // Check config after OS check so config entry not needed
+              && AOServDaemonConfiguration.isManagerEnabled(Fail2banManager.class)
+              && fail2banManager == null
       ) {
         System.out.print("Starting Fail2banManager: ");
         // Must be a supported operating system

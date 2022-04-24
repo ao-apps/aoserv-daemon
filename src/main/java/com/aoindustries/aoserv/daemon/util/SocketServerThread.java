@@ -44,9 +44,9 @@ public abstract class SocketServerThread extends Thread {
   final int port;
 
   protected SocketServerThread(String name, InetAddress ipAddress, int port) {
-    super(name+" on "+ipAddress.toBracketedString()+":"+port);
-    this.ipAddress=ipAddress;
-    this.port=port;
+    super(name + " on " + ipAddress.toBracketedString() + ":" + port);
+    this.ipAddress = ipAddress;
+    this.port = port;
   }
 
   public InetAddress getIPAddress() {
@@ -93,7 +93,7 @@ public abstract class SocketServerThread extends Thread {
   }
 
   public final void close() {
-    runMore=false;
+    runMore = false;
     try {
       ss.close();
     } catch (IOException err) {

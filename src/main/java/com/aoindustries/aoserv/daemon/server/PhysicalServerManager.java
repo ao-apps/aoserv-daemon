@@ -39,8 +39,8 @@ public final class PhysicalServerManager {
   }
 
   private static final String[] apcaccessStatusCommand = {
-    "/sbin/apcaccess",
-    "status"
+      "/sbin/apcaccess",
+      "status"
   };
 
   /**
@@ -51,7 +51,7 @@ public final class PhysicalServerManager {
     String stderr = result.getStderr();
     if (result.getExitVal() == 0) {
       // Log any errors
-      if (stderr.length()>0) {
+      if (stderr.length() > 0) {
         System.err.println(stderr);
       }
       return result.getStdout();

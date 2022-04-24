@@ -42,77 +42,77 @@ import java.util.List;
 public final class ProcStat {
 
   public final long[]
-    userCPUTimes,
-    niceCPUTimes,
-    sysCPUTimes
+      userCPUTimes,
+      niceCPUTimes,
+      sysCPUTimes
   ;
 
   public final long
-    pagesIn,
-    pagesOut
+      pagesIn,
+      pagesOut
   ;
 
   public final long
-    swapsIn,
-    swapsOut
+      swapsIn,
+      swapsOut
   ;
 
   public final long
-    contextSwitches,
-    processes
+      contextSwitches,
+      processes
   ;
 
   public ProcStat() throws IOException, SQLException {
-    List<Long> _userCPUTimes=new ArrayList<>();
-    List<Long> _niceCPUTimes=new ArrayList<>();
-    List<Long> _sysCPUTimes=new ArrayList<>();
-    long _pagesIn=0;
-    long _pagesOut=0;
-    long _swapsIn=0;
-    long _swapsOut=0;
-    long _contextSwitches=0;
-    long _processes=0;
+    List<Long> _userCPUTimes = new ArrayList<>();
+    List<Long> _niceCPUTimes = new ArrayList<>();
+    List<Long> _sysCPUTimes = new ArrayList<>();
+    long _pagesIn = 0;
+    long _pagesOut = 0;
+    long _swapsIn = 0;
+    long _swapsOut = 0;
+    long _contextSwitches = 0;
+    long _processes = 0;
 
     // Only the outer-most server tracks these stats
     if (AOServDaemon.getThisServer().getFailoverServer() == null) {
       // Parse for the values
       try (BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream("/proc/stat")))) {
         String line;
-        while ((line=in.readLine()) != null) {
-          String[] words=Strings.split(line);
-          String label=words[0];
+        while ((line = in.readLine()) != null) {
+          String[] words = Strings.split(line);
+          String label = words[0];
           if (
-            label.length()>3
-            && label.startsWith("cpu")
+              label.length() > 3
+                  && label.startsWith("cpu")
           ) {
-            _userCPUTimes.add(Long.valueOf(words[1])*10);
-            _niceCPUTimes.add(Long.valueOf(words[2])*10);
-            _sysCPUTimes.add(Long.valueOf(words[3])*10);
+            _userCPUTimes.add(Long.valueOf(words[1]) * 10);
+            _niceCPUTimes.add(Long.valueOf(words[2]) * 10);
+            _sysCPUTimes.add(Long.valueOf(words[3]) * 10);
           } else if (label.equals("page")) {
-            _pagesIn=Long.parseLong(words[1]);
-            _pagesOut=Long.parseLong(words[2]);
+            _pagesIn = Long.parseLong(words[1]);
+            _pagesOut = Long.parseLong(words[2]);
           } else if (label.equals("swap")) {
-            _swapsIn=Long.parseLong(words[1]);
-            _swapsOut=Long.parseLong(words[2]);
+            _swapsIn = Long.parseLong(words[1]);
+            _swapsOut = Long.parseLong(words[2]);
           } else if (label.equals("ctxt")) {
-            _contextSwitches=Long.parseLong(words[1]);
+            _contextSwitches = Long.parseLong(words[1]);
           } else if (label.equals("processes")) {
-            _processes=Long.parseLong(words[1]);
+            _processes = Long.parseLong(words[1]);
           }
         }
       }
     }
 
     // Copy into instance
-    this.userCPUTimes=getLongArray(_userCPUTimes);
-    this.niceCPUTimes=getLongArray(_niceCPUTimes);
-    this.sysCPUTimes=getLongArray(_sysCPUTimes);
-    this.pagesIn=_pagesIn;
-    this.pagesOut=_pagesOut;
-    this.swapsIn=_swapsIn;
-    this.swapsOut=_swapsOut;
-    this.contextSwitches=_contextSwitches;
-    this.processes=_processes;
+    this.userCPUTimes = getLongArray(_userCPUTimes);
+    this.niceCPUTimes = getLongArray(_niceCPUTimes);
+    this.sysCPUTimes = getLongArray(_sysCPUTimes);
+    this.pagesIn = _pagesIn;
+    this.pagesOut = _pagesOut;
+    this.swapsIn = _swapsIn;
+    this.swapsOut = _swapsOut;
+    this.contextSwitches = _contextSwitches;
+    this.processes = _processes;
   }
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
@@ -152,16 +152,16 @@ public final class ProcStat {
     sb.append(getClass().getName());
     for (int c = 0; c < userCPUTimes.length; c++) {
       sb
-        .append(c == 0?'?':'&')
-        .append("cpu")
-        .append(c)
-        .append("=(user=")
-        .append(userCPUTimes[c])
-        .append(",nice=")
-        .append(niceCPUTimes[c])
-        .append(",sys=")
-        .append(sysCPUTimes[c])
-        .append(')')
+          .append(c == 0 ? '?' : '&')
+          .append("cpu")
+          .append(c)
+          .append("=(user=")
+          .append(userCPUTimes[c])
+          .append(",nice=")
+          .append(niceCPUTimes[c])
+          .append(",sys=")
+          .append(sysCPUTimes[c])
+          .append(')')
       ;
     }
     sb.append("&pages=(in=").append(pagesIn).append(",out=").append(pagesOut).append(')');

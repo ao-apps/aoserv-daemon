@@ -81,7 +81,7 @@ public final class HardLinkVarBackup {
 
   @SuppressWarnings("UnusedAssignment")
   public static void main(String[] args) {
-    final boolean debug = args.length>0 && args[0].equalsIgnoreCase("debug");
+    final boolean debug = args.length > 0 && args[0].equalsIgnoreCase("debug");
     @SuppressWarnings("UseOfSystemOutOrSystemErr")
     final PrintStream out = System.out;
     @SuppressWarnings("UseOfSystemOutOrSystemErr")
@@ -100,7 +100,7 @@ public final class HardLinkVarBackup {
     // Find all the candidate directories under /var/backup
     File varBackup = new File("/var/backup");
     String[] serversList = varBackup.list();
-    if (serversList != null && serversList.length>0) {
+    if (serversList != null && serversList.length > 0) {
       Arrays.sort(serversList);
       List<FilesystemIterator> iteratorList = new ArrayList<>();
       List<String> iteratorStartsList = new ArrayList<>();
@@ -111,23 +111,24 @@ public final class HardLinkVarBackup {
           Arrays.sort(datesList);
           for (String datesFilename : datesList) {
             if (
-              datesFilename.length() == 10
-              && datesFilename.charAt(0) >= '0' && datesFilename.charAt(0) <= '9'
-              && datesFilename.charAt(1) >= '0' && datesFilename.charAt(1) <= '9'
-              && datesFilename.charAt(2) >= '0' && datesFilename.charAt(2) <= '9'
-              && datesFilename.charAt(3) >= '0' && datesFilename.charAt(3) <= '9'
-              && datesFilename.charAt(4) == '-'
-              && datesFilename.charAt(5) >= '0' && datesFilename.charAt(5) <= '9'
-              && datesFilename.charAt(6) >= '0' && datesFilename.charAt(6) <= '9'
-              && datesFilename.charAt(7) == '-'
-              && datesFilename.charAt(8) >= '0' && datesFilename.charAt(8) <= '9'
-              && datesFilename.charAt(9) >= '0' && datesFilename.charAt(9) <= '9'
+                datesFilename.length() == 10
+                    && datesFilename.charAt(0) >= '0' && datesFilename.charAt(0) <= '9'
+                    && datesFilename.charAt(1) >= '0' && datesFilename.charAt(1) <= '9'
+                    && datesFilename.charAt(2) >= '0' && datesFilename.charAt(2) <= '9'
+                    && datesFilename.charAt(3) >= '0' && datesFilename.charAt(3) <= '9'
+                    && datesFilename.charAt(4) == '-'
+                    && datesFilename.charAt(5) >= '0' && datesFilename.charAt(5) <= '9'
+                    && datesFilename.charAt(6) >= '0' && datesFilename.charAt(6) <= '9'
+                    && datesFilename.charAt(7) == '-'
+                    && datesFilename.charAt(8) >= '0' && datesFilename.charAt(8) <= '9'
+                    && datesFilename.charAt(9) >= '0' && datesFilename.charAt(9) <= '9'
             ) {
-              String path = "/var/backup/"+serverDir+"/"+datesFilename;
+              String path = "/var/backup/" + serverDir + "/" + datesFilename;
               PosixFile uf = new PosixFile(path);
               try {
                 if (uf.getStat().isDirectory()) {
-                  out.print("Scanning "); out.println(path);
+                  out.print("Scanning ");
+                  out.println(path);
                   Map<String, FilesystemIteratorRule> rules = Collections.singletonMap(path, FilesystemIteratorRule.OK);
                   Map<String, FilesystemIteratorRule> prefixRules = Collections.emptyMap();
                   iteratorStartsList.add(path);
@@ -150,17 +151,17 @@ public final class HardLinkVarBackup {
       final boolean[] isLowestRelativePaths = new boolean[numIterators];
 
       // Save RAM
-      serversList=null;
-      varBackup=null;
-      iteratorList=null;
+      serversList = null;
+      varBackup = null;
+      iteratorList = null;
 
       // Start all on first path
-      for (int c=0;c<numIterators;c++) {
+      for (int c = 0; c < numIterators; c++) {
         try {
           File file = iterators[c].getNextFile();
           PosixFile uf = file == null ? null : new PosixFile(file);
-          unixFiles[c]=uf;
-          relativePaths[c]=uf == null ? null : uf.getPath().substring(iteratorStarts[c].length());
+          unixFiles[c] = uf;
+          relativePaths[c] = uf == null ? null : uf.getPath().substring(iteratorStarts[c].length());
         } catch (IOException ioExc) {
           ioExc.printStackTrace(err);
         }
@@ -178,11 +179,11 @@ public final class HardLinkVarBackup {
       while (true) {
         // Find the lowest relative filename (lexically), skipping the /var/backup/hostname/####-##-## part
         String lowestRelativePath = null;
-        for (int c=0;c<numIterators;c++) {
+        for (int c = 0; c < numIterators; c++) {
           if (unixFiles[c] != null) {
             String relativePath = relativePaths[c];
-            if (lowestRelativePath == null || relativePath.compareTo(lowestRelativePath)<0) {
-              lowestRelativePath=relativePath;
+            if (lowestRelativePath == null || relativePath.compareTo(lowestRelativePath) < 0) {
+              lowestRelativePath = relativePath;
             }
           }
         }
@@ -197,10 +198,10 @@ public final class HardLinkVarBackup {
         // Clears not equals for this unique path
         contentNotEquals.clear();
 
-        for (int c=0;c<numIterators;c++) {
+        for (int c = 0; c < numIterators; c++) {
           PosixFile uf = unixFiles[c];
           if (uf != null) {
-            if (isLowestRelativePaths[c]=(relativePaths[c].equals(lowestRelativePath))) {
+            if (isLowestRelativePaths[c] = (relativePaths[c].equals(lowestRelativePath))) {
               // Keep stats
               totalObjects++;
               try {
@@ -217,7 +218,7 @@ public final class HardLinkVarBackup {
                   long inode = ufStat.getInode();
                   long size = ufStat.getSize();
                   if (size == -1) {
-                    throw new IOException("Size unknown: "+uf);
+                    throw new IOException("Size unknown: " + uf);
                   }
                   totalNumberFileBytes += size;
                   long modifyTime = ufStat.getModifyTime();
@@ -225,45 +226,45 @@ public final class HardLinkVarBackup {
                   int gid = ufStat.getGid();
 
                   // Look for regular file up the list to link to
-                  for (int d=(c-1);d >= 0;d--) {
+                  for (int d = (c - 1); d >= 0; d--) {
                     PosixFile otherUF = unixFiles[d];
                     if (
-                      otherUF != null
-                      // Have the same exact path relative to their /var/backup/hostname/####-##-## directories
-                      && isLowestRelativePaths[d] //relativePaths[d].equals(lowestRelativePath)
+                        otherUF != null
+                            // Have the same exact path relative to their /var/backup/hostname/####-##-## directories
+                            && isLowestRelativePaths[d] //relativePaths[d].equals(lowestRelativePath)
                     ) {
                       Stat otherUFStat = otherUF.getStat();
                       if (
-                        // Are on the same underlying partition
-                        device == otherUFStat.getDevice()
-                        // Are both regular files
-                        && otherUFStat.isRegularFile()
-                        // Are not already linked together
-                        && inode != otherUFStat.getInode()
+                          // Are on the same underlying partition
+                          device == otherUFStat.getDevice()
+                              // Are both regular files
+                              && otherUFStat.isRegularFile()
+                              // Are not already linked together
+                              && inode != otherUFStat.getInode()
                       ) {
                         // Have matching length
-                        long otherSize=otherUFStat.getSize();
+                        long otherSize = otherUFStat.getSize();
                         if (otherSize == -1) {
-                          throw new IOException("Size unknown: "+otherUF);
+                          throw new IOException("Size unknown: " + otherUF);
                         }
                         if (
-                          size == otherSize
-                          // Have matching modified time
-                          && modifyTime == otherUFStat.getModifyTime()
-                          // Have matching permissions
-                          && mode == otherUFStat.getMode()
-                          // Have matching ownership
-                          && uid == otherUFStat.getUid()
-                          && gid == otherUFStat.getGid()
+                            size == otherSize
+                                // Have matching modified time
+                                && modifyTime == otherUFStat.getModifyTime()
+                                // Have matching permissions
+                                && mode == otherUFStat.getMode()
+                                // Have matching ownership
+                                && uid == otherUFStat.getUid()
+                                && gid == otherUFStat.getGid()
                         ) {
                           LinkKey linkKey = new LinkKey(device, inode, otherUFStat.getDevice(), otherUFStat.getInode());
                           // Has already been linked for this path
-                          String destination=links.get(linkKey);
+                          String destination = links.get(linkKey);
                           if (destination == null) {
                             if (!contentNotEquals.contains(linkKey)) {
                               // Have exactly matching file contents
                               if (uf.contentEquals(otherUF)) {
-                                destination=otherUF.getPath();
+                                destination = otherUF.getPath();
                               } else {
                                 contentNotEquals.add(linkKey);
                               }
@@ -272,23 +273,23 @@ public final class HardLinkVarBackup {
                           if (destination != null) {
                             if (debug) {
                               out.println("DEBUG: Would hard link:");
-                              out.println("    From: "+uf.getPath());
-                              out.println("    To..: "+destination);
+                              out.println("    From: " + uf.getPath());
+                              out.println("    To..: " + destination);
                             } else {
                               // Do hard link
                               // Make link in a temp path and then move into place atomically using renameTo
                               // Find any available filename
                               PosixFile tempUF = null;
-                              for (int e=0;e<Integer.MAX_VALUE;e++) {
-                                String tempPath=uf.getPath()+'.'+e;
+                              for (int e = 0; e < Integer.MAX_VALUE; e++) {
+                                String tempPath = uf.getPath() + '.' + e;
                                 PosixFile temp = new PosixFile(tempPath);
                                 if (!temp.getStat().exists()) {
-                                  tempUF=temp;
+                                  tempUF = temp;
                                   break;
                                 }
                               }
                               if (tempUF == null) {
-                                throw new IOException("Unable to make temp file: "+uf.getPath());
+                                throw new IOException("Unable to make temp file: " + uf.getPath());
                               }
                               tempUF.link(destination);
                               tempUF.renameTo(uf);
@@ -296,7 +297,7 @@ public final class HardLinkVarBackup {
                             if (!links.containsKey(linkKey)) {
                               links.put(linkKey, destination);
                               newHardLinkCount++;
-                              bytesSaved+=size;
+                              bytesSaved += size;
                             }
                             // Break loop when hardlink done
                             break;
@@ -308,29 +309,29 @@ public final class HardLinkVarBackup {
                 }
               } catch (IOException ioExc) {
                 ioExc.printStackTrace(err);
-                unixFiles[c]=null;
-                relativePaths[c]=null;
-                isLowestRelativePaths[c]=false;
+                unixFiles[c] = null;
+                relativePaths[c] = null;
+                isLowestRelativePaths[c] = false;
               }
             }
           }
         }
 
         // Iterate each to next file
-        for (int c=0;c<numIterators;c++) {
+        for (int c = 0; c < numIterators; c++) {
           PosixFile uf = unixFiles[c];
           if (uf != null) {
             if (isLowestRelativePaths[c]) {
-            //if (relativePaths[c].equals(lowestRelativePath)) {
+              //if (relativePaths[c].equals(lowestRelativePath)) {
               try {
                 File file = iterators[c].getNextFile();
                 PosixFile newUf = file == null ? null : new PosixFile(file);
-                unixFiles[c]=newUf;
-                relativePaths[c]=newUf == null ? null : newUf.getPath().substring(iteratorStarts[c].length());
+                unixFiles[c] = newUf;
+                relativePaths[c] = newUf == null ? null : newUf.getPath().substring(iteratorStarts[c].length());
               } catch (IOException ioExc) {
                 ioExc.printStackTrace(err);
-                unixFiles[c]=null;
-                relativePaths[c]=null;
+                unixFiles[c] = null;
+                relativePaths[c] = null;
               }
             }
           }
@@ -338,10 +339,10 @@ public final class HardLinkVarBackup {
 
         totalUniquePaths++;
 
-        long timeSince = System.currentTimeMillis()-lastDisplayTime;
-        if (timeSince<0 || timeSince >= DISPLAY_INTERVAL) {
+        long timeSince = System.currentTimeMillis() - lastDisplayTime;
+        if (timeSince < 0 || timeSince >= DISPLAY_INTERVAL) {
           printStats(out, lowestRelativePath, totalObjects, totalUniquePaths, totalDirectories, totalFiles, totalSymlinks, newHardLinkCount, totalNumberFileBytes, bytesSaved);
-          lastDisplayTime=System.currentTimeMillis();
+          lastDisplayTime = System.currentTimeMillis();
         }
       }
     }
@@ -358,11 +359,11 @@ public final class HardLinkVarBackup {
     private final int hashCode;
 
     private LinkKey(long fromDevice, long fromInode, long toDevice, long toInode) {
-      this.fromDevice=fromDevice;
-      this.fromInode=fromInode;
-      this.toDevice=toDevice;
-      this.toInode=toInode;
-      this.hashCode = (int)(fromDevice + fromInode*7 + toDevice*17 + toInode*37);
+      this.fromDevice = fromDevice;
+      this.fromInode = fromInode;
+      this.toDevice = toDevice;
+      this.toInode = toInode;
+      this.hashCode = (int) (fromDevice + fromInode * 7 + toDevice * 17 + toInode * 37);
     }
 
     @Override
@@ -375,40 +376,49 @@ public final class HardLinkVarBackup {
       if (!(obj instanceof LinkKey)) {
         return false;
       }
-      LinkKey other=(LinkKey)obj;
+      LinkKey other = (LinkKey) obj;
       return
-        fromDevice == other.fromDevice
-        && fromInode == other.fromInode
-        && toDevice == other.toDevice
-        && toInode == other.toInode
+          fromDevice == other.fromDevice
+              && fromInode == other.fromInode
+              && toDevice == other.toDevice
+              && toInode == other.toInode
       ;
     }
   }
 
   private static void printStats(
-    PrintStream out,
-    String lastPath,
-    long totalObjects,
-    long totalUniquePaths,
-    long totalDirectories,
-    long totalFiles,
-    long totalSymlinks,
-    long newHardLinkCount,
-    long totalNumberFileBytes,
-    long bytesSaved
+      PrintStream out,
+      String lastPath,
+      long totalObjects,
+      long totalUniquePaths,
+      long totalDirectories,
+      long totalFiles,
+      long totalSymlinks,
+      long newHardLinkCount,
+      long totalNumberFileBytes,
+      long bytesSaved
   ) {
     out.println();
     if (lastPath != null) {
-      out.print("Current path............: "); out.println(lastPath);
+      out.print("Current path............: ");
+      out.println(lastPath);
     }
-    out.print("Total Unique Paths......: "); out.println(totalUniquePaths);
-    out.print("Total Objects...........: "); out.println(totalObjects);
-    out.print("Total Directories.......: "); out.println(totalDirectories);
-    out.print("Total Regular Files.....: "); out.println(totalFiles);
-    out.print("Total Symbolic Links....: "); out.println(totalSymlinks);
-    out.print("Total Regular File Bytes: "); out.println(Strings.getApproximateSize(totalNumberFileBytes));
-    out.print("New Hard Link Count.....: "); out.println(newHardLinkCount);
-    out.print("Bytes Saved by New Links: "); out.println(Strings.getApproximateSize(bytesSaved));
+    out.print("Total Unique Paths......: ");
+    out.println(totalUniquePaths);
+    out.print("Total Objects...........: ");
+    out.println(totalObjects);
+    out.print("Total Directories.......: ");
+    out.println(totalDirectories);
+    out.print("Total Regular Files.....: ");
+    out.println(totalFiles);
+    out.print("Total Symbolic Links....: ");
+    out.println(totalSymlinks);
+    out.print("Total Regular File Bytes: ");
+    out.println(Strings.getApproximateSize(totalNumberFileBytes));
+    out.print("New Hard Link Count.....: ");
+    out.println(newHardLinkCount);
+    out.print("Bytes Saved by New Links: ");
+    out.println(Strings.getApproximateSize(bytesSaved));
     out.println();
   }
 }

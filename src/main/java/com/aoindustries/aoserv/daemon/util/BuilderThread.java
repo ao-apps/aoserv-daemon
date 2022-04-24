@@ -42,12 +42,12 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
   private static final Logger logger = Logger.getLogger(BuilderThread.class.getName());
 
   public static final long
-    DEFAULT_PROCESS_TIMER_MAXIMUM_TIME = 5L * 60 * 1000,
-    DEFAULT_PROCESS_TIMER_REMINDER_INTERVAL = 15L * 60 * 1000
+      DEFAULT_PROCESS_TIMER_MAXIMUM_TIME = 5L * 60 * 1000,
+      DEFAULT_PROCESS_TIMER_REMINDER_INTERVAL = 15L * 60 * 1000
   ;
   public static final int
-    DEFAULT_MINIMUM_DELAY = 5 * 1000,
-    DEFAULT_MAXIMUM_DELAY = 35 * 1000
+      DEFAULT_MINIMUM_DELAY = 5 * 1000,
+      DEFAULT_MAXIMUM_DELAY = 35 * 1000
   ;
 
   private volatile Thread rebuildThread;
@@ -88,8 +88,8 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
                 updateCopy = lastUpdated;
               }
               while (
-                (lastBuilt == -1 || lastBuilt < updateCopy)
-                && !Thread.currentThread().isInterrupted()
+                  (lastBuilt == -1 || lastBuilt < updateCopy)
+                      && !Thread.currentThread().isInterrupted()
               ) {
                 if (waitForBuildCount == 0) {
                   try {
@@ -103,18 +103,18 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
                 }
                 try {
                   try (
-                    ProcessTimer timer=new ProcessTimer(
-                      logger,
-                      BuilderThread.this.getClass().getName(),
-                      "delayAndRebuild",
-                      getProcessTimerSubject(),
-                      getProcessTimerDescription(),
-                      getProcessTimerMaximumTime(),
-                      getProcessTimerReminderInterval()
-                    )
-                  ) {
+                    ProcessTimer timer = new ProcessTimer(
+                          logger,
+                          BuilderThread.this.getClass().getName(),
+                          "delayAndRebuild",
+                          getProcessTimerSubject(),
+                          getProcessTimerDescription(),
+                          getProcessTimerMaximumTime(),
+                          getProcessTimerReminderInterval()
+                      )
+                      ) {
                     AOServDaemon.executorService.submit(timer);
-                    long buildStart=System.currentTimeMillis();
+                    long buildStart = System.currentTimeMillis();
                     while (!doRebuild() && !Thread.currentThread().isInterrupted()) {
                       try {
                         synchronized (sleepLock) {
@@ -128,7 +128,7 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
                     }
                     lastBuilt = buildStart;
                     synchronized (BuilderThread.this) {
-                      lastRebuild=buildStart;
+                      lastRebuild = buildStart;
                       BuilderThread.this.notifyAll();
                     }
                   }
@@ -168,7 +168,8 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
    */
   protected abstract boolean doRebuild();
 
-  private int waitForBuildCount=0;
+  private int waitForBuildCount = 0;
+
   public void waitForBuild() {
     synchronized (this) {
       waitForBuildCount++;
@@ -196,7 +197,7 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
   }
 
   public String getProcessTimerSubject() {
-    return getProcessTimerDescription()+" is taking too long";
+    return getProcessTimerDescription() + " is taking too long";
   }
 
   public abstract String getProcessTimerDescription();
@@ -210,16 +211,16 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
   }
 
   public final int getRandomDelay() {
-    int min=getMinimumDelay();
-    int max=getMaximumDelay();
-    if (min>max) {
+    int min = getMinimumDelay();
+    int max = getMaximumDelay();
+    if (min > max) {
       throw new RuntimeException("getMinimumDelay() is greater than getMaximumDelay()");
     }
-    int deviation=max-min;
+    int deviation = max - min;
     if (deviation == 0) {
       return min;
     }
-    return min+AOServDaemon.getFastRandom().nextInt(deviation);
+    return min + AOServDaemon.getFastRandom().nextInt(deviation);
   }
 
   /**

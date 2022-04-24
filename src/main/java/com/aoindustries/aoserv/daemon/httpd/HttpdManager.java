@@ -65,6 +65,7 @@ public final class HttpdManager extends BuilderThread {
   }
 
   private static final Object rebuildLock = new Object();
+
   @Override
   protected boolean doRebuild() {
     try {
@@ -103,9 +104,9 @@ public final class HttpdManager extends BuilderThread {
           if (AOServDaemonConfiguration.isPackageManagerUninstallEnabled()) {
             for (PackageManager.PackageName name : PackageManager.PackageName.values()) {
               if (
-                name.getRpmName().startsWith(PackageManager.APACHE_TOMCAT_PREFIX)
-                // TODO: Remove any PHP packages that are installed and no longer needed
-                && !usedPackages.contains(name)
+                  name.getRpmName().startsWith(PackageManager.APACHE_TOMCAT_PREFIX)
+                      // TODO: Remove any PHP packages that are installed and no longer needed
+                      && !usedPackages.contains(name)
               ) {
                 PackageManager.removePackage(name);
               }
@@ -132,19 +133,19 @@ public final class HttpdManager extends BuilderThread {
 
     synchronized (System.out) {
       if (
-        // Nothing is done for these operating systems
-        osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
-        && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-        && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-        // Check config after OS check so config entry not needed
-        && AOServDaemonConfiguration.isManagerEnabled(HttpdManager.class)
-        && httpdManager == null
+          // Nothing is done for these operating systems
+          osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+              && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+              && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+              // Check config after OS check so config entry not needed
+              && AOServDaemonConfiguration.isManagerEnabled(HttpdManager.class)
+              && httpdManager == null
       ) {
         System.out.print("Starting HttpdManager: ");
         // Must be a supported operating system
         if (
-          osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-          || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+            osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                || osvId == OperatingSystemVersion.CENTOS_7_X86_64
         ) {
           AOServConnector connector = AOServDaemon.getConnector();
           httpdManager = new HttpdManager();

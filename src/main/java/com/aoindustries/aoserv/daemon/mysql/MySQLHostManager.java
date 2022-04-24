@@ -58,6 +58,7 @@ public final class MySQLHostManager extends BuilderThread {
   }
 
   private static final Object rebuildLock = new Object();
+
   @Override
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
   protected boolean doRebuild() {
@@ -66,8 +67,8 @@ public final class MySQLHostManager extends BuilderThread {
       OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
       int osvId = osv.getPkey();
       if (
-        osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-        && osvId != OperatingSystemVersion.CENTOS_7_X86_64
+          osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+              && osvId != OperatingSystemVersion.CENTOS_7_X86_64
       ) {
         throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
       }
@@ -75,13 +76,13 @@ public final class MySQLHostManager extends BuilderThread {
       AOServConnector connector = AOServDaemon.getConnector();
       synchronized (rebuildLock) {
         for (Server mysqlServer : connector.getMysql().getServer()) {
-          String version=mysqlServer.getVersion().getVersion();
+          String version = mysqlServer.getVersion().getVersion();
           // hosts no longer exists in MySQL 5.6.7+
           if (
-            version.startsWith(Server.VERSION_4_0_PREFIX)
-            || version.startsWith(Server.VERSION_4_1_PREFIX)
-            || version.startsWith(Server.VERSION_5_0_PREFIX)
-            || version.startsWith(Server.VERSION_5_1_PREFIX)
+              version.startsWith(Server.VERSION_4_0_PREFIX)
+                  || version.startsWith(Server.VERSION_4_1_PREFIX)
+                  || version.startsWith(Server.VERSION_5_0_PREFIX)
+                  || version.startsWith(Server.VERSION_5_1_PREFIX)
           ) {
             boolean modified = false;
             // Get the connection to work through
@@ -93,7 +94,7 @@ public final class MySQLHostManager extends BuilderThread {
                 try (
                   Statement stmt = conn.createStatement();
                   ResultSet results = stmt.executeQuery(currentSQL = "SELECT host FROM host")
-                ) {
+                    ) {
                   while (results.next()) {
                     String host = results.getString(1);
                     if (!existing.add(host)) {
@@ -106,7 +107,7 @@ public final class MySQLHostManager extends BuilderThread {
                 }
 
                 // Get the list of all hosts that should exist
-                Set<String> hosts=new HashSet<>();
+                Set<String> hosts = new HashSet<>();
                 // Always include loopback, just in case of data errors
                 hosts.add(IpAddress.LOOPBACK_IP);
                 hosts.add("localhost");
@@ -135,7 +136,7 @@ public final class MySQLHostManager extends BuilderThread {
                 } else if (version.startsWith(Server.VERSION_5_1_PREFIX)) {
                   insertSQL = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
                 } else {
-                  throw new SQLException("Unsupported MySQL version: "+version);
+                  throw new SQLException("Unsupported MySQL version: " + version);
                 }
 
                 currentSQL = null;
@@ -189,6 +190,7 @@ public final class MySQLHostManager extends BuilderThread {
   }
 
   private static MySQLHostManager mysqlHostManager;
+
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() throws IOException, SQLException {
     com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
@@ -197,19 +199,19 @@ public final class MySQLHostManager extends BuilderThread {
 
     synchronized (System.out) {
       if (
-        // Nothing is done for these operating systems
-        osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
-        && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-        && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-        // Check config after OS check so config entry not needed
-        && AOServDaemonConfiguration.isManagerEnabled(MySQLHostManager.class)
-        && mysqlHostManager == null
+          // Nothing is done for these operating systems
+          osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+              && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+              && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+              // Check config after OS check so config entry not needed
+              && AOServDaemonConfiguration.isManagerEnabled(MySQLHostManager.class)
+              && mysqlHostManager == null
       ) {
         System.out.print("Starting MySQLHostManager: ");
         // Must be a supported operating system
         if (
-          osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-          || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+            osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                || osvId == OperatingSystemVersion.CENTOS_7_X86_64
         ) {
           AOServConnector conn = AOServDaemon.getConnector();
           mysqlHostManager = new MySQLHostManager();

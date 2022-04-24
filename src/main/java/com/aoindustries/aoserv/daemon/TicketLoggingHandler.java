@@ -36,9 +36,9 @@ public class TicketLoggingHandler extends com.aoindustries.aoserv.client.ticket.
    */
   public TicketLoggingHandler() {
     super(
-      AOServDaemonConfiguration.getServerHostname(),
-      AOServDaemon.getConnector(),
-      "aoserv.aoserv_daemon"
+        AOServDaemonConfiguration.getServerHostname(),
+        AOServDaemon.getConnector(),
+        "aoserv.aoserv_daemon"
     );
   }
 }

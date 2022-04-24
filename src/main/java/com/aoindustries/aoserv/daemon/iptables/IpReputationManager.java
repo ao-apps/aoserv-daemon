@@ -99,19 +99,19 @@ public final class IpReputationManager extends BuilderThread {
 
     synchronized (System.out) {
       if (
-        // Nothing is done for these operating systems
-        osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-        && osvId != OperatingSystemVersion.CENTOS_7_X86_64
-        // Check config after OS check so config entry not needed
-        && AOServDaemonConfiguration.isManagerEnabled(IpReputationManager.class)
-        && ipReputationManager == null
+          // Nothing is done for these operating systems
+          osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+              && osvId != OperatingSystemVersion.CENTOS_7_X86_64
+              // Check config after OS check so config entry not needed
+              && AOServDaemonConfiguration.isManagerEnabled(IpReputationManager.class)
+              && ipReputationManager == null
       ) {
         System.out.print("Starting IpReputationManager: ");
         // Must be a supported operating system
         if (
-          // Only runs on Xen dom0 (firewalling done outside virtual servers)
-          osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
-          || osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+            // Only runs on Xen dom0 (firewalling done outside virtual servers)
+            osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
+                || osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
         ) {
           AOServConnector conn = AOServDaemon.getConnector();
           Administrator administrator = conn.getCurrentAdministrator();
@@ -147,19 +147,19 @@ public final class IpReputationManager extends BuilderThread {
     // Sort by effective reputation first
     int rep1 = host1.getReputation();
     int rep2 = host2.getReputation();
-    if (rep1<rep2) {
+    if (rep1 < rep2) {
       return -1;
     }
-    if (rep1>rep2) {
+    if (rep1 > rep2) {
       return 1;
     }
     // Sort by IP next
     int ip1 = host1.getHost();
     int ip2 = host2.getHost();
-    if (ip1<ip2) {
+    if (ip1 < ip2) {
       return -1;
     }
-    if (ip1>ip2) {
+    if (ip1 > ip2) {
       return 1;
     }
     return 0;
@@ -172,19 +172,19 @@ public final class IpReputationManager extends BuilderThread {
     // Sort by effective reputation first
     int count1 = network1.getCounter();
     int count2 = network2.getCounter();
-    if (count1>count2) {
+    if (count1 > count2) {
       return -1;
     }
-    if (count1<count2) {
+    if (count1 < count2) {
       return 1;
     }
     // Sort by IP next
     int ipNet1 = network1.getNetwork();
     int ipNet2 = network2.getNetwork();
-    if (ipNet1<ipNet2) {
+    if (ipNet1 < ipNet2) {
       return -1;
     }
-    if (ipNet1>ipNet2) {
+    if (ipNet1 > ipNet2) {
       return 1;
     }
     return 0;
@@ -197,19 +197,19 @@ public final class IpReputationManager extends BuilderThread {
     // Sort by effective reputation first
     int rep1 = host1.getReputation();
     int rep2 = host2.getReputation();
-    if (rep1>rep2) {
+    if (rep1 > rep2) {
       return -1;
     }
-    if (rep1<rep2) {
+    if (rep1 < rep2) {
       return 1;
     }
     // Sort by IP next
     int ip1 = host1.getHost();
     int ip2 = host2.getHost();
-    if (ip1<ip2) {
+    if (ip1 < ip2) {
       return -1;
     }
-    if (ip1>ip2) {
+    if (ip1 > ip2) {
       return 1;
     }
     return 0;
@@ -221,24 +221,24 @@ public final class IpReputationManager extends BuilderThread {
    * @see  #synchronizeIpset
    */
   private static void synchronizeHostIpset(
-    java.util.Set<Host> hosts,
-    Set.ConfidenceType confidence,
-    Set.ReputationType reputationType,
-    String identifier,
-    PosixFile setDir
+      java.util.Set<Host> hosts,
+      Set.ConfidenceType confidence,
+      Set.ReputationType reputationType,
+      String identifier,
+      PosixFile setDir
   ) throws IOException {
     java.util.Set<Integer> entries = AoCollections.newLinkedHashSet(Math.min(Ipset.MAX_IPSET_SIZE + 1, hosts.size()));
     for (Host host : hosts) {
       entries.add(host.getHost());
-      if (entries.size()>Ipset.MAX_IPSET_SIZE) {
+      if (entries.size() > Ipset.MAX_IPSET_SIZE) {
         break;
       }
     }
     Ipset.synchronize(
-      entries,
-      Ipset.HOST_NETWORK_PREFIX,
-      Ipset.NamespacePrefix.R.name() + reputationType.toChar() + confidence.toChar() + '_' + identifier,
-      setDir
+        entries,
+        Ipset.HOST_NETWORK_PREFIX,
+        Ipset.NamespacePrefix.R.name() + reputationType.toChar() + confidence.toChar() + '_' + identifier,
+        setDir
     );
   }
 
@@ -248,27 +248,28 @@ public final class IpReputationManager extends BuilderThread {
    * @see  #synchronizeIpset
    */
   private static void synchronizeNetworkIpset(
-    java.util.Set<Network> networks,
-    short networkPrefix,
-    String identifier,
-    PosixFile setDir
+      java.util.Set<Network> networks,
+      short networkPrefix,
+      String identifier,
+      PosixFile setDir
   ) throws IOException {
-    java.util.Set<Integer> entries = AoCollections.newLinkedHashSet(Math.min(Ipset.MAX_IPSET_SIZE+1, networks.size()));
+    java.util.Set<Integer> entries = AoCollections.newLinkedHashSet(Math.min(Ipset.MAX_IPSET_SIZE + 1, networks.size()));
     for (Network network : networks) {
       entries.add(network.getNetwork());
-      if (entries.size()>Ipset.MAX_IPSET_SIZE) {
+      if (entries.size() > Ipset.MAX_IPSET_SIZE) {
         break;
       }
     }
     Ipset.synchronize(
-      entries,
-      networkPrefix,
-      Ipset.NamespacePrefix.R.name()+Set.ReputationType.GOOD.toChar()+"N_" + identifier,
-      setDir
+        entries,
+        networkPrefix,
+        Ipset.NamespacePrefix.R.name() + Set.ReputationType.GOOD.toChar() + "N_" + identifier,
+        setDir
     );
   }
 
   private static final Object rebuildLock = new Object();
+
   @Override
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
   protected boolean doRebuild() {
@@ -278,10 +279,10 @@ public final class IpReputationManager extends BuilderThread {
       OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
       int osvId = osv.getPkey();
       if (
-        // Only runs on Xen dom0 (firewalling done outside virtual servers)
-        osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
-        && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-        && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+          // Only runs on Xen dom0 (firewalling done outside virtual servers)
+          osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+              && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+              && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
       ) {
         throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
       }
@@ -326,7 +327,7 @@ public final class IpReputationManager extends BuilderThread {
             } else if (rep >= 0) {
               uncertainGoodHosts.add(host);
             } else {
-              throw new AssertionError("rep="+rep);
+              throw new AssertionError("rep=" + rep);
             }
           }
 
@@ -336,38 +337,38 @@ public final class IpReputationManager extends BuilderThread {
 
           // Synchronize both the in-kernel set as well as the on-disk representations
           synchronizeHostIpset(
-            definiteBadHosts,
-            Set.ConfidenceType.DEFINITE,
-            Set.ReputationType.BAD,
-            identifier,
-            setDir
+              definiteBadHosts,
+              Set.ConfidenceType.DEFINITE,
+              Set.ReputationType.BAD,
+              identifier,
+              setDir
           );
           synchronizeHostIpset(
-            uncertainBadHosts,
-            Set.ConfidenceType.UNCERTAIN,
-            Set.ReputationType.BAD,
-            identifier,
-            setDir
+              uncertainBadHosts,
+              Set.ConfidenceType.UNCERTAIN,
+              Set.ReputationType.BAD,
+              identifier,
+              setDir
           );
           synchronizeHostIpset(
-            uncertainGoodHosts,
-            Set.ConfidenceType.UNCERTAIN,
-            Set.ReputationType.GOOD,
-            identifier,
-            setDir
+              uncertainGoodHosts,
+              Set.ConfidenceType.UNCERTAIN,
+              Set.ReputationType.GOOD,
+              identifier,
+              setDir
           );
           synchronizeHostIpset(
-            definiteGoodHosts,
-            Set.ConfidenceType.DEFINITE,
-            Set.ReputationType.GOOD,
-            identifier,
-            setDir
+              definiteGoodHosts,
+              Set.ConfidenceType.DEFINITE,
+              Set.ReputationType.GOOD,
+              identifier,
+              setDir
           );
           synchronizeNetworkIpset(
-            goodNetworks,
-            set.getNetworkPrefix(),
-            identifier,
-            setDir
+              goodNetworks,
+              set.getNetworkPrefix(),
+              identifier,
+              setDir
           );
         }
 
@@ -378,7 +379,7 @@ public final class IpReputationManager extends BuilderThread {
         // Delete any extra directories, after backing-up
         String[] list = ipreputationDir.list();
         if (list != null) {
-          List<File> deleteFileList=new ArrayList<>();
+          List<File> deleteFileList = new ArrayList<>();
           for (String filename : list) {
             if (!setIdentifiers.contains(filename)) {
               PosixFile extraUf = new PosixFile(ipreputationDir, filename, true);

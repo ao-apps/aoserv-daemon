@@ -215,20 +215,20 @@ public final class AOServDaemon {
     while (!Thread.currentThread().isInterrupted() && !done) {
       try {
         // Configure the SSL
-        String trustStorePath=AOServClientConfiguration.getSslTruststorePath();
-        if (trustStorePath != null && trustStorePath.length()>0) {
+        String trustStorePath = AOServClientConfiguration.getSslTruststorePath();
+        if (trustStorePath != null && trustStorePath.length() > 0) {
           System.setProperty("javax.net.ssl.trustStore", trustStorePath);
         }
-        String trustStorePassword=AOServClientConfiguration.getSslTruststorePassword();
-        if (trustStorePassword != null && trustStorePassword.length()>0) {
+        String trustStorePassword = AOServClientConfiguration.getSslTruststorePassword();
+        if (trustStorePassword != null && trustStorePassword.length() > 0) {
           System.setProperty("javax.net.ssl.trustStorePassword", trustStorePassword);
         }
-        String keyStorePath=AOServDaemonConfiguration.getSSLKeystorePath();
-        if (keyStorePath != null && keyStorePath.length()>0) {
+        String keyStorePath = AOServDaemonConfiguration.getSSLKeystorePath();
+        if (keyStorePath != null && keyStorePath.length() > 0) {
           System.setProperty("javax.net.ssl.keyStore", keyStorePath);
         }
-        String keyStorePassword=AOServDaemonConfiguration.getSSLKeystorePassword();
-        if (keyStorePassword != null && keyStorePassword.length()>0) {
+        String keyStorePassword = AOServDaemonConfiguration.getSSLKeystorePassword();
+        if (keyStorePassword != null && keyStorePassword.length() > 0) {
           System.setProperty("javax.net.ssl.keyStorePassword", keyStorePassword);
         }
 
@@ -303,9 +303,9 @@ public final class AOServDaemon {
         Bind bind = getThisServer().getDaemonBind();
         if (bind != null) {
           AOServDaemonServer server = new AOServDaemonServer(
-            bind.getIpAddress().getInetAddress(),
-            bind.getPort().getPort(),
-            bind.getAppProtocol().getProtocol()
+              bind.getIpAddress().getInetAddress(),
+              bind.getPort().getPort(),
+              bind.getAppProtocol().getProtocol()
           );
           server.start();
         }
@@ -364,10 +364,10 @@ public final class AOServDaemon {
   // TODO: First parameter as PosixPath object?
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch", "UseOfSystemOutOrSystemErr", "overloads"})
   public static <V> V execCall(
-    ConsumerE<? super OutputStream, ? extends IOException> stdin,
-    FunctionE<? super InputStream, V, ? extends IOException> stdout,
-    File workingDirectory,
-    String... command
+      ConsumerE<? super OutputStream, ? extends IOException> stdin,
+      FunctionE<? super InputStream, V, ? extends IOException> stdout,
+      File workingDirectory,
+      String... command
   ) throws IOException {
     if (DEBUG) {
       System.out.print("DEBUG: AOServDaemon.execCall(): ");
@@ -434,7 +434,7 @@ public final class AOServDaemon {
           }
         }
       } catch (InterruptedException err) {
-        InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '"+getCommandString(command)+"'");
+        InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '" + getCommandString(command) + "'");
         ioErr.initCause(err);
         // Restore the interrupted status
         Thread.currentThread().interrupt();
@@ -464,11 +464,11 @@ public final class AOServDaemon {
    */
   @SuppressWarnings("overloads")
   public static <V> V execCall(
-    ConsumerE<? super OutputStream, ? extends IOException> stdin,
-    FunctionE<? super InputStream, V, ? extends IOException> stdout,
-    String... command
+      ConsumerE<? super OutputStream, ? extends IOException> stdin,
+      FunctionE<? super InputStream, V, ? extends IOException> stdout,
+      String... command
   ) throws IOException {
-    return execCall(stdin, stdout, (File)null, command);
+    return execCall(stdin, stdout, (File) null, command);
   }
 
   /**
@@ -485,19 +485,19 @@ public final class AOServDaemon {
    */
   @SuppressWarnings("overloads")
   public static void execRun(
-    ConsumerE<? super OutputStream, ? extends IOException> stdin,
-    ConsumerE<? super InputStream, ? extends IOException> stdout,
-    File workingDirectory,
-    String... command
+      ConsumerE<? super OutputStream, ? extends IOException> stdin,
+      ConsumerE<? super InputStream, ? extends IOException> stdout,
+      File workingDirectory,
+      String... command
   ) throws IOException {
     execCall(
-      stdin,
-      _stdout -> {
-        stdout.accept(_stdout);
-        return null;
-      },
-      workingDirectory,
-      command
+        stdin,
+        _stdout -> {
+          stdout.accept(_stdout);
+          return null;
+        },
+        workingDirectory,
+        command
     );
   }
 
@@ -515,11 +515,11 @@ public final class AOServDaemon {
    */
   @SuppressWarnings("overloads")
   public static void execRun(
-    ConsumerE<? super OutputStream, ? extends IOException> stdin,
-    ConsumerE<? super InputStream, ? extends IOException> stdout,
-    String... command
+      ConsumerE<? super OutputStream, ? extends IOException> stdin,
+      ConsumerE<? super InputStream, ? extends IOException> stdout,
+      String... command
   ) throws IOException {
-    execRun(stdin, stdout, (File)null, command);
+    execRun(stdin, stdout, (File) null, command);
   }
 
   /**
@@ -537,9 +537,9 @@ public final class AOServDaemon {
   // TODO: First parameter as PosixPath object?
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch", "UseOfSystemOutOrSystemErr", "overloads"})
   public static <V> V execCall(
-    FunctionE<? super InputStream, V, ? extends IOException> stdout,
-    File workingDirectory,
-    String... command
+      FunctionE<? super InputStream, V, ? extends IOException> stdout,
+      File workingDirectory,
+      String... command
   ) throws IOException {
     if (DEBUG) {
       System.out.print("DEBUG: AOServDaemon.execCall(): ");
@@ -596,7 +596,7 @@ public final class AOServDaemon {
           }
         }
       } catch (InterruptedException err) {
-        InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '"+getCommandString(command)+"'");
+        InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '" + getCommandString(command) + "'");
         ioErr.initCause(err);
         // Restore the interrupted status
         Thread.currentThread().interrupt();
@@ -626,10 +626,10 @@ public final class AOServDaemon {
    */
   @SuppressWarnings("overloads")
   public static <V> V execCall(
-    FunctionE<? super InputStream, V, ? extends IOException> stdout,
-    String... command
+      FunctionE<? super InputStream, V, ? extends IOException> stdout,
+      String... command
   ) throws IOException {
-    return execCall(stdout, (File)null, command);
+    return execCall(stdout, (File) null, command);
   }
 
   /**
@@ -646,17 +646,17 @@ public final class AOServDaemon {
    */
   @SuppressWarnings("overloads")
   public static void execRun(
-    ConsumerE<? super InputStream, ? extends IOException> stdout,
-    File workingDirectory,
-    String... command
+      ConsumerE<? super InputStream, ? extends IOException> stdout,
+      File workingDirectory,
+      String... command
   ) throws IOException {
     execCall(
-      _stdout -> {
-        stdout.accept(_stdout);
-        return null;
-      },
-      workingDirectory,
-      command
+        _stdout -> {
+          stdout.accept(_stdout);
+          return null;
+        },
+        workingDirectory,
+        command
     );
   }
 
@@ -674,10 +674,10 @@ public final class AOServDaemon {
    */
   @SuppressWarnings("overloads")
   public static void execRun(
-    ConsumerE<? super InputStream, ? extends IOException> stdout,
-    String... command
+      ConsumerE<? super InputStream, ? extends IOException> stdout,
+      String... command
   ) throws IOException {
-    execRun(stdout, (File)null, command);
+    execRun(stdout, (File) null, command);
   }
 
   /**
@@ -687,9 +687,9 @@ public final class AOServDaemon {
    */
   public static void exec(File workingDirectory, String... command) throws IOException {
     execRun(
-      stdout -> IoUtils.copy(stdout, NullOutputStream.getInstance()), // Do nothing with the output
-      workingDirectory,
-      command
+        stdout -> IoUtils.copy(stdout, NullOutputStream.getInstance()), // Do nothing with the output
+        workingDirectory,
+        command
     );
   }
 
@@ -699,7 +699,7 @@ public final class AOServDaemon {
    * @see  #execRun(com.aoapps.lang.function.ConsumerE, java.lang.String...)
    */
   public static void exec(String... command) throws IOException {
-    exec((File)null, command);
+    exec((File) null, command);
   }
 
   /**
@@ -707,13 +707,13 @@ public final class AOServDaemon {
    */
   public static String execAndCapture(File workingDirectory, String... command) throws IOException {
     return execCall(
-      stdout -> {
-        try (Reader in = new InputStreamReader(stdout)) {
-          return IoUtils.readFully(in);
-        }
-      },
-      workingDirectory,
-      command
+        stdout -> {
+          try (Reader in = new InputStreamReader(stdout)) {
+            return IoUtils.readFully(in);
+          }
+        },
+        workingDirectory,
+        command
     );
   }
 
@@ -721,7 +721,7 @@ public final class AOServDaemon {
    * Executes a command, opens then immediately closes the command's input, and captures the output.
    */
   public static String execAndCapture(String... command) throws IOException {
-    return execAndCapture((File)null, command);
+    return execAndCapture((File) null, command);
   }
 
   /**
@@ -735,7 +735,7 @@ public final class AOServDaemon {
    * Executes a command, opens then immediately closes the command's input, and captures the output.
    */
   public static byte[] execAndCaptureBytes(String... command) throws IOException {
-    return execAndCaptureBytes((File)null, command);
+    return execAndCaptureBytes((File) null, command);
   }
 
   /**
@@ -773,25 +773,25 @@ public final class AOServDaemon {
 
     String[] cmd;
     if (nice != 0) {
-      cmd = new String[] {
-        "/bin/nice",
-        "-n",
-        Integer.toString(nice),
-        "/bin/su",
-        "-s",
-        Shell.BASH.toString(),
-        "-c",
-        command,
-        username.toString()
+      cmd = new String[]{
+          "/bin/nice",
+          "-n",
+          Integer.toString(nice),
+          "/bin/su",
+          "-s",
+          Shell.BASH.toString(),
+          "-c",
+          command,
+          username.toString()
       };
     } else {
-      cmd = new String[] {
-        "/bin/su",
-        "-s",
-        Shell.BASH.toString(),
-        "-c",
-        command,
-        username.toString()
+      cmd = new String[]{
+          "/bin/su",
+          "-s",
+          Shell.BASH.toString(),
+          "-c",
+          command,
+          username.toString()
       };
     }
     exec(workingDirectory, cmd);

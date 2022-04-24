@@ -74,8 +74,8 @@ public final class VirtualServerManager {
     OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
     if (
-      osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
-      || osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+        osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
+            || osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
     ) {
       return "/usr/sbin/xm";
     } else if (osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64) {
@@ -101,24 +101,24 @@ public final class VirtualServerManager {
       OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
       int osvId = osv.getPkey();
       if (
-        osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
-        || osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+          osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
+              || osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
       ) {
         XmListNode rootNode = XmListNode.parseResult(
-          AOServDaemon.execAndCapture(
-            "/usr/sbin/xm",
-            "list",
-            "-l",
-            serverName
-          )
+            AOServDaemon.execAndCapture(
+                "/usr/sbin/xm",
+                "list",
+                "-l",
+                serverName
+            )
         );
         // Should have one child
         if (rootNode.size() != 1) {
-          throw new ParseException("Expected one child of the root node, got "+rootNode.size(), 0);
+          throw new ParseException("Expected one child of the root node, got " + rootNode.size(), 0);
         }
-        XmListNode domainNode = (XmListNode)rootNode.get(0);
+        XmListNode domainNode = (XmListNode) rootNode.get(0);
         if (!domainNode.getId().equals("domain")) {
-          throw new ParseException("Expected only child of the root node to have the id 'domain', got '"+domainNode.getId()+"'", 0);
+          throw new ParseException("Expected only child of the root node to have the id 'domain', got '" + domainNode.getId() + "'", 0);
         }
         domid = domainNode.getInt("domid");
         uuid = domainNode.getString("uuid");
@@ -145,42 +145,43 @@ public final class VirtualServerManager {
         // store_mfn is skipped
         // console_mfn is skipped
       } else if (osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64) {
-        // https://stackoverflow.com/questions/21014407/json-array-in-hashmap-using-google-gson
-        Type type = new TypeToken<List<Map<String, Object>>>(){}.getType();
+        Type type = new TypeToken<List<Map<String, Object>>>(){
+          // https://stackoverflow.com/questions/21014407/json-array-in-hashmap-using-google-gson
+        }.getType();
         List<Map<String, Object>> rootList = new Gson().fromJson(
-          AOServDaemon.execAndCapture(
-            "/sbin/xl",
-            "list",
-            "--long",
-            serverName
-          ),
-          type
+            AOServDaemon.execAndCapture(
+                "/sbin/xl",
+                "list",
+                "--long",
+                serverName
+            ),
+            type
         );
         // Should have one child
         if (rootList.size() != 1) {
-          throw new ParseException("Expected one element in the root array, got "+rootList.size(), 0);
+          throw new ParseException("Expected one element in the root array, got " + rootList.size(), 0);
         }
         Map<String, Object> domainNode = rootList.get(0);
         //for (Map.Entry<String, Object> entry : domainNode.entrySet()) {
         //  System.out.println(entry.getKey() + ": (" + entry.getValue().getClass() + ") " + entry.getValue());
         //}
-        domid = ((Double)domainNode.get("domid")).intValue();
+        domid = ((Double) domainNode.get("domid")).intValue();
         @SuppressWarnings("unchecked")
-        Map<String, Object> configNode = (Map<String, Object>)domainNode.get("config");
+        Map<String, Object> configNode = (Map<String, Object>) domainNode.get("config");
         @SuppressWarnings("unchecked")
-        Map<String, Object> cInfoNode = (Map<String, Object>)configNode.get("c_info");
-        uuid = (String)cInfoNode.get("uuid");
+        Map<String, Object> cInfoNode = (Map<String, Object>) configNode.get("c_info");
+        uuid = (String) cInfoNode.get("uuid");
         @SuppressWarnings("unchecked")
-        Map<String, Object> bInfoNode = (Map<String, Object>)configNode.get("b_info");
-        vcpus = ((Double)bInfoNode.get("max_vcpus")).intValue();
+        Map<String, Object> bInfoNode = (Map<String, Object>) configNode.get("b_info");
+        vcpus = ((Double) bInfoNode.get("max_vcpus")).intValue();
         @SuppressWarnings("unchecked")
-        Map<String, Object> schedParamsNode = (Map<String, Object>)bInfoNode.get("sched_params");
-        cpuWeight = (Double)schedParamsNode.get("weight");
-        memory = ((Double)bInfoNode.get("target_memkb")).longValue();
-        shadowMemory = ((Double)bInfoNode.get("shadow_memkb")).longValue();
-        maxmem = ((Double)bInfoNode.get("max_memkb")).longValue();
-        name = (String)cInfoNode.get("name");
-        onReboot = (String)configNode.get("on_reboot");
+        Map<String, Object> schedParamsNode = (Map<String, Object>) bInfoNode.get("sched_params");
+        cpuWeight = (Double) schedParamsNode.get("weight");
+        memory = ((Double) bInfoNode.get("target_memkb")).longValue();
+        shadowMemory = ((Double) bInfoNode.get("shadow_memkb")).longValue();
+        maxmem = ((Double) bInfoNode.get("max_memkb")).longValue();
+        name = (String) cInfoNode.get("name");
+        onReboot = (String) configNode.get("on_reboot");
       } else {
         throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
       }
@@ -279,7 +280,7 @@ public final class VirtualServerManager {
                 try (InputStream in = new BufferedInputStream(new FileInputStream(cmdlineFile), cmdlinePrefix.length())) {
                   int b;
                   while (pos < prefixLen && (b = in.read()) != -1) {
-                    if ((char)b != cmdlinePrefix.charAt(pos)) {
+                    if ((char) b != cmdlinePrefix.charAt(pos)) {
                       break;
                     }
                     pos++;
@@ -304,10 +305,10 @@ public final class VirtualServerManager {
    * Parses the output of xm list -l for a specific domain.
    */
   public static void vncConsole(
-    final Socket socket,
-    final StreamableInput socketIn,
-    StreamableOutput socketOut,
-    String serverName
+      final Socket socket,
+      final StreamableInput socketIn,
+      StreamableOutput socketOut,
+      String serverName
   ) throws IOException, SQLException {
     try {
       try {
@@ -321,16 +322,16 @@ public final class VirtualServerManager {
 
           // Find the PID of its qemu handler from its ID
           // Xen 4.6 on CentOS 7:
-          int         pid = findPid("/usr/lib64/xen/bin/qemu-system-i386\u0000-xen-domid\u0000"+domid+"\u0000"); // Paravirtualized
+          int         pid = findPid("/usr/lib64/xen/bin/qemu-system-i386\u0000-xen-domid\u0000" + domid + "\u0000"); // Paravirtualized
           // Xen 3.0.3 on CentOS 5:
           if (pid == -1) {
-            pid = findPid("/usr/lib64/xen/bin/qemu-dm\u0000-d\u0000"+domid+"\u0000");
+            pid = findPid("/usr/lib64/xen/bin/qemu-dm\u0000-d\u0000" + domid + "\u0000");
           } // Hardware virtualized
           if (pid == -1) {
-            pid = findPid("/usr/lib64/xen/bin/qemu-dm\u0000-M\u0000xenpv\u0000-d\u0000"+domid+"\u0000");
+            pid = findPid("/usr/lib64/xen/bin/qemu-dm\u0000-M\u0000xenpv\u0000-d\u0000" + domid + "\u0000");
           } // New Paravirtualized
           if (pid == -1) {
-            pid = findPid("/usr/lib64/xen/bin/xen-vncfb\u0000--unused\u0000--listen\u0000127.0.0.1\u0000--domid\u0000"+domid+"\u0000");
+            pid = findPid("/usr/lib64/xen/bin/xen-vncfb\u0000--unused\u0000--listen\u0000127.0.0.1\u0000--domid\u0000" + domid + "\u0000");
           } // Old Paravirtualized
           if (pid == -1) {
             throw new IOException("Unable to find PID for " + serverName + " (id " + domid + ")");
@@ -339,48 +340,48 @@ public final class VirtualServerManager {
           // Find its port from lsof given its PID
           PackageManager.installPackage(PackageManager.PackageName.LSOF);
           String lsof = AOServDaemon.execAndCapture(
-            "/usr/sbin/lsof",
-            "-n", // Numeric IP addresses
-            "-P", // Numeric port numbers
-            "-a",
-            "-p",
-            Integer.toString(pid),
-            "-i",
-            "TCP",
-            "-F",
-            "0pPnT"
+              "/usr/sbin/lsof",
+              "-n", // Numeric IP addresses
+              "-P", // Numeric port numbers
+              "-a",
+              "-p",
+              Integer.toString(pid),
+              "-i",
+              "TCP",
+              "-F",
+              "0pPnT"
           );
           List<String> values = Strings.split(lsof, '\u0000');
           //System.out.println("values.size()="+values.size());
           if (
-            values.size()<7
-            || (values.size()%5) != 2
-            || !values.get(0).equals("p"+pid)
-            || values.get(values.size()-1).trim().length() != 0
+              values.size() < 7
+                  || (values.size() % 5) != 2
+                  || !values.get(0).equals("p" + pid)
+                  || values.get(values.size() - 1).trim().length() != 0
           ) {
-            throw new ParseException("Unexpected output from lsof: "+lsof, 0);
+            throw new ParseException("Unexpected output from lsof: " + lsof, 0);
           }
           int vncPort = Integer.MIN_VALUE;
-          for (int c=1; c<values.size(); c+=5) {
+          for (int c = 1; c < values.size(); c += 5) {
             if (
-              !values.get(c).trim().equals("PTCP")
-              || !values.get(c+2).startsWith("TST=")
-              || !values.get(c+3).startsWith("TQR=")
-              || !values.get(c+4).startsWith("TQS=")
+                !values.get(c).trim().equals("PTCP")
+                    || !values.get(c + 2).startsWith("TST=")
+                    || !values.get(c + 3).startsWith("TQR=")
+                    || !values.get(c + 4).startsWith("TQS=")
             ) {
-              throw new ParseException("Unexpected output from lsof: "+lsof, 0);
+              throw new ParseException("Unexpected output from lsof: " + lsof, 0);
             }
             if (
-              (values.get(c+1).startsWith("n127.0.0.1:") || values.get(c+1).startsWith("n*:"))
-              && values.get(c+2).equals("TST=LISTEN")
+                (values.get(c + 1).startsWith("n127.0.0.1:") || values.get(c + 1).startsWith("n*:"))
+                    && values.get(c + 2).equals("TST=LISTEN")
             ) {
-              vncPort = Integer.parseInt(values.get(c+1).substring(values.get(c+1).indexOf(':')+1));
+              vncPort = Integer.parseInt(values.get(c + 1).substring(values.get(c + 1).indexOf(':') + 1));
               break;
             }
           }
           //System.out.println("vncPort="+vncPort);
           if (vncPort == Integer.MIN_VALUE) {
-            throw new ParseException("Unexpected output from lsof: "+lsof, 0);
+            throw new ParseException("Unexpected output from lsof: " + lsof, 0);
           }
 
           // Connect to port and tunnel through all data until EOF
@@ -397,7 +398,7 @@ public final class VirtualServerManager {
                     try {
                       byte[] buff = new byte[4096];
                       int ret;
-                      while ((ret=socketIn.read(buff, 0, 4096)) != -1) {
+                      while ((ret = socketIn.read(buff, 0, 4096)) != -1) {
                         vncOut.write(buff, 0, ret);
                         vncOut.flush();
                       }
@@ -418,13 +419,13 @@ public final class VirtualServerManager {
                 //try {
                   // Tell it DONE OK
                   socketOut.write(AOServDaemonProtocol.NEXT);
-                  // vncIn -> socketOut in this thread
-                  byte[] buff = new byte[4096];
-                  int ret;
-                  while ((ret=vncIn.read(buff, 0, 4096)) != -1) {
-                    socketOut.write(buff, 0, ret);
-                    socketOut.flush();
-                  }
+                // vncIn -> socketOut in this thread
+                byte[] buff = new byte[4096];
+                int ret;
+                while ((ret = vncIn.read(buff, 0, 4096)) != -1) {
+                  socketOut.write(buff, 0, ret);
+                  socketOut.flush();
+                }
                 //} finally {
                   //try {
                   //    // Let the in thread complete its work before closing streams
@@ -529,17 +530,17 @@ public final class VirtualServerManager {
 
   public static String createVirtualServer(String virtualServer) throws IOException, SQLException {
     ProcessResult result = ProcessResult.exec(
-      new String[] {
-        getXmCommand(),
-        "create",
-        // Now using auto directory to avoid starting wrong place: "/etc/xen/guests/"+virtualServer+"/config"
-        "/etc/xen/auto/" + virtualServer
-      }
+        new String[]{
+            getXmCommand(),
+            "create",
+            // Now using auto directory to avoid starting wrong place: "/etc/xen/guests/"+virtualServer+"/config"
+            "/etc/xen/auto/" + virtualServer
+        }
     );
     String stderr = result.getStderr();
     if (result.getExitVal() == 0) {
       // Log any errors
-      if (stderr.length()>0) {
+      if (stderr.length() > 0) {
         logger.fine(stderr);
       }
       return result.getStdout();
@@ -550,16 +551,16 @@ public final class VirtualServerManager {
 
   public static String rebootVirtualServer(String virtualServer) throws IOException, SQLException {
     ProcessResult result = ProcessResult.exec(
-      new String[] {
-        getXmCommand(),
-        "reboot",
-        virtualServer
-      }
+        new String[]{
+            getXmCommand(),
+            "reboot",
+            virtualServer
+        }
     );
     String stderr = result.getStderr();
     if (result.getExitVal() == 0) {
       // Log any errors
-      if (stderr.length()>0) {
+      if (stderr.length() > 0) {
         logger.fine(stderr);
       }
       return result.getStdout();
@@ -570,16 +571,16 @@ public final class VirtualServerManager {
 
   public static String shutdownVirtualServer(String virtualServer) throws IOException, SQLException {
     ProcessResult result = ProcessResult.exec(
-      new String[] {
-        getXmCommand(),
-        "shutdown",
-        virtualServer
-      }
+        new String[]{
+            getXmCommand(),
+            "shutdown",
+            virtualServer
+        }
     );
     String stderr = result.getStderr();
     if (result.getExitVal() == 0) {
       // Log any errors
-      if (stderr.length()>0) {
+      if (stderr.length() > 0) {
         logger.fine(stderr);
       }
       return result.getStdout();
@@ -590,16 +591,16 @@ public final class VirtualServerManager {
 
   public static String destroyVirtualServer(String virtualServer) throws IOException, SQLException {
     ProcessResult result = ProcessResult.exec(
-      new String[] {
-        getXmCommand(),
-        "destroy",
-        virtualServer
-      }
+        new String[]{
+            getXmCommand(),
+            "destroy",
+            virtualServer
+        }
     );
     String stderr = result.getStderr();
     if (result.getExitVal() == 0) {
       // Log any errors
-      if (stderr.length()>0) {
+      if (stderr.length() > 0) {
         logger.fine(stderr);
       }
       return result.getStdout();
@@ -610,16 +611,16 @@ public final class VirtualServerManager {
 
   public static String pauseVirtualServer(String virtualServer) throws IOException, SQLException {
     ProcessResult result = ProcessResult.exec(
-      new String[] {
-        getXmCommand(),
-        "pause",
-        virtualServer
-      }
+        new String[]{
+            getXmCommand(),
+            "pause",
+            virtualServer
+        }
     );
     String stderr = result.getStderr();
     if (result.getExitVal() == 0) {
       // Log any errors
-      if (stderr.length()>0) {
+      if (stderr.length() > 0) {
         logger.fine(stderr);
       }
       return result.getStdout();
@@ -630,16 +631,16 @@ public final class VirtualServerManager {
 
   public static String unpauseVirtualServer(String virtualServer) throws IOException, SQLException {
     ProcessResult result = ProcessResult.exec(
-      new String[] {
-        getXmCommand(),
-        "unpause",
-        virtualServer
-      }
+        new String[]{
+            getXmCommand(),
+            "unpause",
+            virtualServer
+        }
     );
     String stderr = result.getStderr();
     if (result.getExitVal() == 0) {
       // Log any errors
-      if (stderr.length()>0) {
+      if (stderr.length() > 0) {
         logger.fine(stderr);
       }
       return result.getStdout();
@@ -669,27 +670,27 @@ public final class VirtualServerManager {
     if (b == 'b') {
       flags |= VirtualServer.BLOCKED;
     } else if (b != '-') {
-      throw new ParseException("Unexpected character for 'b': "+b, 0);
+      throw new ParseException("Unexpected character for 'b': " + b, 0);
     }
     if (p == 'p') {
       flags |= VirtualServer.PAUSED;
     } else if (p != '-') {
-      throw new ParseException("Unexpected character for 'p': "+p, 0);
+      throw new ParseException("Unexpected character for 'p': " + p, 0);
     }
     if (s == 's') {
       flags |= VirtualServer.SHUTDOWN;
     } else if (s != '-') {
-      throw new ParseException("Unexpected character for 's': "+s, 0);
+      throw new ParseException("Unexpected character for 's': " + s, 0);
     }
     if (c == 'c') {
       flags |= VirtualServer.CRASHED;
     } else if (c != '-') {
-      throw new ParseException("Unexpected character for 'c': "+c, 0);
+      throw new ParseException("Unexpected character for 'c': " + c, 0);
     }
     if (d == 'd') {
       flags |= VirtualServer.DYING;
     } else if (d != '-') {
-      throw new ParseException("Unexpected character for 'd': "+d, 0);
+      throw new ParseException("Unexpected character for 'd': " + d, 0);
     }
     return flags;
   }
@@ -697,11 +698,11 @@ public final class VirtualServerManager {
   public static int getVirtualServerStatus(String virtualServer) throws IOException, SQLException {
     try {
       List<String> lines = Strings.splitLines(
-        AOServDaemon.execAndCapture(
-          getXmCommand(),
-          "list",
-          virtualServer
-        )
+          AOServDaemon.execAndCapture(
+              getXmCommand(),
+              "list",
+              virtualServer
+          )
       );
       if (lines.size() != 2) {
         throw new IOException("Expected two lines, got " + lines.size() + ": " + lines);
@@ -735,10 +736,10 @@ public final class VirtualServerManager {
   public static long verifyVirtualDisk(String virtualServer, String device) throws IOException {
     synchronized (drbdVerifyStateLock) {
       return Long.parseLong(
-        AOServDaemon.execAndCapture(
-          "/opt/aoserv-daemon/bin/drbd-verify",
-          virtualServer + "-" + device
-        ).trim()
+          AOServDaemon.execAndCapture(
+              "/opt/aoserv-daemon/bin/drbd-verify",
+              virtualServer + "-" + device
+          ).trim()
       );
     }
   }
@@ -746,9 +747,9 @@ public final class VirtualServerManager {
   public static void updateVirtualDiskLastVerified(String virtualServer, String device, long lastVerified) throws IOException {
     synchronized (drbdVerifyStateLock) {
       AOServDaemon.exec(
-        "/opt/aoserv-daemon/bin/set-drbd-last-verified",
-        virtualServer + "-" + device,
-        Long.toString(lastVerified)
+          "/opt/aoserv-daemon/bin/set-drbd-last-verified",
+          virtualServer + "-" + device,
+          Long.toString(lastVerified)
       );
     }
   }

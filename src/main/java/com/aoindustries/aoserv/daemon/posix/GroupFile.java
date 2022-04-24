@@ -60,8 +60,8 @@ public final class GroupFile {
   private static final Logger logger = Logger.getLogger(GroupFile.class.getName());
 
   private static final PosixFile
-    groupFile       = new PosixFile("/etc/group"),
-    backupGroupFile = new PosixFile("/etc/group-")
+      groupFile       = new PosixFile("/etc/group"),
+      backupGroupFile = new PosixFile("/etc/group-")
   ;
 
   /**
@@ -120,9 +120,9 @@ public final class GroupFile {
      * Constructs a group file entry given all the values.
      */
     public Entry(
-      Group.Name groupName,
-      int gid,
-      Set<User.Name> groupMembers
+        Group.Name groupName,
+        int gid,
+        Set<User.Name> groupMembers
     ) {
       this.groupName = groupName;
       this.gid = gid;
@@ -152,10 +152,10 @@ public final class GroupFile {
      */
     public <A extends Appendable> A appendTo(A out) throws IOException {
       out
-        .append(groupName.toString())
-        .append(":x:")
-        .append(Integer.toString(gid))
-        .append(':');
+          .append(groupName.toString())
+          .append(":x:")
+          .append(Integer.toString(gid))
+          .append(':');
       boolean didOne = false;
       for (User.Name groupMember : groupMembers) {
         if (didOne) {
@@ -208,11 +208,11 @@ public final class GroupFile {
       Map<Group.Name, Entry> groupEntries = new LinkedHashMap<>();
       try (
         BufferedReader in = new BufferedReader(
-          new InputStreamReader(
-            new FileInputStream(groupFile.getFile())
+              new InputStreamReader(
+                  new FileInputStream(groupFile.getFile())
+              )
           )
-        )
-      ) {
+          ) {
         String line;
         while ((line = in.readLine()) != null) {
           Entry entry = new Entry(line);
@@ -255,13 +255,13 @@ public final class GroupFile {
   public static void writeGroupFile(byte[] newContents, Set<PosixFile> restorecon) throws IOException {
     assert Thread.holdsLock(groupLock);
     DaemonFileUtils.atomicWrite(
-      groupFile,
-      newContents,
-      0644,
-      PosixFile.ROOT_UID,
-      PosixFile.ROOT_GID,
-      backupGroupFile,
-      restorecon
+        groupFile,
+        newContents,
+        0644,
+        PosixFile.ROOT_UID,
+        PosixFile.ROOT_GID,
+        backupGroupFile,
+        restorecon
     );
   }
 
@@ -297,8 +297,8 @@ public final class GroupFile {
         // Verify group members match
         Set<User.Name> expectedMembers = expectedEntry.groupMembers;
         if (
-          existingEntry.gid != expectedEntry.gid
-          || !existingEntry.getGroupMembers().equals(expectedMembers)
+            existingEntry.gid != expectedEntry.gid
+                || !existingEntry.getGroupMembers().equals(expectedMembers)
         ) {
           assert existingEntry.groupName.equals(groupName);
           if (logger.isLoggable(Level.INFO)) {

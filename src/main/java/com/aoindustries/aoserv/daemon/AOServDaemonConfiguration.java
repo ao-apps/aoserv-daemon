@@ -63,8 +63,8 @@ public final class AOServDaemonConfiguration {
       synchronized (AOServDaemonConfiguration.class) {
         if (props == null) {
           props = PropertiesUtils.loadFromResource(
-            AOServDaemonConfiguration.class,
-            "/com/aoindustries/aoserv/daemon/aoserv-daemon.properties"
+              AOServDaemonConfiguration.class,
+              "/com/aoindustries/aoserv/daemon/aoserv-daemon.properties"
           );
         }
         value = props.getProperty(propName);
@@ -117,11 +117,12 @@ public final class AOServDaemonConfiguration {
   }
 
   private static volatile HashedKey daemonKey;
+
   public static HashedKey getDaemonKey() throws ConfigurationException {
     if (daemonKey == null) {
       daemonKey = HashedKey.valueOf(
-        HashedKey.Algorithm.SHA_256,
-        Base64.getDecoder().decode(getProperty("daemon_key", "[HASHED_DAEMON_KEY]", true))
+          HashedKey.Algorithm.SHA_256,
+          Base64.getDecoder().decode(getProperty("daemon_key", "[HASHED_DAEMON_KEY]", true))
       );
     }
     return daemonKey;
@@ -228,17 +229,17 @@ public final class AOServDaemonConfiguration {
     private final Long nullRouteBitRate;
 
     NetworkMonitorConfiguration(
-      String name,
-      String device,
-      List<String> networkRanges,
-      NetworkDirection inNetworkDirection,
-      CountDirection inCountDirection,
-      NetworkDirection outNetworkDirection,
-      CountDirection outCountDirection,
-      Long nullRouteFifoErrorRate,
-      Long nullRouteFifoErrorRateMinPps,
-      Long nullRoutePacketRate,
-      Long nullRouteBitRate
+        String name,
+        String device,
+        List<String> networkRanges,
+        NetworkDirection inNetworkDirection,
+        CountDirection inCountDirection,
+        NetworkDirection outNetworkDirection,
+        CountDirection outCountDirection,
+        Long nullRouteFifoErrorRate,
+        Long nullRouteFifoErrorRateMinPps,
+        Long nullRoutePacketRate,
+        Long nullRouteBitRate
     ) {
       this.name = name;
       this.device = device;
@@ -315,22 +316,22 @@ public final class AOServDaemonConfiguration {
         String nullRoutePacketRate = getProperty("monitor.NetworkMonitor.network." + name + ".nullRoute.packetRate", null);
         String nullRouteBitRate = getProperty("monitor.NetworkMonitor.network." + name + ".nullRoute.bitRate", null);
         if (
-          networkMonitors.put(
-            name,
-            new NetworkMonitorConfiguration(
-              name,
-              getProperty("monitor.NetworkMonitor.network." + name + ".device", null, true),
-              Collections.unmodifiableList(Strings.splitCommaSpace(getProperty("monitor.NetworkMonitor.network." + name + ".networkRanges", null, true))),
-              NetworkMonitorConfiguration.NetworkDirection.valueOf(getProperty("monitor.NetworkMonitor.network." + name + ".in.networkDirection", null, true)),
-              NetworkMonitorConfiguration.CountDirection.valueOf(getProperty("monitor.NetworkMonitor.network." + name + ".in.countDirection", null, true)),
-              NetworkMonitorConfiguration.NetworkDirection.valueOf(getProperty("monitor.NetworkMonitor.network." + name + ".out.networkDirection", null, true)),
-              NetworkMonitorConfiguration.CountDirection.valueOf(getProperty("monitor.NetworkMonitor.network." + name + ".out.countDirection", null, true)),
-              nullRouteFifoErrorRate == null || nullRouteFifoErrorRate.isEmpty() ? null : Long.valueOf(nullRouteFifoErrorRate),
-              nullRouteFifoErrorRateMinPps == null || nullRouteFifoErrorRateMinPps.isEmpty() ? null : Long.valueOf(nullRouteFifoErrorRateMinPps),
-              nullRoutePacketRate == null || nullRoutePacketRate.isEmpty() ? null : Long.valueOf(nullRoutePacketRate),
-              nullRouteBitRate == null || nullRouteBitRate.isEmpty() ? null : Long.valueOf(nullRouteBitRate)
-            )
-          ) != null
+            networkMonitors.put(
+                name,
+                new NetworkMonitorConfiguration(
+                    name,
+                    getProperty("monitor.NetworkMonitor.network." + name + ".device", null, true),
+                    Collections.unmodifiableList(Strings.splitCommaSpace(getProperty("monitor.NetworkMonitor.network." + name + ".networkRanges", null, true))),
+                    NetworkMonitorConfiguration.NetworkDirection.valueOf(getProperty("monitor.NetworkMonitor.network." + name + ".in.networkDirection", null, true)),
+                    NetworkMonitorConfiguration.CountDirection.valueOf(getProperty("monitor.NetworkMonitor.network." + name + ".in.countDirection", null, true)),
+                    NetworkMonitorConfiguration.NetworkDirection.valueOf(getProperty("monitor.NetworkMonitor.network." + name + ".out.networkDirection", null, true)),
+                    NetworkMonitorConfiguration.CountDirection.valueOf(getProperty("monitor.NetworkMonitor.network." + name + ".out.countDirection", null, true)),
+                    nullRouteFifoErrorRate == null || nullRouteFifoErrorRate.isEmpty() ? null : Long.valueOf(nullRouteFifoErrorRate),
+                    nullRouteFifoErrorRateMinPps == null || nullRouteFifoErrorRateMinPps.isEmpty() ? null : Long.valueOf(nullRouteFifoErrorRateMinPps),
+                    nullRoutePacketRate == null || nullRoutePacketRate.isEmpty() ? null : Long.valueOf(nullRoutePacketRate),
+                    nullRouteBitRate == null || nullRouteBitRate.isEmpty() ? null : Long.valueOf(nullRouteBitRate)
+                )
+            ) != null
         ) {
           throw new ConfigurationException("Duplicate network name: " + name);
         }
@@ -343,9 +344,9 @@ public final class AOServDaemonConfiguration {
     final String key = "posix.linux.PackageManager.uninstallEnabled";
     String value = getProperty(key, null);
     if (
-      value == null
-      || value.isEmpty()
-      || "true".equalsIgnoreCase(value)
+        value == null
+            || value.isEmpty()
+            || "true".equalsIgnoreCase(value)
     ) {
       return true;
     }

@@ -44,37 +44,37 @@ import java.sql.SQLException;
  */
 public final class ProcStates {
 
-  private static final File proc=new File("/proc");
+  private static final File proc = new File("/proc");
 
   public final int
-    total_sleep,
-    user_sleep,
-    total_run,
-    user_run,
-    total_zombie,
-    user_zombie,
-    total_trace,
-    user_trace,
-    total_uninterruptible,
-    user_uninterruptible,
-    total_unknown,
-    user_unknown
+      total_sleep,
+      user_sleep,
+      total_run,
+      user_run,
+      total_zombie,
+      user_zombie,
+      total_trace,
+      user_trace,
+      total_uninterruptible,
+      user_uninterruptible,
+      total_unknown,
+      user_unknown
   ;
 
   public ProcStates() throws IOException, SQLException {
     int
-      _total_sleep=0,
-      _user_sleep=0,
-      _total_run=0,
-      _user_run=0,
-      _total_zombie=0,
-      _user_zombie=0,
-      _total_trace=0,
-      _user_trace=0,
-      _total_uninterruptible=0,
-      _user_uninterruptible=0,
-      _total_unknown=0,
-      _user_unknown=0
+        _total_sleep = 0,
+        _user_sleep = 0,
+        _total_run = 0,
+        _user_run = 0,
+        _total_zombie = 0,
+        _user_zombie = 0,
+        _total_trace = 0,
+        _user_trace = 0,
+        _total_uninterruptible = 0,
+        _user_uninterruptible = 0,
+        _total_unknown = 0,
+        _user_unknown = 0
     ;
 
     Server thisServer = AOServDaemon.getThisServer();
@@ -82,33 +82,33 @@ public final class ProcStates {
     int uid_min = thisServer.getUidMin().getId();
 
     // Parse for the values
-    String[] list=proc.list();
-    int len=list.length;
-    for (int c=0;c<len;c++) {
-      String filename=list[c];
-      char ch=filename.charAt(0);
+    String[] list = proc.list();
+    int len = list.length;
+    for (int c = 0; c < len; c++) {
+      String filename = list[c];
+      char ch = filename.charAt(0);
       if (ch >= '0' && ch <= '9') {
-        File file=new File(proc, filename);
+        File file = new File(proc, filename);
         if (file.isDirectory()) {
           try {
-            String state=null;
-            int uid=-1;
+            String state = null;
+            int uid = -1;
             try (BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(new File(file, "status"))))) {
               String line;
-              while ((state == null || uid == -1) && (line=in.readLine()) != null) {
+              while ((state == null || uid == -1) && (line = in.readLine()) != null) {
                 if (line.startsWith("State:")) {
-                  String[] words=Strings.split(line);
-                  state=words[1];
+                  String[] words = Strings.split(line);
+                  state = words[1];
                 } else if (line.startsWith("Uid:")) {
-                  String[] words= Strings.split(line);
-                  uid=Integer.parseInt(words[1]);
+                  String[] words = Strings.split(line);
+                  uid = Integer.parseInt(words[1]);
                 }
               }
               if (isOuterServer) {
                 if (state == null) {
                   _total_unknown++;
                 } else {
-                  ch=state.charAt(0);
+                  ch = state.charAt(0);
                   if (ch == 'S') {
                     _total_sleep++;
                   } else if (ch == 'R') {
@@ -125,13 +125,13 @@ public final class ProcStates {
                 }
               }
               if (
-                uid >= uid_min
-                && thisServer.getLinuxServerAccount(LinuxId.valueOf(uid)) != null
+                  uid >= uid_min
+                      && thisServer.getLinuxServerAccount(LinuxId.valueOf(uid)) != null
               ) {
                 if (state == null) {
                   _user_unknown++;
                 } else {
-                  ch=state.charAt(0);
+                  ch = state.charAt(0);
                   if (ch == 'S') {
                     _user_sleep++;
                   } else if (ch == 'R') {
@@ -158,18 +158,18 @@ public final class ProcStates {
     }
 
     // Copy into instance
-    this.total_sleep=_total_sleep;
-    this.user_sleep=_user_sleep;
-    this.total_run=_total_run;
-    this.user_run=_user_run;
-    this.total_zombie=_total_zombie;
-    this.user_zombie=_user_zombie;
-    this.total_trace=_total_trace;
-    this.user_trace=_user_trace;
-    this.total_uninterruptible=_total_uninterruptible;
-    this.user_uninterruptible=_user_uninterruptible;
-    this.total_unknown=_total_unknown;
-    this.user_unknown=_user_unknown;
+    this.total_sleep = _total_sleep;
+    this.user_sleep = _user_sleep;
+    this.total_run = _total_run;
+    this.user_run = _user_run;
+    this.total_zombie = _total_zombie;
+    this.user_zombie = _user_zombie;
+    this.total_trace = _total_trace;
+    this.user_trace = _user_trace;
+    this.total_uninterruptible = _total_uninterruptible;
+    this.user_uninterruptible = _user_uninterruptible;
+    this.total_unknown = _total_unknown;
+    this.user_unknown = _user_unknown;
   }
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
@@ -189,19 +189,19 @@ public final class ProcStates {
   @Override
   public String toString() {
     return
-      getClass().getName()
-      +"?total_sleep="+total_sleep
-      +"&user_sleep="+user_sleep
-      +"&total_run="+total_run
-      +"&user_run="+user_run
-      +"&total_zombie="+total_zombie
-      +"&user_zombie="+user_zombie
-      +"&total_trace="+total_trace
-      +"&user_trace="+user_trace
-      +"&total_uninterruptible="+total_uninterruptible
-      +"&user_uninterruptible="+user_uninterruptible
-      +"&total_unknown="+total_unknown
-      +"&user_unknown="+user_unknown
+        getClass().getName()
+            + "?total_sleep=" + total_sleep
+            + "&user_sleep=" + user_sleep
+            + "&total_run=" + total_run
+            + "&user_run=" + user_run
+            + "&total_zombie=" + total_zombie
+            + "&user_zombie=" + user_zombie
+            + "&total_trace=" + total_trace
+            + "&user_trace=" + user_trace
+            + "&total_uninterruptible=" + total_uninterruptible
+            + "&user_uninterruptible=" + user_uninterruptible
+            + "&total_unknown=" + total_unknown
+            + "&user_unknown=" + user_unknown
     ;
   }
 }

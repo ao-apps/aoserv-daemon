@@ -169,8 +169,8 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
   private static SpamAssassinManager spamAssassinManager;
 
   private static final PosixFile
-    configPosixFile = new PosixFile("/etc/sysconfig/spamassassin"),
-    localCfPosixFile = new PosixFile("/etc/mail/spamassassin/local.cf")
+      configPosixFile = new PosixFile("/etc/sysconfig/spamassassin"),
+      localCfPosixFile = new PosixFile("/etc/mail/spamassassin/local.cf")
   ;
 
   private static final File subsysLockFile = new File("/var/lock/subsys/spamassassin");
@@ -238,19 +238,19 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
 
     synchronized (System.out) {
       if (
-        // Nothing is done for these operating systems
-        osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
-        && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-        && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-        // Check config after OS check so config entry not needed
-        && AOServDaemonConfiguration.isManagerEnabled(SpamAssassinManager.class)
-        && spamAssassinManager == null
+          // Nothing is done for these operating systems
+          osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+              && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+              && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+              // Check config after OS check so config entry not needed
+              && AOServDaemonConfiguration.isManagerEnabled(SpamAssassinManager.class)
+              && spamAssassinManager == null
       ) {
         System.out.print("Starting SpamAssassinManager: ");
         // Must be a supported operating system
         if (
-          osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-          || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+            osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                || osvId == OperatingSystemVersion.CENTOS_7_X86_64
         ) {
           AOServConnector conn = AOServDaemon.getConnector();
           spamAssassinManager = new SpamAssassinManager();
@@ -287,11 +287,11 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
     for (int d = 0; d < filename.length(); d++) {
       char ch = filename.charAt(d);
       if (
-        (ch < 'a' || ch > 'z')
-        && (ch < 'A' || ch > 'Z')
-        && (ch < '0' || ch > '9')
-        && ch != '-'
-        && ch != '_'
+          (ch < 'a' || ch > 'z')
+              && (ch < 'A' || ch > 'Z')
+              && (ch < '0' || ch > '9')
+              && ch != '-'
+              && ch != '_'
       ) {
         return false;
       }
@@ -388,19 +388,19 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
                         try {
                           long timestamp = Long.parseLong(userFilename.substring(pos1 + 1, pos2)) * 1000;
                           if (
-                            (timestamp - currentTime) > 60000
-                            || (currentTime - timestamp) > 60000
+                              (timestamp - currentTime) > 60000
+                                  || (currentTime - timestamp) > 60000
                           ) {
                             if (isFilenameOk(userFilename)) {
                               // We're getting files with permissions 0600 still, not sure why.  Fix permissions so accessible
                               long mode = userUfStat.getMode();
                               if (mode != IMAP_SPOOL_MODE) {
                                 logger.log(
-                                  Level.WARNING,
-                                  "Fixing permissions for \"" + userUf.getPath() + "\": "
-                                  + PosixFile.getModeString(mode)
-                                  + " → "
-                                  + PosixFile.getModeString(IMAP_SPOOL_MODE)
+                                    Level.WARNING,
+                                    "Fixing permissions for \"" + userUf.getPath() + "\": "
+                                        + PosixFile.getModeString(mode)
+                                        + " → "
+                                        + PosixFile.getModeString(IMAP_SPOOL_MODE)
                                 );
                                 userUf.setMode(IMAP_SPOOL_MODE);
                               }
@@ -453,8 +453,8 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
           final Map<PosixFile, Long> readyMap = oldestReadyMap;
           List<PosixFile> readyList = new ArrayList<>(oldestReadyMap.keySet());
           Collections.sort(
-            readyList,
-            (PosixFile uf1, PosixFile uf2) -> readyMap.get(uf1).compareTo(readyMap.get(uf2))
+              readyList,
+              (PosixFile uf1, PosixFile uf2) -> readyMap.get(uf1).compareTo(readyMap.get(uf2))
           );
 
           // Process the oldest file while batching as many spam or ham directories together as possible
@@ -499,20 +499,20 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
             //System.err.println("DEBUG: "+SpamAssassinManager.class.getName()+": processIncomingMessagesCentOs: username="+username+" and command=\""+command+"\"");
             try {
               AOServDaemon.suexec(
-                username,
-                new File(oldestLsa.getHome().toString()),
-                command,
-                15
+                  username,
+                  new File(oldestLsa.getHome().toString()),
+                  command,
+                  15
               );
             } finally {
               if (isNoSync) {
                 String command2 = "/usr/bin/sa-learn --sync";
                 //System.err.println("DEBUG: "+SpamAssassinManager.class.getName()+": processIncomingMessagesCentOs: username="+username+" and command2=\""+command2+"\"");
                 AOServDaemon.suexec(
-                  username,
-                  new File(oldestLsa.getHome().toString()),
-                  command2,
-                  15
+                    username,
+                    new File(oldestLsa.getHome().toString()),
+                    command2,
+                    15
                 );
               }
             }
@@ -555,6 +555,7 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
   }
 
   private static final Object rebuildLock = new Object();
+
   @Override
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
   protected boolean doRebuild() {
@@ -564,8 +565,8 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
       OperatingSystemVersion osv = thisHost.getOperatingSystemVersion();
       int osvId = osv.getPkey();
       if (
-        osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-        && osvId != OperatingSystemVersion.CENTOS_7_X86_64
+          osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+              && osvId != OperatingSystemVersion.CENTOS_7_X86_64
       ) {
         throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
       }
@@ -584,8 +585,8 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
           if (spamdBind != null) {
             // Make sure package installed
             PackageManager.installPackage(
-              PackageManager.PackageName.SPAMASSASSIN,
-              () -> restartRequired[0] = true
+                PackageManager.PackageName.SPAMASSASSIN,
+                () -> restartRequired[0] = true
             );
             spamdInstalled = true;
           } else {
@@ -594,11 +595,11 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
           if (spamdInstalled) {
             // Scale the number of children by system memory.
             long maxChildren = Math.max(
-              (int)Math.min(
-                ServerManager.getMemTotal() / PER_CHILD_MEMORY,
-                MAX_CHILDREN
-              ),
-              MIN_CHILDREN
+                (int) Math.min(
+                    ServerManager.getMemTotal() / PER_CHILD_MEMORY,
+                    MAX_CHILDREN
+                ),
+                MIN_CHILDREN
             );
 
             /*
@@ -617,12 +618,12 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
               }
               // Build a new file in RAM
               newOut.print(
-                "#\n"
-                + "# Generated by ").print(SpamAssassinManager.class.getName()).print("\n"
-                + "#\n"
-                + "\n"
-                + "# Options to spamd\n"
-                + "SPAMDOPTIONS=\"-d -c -m" + maxChildren + " -H");
+                  "#\n"
+                      + "# Generated by ").print(SpamAssassinManager.class.getName()).print("\n"
+                  + "#\n"
+                  + "\n"
+                  + "# Options to spamd\n"
+                  + "SPAMDOPTIONS=\"-d -c -m" + maxChildren + " -H");
               if (spamdInetAddress != null) {
                 if (!spamdInetAddress.isLoopback() && !spamdInetAddress.isUnspecified()) {
                   hasSpecificAddress = true;
@@ -664,8 +665,8 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
                 if (spamdInetAddress.isLoopback()) {
                   // Only 127.0.0.1 or ::1 expected at this time
                   if (
-                    spamdInetAddress.equals(InetAddress.LOOPBACK_IPV4)
-                    || spamdInetAddress.equals(InetAddress.LOOPBACK_IPV6)
+                      spamdInetAddress.equals(InetAddress.LOOPBACK_IPV4)
+                          || spamdInetAddress.equals(InetAddress.LOOPBACK_IPV6)
                   ) {
                     newOut.print(spamdInetAddress);
                   } else {
@@ -678,10 +679,10 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
                   for (IpAddress ip : thisHost.getIPAddresses()) {
                     InetAddress addr = ip.getInetAddress();
                     if (
-                      !addr.isUnspecified()
-                      && !ip.getDevice().getDeviceId().isLoopback()
-                      && ip.getInetAddress().getProtocolFamily().equals(spamdFamily)
-                      // TODO: Should we also filter by on the same Device?  (consider dual NICs, one private, one not)
+                        !addr.isUnspecified()
+                            && !ip.getDevice().getDeviceId().isLoopback()
+                            && ip.getInetAddress().getProtocolFamily().equals(spamdFamily)
+                    // TODO: Should we also filter by on the same Device?  (consider dual NICs, one private, one not)
                     ) {
                       if (!usedIps.contains(addr)) {
                         if (!usedIps.isEmpty()) {
@@ -717,8 +718,8 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
               newOut.print("\"\n");
               if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                 newOut.print("\n"
-                     + "# Run at nice level of 10\n"
-                     + "NICELEVEL=\"+10\"\n");
+                    + "# Run at nice level of 10\n"
+                    + "NICELEVEL=\"+10\"\n");
               } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
                 // Nice level no longer set with multi-core systems now the norm
               } else {
@@ -727,15 +728,15 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
             }
             // Compare to existing
             if (
-              DaemonFileUtils.atomicWrite(
-                configPosixFile,
-                bout.toByteArray(),
-                0644,
-                PosixFile.ROOT_UID,
-                PosixFile.ROOT_GID,
-                null,
-                restorecon
-              )
+                DaemonFileUtils.atomicWrite(
+                    configPosixFile,
+                    bout.toByteArray(),
+                    0644,
+                    PosixFile.ROOT_UID,
+                    PosixFile.ROOT_GID,
+                    null,
+                    restorecon
+                )
             ) {
               // Flag to restart below
               restartRequired[0] = true;
@@ -747,96 +748,96 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
             try (ChainWriter newOut = new ChainWriter(bout)) {
               if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                 newOut.print(
-                  "#\n"
-                  + "# Generated by ").print(SpamAssassinManager.class.getName()).print("\n"
-                  + "#\n"
-                  + "\n"
-                  + "# These values can be overridden by editing ~/.spamassassin/user_prefs.cf\n"
-                  + "# (see spamassassin(1) for details)\n"
-                  + "\n"
-                  + "# These should be safe assumptions and allow for simple visual sifting\n"
-                  + "# without risking lost emails.\n"
-                  + "\n"
-                  + "report_safe 0\n"
-                  + "lock_method flock\n"
-                  + "required_score 3.0\n"
-                  + "add_header all Level _STARS(*)_\n"
-                  + "dns_available yes\n"
-                  + "bayes_ignore_header X-Loop\n"
-                  + "bayes_ignore_header X-Mozilla-Status\n"
-                  + "bayes_ignore_header X-Mozilla-Status2\n"
-                  + "bayes_ignore_header X-Sieve\n"
-                  + "score FH_DATE_PAST_20XX 0.0\n"
-                  + "score DNS_FROM_OPENWHOIS 0.0\n"
-                  + "# Make auto learn more selective: http://wiki.apache.org/spamassassin/BasicConfiguration\n"
-                  + "bayes_auto_learn_threshold_nonspam -0.1\n"
-                  + "\n"
-                  + "# The owner of the ahbl.org RBL disabled the RBL by failing it positive on January 01, 2014\n"
-                  + "score DNS_FROM_AHBL_RHSBL 0\n"
-                  + "\n"
-                  + "# Don't want freemail alone to put into Junk folder with default required_score of 3.0\n"
-                  + "# Default was 1.2:\n"
-                  + "score FREEMAIL_REPLYTO_END_DIGIT 0.8\n"
-                  + "# Default was 1.6:\n"
-                  + "score FREEMAIL_ENVFROM_END_DIGIT 1.2"
+                    "#\n"
+                        + "# Generated by ").print(SpamAssassinManager.class.getName()).print("\n"
+                    + "#\n"
+                    + "\n"
+                    + "# These values can be overridden by editing ~/.spamassassin/user_prefs.cf\n"
+                    + "# (see spamassassin(1) for details)\n"
+                    + "\n"
+                    + "# These should be safe assumptions and allow for simple visual sifting\n"
+                    + "# without risking lost emails.\n"
+                    + "\n"
+                    + "report_safe 0\n"
+                    + "lock_method flock\n"
+                    + "required_score 3.0\n"
+                    + "add_header all Level _STARS(*)_\n"
+                    + "dns_available yes\n"
+                    + "bayes_ignore_header X-Loop\n"
+                    + "bayes_ignore_header X-Mozilla-Status\n"
+                    + "bayes_ignore_header X-Mozilla-Status2\n"
+                    + "bayes_ignore_header X-Sieve\n"
+                    + "score FH_DATE_PAST_20XX 0.0\n"
+                    + "score DNS_FROM_OPENWHOIS 0.0\n"
+                    + "# Make auto learn more selective: http://wiki.apache.org/spamassassin/BasicConfiguration\n"
+                    + "bayes_auto_learn_threshold_nonspam -0.1\n"
+                    + "\n"
+                    + "# The owner of the ahbl.org RBL disabled the RBL by failing it positive on January 01, 2014\n"
+                    + "score DNS_FROM_AHBL_RHSBL 0\n"
+                    + "\n"
+                    + "# Don't want freemail alone to put into Junk folder with default required_score of 3.0\n"
+                    + "# Default was 1.2:\n"
+                    + "score FREEMAIL_REPLYTO_END_DIGIT 0.8\n"
+                    + "# Default was 1.6:\n"
+                    + "score FREEMAIL_ENVFROM_END_DIGIT 1.2"
                 );
               } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
                 newOut.print(
-                  "#\n"
-                  + "# Generated by ").print(SpamAssassinManager.class.getName()).print("\n"
-                  + "#\n"
-                  + "\n"
-                  + "# These values can be overridden by editing ~/.spamassassin/user_prefs.cf\n"
-                  + "# (see spamassassin(1) for details)\n"
-                  + "\n"
-                  + "# These should be safe assumptions and allow for simple visual sifting\n"
-                  + "# without risking lost emails.\n"
-                  + "\n"
-                  + "# See https://spamassassin.apache.org/full/3.4.x/doc/Mail_SpamAssassin_Conf.html\n"
-                  + "\n"
-                  + "# More aggressive than default of 5\n"
-                  + "required_score 3.0\n"
-                  + "\n"
-                  + "# Disable test that had hard-coded year of 2010\n"
-                  + "# See https://wiki.apache.org/spamassassin/Rules/FH_DATE_PAST_20XX\n"
-                  + "score FH_DATE_PAST_20XX 0.0\n"
-                  + "\n"
-                  + "# Disable rule from dead blacklist\n"
-                  + "# See https://wiki.apache.org/spamassassin/Rules/DNS_FROM_OPENWHOIS\n"
-                  + "score DNS_FROM_OPENWHOIS 0.0\n"
-                  + "\n"
-                  + "# The owner of the ahbl.org RBL disabled the RBL by failing it positive on January 01, 2014\n"
-                  + "# See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=774768\n"
-                  + "score DNS_FROM_AHBL_RHSBL 0\n"
-                  // They seem to have tweaked the FREEMAIL scores: https://bz.apache.org/SpamAssassin/show_bug.cgi?id=6744
-                  //+ "\n"
-                  //+ "# Don't want freemail alone to put into Junk folder with default required_score of 3.0\n"
-                  //+ "# Default was 1.2:\n"
-                  //+ "score FREEMAIL_REPLYTO_END_DIGIT 0.8\n"
-                  //+ "# Default was 1.6:\n"
-                  //+ "score FREEMAIL_ENVFROM_END_DIGIT 1.2"
-                  + "\n"
-                  + "# Add a stars header, which is matched in .procmailrc to completely discard super spammy messages\n"
-                  + "add_header all Level _STARS(*)_\n"
-                  + "\n"
-                  + "# Update headers only\n"
-                  + "report_safe 0\n"
-                  + "\n"
-                  + "# DNS should always be available, skip auto detection\n"
-                  + "dns_available yes\n"
-                  + "\n"
-                  + "# Configure Bayesian classifier\n"
-                  + "bayes_ignore_header X-Loop\n"
-                  + "bayes_ignore_header X-Mozilla-Status\n"
-                  + "bayes_ignore_header X-Mozilla-Status2\n"
-                  + "bayes_ignore_header X-Sieve\n"
-                  + "# Make auto learn more selective\n"
-                  + "# See https://spamassassin.apache.org/full/3.4.x/doc/Mail_SpamAssassin_Plugin_AutoLearnThreshold.html\n"
-                  + "# See https://lists.gt.net/spamassassin/users/187706\n"
-                  + "bayes_auto_learn_threshold_nonspam -0.1\n"
-                  + "\n"
-                  + "# Use faster locking since home directories not on NFS\n"
-                  + "lock_method flock\n"
+                    "#\n"
+                        + "# Generated by ").print(SpamAssassinManager.class.getName()).print("\n"
+                    + "#\n"
+                    + "\n"
+                    + "# These values can be overridden by editing ~/.spamassassin/user_prefs.cf\n"
+                    + "# (see spamassassin(1) for details)\n"
+                    + "\n"
+                    + "# These should be safe assumptions and allow for simple visual sifting\n"
+                    + "# without risking lost emails.\n"
+                    + "\n"
+                    + "# See https://spamassassin.apache.org/full/3.4.x/doc/Mail_SpamAssassin_Conf.html\n"
+                    + "\n"
+                    + "# More aggressive than default of 5\n"
+                    + "required_score 3.0\n"
+                    + "\n"
+                    + "# Disable test that had hard-coded year of 2010\n"
+                    + "# See https://wiki.apache.org/spamassassin/Rules/FH_DATE_PAST_20XX\n"
+                    + "score FH_DATE_PAST_20XX 0.0\n"
+                    + "\n"
+                    + "# Disable rule from dead blacklist\n"
+                    + "# See https://wiki.apache.org/spamassassin/Rules/DNS_FROM_OPENWHOIS\n"
+                    + "score DNS_FROM_OPENWHOIS 0.0\n"
+                    + "\n"
+                    + "# The owner of the ahbl.org RBL disabled the RBL by failing it positive on January 01, 2014\n"
+                    + "# See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=774768\n"
+                    + "score DNS_FROM_AHBL_RHSBL 0\n"
+                    // They seem to have tweaked the FREEMAIL scores: https://bz.apache.org/SpamAssassin/show_bug.cgi?id=6744
+                    //+ "\n"
+                    //+ "# Don't want freemail alone to put into Junk folder with default required_score of 3.0\n"
+                    //+ "# Default was 1.2:\n"
+                    //+ "score FREEMAIL_REPLYTO_END_DIGIT 0.8\n"
+                    //+ "# Default was 1.6:\n"
+                    //+ "score FREEMAIL_ENVFROM_END_DIGIT 1.2"
+                    + "\n"
+                    + "# Add a stars header, which is matched in .procmailrc to completely discard super spammy messages\n"
+                    + "add_header all Level _STARS(*)_\n"
+                    + "\n"
+                    + "# Update headers only\n"
+                    + "report_safe 0\n"
+                    + "\n"
+                    + "# DNS should always be available, skip auto detection\n"
+                    + "dns_available yes\n"
+                    + "\n"
+                    + "# Configure Bayesian classifier\n"
+                    + "bayes_ignore_header X-Loop\n"
+                    + "bayes_ignore_header X-Mozilla-Status\n"
+                    + "bayes_ignore_header X-Mozilla-Status2\n"
+                    + "bayes_ignore_header X-Sieve\n"
+                    + "# Make auto learn more selective\n"
+                    + "# See https://spamassassin.apache.org/full/3.4.x/doc/Mail_SpamAssassin_Plugin_AutoLearnThreshold.html\n"
+                    + "# See https://lists.gt.net/spamassassin/users/187706\n"
+                    + "bayes_auto_learn_threshold_nonspam -0.1\n"
+                    + "\n"
+                    + "# Use faster locking since home directories not on NFS\n"
+                    + "lock_method flock\n"
                 );
               } else {
                 throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
@@ -844,15 +845,15 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
             }
             // Compare to existing
             if (
-              DaemonFileUtils.atomicWrite(
-                localCfPosixFile,
-                bout.toByteArray(),
-                0644,
-                PosixFile.ROOT_UID,
-                PosixFile.ROOT_GID,
-                null,
-                restorecon
-              )
+                DaemonFileUtils.atomicWrite(
+                    localCfPosixFile,
+                    bout.toByteArray(),
+                    0644,
+                    PosixFile.ROOT_UID,
+                    PosixFile.ROOT_GID,
+                    null,
+                    restorecon
+                )
             ) {
               // Flag to restart below
               restartRequired[0] = true;
@@ -921,9 +922,9 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
             }
             // Uninstall spamassassin-after-network-online package on CentOS 7 when not needed
             if (
-              !hasSpecificAddress
-              && osvId == OperatingSystemVersion.CENTOS_7_X86_64
-              && AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
+                !hasSpecificAddress
+                    && osvId == OperatingSystemVersion.CENTOS_7_X86_64
+                    && AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
             ) {
               PackageManager.removePackage(PackageManager.PackageName.SPAMASSASSIN_AFTER_NETWORK_ONLINE);
             }
@@ -955,10 +956,10 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
               // Create the .spamassassin directory if it doesn't exist
               if (!spamAssassinDir.getStat().exists()) {
                 spamAssassinDir.mkdir(
-                  false,
-                  0700,
-                  lsa.getUid().getId(),
-                  lsa.getPrimaryLinuxServerGroup().getGid().getId()
+                    false,
+                    0700,
+                    lsa.getUid().getId(),
+                    lsa.getPrimaryLinuxServerGroup().getGid().getId()
                 );
               }
               PosixFile userPrefs = new PosixFile(spamAssassinDir, "user_prefs", false);
@@ -968,10 +969,10 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
                 bout.reset();
                 try (ChainWriter newOut = new ChainWriter(bout)) {
                   newOut.print(
-                    "#\n"
-                    + "# Generated by ").print(SpamAssassinManager.class.getName()).print("\n"
-                    + "#\n"
-                    + "required_score ").print(lsa.getSpamAssassinRequiredScore()).print('\n');
+                      "#\n"
+                          + "# Generated by ").print(SpamAssassinManager.class.getName()).print("\n"
+                      + "#\n"
+                      + "required_score ").print(lsa.getSpamAssassinRequiredScore()).print('\n');
                   if (integrationMode.getName().equals(SpamAssassinMode.POP3)) {
                     newOut.print("rewrite_header Subject *****SPAM*****\n");
                   }
@@ -1027,8 +1028,8 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
     private static final int NUM_LINES_RETAINED = 1000;
 
     private static final Schedule schedule =
-      (int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year)
-      -> minute == 5 && hour == 1
+        (int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year)
+            -> minute == 5 && hour == 1
     ;
 
     @Override
@@ -1076,7 +1077,7 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
                     try (
                       TempFileContext tempFileContext = new TempFileContext(razorAgentLog.getFile().getParentFile());
                       TempFile tempFile = tempFileContext.createTempFile(razorAgentLog.getFile().getName())
-                    ) {
+                        ) {
                       PosixFile tempUF = new PosixFile(tempFile.getFile());
                       try (PrintWriter out = new PrintWriter(new BufferedOutputStream(tempUF.getSecureOutputStream(uid, gid, 0644, true, uid_min, gid_min)))) {
                         while (!queuedLines.isEmpty()) {

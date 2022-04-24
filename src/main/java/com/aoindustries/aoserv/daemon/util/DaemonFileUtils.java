@@ -64,7 +64,7 @@ public final class DaemonFileUtils {
   public static void copyResource(Class<?> clazz, String resource, OutputStream out) throws IOException {
     try (InputStream in = clazz.getResourceAsStream(resource)) {
       if (in == null) {
-        throw new IOException("Unable to find resource: "+resource);
+        throw new IOException("Unable to find resource: " + resource);
       }
       IoUtils.copy(in, out);
     }
@@ -159,7 +159,7 @@ public final class DaemonFileUtils {
       }
       return modified;
     } catch (IOException e) {
-      System.err.println("ln: filename: "+uf.getPath()+"   destination: "+target);
+      System.err.println("ln: filename: " + uf.getPath() + "   destination: " + target);
       throw e;
     }
   }
@@ -169,11 +169,11 @@ public final class DaemonFileUtils {
    *
    * @return  {@code true} if any modification was made
    *
-   * @see  #ln(String,String,int,int)
+   * @see  #ln(String, String, int, int)
    */
   public static boolean lnAll(String targetBase, String srcBase, int uid, int gid) throws IOException {
     boolean modified = false;
-    String[] destinations=new PosixFile(targetBase).list();
+    String[] destinations = new PosixFile(targetBase).list();
     for (String destination : destinations) {
       if (ln(targetBase + destination, srcBase + destination, uid, gid)) {
         modified = true;
@@ -196,13 +196,13 @@ public final class DaemonFileUtils {
     for (String destination : destinations) {
       PosixFile symlink = new PosixFile(src, destination, false);
       if (
-        ln(
-          targetBase + destination,
-          symlink,
-          uid,
-          gid,
-          findUnusedBackup(symlink + backupSuffix, backupSeparator, backupExtension)
-        )
+          ln(
+              targetBase + destination,
+              symlink,
+              uid,
+              gid,
+              findUnusedBackup(symlink + backupSuffix, backupSeparator, backupExtension)
+          )
       ) {
         modified = true;
       }
@@ -222,7 +222,7 @@ public final class DaemonFileUtils {
         if (!found) {
           PosixFile backmeup = new PosixFile(src, filename, false);
           backmeup.renameTo(
-            findUnusedBackup(backmeup + backupSuffix, backupSeparator, backupExtension)
+              findUnusedBackup(backmeup + backupSuffix, backupSeparator, backupExtension)
           );
           modified = true;
         }
@@ -326,29 +326,29 @@ public final class DaemonFileUtils {
   @SuppressWarnings("try")
   public static void stripFilePrefix(PosixFile uf, String prefix, int uid_min, int gid_min) throws IOException {
     // Remove the auto warning if the site has recently become manual
-    int prefixLen=prefix.length();
+    int prefixLen = prefix.length();
     Stat ufStat = uf.getStat();
     if (ufStat.getSize() >= prefixLen) {
       try (InputStream in = new BufferedInputStream(uf.getSecureInputStream(uid_min, gid_min))) {
         StringBuilder sb = new StringBuilder(prefixLen);
         int ch;
         while (sb.length() < prefixLen && (ch = in.read()) != -1) {
-          sb.append((char)ch);
+          sb.append((char) ch);
         }
         if (sb.toString().equals(prefix)) {
           try (
             TempFileContext tempFileContext = new TempFileContext(uf.getFile().getParent());
             TempFile tempFile = tempFileContext.createTempFile(uf.getFile().getName())
-          ) {
+              ) {
             try (OutputStream out = new BufferedOutputStream(
-              new PosixFile(tempFile.getFile()).getSecureOutputStream(
-                ufStat.getUid(),
-                ufStat.getGid(),
-                ufStat.getMode(),
-                true,
-                uid_min,
-                gid_min
-              )
+                new PosixFile(tempFile.getFile()).getSecureOutputStream(
+                    ufStat.getUid(),
+                    ufStat.getGid(),
+                    ufStat.getMode(),
+                    true,
+                    uid_min,
+                    gid_min
+                )
             )) {
               IoUtils.copy(in, out);
             }
@@ -383,18 +383,18 @@ public final class DaemonFileUtils {
     boolean updated;
     Stat fileStat = file.getStat();
     if (
-      backupFile != null
-      && fileStat.exists()
-      && !fileStat.isRegularFile()
+        backupFile != null
+            && fileStat.exists()
+            && !fileStat.isRegularFile()
     ) {
       file.renameTo(backupFile);
       fileStat = Stat.NOT_EXISTS;
       updated = true;
     }
     if (
-      !fileStat.exists()
-      // TODO: Find some way to avoid race condition and redirects while not doing funny file permission changes
-      || !file.contentEquals(newContents)
+        !fileStat.exists()
+            // TODO: Find some way to avoid race condition and redirects while not doing funny file permission changes
+            || !file.contentEquals(newContents)
     ) {
       try (TempFileContext tempFileContext = new TempFileContext(file.getFile().getParentFile())) {
         PosixFile backupTemp;
@@ -431,15 +431,15 @@ public final class DaemonFileUtils {
           }
           // Set modified time
           if (
-            backupTempStat.getAccessTime() != fileStat.getAccessTime()
-            || backupTempStat.getModifyTime() != fileStat.getModifyTime()
+              backupTempStat.getAccessTime() != fileStat.getAccessTime()
+                  || backupTempStat.getModifyTime() != fileStat.getModifyTime()
           ) {
             if (logger.isLoggable(Level.FINE)) {
               logger.fine("utime " + fileStat.getAccessTime() + ' ' + fileStat.getModifyTime() + " \"" + backupTemp + '"');
             }
             backupTemp.utime(
-              fileStat.getAccessTime(),
-              fileStat.getModifyTime()
+                fileStat.getAccessTime(),
+                fileStat.getModifyTime()
             );
           }
         } else {
@@ -569,9 +569,9 @@ public final class DaemonFileUtils {
     int i = 0;
     while (++i > 0) {
       PosixFile uf = new PosixFile(
-        (i == 1)
-          ? (prefix + extension)
-          : (prefix + separator + i + extension)
+          (i == 1)
+              ? (prefix + extension)
+              : (prefix + separator + i + extension)
       );
       if (!uf.getStat().exists()) {
         return uf;

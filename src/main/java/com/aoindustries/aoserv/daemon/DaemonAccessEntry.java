@@ -39,12 +39,12 @@ public class DaemonAccessEntry {
   public final long created;
 
   public DaemonAccessEntry(
-    long key,
-    int command,
-    String param1,
-    String param2,
-    String param3,
-    String param4
+      long key,
+      int command,
+      String param1,
+      String param2,
+      String param3,
+      String param4
   ) {
     this.key = key;
     this.command = command;

@@ -93,16 +93,16 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
       PosixFile tomcatUF = new PosixFile(bin, "tomcat", false);
       PosixFile daemon = new PosixFile(siteDirectory, "daemon", false);
       if (
-        !httpdSite.isDisabled()
-        && (
-          !httpdSite.isManual()
-          // Script may not exist while in manual mode
-          || tomcatUF.getStat().exists()
-        )
+          !httpdSite.isDisabled()
+              && (
+              !httpdSite.isManual()
+                  // Script may not exist while in manual mode
+                  || tomcatUF.getStat().exists()
+          )
       ) {
         DaemonFileUtils.ln(
-          "../bin/tomcat",
-          new PosixFile(daemon, "tomcat", false), uid, gid
+            "../bin/tomcat",
+            new PosixFile(daemon, "tomcat", false), uid, gid
         );
       }
     }
@@ -178,7 +178,7 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
       // Do not include when is default "true"
       if (!tomcatStdSite.getTomcatAuthentication()) {
         out.print("      tomcatAuthentication=\"false\"\n"
-          + "      tomcatAuthorization=\"true\"\n");
+            + "      tomcatAuthorization=\"true\"\n");
       }
       out.print("    />\n"
           + "\n"
@@ -343,38 +343,38 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
     try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
       out.print(
           "Warning: This file is automatically created by VersionedTomcatStdSiteManager,\n"
-        + "which is part of HttpdManager.\n"
-        + "\n"
-        + "This file is used to detect when a new version of Tomcat has been selected.\n"
-        + "Alteration or removal of this file will trigger a major rebuild of this Tomcat\n"
-        + "installation on the next configuration verification pass.\n"
-        + "\n"
-        + "To set the Tomcat major version, please use one of the following options:\n"
-        + "\n"
-        + "Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSiteCP.ao?pkey=").print(httpdSite.getPkey()).print("\n"
-        + "\n"
-        + "AOSH: " + Command.SET_HTTPD_TOMCAT_STD_SITE_VERSION + " ").print(httpdSite.getName()).print(' ').print(httpdSite.getLinuxServer().getHostname()).print(" {series}.{major}\n"
-        + "\n"
-        + "Changing the major version will trigger a full rebuild of this Tomcat\n"
-        + "installation.  During the major rebuild, any file altered is backed-up with\n"
-        + "an extension of \".bak\".  These *.bak files will not interfere with the\n"
-        + "operation of the Tomcat installation.  Once the applications are thoroughly\n"
-        + "tested with the new major Tomcat version, the backup files may be removed with\n"
-        + "the following:\n"
-        + "\n"
-        + "find \"").print(installDir).print("\" -mindepth 1 \\( -name '*.bak' -or -path '*.bak/*' \\) -not -path '*/webapps/*' -print -delete\n"
-        + "\n"
-        + "Minor version upgrades are performed on a regular basis as updates to Tomcat\n"
-        + "become available.  A minor rebuild differs from a major rebuild in that it only\n"
-        + "touches the specific files changed in that specific minor update, which is\n"
-        + "typically only the replacement of symbolic links within the lib/ directory.\n"
-        + "\n"
-        + "support@aoindustries.com\n"
-        + "(205) 454-2556\n"
-        + "\n"
-        + "\n"
-        + "*** Change Detection ***\n"
-        + "Source: /opt/").print(apacheTomcatDir).print('\n');
+              + "which is part of HttpdManager.\n"
+              + "\n"
+              + "This file is used to detect when a new version of Tomcat has been selected.\n"
+              + "Alteration or removal of this file will trigger a major rebuild of this Tomcat\n"
+              + "installation on the next configuration verification pass.\n"
+              + "\n"
+              + "To set the Tomcat major version, please use one of the following options:\n"
+              + "\n"
+              + "Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSiteCP.ao?pkey=").print(httpdSite.getPkey()).print("\n"
+          + "\n"
+          + "AOSH: " + Command.SET_HTTPD_TOMCAT_STD_SITE_VERSION + " ").print(httpdSite.getName()).print(' ').print(httpdSite.getLinuxServer().getHostname()).print(" {series}.{major}\n"
+          + "\n"
+          + "Changing the major version will trigger a full rebuild of this Tomcat\n"
+          + "installation.  During the major rebuild, any file altered is backed-up with\n"
+          + "an extension of \".bak\".  These *.bak files will not interfere with the\n"
+          + "operation of the Tomcat installation.  Once the applications are thoroughly\n"
+          + "tested with the new major Tomcat version, the backup files may be removed with\n"
+          + "the following:\n"
+          + "\n"
+          + "find \"").print(installDir).print("\" -mindepth 1 \\( -name '*.bak' -or -path '*.bak/*' \\) -not -path '*/webapps/*' -print -delete\n"
+          + "\n"
+          + "Minor version upgrades are performed on a regular basis as updates to Tomcat\n"
+          + "become available.  A minor rebuild differs from a major rebuild in that it only\n"
+          + "touches the specific files changed in that specific minor update, which is\n"
+          + "typically only the replacement of symbolic links within the lib/ directory.\n"
+          + "\n"
+          + "support@aoindustries.com\n"
+          + "(205) 454-2556\n"
+          + "\n"
+          + "\n"
+          + "*** Change Detection ***\n"
+          + "Source: /opt/").print(apacheTomcatDir).print('\n');
     }
     return bout.toByteArray();
   }
@@ -408,10 +408,10 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
     String apacheTomcatDir = tomcatCommon.getApacheTomcatDir();
     // Update the included Tomcat
     boolean needsRestart = tomcatCommon.upgradeTomcatDirectory(
-      optSlash,
-      siteDirectory,
-      uid,
-      gid
+        optSlash,
+        siteDirectory,
+        uid,
+        gid
     );
     // Verify RELEASE-NOTES, looking for any update that doesn't change symlinks
     PosixFile newReleaseNotes = new PosixFile(siteDirectory, "RELEASE-NOTES", true);
@@ -420,10 +420,10 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
       IoUtils.copy(in, bout);
     }
     if (
-      DaemonFileUtils.atomicWrite(
-        newReleaseNotes, bout.toByteArray(), 0440, uid, gid,
-        null, null
-      )
+        DaemonFileUtils.atomicWrite(
+            newReleaseNotes, bout.toByteArray(), 0440, uid, gid,
+            null, null
+        )
     ) {
       needsRestart = true;
     }

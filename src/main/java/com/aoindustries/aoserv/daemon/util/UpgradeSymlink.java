@@ -142,9 +142,9 @@ public class UpgradeSymlink {
     }
     // Check ownership
     if (
-      newLinkStat != null
-      && newLinkStat.exists()
-      && (newLinkStat.getUid() != uid || newLinkStat.getGid() != gid)
+        newLinkStat != null
+            && newLinkStat.exists()
+            && (newLinkStat.getUid() != uid || newLinkStat.getGid() != gid)
     ) {
       assert newLink != null;
       newLink.chown(uid, gid);

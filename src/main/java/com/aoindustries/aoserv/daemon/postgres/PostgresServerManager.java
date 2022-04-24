@@ -81,6 +81,7 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
   }
 
   private static final Object rebuildLock = new Object();
+
   @Override
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
   protected boolean doRebuild() {
@@ -89,8 +90,8 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
       OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
       int osvId = osv.getPkey();
       if (
-        osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-        && osvId != OperatingSystemVersion.CENTOS_7_X86_64
+          osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+              && osvId != OperatingSystemVersion.CENTOS_7_X86_64
       ) {
         throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
       }
@@ -140,8 +141,9 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
   }
 
   private static final Map<Integer, AOConnectionPool> pools = new HashMap<>();
+
   static AOConnectionPool getPool(Server ps) throws IOException, SQLException {
-    AOServConnector connector  =AOServDaemon.getConnector();
+    AOServConnector connector  = AOServDaemon.getConnector();
     String version = ps.getVersion().getTechnologyVersion(connector).getVersion();
     synchronized (pools) {
       Integer pkeyObj = ps.getPkey();
@@ -149,36 +151,36 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
       if (pool == null) {
         Database pd = ps.getPostgresDatabase(Database.AOSERV);
         if (pd == null) {
-          throw new SQLException("Unable to find Database: " + Database.AOSERV + " on "+ps.toString());
+          throw new SQLException("Unable to find Database: " + Database.AOSERV + " on " + ps.toString());
         }
         String jdbcUrl;
         if (
-          version.startsWith(Version.VERSION_7_1 + '.')
-          || version.startsWith(Version.VERSION_7_2 + '.')
-          || version.startsWith(Version.VERSION_7_3 + '.')
-          || version.startsWith(Version.VERSION_8_1 + '.')
-          || version.startsWith(Version.VERSION_8_3 + '.')
-          || version.startsWith(Version.VERSION_8_3 + 'R')
+            version.startsWith(Version.VERSION_7_1 + '.')
+                || version.startsWith(Version.VERSION_7_2 + '.')
+                || version.startsWith(Version.VERSION_7_3 + '.')
+                || version.startsWith(Version.VERSION_8_1 + '.')
+                || version.startsWith(Version.VERSION_8_3 + '.')
+                || version.startsWith(Version.VERSION_8_3 + 'R')
         ) {
           // Connect to IP (no 127.0.0.1/::1-only support)
           jdbcUrl = pd.getJdbcUrl(true);
         } else if (
-          version.startsWith(Version.VERSION_9_4 + '.')
-          || version.startsWith(Version.VERSION_9_4 + 'R')
-          || version.startsWith(Version.VERSION_9_5 + '.')
-          || version.startsWith(Version.VERSION_9_5 + 'R')
-          || version.startsWith(Version.VERSION_9_6 + '.')
-          || version.startsWith(Version.VERSION_9_6 + 'R')
-          || version.startsWith(Version.VERSION_10 + '.')
-          || version.startsWith(Version.VERSION_10 + 'R')
-          || version.startsWith(Version.VERSION_11 + '.')
-          || version.startsWith(Version.VERSION_11 + 'R')
-          || version.startsWith(Version.VERSION_12 + '.')
-          || version.startsWith(Version.VERSION_12 + 'R')
-          || version.startsWith(Version.VERSION_13 + '.')
-          || version.startsWith(Version.VERSION_13 + 'R')
-          || version.startsWith(Version.VERSION_14 + '.')
-          || version.startsWith(Version.VERSION_14 + 'R')
+            version.startsWith(Version.VERSION_9_4 + '.')
+                || version.startsWith(Version.VERSION_9_4 + 'R')
+                || version.startsWith(Version.VERSION_9_5 + '.')
+                || version.startsWith(Version.VERSION_9_5 + 'R')
+                || version.startsWith(Version.VERSION_9_6 + '.')
+                || version.startsWith(Version.VERSION_9_6 + 'R')
+                || version.startsWith(Version.VERSION_10 + '.')
+                || version.startsWith(Version.VERSION_10 + 'R')
+                || version.startsWith(Version.VERSION_11 + '.')
+                || version.startsWith(Version.VERSION_11 + 'R')
+                || version.startsWith(Version.VERSION_12 + '.')
+                || version.startsWith(Version.VERSION_12 + 'R')
+                || version.startsWith(Version.VERSION_13 + '.')
+                || version.startsWith(Version.VERSION_13 + 'R')
+                || version.startsWith(Version.VERSION_14 + '.')
+                || version.startsWith(Version.VERSION_14 + 'R')
         ) {
           // Connect to 127.0.0.1 or ::1
           StringBuilder jdbcUrlSB = new StringBuilder();
@@ -196,25 +198,25 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
           Port port = nb.getPort();
           if (!port.equals(Server.DEFAULT_PORT)) {
             jdbcUrlSB
-              .append(':')
-              .append(port.getPort());
+                .append(':')
+                .append(port.getPort());
           }
           jdbcUrlSB
-            .append('/')
-            .append(URLEncoder.encode(pd.getName().toString(), StandardCharsets.UTF_8.name())); // Java 10: No .name()
+              .append('/')
+              .append(URLEncoder.encode(pd.getName().toString(), StandardCharsets.UTF_8.name())); // Java 10: No .name()
           jdbcUrl = jdbcUrlSB.toString();
         } else {
           throw new RuntimeException("Unexpected version of PostgreSQL: " + version);
         }
         Server.Name serverName = ps.getName();
         pool = new AOConnectionPool(
-          pd.getJdbcDriver(),
-          jdbcUrl,
-          User.POSTGRES.toString(),
-          AOServDaemonConfiguration.getPostgresPassword(serverName),
-          AOServDaemonConfiguration.getPostgresConnections(serverName),
-          AOServDaemonConfiguration.getPostgresMaxConnectionAge(serverName),
-          logger
+            pd.getJdbcDriver(),
+            jdbcUrl,
+            User.POSTGRES.toString(),
+            AOServDaemonConfiguration.getPostgresPassword(serverName),
+            AOServDaemonConfiguration.getPostgresConnections(serverName),
+            AOServDaemonConfiguration.getPostgresMaxConnectionAge(serverName),
+            logger
         );
         pools.put(pkeyObj, pool);
       }
@@ -223,6 +225,7 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
   }
 
   private static PostgresServerManager postgresServerManager;
+
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() throws IOException, SQLException {
     com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
@@ -231,19 +234,19 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
 
     synchronized (System.out) {
       if (
-        // Nothing is done for these operating systems
-        osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
-        && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-        && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-        // Check config after OS check so config entry not needed
-        && AOServDaemonConfiguration.isManagerEnabled(PostgresServerManager.class)
-        && postgresServerManager == null
+          // Nothing is done for these operating systems
+          osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+              && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+              && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+              // Check config after OS check so config entry not needed
+              && AOServDaemonConfiguration.isManagerEnabled(PostgresServerManager.class)
+              && postgresServerManager == null
       ) {
         System.out.print("Starting PostgresServerManager: ");
         // Must be a supported operating system
         if (
-          osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-          || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+            osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                || osvId == OperatingSystemVersion.CENTOS_7_X86_64
         ) {
           AOServConnector conn = AOServDaemon.getConnector();
           postgresServerManager = new PostgresServerManager();
@@ -285,7 +288,7 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
    * This task will be ran once per day at 1:30am.
    */
   private static final Schedule schedule = (int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year)
-    -> minute == 30 && hour == 1;
+      -> minute == 30 && hour == 1;
 
   @Override
   public Schedule getSchedule() {
@@ -308,12 +311,12 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
     try {
       AOServConnector conn = AOServDaemon.getConnector();
       for (Server postgresServer : AOServDaemon.getThisServer().getPostgresServers()) {
-        String version=postgresServer.getVersion().getTechnologyVersion(conn).getVersion();
+        String version = postgresServer.getVersion().getTechnologyVersion(conn).getVersion();
         if (
-          !version.startsWith(Version.VERSION_7_1 + '.')
-          && !version.startsWith(Version.VERSION_7_2 + '.')
-          && !version.startsWith(Version.VERSION_7_3 + '.')
-          && !version.startsWith(Version.VERSION_8_0 + '.')
+            !version.startsWith(Version.VERSION_7_1 + '.')
+                && !version.startsWith(Version.VERSION_7_2 + '.')
+                && !version.startsWith(Version.VERSION_7_3 + '.')
+                && !version.startsWith(Version.VERSION_8_0 + '.')
         ) {
           // Is 8.1 or newer, need to compress and rotate logs
           File logDirectory = new File("/var/opt/postgresql-" + postgresServer.getName() + "/log");
@@ -321,45 +324,45 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
           if (list != null) {
             for (String filename : list) {
               if (
-                !filename.equals("stderr")
-                && !filename.equals("stdout")
+                  !filename.equals("stderr")
+                      && !filename.equals("stdout")
               ) {
                 // Must be in postgresql-2006-02-14_011332.log format
                 // TODO: *.csv, too
                 if (
-                  filename.length() != 32
-                  || !filename.substring(0, 11).equals("postgresql-")
-                  || filename.charAt(11) < '0' || filename.charAt(11)>'9'
-                  || filename.charAt(12) < '0' || filename.charAt(12)>'9'
-                  || filename.charAt(13) < '0' || filename.charAt(13)>'9'
-                  || filename.charAt(14) < '0' || filename.charAt(14)>'9'
-                  || filename.charAt(15) != '-'
-                  || filename.charAt(16) < '0' || filename.charAt(16)>'9'
-                  || filename.charAt(17) < '0' || filename.charAt(17)>'9'
-                  || filename.charAt(18) != '-'
-                  || filename.charAt(19) < '0' || filename.charAt(19)>'9'
-                  || filename.charAt(20) < '0' || filename.charAt(20)>'9'
-                  || filename.charAt(21) != '_'
-                  || filename.charAt(22) < '0' || filename.charAt(22)>'9'
-                  || filename.charAt(23) < '0' || filename.charAt(23)>'9'
-                  || filename.charAt(24) < '0' || filename.charAt(24)>'9'
-                  || filename.charAt(25) < '0' || filename.charAt(25)>'9'
-                  || filename.charAt(26) < '0' || filename.charAt(26)>'9'
-                  || filename.charAt(27) < '0' || filename.charAt(27)>'9'
-                  || filename.charAt(28) != '.'
-                  || (
-                    !(
-                      // *.log
-                      filename.charAt(29) == 'l'
-                      || filename.charAt(30) == 'o'
-                      || filename.charAt(31) == 'g'
-                    ) && !(
-                      // *.csv
-                      filename.charAt(29) == 'c'
-                      || filename.charAt(30) == 's'
-                      || filename.charAt(31) == 'v'
+                    filename.length() != 32
+                        || !filename.substring(0, 11).equals("postgresql-")
+                        || filename.charAt(11) < '0' || filename.charAt(11) > '9'
+                        || filename.charAt(12) < '0' || filename.charAt(12) > '9'
+                        || filename.charAt(13) < '0' || filename.charAt(13) > '9'
+                        || filename.charAt(14) < '0' || filename.charAt(14) > '9'
+                        || filename.charAt(15) != '-'
+                        || filename.charAt(16) < '0' || filename.charAt(16) > '9'
+                        || filename.charAt(17) < '0' || filename.charAt(17) > '9'
+                        || filename.charAt(18) != '-'
+                        || filename.charAt(19) < '0' || filename.charAt(19) > '9'
+                        || filename.charAt(20) < '0' || filename.charAt(20) > '9'
+                        || filename.charAt(21) != '_'
+                        || filename.charAt(22) < '0' || filename.charAt(22) > '9'
+                        || filename.charAt(23) < '0' || filename.charAt(23) > '9'
+                        || filename.charAt(24) < '0' || filename.charAt(24) > '9'
+                        || filename.charAt(25) < '0' || filename.charAt(25) > '9'
+                        || filename.charAt(26) < '0' || filename.charAt(26) > '9'
+                        || filename.charAt(27) < '0' || filename.charAt(27) > '9'
+                        || filename.charAt(28) != '.'
+                        || (
+                        !(
+                            // *.log
+                            filename.charAt(29) == 'l'
+                                || filename.charAt(30) == 'o'
+                                || filename.charAt(31) == 'g'
+                        ) && !(
+                            // *.csv
+                            filename.charAt(29) == 'c'
+                                || filename.charAt(30) == 's'
+                                || filename.charAt(31) == 'v'
+                        )
                     )
-                  )
                 ) {
                   logger.log(Level.WARNING, null, new IOException("Warning, unexpected filename, will not remove: " + logDirectory.getPath() + "/" + filename));
                 } else {

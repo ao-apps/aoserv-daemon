@@ -70,16 +70,16 @@ public final class FirewalldManager extends BuilderThread {
    * The zones for SSH, used as a fail-safe if SSH not added to any zone.
    */
   private static final Set<FirewallZone.Name> sshFailsafeZones = Collections.unmodifiableSet(
-    new LinkedHashSet<>(
-      Arrays.asList(
-        FirewallZone.DMZ,
-        FirewallZone.EXTERNAL,
-        FirewallZone.HOME,
-        FirewallZone.INTERNAL,
-        FirewallZone.PUBLIC,
-        FirewallZone.WORK
+      new LinkedHashSet<>(
+          Arrays.asList(
+              FirewallZone.DMZ,
+              FirewallZone.EXTERNAL,
+              FirewallZone.HOME,
+              FirewallZone.INTERNAL,
+              FirewallZone.PUBLIC,
+              FirewallZone.WORK
+          )
       )
-    )
   );
 
   private static FirewalldManager firewalldManager;
@@ -97,13 +97,13 @@ public final class FirewalldManager extends BuilderThread {
     // Assume can access self
     if (!ip.isLoopback()) {
       targets.add(
-        new Target(
-          InetAddressPrefix.valueOf(
-            ip,
-            ip.isUnspecified() ? 0 : ip.getAddressFamily().getMaxPrefix()
-          ),
-          nb.getPort()
-        )
+          new Target(
+              InetAddressPrefix.valueOf(
+                  ip,
+                  ip.isUnspecified() ? 0 : ip.getAddressFamily().getMaxPrefix()
+              ),
+              nb.getPort()
+          )
       );
       zones.addAll(nb.getFirewalldZoneNames());
       firewalldNetBinds.add(nb);
@@ -117,7 +117,7 @@ public final class FirewalldManager extends BuilderThread {
     }
     if (size == 1) {
       return Collections.singleton(
-        firewalldZones.iterator().next().toString()
+          firewalldZones.iterator().next().toString()
       );
     }
     Set<String> strings = AoCollections.newLinkedHashSet(size);
@@ -144,6 +144,7 @@ public final class FirewalldManager extends BuilderThread {
   }
 
   private static final Object rebuildLock = new Object();
+
   @Override
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
   protected boolean doRebuild() {
@@ -155,9 +156,9 @@ public final class FirewalldManager extends BuilderThread {
 
       synchronized (rebuildLock) {
         if (
-          osvId == OperatingSystemVersion.CENTOS_7_X86_64
-          // Manage firewalld only when installed
-          && PackageManager.getInstalledPackage(PackageManager.PackageName.FIREWALLD) != null
+            osvId == OperatingSystemVersion.CENTOS_7_X86_64
+                // Manage firewalld only when installed
+                && PackageManager.getInstalledPackage(PackageManager.PackageName.FIREWALLD) != null
         ) {
           List<Bind> netBinds = thisHost.getNetBinds();
           if (logger.isLoggable(Level.FINE)) {
@@ -189,18 +190,18 @@ public final class FirewalldManager extends BuilderThread {
                 logger.warning("ssh does not have any zones, using fail-safe zones: " + sshFailsafeZones);
               }
               serviceSets.add(
-                new Tuple2<>(
-                  serviceSet,
-                  sshFailsafeZones
-                )
+                  new Tuple2<>(
+                      serviceSet,
+                      sshFailsafeZones
+                  )
               );
             } else {
               warnZoneMismatch(zones, firewalldNetBinds);
               serviceSets.add(
-                new Tuple2<>(
-                  serviceSet,
-                  zones
-                )
+                  new Tuple2<>(
+                      serviceSet,
+                      zones
+                  )
               );
             }
           }
@@ -212,8 +213,8 @@ public final class FirewalldManager extends BuilderThread {
             for (Bind nb : netBinds) {
               String appProtocol = nb.getAppProtocol().getProtocol();
               if (
-                appProtocol.equals(AppProtocol.AOSERV_DAEMON)
-                || appProtocol.equals(AppProtocol.AOSERV_DAEMON_SSL)
+                  appProtocol.equals(AppProtocol.AOSERV_DAEMON)
+                      || appProtocol.equals(AppProtocol.AOSERV_DAEMON_SSL)
               ) {
                 addTarget(nb, targets, zones, firewalldNetBinds);
               }
@@ -223,10 +224,10 @@ public final class FirewalldManager extends BuilderThread {
             }
             warnZoneMismatch(zones, firewalldNetBinds);
             serviceSets.add(
-              new Tuple2<>(
-                ServiceSet.createOptimizedServiceSet("aoserv-daemon", targets),
-                zones
-              )
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet("aoserv-daemon", targets),
+                    zones
+                )
             );
           }
           // AOServ Master
@@ -237,8 +238,8 @@ public final class FirewalldManager extends BuilderThread {
             for (Bind nb : netBinds) {
               String appProtocol = nb.getAppProtocol().getProtocol();
               if (
-                appProtocol.equals(AppProtocol.AOSERV_MASTER)
-                || appProtocol.equals(AppProtocol.AOSERV_MASTER_SSL)
+                  appProtocol.equals(AppProtocol.AOSERV_MASTER)
+                      || appProtocol.equals(AppProtocol.AOSERV_MASTER_SSL)
               ) {
                 addTarget(nb, targets, zones, firewalldNetBinds);
               }
@@ -251,10 +252,10 @@ public final class FirewalldManager extends BuilderThread {
             Service template = Service.loadSystemService("aoserv-master");
             if (template != null) {
               serviceSets.add(
-                new Tuple2<>(
-                  ServiceSet.createOptimizedServiceSet(template, targets),
-                  zones
-                )
+                  new Tuple2<>(
+                      ServiceSet.createOptimizedServiceSet(template, targets),
+                      zones
+                  )
               );
             } else if (!targets.isEmpty()) {
               // Has net binds but no firewalld system service
@@ -276,27 +277,27 @@ public final class FirewalldManager extends BuilderThread {
             }
             warnZoneMismatch(zones, firewalldNetBinds);
             serviceSets.add(
-              new Tuple2<>(
-                ServiceSet.createOptimizedServiceSet(
-                  new Service(
-                    "named",
-                    null,
-                    "named",
-                    "Berkeley Internet Name Domain (DNS)",
-                    Arrays.asList(
-                      Port.valueOf(53, Protocol.TCP),
-                      Port.valueOf(53, Protocol.UDP)
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet(
+                        new Service(
+                            "named",
+                            null,
+                            "named",
+                            "Berkeley Internet Name Domain (DNS)",
+                            Arrays.asList(
+                                Port.valueOf(53, Protocol.TCP),
+                                Port.valueOf(53, Protocol.UDP)
+                            ),
+                            Collections.emptySet(), // protocols
+                            Collections.emptySet(), // sourcePorts
+                            Collections.emptySet(), // modules
+                            InetAddressPrefixes.UNSPECIFIED_IPV4,
+                            InetAddressPrefixes.UNSPECIFIED_IPV6
+                        ),
+                        targets
                     ),
-                    Collections.emptySet(), // protocols
-                    Collections.emptySet(), // sourcePorts
-                    Collections.emptySet(), // modules
-                    InetAddressPrefixes.UNSPECIFIED_IPV4,
-                    InetAddressPrefixes.UNSPECIFIED_IPV6
-                  ),
-                  targets
-                ),
-                zones
-              )
+                    zones
+                )
             );
           }
           // HTTP
@@ -314,10 +315,10 @@ public final class FirewalldManager extends BuilderThread {
             }
             warnZoneMismatch(zones, firewalldNetBinds);
             serviceSets.add(
-              new Tuple2<>(
-                ServiceSet.createOptimizedServiceSet("http", targets),
-                zones
-              )
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet("http", targets),
+                    zones
+                )
             );
           }
           // HTTPS
@@ -335,10 +336,10 @@ public final class FirewalldManager extends BuilderThread {
             }
             warnZoneMismatch(zones, firewalldNetBinds);
             serviceSets.add(
-              new Tuple2<>(
-                ServiceSet.createOptimizedServiceSet("https", targets),
-                zones
-              )
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet("https", targets),
+                    zones
+                )
             );
           }
           // IMAP
@@ -356,10 +357,10 @@ public final class FirewalldManager extends BuilderThread {
             }
             warnZoneMismatch(zones, firewalldNetBinds);
             serviceSets.add(
-              new Tuple2<>(
-                ServiceSet.createOptimizedServiceSet("imap", targets),
-                zones
-              )
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet("imap", targets),
+                    zones
+                )
             );
           }
           // IMAPS
@@ -377,10 +378,10 @@ public final class FirewalldManager extends BuilderThread {
             }
             warnZoneMismatch(zones, firewalldNetBinds);
             serviceSets.add(
-              new Tuple2<>(
-                ServiceSet.createOptimizedServiceSet("imaps", targets),
-                zones
-              )
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet("imaps", targets),
+                    zones
+                )
             );
           }
           // Memcached
@@ -400,10 +401,10 @@ public final class FirewalldManager extends BuilderThread {
             Service template = Service.loadSystemService("memcached");
             if (template != null) {
               serviceSets.add(
-                new Tuple2<>(
-                  ServiceSet.createOptimizedServiceSet(template, targets),
-                  zones
-                )
+                  new Tuple2<>(
+                      ServiceSet.createOptimizedServiceSet(template, targets),
+                      zones
+                  )
               );
             } else if (!targets.isEmpty()) {
               // Has net binds but no firewalld system service
@@ -425,10 +426,10 @@ public final class FirewalldManager extends BuilderThread {
             }
             warnZoneMismatch(zones, firewalldNetBinds);
             serviceSets.add(
-              new Tuple2<>(
-                ServiceSet.createOptimizedServiceSet("mysql", targets),
-                zones
-              )
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet("mysql", targets),
+                    zones
+                )
             );
           }
           // POP3
@@ -446,10 +447,10 @@ public final class FirewalldManager extends BuilderThread {
             }
             warnZoneMismatch(zones, firewalldNetBinds);
             serviceSets.add(
-              new Tuple2<>(
-                ServiceSet.createOptimizedServiceSet("pop3", targets),
-                zones
-              )
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet("pop3", targets),
+                    zones
+                )
             );
           }
           // POP3S
@@ -467,10 +468,10 @@ public final class FirewalldManager extends BuilderThread {
             }
             warnZoneMismatch(zones, firewalldNetBinds);
             serviceSets.add(
-              new Tuple2<>(
-                ServiceSet.createOptimizedServiceSet("pop3s", targets),
-                zones
-              )
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet("pop3s", targets),
+                    zones
+                )
             );
           }
           // PostgreSQL
@@ -488,10 +489,10 @@ public final class FirewalldManager extends BuilderThread {
             }
             warnZoneMismatch(zones, firewalldNetBinds);
             serviceSets.add(
-              new Tuple2<>(
-                ServiceSet.createOptimizedServiceSet("postgresql", targets),
-                zones
-              )
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet("postgresql", targets),
+                    zones
+                )
             );
           }
           // Redis
@@ -509,26 +510,26 @@ public final class FirewalldManager extends BuilderThread {
             }
             warnZoneMismatch(zones, firewalldNetBinds);
             serviceSets.add(
-              new Tuple2<>(
-                ServiceSet.createOptimizedServiceSet(
-                  new Service(
-                    "redis",
-                    null,
-                    "Redis",
-                    "Redis client data port",
-                    Collections.singletonList(
-                      Port.valueOf(6379, Protocol.TCP)
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet(
+                        new Service(
+                            "redis",
+                            null,
+                            "Redis",
+                            "Redis client data port",
+                            Collections.singletonList(
+                                Port.valueOf(6379, Protocol.TCP)
+                            ),
+                            Collections.emptySet(), // protocols
+                            Collections.emptySet(), // sourcePorts
+                            Collections.emptySet(), // modules
+                            InetAddressPrefixes.UNSPECIFIED_IPV4,
+                            InetAddressPrefixes.UNSPECIFIED_IPV6
+                        ),
+                        targets
                     ),
-                    Collections.emptySet(), // protocols
-                    Collections.emptySet(), // sourcePorts
-                    Collections.emptySet(), // modules
-                    InetAddressPrefixes.UNSPECIFIED_IPV4,
-                    InetAddressPrefixes.UNSPECIFIED_IPV6
-                  ),
-                  targets
-                ),
-                zones
-              )
+                    zones
+                )
             );
           }
           // Redis Cluster
@@ -546,26 +547,26 @@ public final class FirewalldManager extends BuilderThread {
             }
             warnZoneMismatch(zones, firewalldNetBinds);
             serviceSets.add(
-              new Tuple2<>(
-                ServiceSet.createOptimizedServiceSet(
-                  new Service(
-                    "redis-cluster",
-                    null,
-                    "Redis Cluster bus",
-                    "Redis Cluster node-to-node communication",
-                    Collections.singletonList(
-                      Port.valueOf(16379, Protocol.TCP)
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet(
+                        new Service(
+                            "redis-cluster",
+                            null,
+                            "Redis Cluster bus",
+                            "Redis Cluster node-to-node communication",
+                            Collections.singletonList(
+                                Port.valueOf(16379, Protocol.TCP)
+                            ),
+                            Collections.emptySet(), // protocols
+                            Collections.emptySet(), // sourcePorts
+                            Collections.emptySet(), // modules
+                            InetAddressPrefixes.UNSPECIFIED_IPV4,
+                            InetAddressPrefixes.UNSPECIFIED_IPV6
+                        ),
+                        targets
                     ),
-                    Collections.emptySet(), // protocols
-                    Collections.emptySet(), // sourcePorts
-                    Collections.emptySet(), // modules
-                    InetAddressPrefixes.UNSPECIFIED_IPV4,
-                    InetAddressPrefixes.UNSPECIFIED_IPV6
-                  ),
-                  targets
-                ),
-                zones
-              )
+                    zones
+                )
             );
           }
           // Redis Sentinel
@@ -583,26 +584,26 @@ public final class FirewalldManager extends BuilderThread {
             }
             warnZoneMismatch(zones, firewalldNetBinds);
             serviceSets.add(
-              new Tuple2<>(
-                ServiceSet.createOptimizedServiceSet(
-                  new Service(
-                    "redis-sentinel",
-                    null,
-                    "Redis Sentinel",
-                    "Redis Sentinel node-to-node communication",
-                    Collections.singletonList(
-                      Port.valueOf(26379, Protocol.TCP)
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet(
+                        new Service(
+                            "redis-sentinel",
+                            null,
+                            "Redis Sentinel",
+                            "Redis Sentinel node-to-node communication",
+                            Collections.singletonList(
+                                Port.valueOf(26379, Protocol.TCP)
+                            ),
+                            Collections.emptySet(), // protocols
+                            Collections.emptySet(), // sourcePorts
+                            Collections.emptySet(), // modules
+                            InetAddressPrefixes.UNSPECIFIED_IPV4,
+                            InetAddressPrefixes.UNSPECIFIED_IPV6
+                        ),
+                        targets
                     ),
-                    Collections.emptySet(), // protocols
-                    Collections.emptySet(), // sourcePorts
-                    Collections.emptySet(), // modules
-                    InetAddressPrefixes.UNSPECIFIED_IPV4,
-                    InetAddressPrefixes.UNSPECIFIED_IPV6
-                  ),
-                  targets
-                ),
-                zones
-              )
+                    zones
+                )
             );
           }
           // SMTP
@@ -621,10 +622,10 @@ public final class FirewalldManager extends BuilderThread {
             }
             warnZoneMismatch(zones, firewalldNetBinds);
             serviceSets.add(
-              new Tuple2<>(
-                ServiceSet.createOptimizedServiceSet("smtp", targets),
-                zones
-              )
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet("smtp", targets),
+                    zones
+                )
             );
           }
           // SMTPS
@@ -642,10 +643,10 @@ public final class FirewalldManager extends BuilderThread {
             }
             warnZoneMismatch(zones, firewalldNetBinds);
             serviceSets.add(
-              new Tuple2<>(
-                ServiceSet.createOptimizedServiceSet("smtps", targets),
-                zones
-              )
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet("smtps", targets),
+                    zones
+                )
             );
           }
           // SUBMISSION
@@ -664,26 +665,26 @@ public final class FirewalldManager extends BuilderThread {
             }
             warnZoneMismatch(zones, firewalldNetBinds);
             serviceSets.add(
-              new Tuple2<>(
-                ServiceSet.createOptimizedServiceSet(
-                  new Service(
-                    "submission",
-                    null,
-                    "submission",
-                    "Outgoing SMTP Mail",
-                    Collections.singletonList(
-                      Port.valueOf(587, Protocol.TCP)
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet(
+                        new Service(
+                            "submission",
+                            null,
+                            "submission",
+                            "Outgoing SMTP Mail",
+                            Collections.singletonList(
+                                Port.valueOf(587, Protocol.TCP)
+                            ),
+                            Collections.emptySet(), // protocols
+                            Collections.emptySet(), // sourcePorts
+                            Collections.emptySet(), // modules
+                            InetAddressPrefixes.UNSPECIFIED_IPV4,
+                            InetAddressPrefixes.UNSPECIFIED_IPV6
+                        ),
+                        targets
                     ),
-                    Collections.emptySet(), // protocols
-                    Collections.emptySet(), // sourcePorts
-                    Collections.emptySet(), // modules
-                    InetAddressPrefixes.UNSPECIFIED_IPV4,
-                    InetAddressPrefixes.UNSPECIFIED_IPV6
-                  ),
-                  targets
-                ),
-                zones
-              )
+                    zones
+                )
             );
           }
           // vnc-server
@@ -701,10 +702,10 @@ public final class FirewalldManager extends BuilderThread {
             }
             warnZoneMismatch(zones, firewalldNetBinds);
             serviceSets.add(
-              new Tuple2<>(
-                ServiceSet.createOptimizedServiceSet("vnc-server", targets),
-                zones
-              )
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet("vnc-server", targets),
+                    zones
+                )
             );
           }
           // Group service sets by unique set of targets
@@ -741,13 +742,13 @@ public final class FirewalldManager extends BuilderThread {
     int osvId = osv.getPkey();
     synchronized (System.out) {
       if (
-        osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
-        && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-        && osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-        && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-        // Check config after OS check so config entry not needed
-        && AOServDaemonConfiguration.isManagerEnabled(FirewalldManager.class)
-        && firewalldManager == null
+          osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+              && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+              && osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+              && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+              // Check config after OS check so config entry not needed
+              && AOServDaemonConfiguration.isManagerEnabled(FirewalldManager.class)
+              && firewalldManager == null
       ) {
         System.out.print("Starting FirewalldManager: ");
         // Must be a supported operating system

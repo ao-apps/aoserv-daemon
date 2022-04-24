@@ -93,54 +93,54 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
     final int gid = lsg.getGid().getId();
     final User.Name laUsername = lsa.getLinuxAccount_username_id();
     final Group.Name laGroupname = lsg.getLinuxGroup().getName();
-    final String siteName=httpdSite.getName();
+    final String siteName = httpdSite.getName();
 
     /*
      * Create the skeleton of the site, the directories and links.
      */
     DaemonFileUtils.mkdir(new PosixFile(siteDirectory, "bin", false), 0770, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/conf", 0775, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/daemon", 0770, uid, gid);
-    DaemonFileUtils.ln("webapps/"+Context.ROOT_DOC_BASE, siteDir+"/htdocs", uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/lib", 0770, uid, gid);
-    DaemonFileUtils.ln("var/log", siteDir+"/logs", uid, gid);
-    DaemonFileUtils.ln("webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/classes", siteDir+"/servlet", uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/var", 0770, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/var/log", 0770, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/var/run", 0770, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/webapps", 0775, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/conf", 0775, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/daemon", 0770, uid, gid);
+    DaemonFileUtils.ln("webapps/" + Context.ROOT_DOC_BASE, siteDir + "/htdocs", uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/lib", 0770, uid, gid);
+    DaemonFileUtils.ln("var/log", siteDir + "/logs", uid, gid);
+    DaemonFileUtils.ln("webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/classes", siteDir + "/servlet", uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/var", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/var/log", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/var/run", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/webapps", 0775, uid, gid);
 
     String templateDir = jbossSite.getHttpdJBossVersion().getTemplateDirectory();
     File f = new File(templateDir);
     String[] contents = f.list();
-    String[] command = new String[contents.length+3];
+    String[] command = new String[contents.length + 3];
     command[0] = "/bin/cp";
     command[1] = "-rdp";
-    command[command.length-1] = siteDir;
-    for (int i = 0; i < contents.length; i++) command[i+2] = templateDir+"/"+contents[i];
+    command[command.length - 1] = siteDir;
+    for (int i = 0; i < contents.length; i++) command[i + 2] = templateDir + "/" + contents[i];
     AOServDaemon.exec(command);
     // chown
     AOServDaemon.exec(
-      "/bin/chown",
-      "-R",
-      laUsername.toString(),
-      siteDir+"/jboss",
-      siteDir+"/bin",
-      siteDir+"/lib",
-      siteDir+"/daemon"
+        "/bin/chown",
+        "-R",
+        laUsername.toString(),
+        siteDir + "/jboss",
+        siteDir + "/bin",
+        siteDir + "/lib",
+        siteDir + "/daemon"
     );
     // chgrp
     AOServDaemon.exec(
-      "/bin/chgrp",
-      "-R",
-      laGroupname.toString(),
-      siteDir+"/jboss",
-      siteDir+"/bin",
-      siteDir+"/lib",
-      siteDir+"/daemon"
+        "/bin/chgrp",
+        "-R",
+        laGroupname.toString(),
+        siteDir + "/jboss",
+        siteDir + "/bin",
+        siteDir + "/lib",
+        siteDir + "/daemon"
     );
 
-    String jbossConfDir = siteDir+"/jboss/conf/tomcat";
+    String jbossConfDir = siteDir + "/jboss/conf/tomcat";
     File f2 = new File(jbossConfDir);
     String[] f2contents = f2.list();
 
@@ -156,40 +156,40 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
           case 3: command3[1] = "5555"; command3[2] = String.valueOf(jbossSite.getHypersonicBind().getPort().getPort()); break;
           case 4: command3[1] = "6666"; command3[2] = String.valueOf(jbossSite.getJmxBind().getPort().getPort()); break;
         }
-        command3[4] = jbossConfDir+"/"+f2content;
+        command3[4] = jbossConfDir + "/" + f2content;
         AOServDaemon.exec(command3);
       }
     }
     AOServDaemon.exec(
-      replaceCommand.toString(),
-      "site_name",
-      siteName,
-      "--",
-      siteDir+"/bin/jboss",
-      siteDir+"/bin/profile.jboss",
-      siteDir+"/bin/profile.user"
+        replaceCommand.toString(),
+        "site_name",
+        siteName,
+        "--",
+        siteDir + "/bin/jboss",
+        siteDir + "/bin/profile.jboss",
+        siteDir + "/bin/profile.user"
     );
-    DaemonFileUtils.ln(".", siteDir+"/tomcat", uid, gid);
+    DaemonFileUtils.ln(".", siteDir + "/tomcat", uid, gid);
 
-    DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE, 0775, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/META-INF", 0775, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF", 0775, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/cocoon", 0770, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/conf", 0770, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/work", 0750, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE, 0775, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/META-INF", 0775, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF", 0775, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/classes", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/cocoon", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/conf", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/lib", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/work", 0750, uid, gid);
 
     /*
      * Set up the bash profile source
      */
-    String profileFile=siteDir+"/bin/profile.jboss";
+    String profileFile = siteDir + "/bin/profile.jboss";
     LinuxAccountManager.setBashProfile(lsa, profileFile);
 
     /*
      * The classes directory
      */
-    DaemonFileUtils.mkdir(siteDir+"/classes", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/classes", 0770, uid, gid);
 
     Server thisServer = AOServDaemon.getThisServer();
     int uid_min = thisServer.getUidMin().getId();
@@ -197,149 +197,149 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
     /*
      * Write the manifest.servlet file.
      */
-    String confManifestServlet=siteDir+"/conf/manifest.servlet";
+    String confManifestServlet = siteDir + "/conf/manifest.servlet";
     try (
       ChainWriter out = new ChainWriter(
-        new BufferedOutputStream(
-          new PosixFile(confManifestServlet).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+            new BufferedOutputStream(
+                new PosixFile(confManifestServlet).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+            )
         )
-      )
-    ) {
+        ) {
       out.print("Manifest-version: 1.0\n"
-            + "Name: javax/servlet\n"
-            + "Sealed: true\n"
-            + "Specification-Title: \"Java Servlet API\"\n"
-            + "Specification-Version: \"2.1.1\"\n"
-            + "Specification-Vendor: \"Sun Microsystems, Inc.\"\n"
-            + "Implementation-Title: \"javax.servlet\"\n"
-            + "Implementation-Version: \"2.1.1\"\n"
-            + "Implementation-Vendor: \"Sun Microsystems, Inc.\"\n"
-            + "\n"
-            + "Name: javax/servlet/http\n"
-            + "Sealed: true\n"
-            + "Specification-Title: \"Java Servlet API\"\n"
-            + "Specification-Version: \"2.1.1\"\n"
-            + "Specification-Vendor: \"Sun Microsystems, Inc.\"\n"
-            + "Implementation-Title: \"javax.servlet\"\n"
-            + "Implementation-Version: \"2.1.1\"\n"
-            + "Implementation-Vendor: \"Sun Microsystems, Inc.\"\n"
-            );
+          + "Name: javax/servlet\n"
+          + "Sealed: true\n"
+          + "Specification-Title: \"Java Servlet API\"\n"
+          + "Specification-Version: \"2.1.1\"\n"
+          + "Specification-Vendor: \"Sun Microsystems, Inc.\"\n"
+          + "Implementation-Title: \"javax.servlet\"\n"
+          + "Implementation-Version: \"2.1.1\"\n"
+          + "Implementation-Vendor: \"Sun Microsystems, Inc.\"\n"
+          + "\n"
+          + "Name: javax/servlet/http\n"
+          + "Sealed: true\n"
+          + "Specification-Title: \"Java Servlet API\"\n"
+          + "Specification-Version: \"2.1.1\"\n"
+          + "Specification-Vendor: \"Sun Microsystems, Inc.\"\n"
+          + "Implementation-Title: \"javax.servlet\"\n"
+          + "Implementation-Version: \"2.1.1\"\n"
+          + "Implementation-Vendor: \"Sun Microsystems, Inc.\"\n"
+      );
     }
 
     /*
      * Create the conf/server.dtd file.
      */
-    String confServerDTD=siteDir+"/conf/server.dtd";
+    String confServerDTD = siteDir + "/conf/server.dtd";
     try (
       ChainWriter out = new ChainWriter(
-        new BufferedOutputStream(
-          new PosixFile(confServerDTD).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+            new BufferedOutputStream(
+                new PosixFile(confServerDTD).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+            )
         )
-      )
-    ) {
+        ) {
       out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
-            + "\n"
-            + "<!ELEMENT Host (ContextManager+)>\n"
-            + "<!ATTLIST Host\n"
-            + "    adminPort NMTOKEN \"-1\"\n"
-            + "    workDir CDATA \"work\">\n"
-            + "\n"
-            + "<!ELEMENT ContextManager (Context+, Interceptor*, Connector+)>\n"
-            + "<!ATTLIST ContextManager\n"
-            + "    port NMTOKEN \"8080\"\n"
-            + "    hostName NMTOKEN \"\"\n"
-            + "    inet NMTOKEN \"\">\n"
-            + "\n"
-            + "<!ELEMENT Context EMPTY>\n"
-            + "<!ATTLIST Context\n"
-            + "    path CDATA #REQUIRED\n"
-            + "    docBase CDATA #REQUIRED\n"
-            + "    defaultSessionTimeOut NMTOKEN \"30\"\n"
-            + "    isWARExpanded (true | false) \"true\"\n"
-            + "    isWARValidated (false | true) \"false\"\n"
-            + "    isInvokerEnabled (true | false) \"true\"\n"
-            + "    isWorkDirPersistent (false | true) \"false\">\n"
-            + "\n"
-            + "<!ELEMENT Interceptor EMPTY>\n"
-            + "<!ATTLIST Interceptor\n"
-            + "    className NMTOKEN #REQUIRED\n"
-            + "    docBase   CDATA #REQUIRED>\n"
-            + "\n"
-            + "<!ELEMENT Connector (Parameter*)>\n"
-            + "<!ATTLIST Connector\n"
-            + "    className NMTOKEN #REQUIRED>\n"
-            + "\n"
-            + "<!ELEMENT Parameter EMPTY>\n"
-            + "<!ATTLIST Parameter\n"
-            + "    name CDATA #REQUIRED\n"
-            + "    value CDATA \"\">\n"
-            );
+          + "\n"
+          + "<!ELEMENT Host (ContextManager+)>\n"
+          + "<!ATTLIST Host\n"
+          + "    adminPort NMTOKEN \"-1\"\n"
+          + "    workDir CDATA \"work\">\n"
+          + "\n"
+          + "<!ELEMENT ContextManager (Context+, Interceptor*, Connector+)>\n"
+          + "<!ATTLIST ContextManager\n"
+          + "    port NMTOKEN \"8080\"\n"
+          + "    hostName NMTOKEN \"\"\n"
+          + "    inet NMTOKEN \"\">\n"
+          + "\n"
+          + "<!ELEMENT Context EMPTY>\n"
+          + "<!ATTLIST Context\n"
+          + "    path CDATA #REQUIRED\n"
+          + "    docBase CDATA #REQUIRED\n"
+          + "    defaultSessionTimeOut NMTOKEN \"30\"\n"
+          + "    isWARExpanded (true | false) \"true\"\n"
+          + "    isWARValidated (false | true) \"false\"\n"
+          + "    isInvokerEnabled (true | false) \"true\"\n"
+          + "    isWorkDirPersistent (false | true) \"false\">\n"
+          + "\n"
+          + "<!ELEMENT Interceptor EMPTY>\n"
+          + "<!ATTLIST Interceptor\n"
+          + "    className NMTOKEN #REQUIRED\n"
+          + "    docBase   CDATA #REQUIRED>\n"
+          + "\n"
+          + "<!ELEMENT Connector (Parameter*)>\n"
+          + "<!ATTLIST Connector\n"
+          + "    className NMTOKEN #REQUIRED>\n"
+          + "\n"
+          + "<!ELEMENT Parameter EMPTY>\n"
+          + "<!ATTLIST Parameter\n"
+          + "    name CDATA #REQUIRED\n"
+          + "    value CDATA \"\">\n"
+      );
     }
 
     /*
      * Create the test-tomcat.xml file.
      */
-    tomcatCommon.createTestTomcatXml(siteDir+"/conf", uid, gid, 0660, uid_min, gid_min);
+    tomcatCommon.createTestTomcatXml(siteDir + "/conf", uid, gid, 0660, uid_min, gid_min);
 
     /*
      * Create the tomcat-users.xml file
      */
-    String confTomcatUsers=siteDir+"/conf/tomcat-users.xml";
+    String confTomcatUsers = siteDir + "/conf/tomcat-users.xml";
     try (
       ChainWriter out = new ChainWriter(
-        new BufferedOutputStream(
-          new PosixFile(confTomcatUsers).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+            new BufferedOutputStream(
+                new PosixFile(confTomcatUsers).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+            )
         )
-      )
-    ) {
+        ) {
       tomcatCommon.printTomcatUsers(out);
     }
 
     /*
      * Create the web.dtd file.
      */
-    tomcatCommon.createWebDtd(siteDir+"/conf", uid, gid, 0660, uid_min, gid_min);
+    tomcatCommon.createWebDtd(siteDir + "/conf", uid, gid, 0660, uid_min, gid_min);
 
     /*
      * Create the web.xml file.
      */
-    tomcatCommon.createWebXml(siteDir+"/conf", uid, gid, 0660, uid_min, gid_min);
+    tomcatCommon.createWebXml(siteDir + "/conf", uid, gid, 0660, uid_min, gid_min);
 
     /*
      * Create the empty log files.
      */
     for (String tomcatLogFile : TomcatCommon_3_X.tomcatLogFiles) {
-      String filename = siteDir+"/var/log/" + tomcatLogFile;
+      String filename = siteDir + "/var/log/" + tomcatLogFile;
       new PosixFile(filename).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min).close();
     }
 
     /*
      * Create the manifest file.
      */
-    String manifestFile=siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/META-INF/MANIFEST.MF";
+    String manifestFile = siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/META-INF/MANIFEST.MF";
     try (
       ChainWriter out = new ChainWriter(
-        new PosixFile(manifestFile).getSecureOutputStream(
-          uid,
-          gid,
-          0664,
-          false,
-          uid_min,
-          gid_min
+            new PosixFile(manifestFile).getSecureOutputStream(
+                uid,
+                gid,
+                0664,
+                false,
+                uid_min,
+                gid_min
+            )
         )
-      )
-    ) {
+        ) {
       out.print("Manifest-Version: 1.0");
     }
 
     /*
      * Write the cocoon.properties file.
      */
-    String cocoonProps=siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/conf/cocoon.properties";
+    String cocoonProps = siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/conf/cocoon.properties";
     try (OutputStream fileOut = new BufferedOutputStream(new PosixFile(cocoonProps).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min))) {
       tomcatCommon.copyCocoonProperties1(fileOut);
       try (ChainWriter out = new ChainWriter(fileOut)) {
-        out.print("processor.xsp.repository = ").print(siteDir).print("/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/cocoon\n");
+        out.print("processor.xsp.repository = ").print(siteDir).print("/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/cocoon\n");
         out.flush();
         tomcatCommon.copyCocoonProperties2(fileOut);
       }
@@ -348,39 +348,39 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
     /*
      * Write the ROOT/WEB-INF/web.xml file.
      */
-    String webXML=siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/web.xml";
+    String webXML = siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/web.xml";
     try (
       ChainWriter out = new ChainWriter(
-        new BufferedOutputStream(
-          new PosixFile(webXML).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
+            new BufferedOutputStream(
+                new PosixFile(webXML).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
+            )
         )
-      )
-    ) {
+        ) {
       out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
-            + "\n"
-            + "<!DOCTYPE web-app\n"
-            + "    PUBLIC \"-//Sun Microsystems, Inc.//DTD Web Application 2.2//EN\"\n"
-            + "    \"http://java.sun.com/j2ee/dtds/web-app_2.2.dtd\">\n"
-            + "\n"
-            + "<web-app>\n"
-            + "\n"
-            + " <servlet>\n"
-            + "  <servlet-name>org.apache.cocoon.Cocoon</servlet-name>\n"
-            + "  <servlet-class>org.apache.cocoon.Cocoon</servlet-class>\n"
-            + "  <init-param>\n"
-            + "   <param-name>properties</param-name>\n"
-            + "   <param-value>\n"
-            + "    WEB-INF/conf/cocoon.properties\n"
-            + "   </param-value>\n"
-            + "  </init-param>\n"
-            + " </servlet>\n"
-            + "\n"
-            + " <servlet-mapping>\n"
-            + "  <servlet-name>org.apache.cocoon.Cocoon</servlet-name>\n"
-            + "  <url-pattern>*.xml</url-pattern>\n"
-            + " </servlet-mapping>\n"
-            + "\n"
-            + "</web-app>\n");
+          + "\n"
+          + "<!DOCTYPE web-app\n"
+          + "    PUBLIC \"-//Sun Microsystems, Inc.//DTD Web Application 2.2//EN\"\n"
+          + "    \"http://java.sun.com/j2ee/dtds/web-app_2.2.dtd\">\n"
+          + "\n"
+          + "<web-app>\n"
+          + "\n"
+          + " <servlet>\n"
+          + "  <servlet-name>org.apache.cocoon.Cocoon</servlet-name>\n"
+          + "  <servlet-class>org.apache.cocoon.Cocoon</servlet-class>\n"
+          + "  <init-param>\n"
+          + "   <param-name>properties</param-name>\n"
+          + "   <param-value>\n"
+          + "    WEB-INF/conf/cocoon.properties\n"
+          + "   </param-value>\n"
+          + "  </init-param>\n"
+          + " </servlet>\n"
+          + "\n"
+          + " <servlet-mapping>\n"
+          + "  <servlet-name>org.apache.cocoon.Cocoon</servlet-name>\n"
+          + "  <url-pattern>*.xml</url-pattern>\n"
+          + " </servlet-mapping>\n"
+          + "\n"
+          + "</web-app>\n");
     }
   }
 
@@ -413,18 +413,18 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
     PosixFile daemonUF = new PosixFile(siteDirectory, "daemon", false);
     PosixFile daemonSymlink = new PosixFile(daemonUF, "jboss", false);
     if (
-      !httpdSite.isDisabled()
-      && (
-        !httpdSite.isManual()
-        // Script may not exist while in manual mode
-        || jbossUF.getStat().exists()
-      )
+        !httpdSite.isDisabled()
+            && (
+            !httpdSite.isManual()
+                // Script may not exist while in manual mode
+                || jbossUF.getStat().exists()
+        )
     ) {
       // Enabled
       if (!daemonSymlink.getStat().exists()) {
         daemonSymlink.symLink("../bin/jboss").chown(
-          httpdSite.getLinuxServerAccount().getUid().getId(),
-          httpdSite.getLinuxServerGroup().getGid().getId()
+            httpdSite.getLinuxServerAccount().getUid().getId(),
+            httpdSite.getLinuxServerGroup().getGid().getId()
         );
       }
     } else {
@@ -471,8 +471,8 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
           + "    <ContextInterceptor className=\"org.apache.tomcat.context.LoadOnStartupInterceptor\" />\n");
 
       for (Worker worker : tomcatSite.getHttpdWorkers()) {
-        Bind netBind=worker.getBind();
-        String protocol=worker.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol();
+        Bind netBind = worker.getBind();
+        String protocol = worker.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol();
 
         out.print("    <Connector className=\"org.apache.tomcat.service.PoolTcpConnector\">\n"
             + "      <Parameter name=\"handler\" value=\"");
@@ -484,11 +484,11 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
             out.print("org.apache.tomcat.service.connector.Ajp13ConnectionHandler");
             break;
           default:
-            throw new IllegalArgumentException("Unknown AJP version: "+htv);
+            throw new IllegalArgumentException("Unknown AJP version: " + htv);
         }
         out.print("\"/>\n"
             + "      <Parameter name=\"port\" value=\"").textInXmlAttribute(netBind.getPort().getPort()).print("\"/>\n");
-        InetAddress ip=netBind.getIpAddress().getInetAddress();
+        InetAddress ip = netBind.getIpAddress().getInetAddress();
         if (!ip.isUnspecified()) {
           out.print("      <Parameter name=\"inet\" value=\"").textInXmlAttribute(ip).print("\"/>\n");
         }
@@ -513,9 +513,9 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
     boolean needsRestart = false;
     PosixFile conf = new PosixFile(siteDir + "/conf");
     if (
-      !httpdSite.isManual()
-      // conf directory may not exist while in manual mode
-      || conf.getStat().exists()
+        !httpdSite.isManual()
+            // conf directory may not exist while in manual mode
+            || conf.getStat().exists()
     ) {
       // Rebuild the server.xml
       String autoWarning = getAutoWarningXml();
@@ -529,15 +529,15 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
       if (!httpdSite.isManual() || !confServerXML.getStat().exists()) {
         // Only write to the actual file when missing or changed
         if (
-          DaemonFileUtils.atomicWrite(
-            confServerXML,
-            buildServerXml(siteDirectory, autoWarning),
-            0660,
-            httpdSite.getLinuxServerAccount().getUid().getId(),
-            httpdSite.getLinuxServerGroup().getGid().getId(),
-            null,
-            restorecon
-          )
+            DaemonFileUtils.atomicWrite(
+                confServerXML,
+                buildServerXml(siteDirectory, autoWarning),
+                0660,
+                httpdSite.getLinuxServerAccount().getUid().getId(),
+                httpdSite.getLinuxServerGroup().getGid().getId(),
+                null,
+                restorecon
+            )
         ) {
           // Flag as needing restarted
           needsRestart = true;
@@ -545,16 +545,16 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
       } else {
         try {
           DaemonFileUtils.stripFilePrefix(
-            confServerXML,
-            autoWarningOld,
-            uid_min,
-            gid_min
+              confServerXML,
+              autoWarningOld,
+              uid_min,
+              gid_min
           );
           DaemonFileUtils.stripFilePrefix(
-            confServerXML,
-            autoWarning,
-            uid_min,
-            gid_min
+              confServerXML,
+              autoWarning,
+              uid_min,
+              gid_min
           );
         } catch (IOException err) {
           // Errors OK because this is done in manual mode and they might have symbolic linked stuff

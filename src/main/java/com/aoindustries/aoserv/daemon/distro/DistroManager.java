@@ -112,8 +112,8 @@ public final class DistroManager implements Runnable {
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() {
     if (
-      AOServDaemonConfiguration.isManagerEnabled(DistroManager.class)
-      && thread == null
+        AOServDaemonConfiguration.isManagerEnabled(DistroManager.class)
+            && thread == null
     ) {
       synchronized (System.out) {
         if (thread == null) {
@@ -159,12 +159,12 @@ public final class DistroManager implements Runnable {
           logger.finer("lastDistroTime=" + lastDistroTime);
         }
         if (
-          runNow
-          || lastDistroTime == null
-          // Last time in the future, assume system time changed and run now
-          || lastDistroTime.getTime() > distroStartTime
-          // Has been at least 12 hours since the last run
-          || (distroStartTime - lastDistroTime.getTime()) >= 12L * 60 * 60 * 1000
+            runNow
+                || lastDistroTime == null
+                // Last time in the future, assume system time changed and run now
+                || lastDistroTime.getTime() > distroStartTime
+                // Has been at least 12 hours since the last run
+                || (distroStartTime - lastDistroTime.getTime()) >= 12L * 60 * 60 * 1000
         ) {
           int distroHour = thisServer.getDistroHour();
           GregorianCalendar gcal = new GregorianCalendar();
@@ -177,15 +177,15 @@ public final class DistroManager implements Runnable {
           if (runNow || currentHour == distroHour) {
             try (
               ProcessTimer timer = new ProcessTimer(
-                logger,
-                DistroManager.class.getName(),
-                "run",
-                "Distro verification taking too long",
-                "Distro Verification",
-                12L * 60 * 60 * 1000, // 12 hours
-                60L * 60 * 1000 // 1 hour
-              )
-            ) {
+                    logger,
+                    DistroManager.class.getName(),
+                    "run",
+                    "Distro verification taking too long",
+                    "Distro Verification",
+                    12L * 60 * 60 * 1000, // 12 hours
+                    60L * 60 * 1000 // 1 hour
+                )
+                ) {
               AOServDaemon.executorService.submit(timer);
 
               AOServDaemon.getThisServer().setLastDistroTime(new Timestamp(distroStartTime));
@@ -339,12 +339,15 @@ public final class DistroManager implements Runnable {
       //verboseOut.flush();
     }
   }
+
   private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, PosixPath path, String actualValue, String expectedValue) throws IOException {
     addResult(results, verboseOut, type, path, actualValue, expectedValue, null);
   }
+
   private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, PosixPath path) throws IOException {
     addResult(results, verboseOut, type, path, null, null, null);
   }
+
   private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, PosixFile file, String actualValue, String expectedValue, String recommendedAction) throws IOException {
     try {
       addResult(results, verboseOut, type, PosixPath.valueOf(file.getPath()), actualValue, expectedValue, recommendedAction);
@@ -352,6 +355,7 @@ public final class DistroManager implements Runnable {
       throw new IOException(e);
     }
   }
+
   private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, PosixFile file, String actualValue, String expectedValue) throws IOException {
     try {
       addResult(results, verboseOut, type, PosixPath.valueOf(file.getPath()), actualValue, expectedValue, null);
@@ -359,6 +363,7 @@ public final class DistroManager implements Runnable {
       throw new IOException(e);
     }
   }
+
   private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, PosixFile file) throws IOException {
     try {
       addResult(results, verboseOut, type, PosixPath.valueOf(file.getPath()), null, null, null);
@@ -371,35 +376,35 @@ public final class DistroManager implements Runnable {
     stats.startTime = System.currentTimeMillis();
     try {
       // Build the list of files that should exist
-      AOServConnector conn=AOServDaemon.getConnector();
+      AOServConnector conn = AOServDaemon.getConnector();
       DistroFileTable distroFileTable = conn.getDistribution_management().getDistroFile();
       // Getting this list provides a single, immutable, consistent snap-shot of the information
-      List<DistroFile> distroFiles=distroFileTable.getRows();
-      boolean[] foundFiles=new boolean[distroFiles.size()];
+      List<DistroFile> distroFiles = distroFileTable.getRows();
+      boolean[] foundFiles = new boolean[distroFiles.size()];
 
       // The comparator used for the searches
-      SQLComparator<Object> pathComparator=new SQLComparator<>(
-        conn,
-        new SQLExpression[] {
-          new SQLColumnValue(conn, distroFileTable.getTableSchema().getSchemaColumn(conn, DistroFile.COLUMN_PATH)),
-          new SQLColumnValue(conn, distroFileTable.getTableSchema().getSchemaColumn(conn, DistroFile.COLUMN_OPERATING_SYSTEM_VERSION))
-        },
-        new boolean[] {AOServTable.ASCENDING, AOServTable.ASCENDING}
+      SQLComparator<Object> pathComparator = new SQLComparator<>(
+          conn,
+          new SQLExpression[]{
+              new SQLColumnValue(conn, distroFileTable.getTableSchema().getSchemaColumn(conn, DistroFile.COLUMN_PATH)),
+              new SQLColumnValue(conn, distroFileTable.getTableSchema().getSchemaColumn(conn, DistroFile.COLUMN_OPERATING_SYSTEM_VERSION))
+          },
+          new boolean[]{AOServTable.ASCENDING, AOServTable.ASCENDING}
       );
 
       // Verify all the files, from the root to the lowest directory, accumulating the results in the results List
       List<DistroReportFile> results = new ArrayList<>();
       checkDistroFile(
-        AOServDaemon.getThisServer(),
-        AOServDaemon.getThisServer().getHost().getOperatingSystemVersion().getPkey(),
-        MessageDigestUtils.getSha256(),
-        distroFiles,
-        foundFiles,
-        pathComparator,
-        new PosixFile("/"),
-        results,
-        stats,
-        verboseOut
+          AOServDaemon.getThisServer(),
+          AOServDaemon.getThisServer().getHost().getOperatingSystemVersion().getPkey(),
+          MessageDigestUtils.getSha256(),
+          distroFiles,
+          foundFiles,
+          pathComparator,
+          new PosixFile("/"),
+          results,
+          stats,
+          verboseOut
       );
 
       // Add entries for all the missing files
@@ -411,8 +416,8 @@ public final class DistroManager implements Runnable {
           if (!distroFile.isOptional()) {
             PosixPath path = distroFile.getPath();
             if (
-              lastPath == null
-              || !path.toString().startsWith(lastPath.toString()+'/') // TODO: Why startsWith here, why did not add '/' before?
+                lastPath == null
+                    || !path.toString().startsWith(lastPath.toString() + '/') // TODO: Why startsWith here, why did not add '/' before?
             ) {
               addResult(results, verboseOut, DistroReportType.MISSING, path);
               lastPath = path;
@@ -447,16 +452,16 @@ public final class DistroManager implements Runnable {
    */
   //@SuppressWarnings({"unchecked"})
   private static void checkDistroFile(
-    Server thisServer,
-    Integer osVersionPKey,
-    MessageDigest digest,
-    List<DistroFile> distroFiles,
-    boolean[] foundFiles,
-    SQLComparator<Object> pathComparator,
-    PosixFile file,
-    List<DistroReportFile> results,
-    DistroReportStats stats,
-    Appendable verboseOut
+      Server thisServer,
+      Integer osVersionPKey,
+      MessageDigest digest,
+      List<DistroFile> distroFiles,
+      boolean[] foundFiles,
+      SQLComparator<Object> pathComparator,
+      PosixFile file,
+      List<DistroReportFile> results,
+      DistroReportStats stats,
+      Appendable verboseOut
   ) throws ValidationException, IOException, SQLException {
     stats.scanned++;
     stats.systemCount++;
@@ -464,10 +469,10 @@ public final class DistroManager implements Runnable {
     String name = file.getFile().getName();
     if (isHidden(name)) {
       addResult(
-        results,
-        verboseOut,
-        DistroReportType.HIDDEN,
-        file
+          results,
+          verboseOut,
+          DistroReportType.HIDDEN,
+          file
       );
     }
     // Find the matching DistroFile
@@ -475,7 +480,7 @@ public final class DistroManager implements Runnable {
     {
       // First look for exact match
       String filename = file.getPath();
-      int index = Collections.binarySearch(distroFiles, new Object[] {PosixPath.valueOf(filename), osVersionPKey}, pathComparator);
+      int index = Collections.binarySearch(distroFiles, new Object[]{PosixPath.valueOf(filename), osVersionPKey}, pathComparator);
       if (index >= 0) {
         distroFile = distroFiles.get(index);
         // Flag as found
@@ -485,8 +490,8 @@ public final class DistroManager implements Runnable {
         String hostname = thisServer.getHostname().toString();
         int pos = filename.indexOf(hostname);
         if (pos >= 0) {
-          filename = filename.substring(0, pos) + "$h" + filename.substring(pos+hostname.length());
-          index = Collections.binarySearch(distroFiles, new Object[] {PosixPath.valueOf(filename), osVersionPKey}, pathComparator);
+          filename = filename.substring(0, pos) + "$h" + filename.substring(pos + hostname.length());
+          index = Collections.binarySearch(distroFiles, new Object[]{PosixPath.valueOf(filename), osVersionPKey}, pathComparator);
           if (index >= 0) {
             distroFile = distroFiles.get(index);
             // Flag as found
@@ -506,13 +511,13 @@ public final class DistroManager implements Runnable {
     if (distroFile == null) {
       // Should not be here
       addResult(
-        results,
-        verboseOut,
-        DistroReportType.EXTRA,
-        file,
-        null,
-        null,
-        "rm '" + file + "' # " + (fileStat.isDirectory() ? "-rf" : "-f")
+          results,
+          verboseOut,
+          DistroReportType.EXTRA,
+          file,
+          null,
+          null,
+          "rm '" + file + "' # " + (fileStat.isDirectory() ? "-rf" : "-f")
       );
     } else {
       // Check owner
@@ -525,13 +530,13 @@ public final class DistroManager implements Runnable {
       int distroUID = lsa.getUid().getId();
       if (fileUID != distroUID) {
         addResult(
-          results,
-          verboseOut,
-          DistroReportType.OWNER_MISMATCH,
-          file,
-          Integer.toString(fileUID),
-          Integer.toString(distroUID),
-          "chown " + distroUID + " '" + file + '\''
+            results,
+            verboseOut,
+            DistroReportType.OWNER_MISMATCH,
+            file,
+            Integer.toString(fileUID),
+            Integer.toString(distroUID),
+            "chown " + distroUID + " '" + file + '\''
         );
       }
 
@@ -545,13 +550,13 @@ public final class DistroManager implements Runnable {
       int distroGID = lsg.getGid().getId();
       if (fileGID != distroGID) {
         addResult(
-          results,
-          verboseOut,
-          DistroReportType.GROUP_MISMATCH,
-          file,
-          Integer.toString(fileGID),
-          Integer.toString(distroGID),
-          "chgrp " + distroGID + " '" + file + '\''
+            results,
+            verboseOut,
+            DistroReportType.GROUP_MISMATCH,
+            file,
+            Integer.toString(fileGID),
+            Integer.toString(distroGID),
+            "chgrp " + distroGID + " '" + file + '\''
         );
       }
 
@@ -562,12 +567,12 @@ public final class DistroManager implements Runnable {
       long distroType = distroMode & PosixFile.TYPE_MASK;
       if (fileType != distroType) {
         addResult(
-          results,
-          verboseOut,
-          DistroReportType.TYPE,
-          file,
-          PosixFile.getModeString(fileType),
-          PosixFile.getModeString(distroType)
+            results,
+            verboseOut,
+            DistroReportType.TYPE,
+            file,
+            PosixFile.getModeString(fileType),
+            PosixFile.getModeString(distroType)
         );
       } else {
         // Permissions
@@ -575,13 +580,13 @@ public final class DistroManager implements Runnable {
         long distroPerms = distroMode & PosixFile.PERMISSION_MASK;
         if (filePerms != distroPerms) {
           addResult(
-            results,
-            verboseOut,
-            DistroReportType.PERMISSIONS,
-            file,
-            Long.toOctalString(filePerms),
-            Long.toOctalString(distroPerms),
-            "chmod " + Long.toOctalString(distroPerms) + " '" + file + '\''
+              results,
+              verboseOut,
+              DistroReportType.PERMISSIONS,
+              file,
+              Long.toOctalString(filePerms),
+              Long.toOctalString(distroPerms),
+              "chmod " + Long.toOctalString(distroPerms) + " '" + file + '\''
           );
         }
       }
@@ -594,22 +599,22 @@ public final class DistroManager implements Runnable {
           // Allow multiple destinations separated by |
           if (!Strings.split(distroLink, '|').contains(fileLink)) {
             addResult(
-              results,
-              verboseOut,
-              DistroReportType.SYMLINK,
-              file,
-              fileLink,
-              distroLink,
-              "rm -f '" + file + "'; ln -s '" + distroLink + "' '" + file + '\''
+                results,
+                verboseOut,
+                DistroReportType.SYMLINK,
+                file,
+                fileLink,
+                distroLink,
+                "rm -f '" + file + "'; ln -s '" + distroLink + "' '" + file + '\''
             );
           }
         }
       } else {
         if (
-          !fileStat.isBlockDevice()
-          && !fileStat.isCharacterDevice()
-          && !fileStat.isFifo()
-          && !fileStat.isSocket()
+            !fileStat.isBlockDevice()
+                && !fileStat.isCharacterDevice()
+                && !fileStat.isFifo()
+                && !fileStat.isSocket()
         ) {
           String type = distroFile.getType().getType();
           if (!fileStat.isDirectory()) {
@@ -622,18 +627,18 @@ public final class DistroManager implements Runnable {
                 long fileLen;
                 {
                   Tuple2<byte[], Long> result = AOServDaemon.execCall(
-                    stdout -> {
-                      try (ByteCountInputStream countIn = new ByteCountInputStream(stdout)) {
-                        return new Tuple2<>(
-                          MessageDigestUtils.hashInput(digest, countIn),
-                          // Use length of unprelinked file
-                          countIn.getCount()
-                        );
-                      }
-                    },
-                    "/usr/sbin/prelink",
-                    "--verify",
-                    file.getPath()
+                      stdout -> {
+                        try (ByteCountInputStream countIn = new ByteCountInputStream(stdout)) {
+                          return new Tuple2<>(
+                              MessageDigestUtils.hashInput(digest, countIn),
+                              // Use length of unprelinked file
+                              countIn.getCount()
+                          );
+                        }
+                      },
+                      "/usr/sbin/prelink",
+                      "--verify",
+                      file.getPath()
                   );
                   sha256 = result.getElement1();
                   fileLen = result.getElement2();
@@ -652,12 +657,12 @@ public final class DistroManager implements Runnable {
                 long distroLen = distroFile.getSize();
                 if (fileLen != distroLen) {
                   addResult(
-                    results,
-                    verboseOut,
-                    DistroReportType.LENGTH,
-                    file,
-                    Long.toString(fileLen),
-                    Long.toString(distroLen)
+                      results,
+                      verboseOut,
+                      DistroReportType.LENGTH,
+                      file,
+                      Long.toString(fileLen),
+                      Long.toString(distroLen)
                   );
                 } else {
                   long file_sha256_0 = IoUtils.bufferToLong(sha256);
@@ -669,18 +674,18 @@ public final class DistroManager implements Runnable {
                   long distro_sha256_2 = distroFile.getFileSha256_2();
                   long distro_sha256_3 = distroFile.getFileSha256_3();
                   if (
-                    file_sha256_0 != distro_sha256_0
-                    || file_sha256_1 != distro_sha256_1
-                    || file_sha256_2 != distro_sha256_2
-                    || file_sha256_3 != distro_sha256_3
+                      file_sha256_0 != distro_sha256_0
+                          || file_sha256_1 != distro_sha256_1
+                          || file_sha256_2 != distro_sha256_2
+                          || file_sha256_3 != distro_sha256_3
                   ) {
                     addResult(
-                      results,
-                      verboseOut,
-                      DistroReportType.DIGEST,
-                      file,
-                      MessageDigestUtils.getHexChars(file_sha256_0, file_sha256_1, file_sha256_2, file_sha256_3),
-                      MessageDigestUtils.getHexChars(distro_sha256_0, distro_sha256_1, distro_sha256_2, distro_sha256_3)
+                        results,
+                        verboseOut,
+                        DistroReportType.DIGEST,
+                        file,
+                        MessageDigestUtils.getHexChars(file_sha256_0, file_sha256_1, file_sha256_2, file_sha256_3),
+                        MessageDigestUtils.getHexChars(distro_sha256_0, distro_sha256_1, distro_sha256_2, distro_sha256_3)
                     );
                   }
                 }
@@ -707,12 +712,12 @@ public final class DistroManager implements Runnable {
                 long distroLen = distroFile.getSize();
                 if (fileLen != distroLen) {
                   addResult(
-                    results,
-                    verboseOut,
-                    DistroReportType.LENGTH,
-                    file,
-                    Long.toString(fileLen),
-                    Long.toString(distroLen)
+                      results,
+                      verboseOut,
+                      DistroReportType.LENGTH,
+                      file,
+                      Long.toString(fileLen),
+                      Long.toString(distroLen)
                   );
                 } else {
                   // SHA-256
@@ -743,18 +748,18 @@ public final class DistroManager implements Runnable {
                   long distro_sha256_2 = distroFile.getFileSha256_2();
                   long distro_sha256_3 = distroFile.getFileSha256_3();
                   if (
-                    file_sha256_0 != distro_sha256_0
-                    || file_sha256_1 != distro_sha256_1
-                    || file_sha256_2 != distro_sha256_2
-                    || file_sha256_3 != distro_sha256_3
+                      file_sha256_0 != distro_sha256_0
+                          || file_sha256_1 != distro_sha256_1
+                          || file_sha256_2 != distro_sha256_2
+                          || file_sha256_3 != distro_sha256_3
                   ) {
                     addResult(
-                      results,
-                      verboseOut,
-                      DistroReportType.DIGEST,
-                      file,
-                      MessageDigestUtils.getHexChars(file_sha256_0, file_sha256_1, file_sha256_2, file_sha256_3),
-                      MessageDigestUtils.getHexChars(distro_sha256_0, distro_sha256_1, distro_sha256_2, distro_sha256_3)
+                        results,
+                        verboseOut,
+                        DistroReportType.DIGEST,
+                        file,
+                        MessageDigestUtils.getHexChars(file_sha256_0, file_sha256_1, file_sha256_2, file_sha256_3),
+                        MessageDigestUtils.getHexChars(distro_sha256_0, distro_sha256_1, distro_sha256_2, distro_sha256_3)
                     );
                   }
 
@@ -801,27 +806,27 @@ public final class DistroManager implements Runnable {
                   int len = list.length;
                   if (len >= DIRECTORY_LENGTH_WARNING) {
                     addResult(
-                      results,
-                      verboseOut,
-                      DistroReportType.BIG_DIRECTORY,
-                      file,
-                      null,
-                      null,
-                      len + " >= " + DIRECTORY_LENGTH_WARNING
+                        results,
+                        verboseOut,
+                        DistroReportType.BIG_DIRECTORY,
+                        file,
+                        null,
+                        null,
+                        len + " >= " + DIRECTORY_LENGTH_WARNING
                     );
                   }
                   for (int c = 0; c < len; c++) {
                     checkDistroFile(
-                      thisServer,
-                      osVersionPKey,
-                      digest,
-                      distroFiles,
-                      foundFiles,
-                      pathComparator,
-                      new PosixFile(file, list[c], false),
-                      results,
-                      stats,
-                      verboseOut
+                        thisServer,
+                        osVersionPKey,
+                        digest,
+                        distroFiles,
+                        foundFiles,
+                        pathComparator,
+                        new PosixFile(file, list[c], false),
+                        results,
+                        stats,
+                        verboseOut
                     );
                   }
                 }
@@ -834,11 +839,11 @@ public final class DistroManager implements Runnable {
   }
 
   private static void checkUserDirectory(
-    Server thisServer,
-    PosixFile file,
-    List<DistroReportFile> results,
-    DistroReportStats stats,
-    Appendable verboseOut
+      Server thisServer,
+      PosixFile file,
+      List<DistroReportFile> results,
+      DistroReportStats stats,
+      Appendable verboseOut
   ) throws IOException, SQLException {
     String[] list = file.list();
     if (list != null) {
@@ -846,13 +851,13 @@ public final class DistroManager implements Runnable {
       int len = list.length;
       if (len >= DIRECTORY_LENGTH_WARNING) {
         addResult(
-          results,
-          verboseOut,
-          DistroReportType.BIG_DIRECTORY,
-          file,
-          null,
-          null,
-          len + " >= " + DIRECTORY_LENGTH_WARNING
+            results,
+            verboseOut,
+            DistroReportType.BIG_DIRECTORY,
+            file,
+            null,
+            null,
+            len + " >= " + DIRECTORY_LENGTH_WARNING
         );
       }
       for (int c = 0; c < len; c++) {
@@ -865,10 +870,10 @@ public final class DistroManager implements Runnable {
             // Check for ...
             if (isHidden(name)) {
               addResult(
-                results,
-                verboseOut,
-                DistroReportType.HIDDEN,
-                uf
+                  results,
+                  verboseOut,
+                  DistroReportType.HIDDEN,
+                  uf
               );
             }
 
@@ -879,12 +884,12 @@ public final class DistroManager implements Runnable {
             int uid = ufStat.getUid();
             if (thisServer.getLinuxServerAccount(LinuxId.valueOf(uid)) == null) {
               addResult(
-                results,
-                verboseOut,
-                DistroReportType.NO_OWNER,
-                uf,
-                Integer.toString(uid),
-                null
+                  results,
+                  verboseOut,
+                  DistroReportType.NO_OWNER,
+                  uf,
+                  Integer.toString(uid),
+                  null
               );
             }
 
@@ -892,23 +897,23 @@ public final class DistroManager implements Runnable {
             int gid = ufStat.getGid();
             if (thisServer.getLinuxServerGroup(LinuxId.valueOf(gid)) == null) {
               addResult(
-                results,
-                verboseOut,
-                DistroReportType.NO_GROUP,
-                uf,
-                Integer.toString(gid),
-                null
+                  results,
+                  verboseOut,
+                  DistroReportType.NO_GROUP,
+                  uf,
+                  Integer.toString(gid),
+                  null
               );
             }
 
             // Make sure not setUID or setGID
             long fileMode = ufStat.getMode();
             if (
-              (fileMode & (PosixFile.SET_UID | PosixFile.SET_GID)) != 0
-              && (
-                uid < thisServer.getUidMin().getId()
-                || gid < thisServer.getGidMin().getId()
-              )
+                (fileMode & (PosixFile.SET_UID | PosixFile.SET_GID)) != 0
+                    && (
+                    uid < thisServer.getUidMin().getId()
+                        || gid < thisServer.getGidMin().getId()
+                )
             ) {
               // Allow setUID for /etc/mail/majordomo/*/wrapper 4750 root.mail
               final String MAJORDOMO_PATH = "/etc/mail/majordomo/";
@@ -919,10 +924,10 @@ public final class DistroManager implements Runnable {
                 if (pos != -1) {
                   String fname = filename.substring(pos + 1);
                   if (
-                    fname.equals("wrapper")
-                    && fileMode == 04750
-                    && ufStat.getUid() == PosixFile.ROOT_UID
-                    && thisServer.getLinuxServerGroup(LinuxId.valueOf(ufStat.getGid())).getLinuxGroup().getName().equals(Group.MAIL)
+                      fname.equals("wrapper")
+                          && fileMode == 04750
+                          && ufStat.getUid() == PosixFile.ROOT_UID
+                          && thisServer.getLinuxServerGroup(LinuxId.valueOf(ufStat.getGid())).getLinuxGroup().getName().equals(Group.MAIL)
                   ) {
                     found = true;
                   }
@@ -930,12 +935,12 @@ public final class DistroManager implements Runnable {
               }
               if (!found) {
                 addResult(
-                  results,
-                  verboseOut,
-                  DistroReportType.SETUID,
-                  uf,
-                  Long.toOctalString(fileMode),
-                  null
+                    results,
+                    verboseOut,
+                    DistroReportType.SETUID,
+                    uf,
+                    Long.toOctalString(fileMode),
+                    null
                 );
               }
             }
@@ -983,9 +988,9 @@ public final class DistroManager implements Runnable {
     try (IntStream codePoints = name.codePoints()) {
       for (int ch : codePoints.toArray()) {
         if (
-          ch > ' '
-          && !Character.isSpaceChar(ch)
-          && !Character.isWhitespace(ch)
+            ch > ' '
+                && !Character.isSpaceChar(ch)
+                && !Character.isWhitespace(ch)
         ) {
           return false;
         }
@@ -1000,15 +1005,15 @@ public final class DistroManager implements Runnable {
   private static boolean isHidden(String name) {
     int ch;
     return
-      name.startsWith("...")
-      || (
-        name.startsWith("..")
-        && (
-          (ch = name.codePointAt(2)) <= ' '
-          || Character.isSpaceChar(ch)
-          || Character.isWhitespace(ch)
-        )
-      ) || allSpace(name)
+        name.startsWith("...")
+            || (
+            name.startsWith("..")
+                && (
+                (ch = name.codePointAt(2)) <= ' '
+                    || Character.isSpaceChar(ch)
+                    || Character.isWhitespace(ch)
+            )
+        ) || allSpace(name)
     ;
   }
 
@@ -1036,20 +1041,37 @@ public final class DistroManager implements Runnable {
       retVal = SysExits.EX_DATAERR;
     } finally {
       out.println("Time");
-      out.print("  Start.....: "); out.println(new Date(stats.startTime).toString());
-      out.print("  End.......: "); out.println(new Date(stats.endTime).toString());
-      out.print("  Duration..: "); out.println(Strings.getDecimalTimeLengthString(stats.endTime - stats.startTime));
+      out.print("  Start.....: ");
+      out.println(new Date(stats.startTime).toString());
+      out.print("  End.......: ");
+      out.println(new Date(stats.endTime).toString());
+      out.print("  Duration..: ");
+      out.println(Strings.getDecimalTimeLengthString(stats.endTime - stats.startTime));
       out.println("Scan");
-      out.print("  Total.....: "); out.println(stats.scanned);
-      out.print("  System....: "); out.println(stats.systemCount);
-      out.print("  User......: "); out.println(stats.userCount);
-      out.print("  No Recurse: "); out.println(stats.noRecurseCount);
+      out.print("  Total.....: ");
+      out.println(stats.scanned);
+      out.print("  System....: ");
+      out.println(stats.systemCount);
+      out.print("  User......: ");
+      out.println(stats.userCount);
+      out.print("  No Recurse: ");
+      out.println(stats.noRecurseCount);
       out.println("Prelink Verify");
-      out.print("  Files.....: "); out.println(stats.prelinkFiles);
-      out.print("  Bytes.....: "); out.print(stats.prelinkBytes); out.print(" ("); out.print(Strings.getApproximateSize(stats.prelinkBytes)); out.println(')');
+      out.print("  Files.....: ");
+      out.println(stats.prelinkFiles);
+      out.print("  Bytes.....: ");
+      out.print(stats.prelinkBytes);
+      out.print(" (");
+      out.print(Strings.getApproximateSize(stats.prelinkBytes));
+      out.println(')');
       out.println("SHA-256");
-      out.print("  Files.....: "); out.println(stats.sha256Files);
-      out.print("  Bytes.....: "); out.print(stats.sha256Bytes); out.print(" ("); out.print(Strings.getApproximateSize(stats.sha256Bytes)); out.println(')');
+      out.print("  Files.....: ");
+      out.println(stats.sha256Files);
+      out.print("  Bytes.....: ");
+      out.print(stats.sha256Bytes);
+      out.print(" (");
+      out.print(Strings.getApproximateSize(stats.sha256Bytes));
+      out.println(')');
     }
     if (retVal != 0) {
       System.exit(retVal);

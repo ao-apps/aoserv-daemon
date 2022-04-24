@@ -113,8 +113,8 @@ public class AOServerEnvironment extends PosixFileEnvironment {
         replicatedMySQLServers.add(name);
         replicatedMySQLMinorVersions.add(minorVersion);
         if (isDebug) {
-          _logger.logp(Level.FINE, getClass().getName(), "init", "runFailoverCopy to "+toServer+", replicatedMySQLServer: "+name);
-          _logger.logp(Level.FINE, getClass().getName(), "init", "runFailoverCopy to "+toServer+", replicatedMySQLMinorVersion: "+minorVersion);
+          _logger.logp(Level.FINE, getClass().getName(), "init", "runFailoverCopy to " + toServer + ", replicatedMySQLServer: " + name);
+          _logger.logp(Level.FINE, getClass().getName(), "init", "runFailoverCopy to " + toServer + ", replicatedMySQLMinorVersion: " + minorVersion);
         }
       }
       synchronized (replicatedMySQLServerses) {
@@ -154,13 +154,13 @@ public class AOServerEnvironment extends PosixFileEnvironment {
     final short retention = ffr.getRetention().getDays();
     final OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     final int osvId = osv.getPkey();
-    final Map<String, FilesystemIteratorRule> filesystemRules=new HashMap<>();
+    final Map<String, FilesystemIteratorRule> filesystemRules = new HashMap<>();
     if (
-      osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
-      && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-      && osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-      && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-      && osvId != OperatingSystemVersion.CENTOS_7_X86_64
+        osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+            && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+            && osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+            && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+            && osvId != OperatingSystemVersion.CENTOS_7_X86_64
     ) {
       throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
     }
@@ -172,16 +172,16 @@ public class AOServerEnvironment extends PosixFileEnvironment {
     filesystemRules.put("/boot/.journal", FilesystemIteratorRule.SKIP);
     filesystemRules.put("/boot/lost+found", FilesystemIteratorRule.SKIP);
     if (
-      osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
-      || osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-      || osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+        osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
+            || osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+            || osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
     ) {
       filesystemRules.put("/dev/log", FilesystemIteratorRule.SKIP);
       filesystemRules.put("/dev/pts/", FilesystemIteratorRule.SKIP);
       filesystemRules.put("/dev/shm/", FilesystemIteratorRule.SKIP);
     } else if (
-      osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-      || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+        osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+            || osvId == OperatingSystemVersion.CENTOS_7_X86_64
     ) {
       // /dev is mounted devtmpfs now
       filesystemRules.put("/dev/", FilesystemIteratorRule.SKIP);
@@ -196,52 +196,52 @@ public class AOServerEnvironment extends PosixFileEnvironment {
     }
 
     filesystemRules.put(
-      "/ao/",
-      new FileExistsRule(
-        new String[] {"/ao.aes128.img", "/ao.aes256.img", "/ao.copy.aes128.img", "/ao.copy.aes256.img"},
-        FilesystemIteratorRule.SKIP,
-        FilesystemIteratorRule.OK
-      )
+        "/ao/",
+        new FileExistsRule(
+            new String[]{"/ao.aes128.img", "/ao.aes256.img", "/ao.copy.aes128.img", "/ao.copy.aes256.img"},
+            FilesystemIteratorRule.SKIP,
+            FilesystemIteratorRule.OK
+        )
     );
     filesystemRules.put(
-      "/ao.copy/",
-      new FileExistsRule(
-        new String[] {"/ao.aes128.img", "/ao.aes256.img", "/ao.copy.aes128.img", "/ao.copy.aes256.img"},
-        FilesystemIteratorRule.SKIP,
-        FilesystemIteratorRule.OK
-      )
+        "/ao.copy/",
+        new FileExistsRule(
+            new String[]{"/ao.aes128.img", "/ao.aes256.img", "/ao.copy.aes128.img", "/ao.copy.aes256.img"},
+            FilesystemIteratorRule.SKIP,
+            FilesystemIteratorRule.OK
+        )
     );
     filesystemRules.put(
-      "/encrypted/",
-      new FileExistsRule(
-        new String[] {"/encrypted.aes128.img", "/encrypted.aes256.img"},
-        FilesystemIteratorRule.SKIP,
-        FilesystemIteratorRule.OK
-      )
+        "/encrypted/",
+        new FileExistsRule(
+            new String[]{"/encrypted.aes128.img", "/encrypted.aes256.img"},
+            FilesystemIteratorRule.SKIP,
+            FilesystemIteratorRule.OK
+        )
     );
     filesystemRules.put(
-      "/home/",
-      new FileExistsRule(
-        new String[] {"/home.aes128.img", "/home.aes256.img"},
-        FilesystemIteratorRule.SKIP,
-        FilesystemIteratorRule.OK
-      )
+        "/home/",
+        new FileExistsRule(
+            new String[]{"/home.aes128.img", "/home.aes256.img"},
+            FilesystemIteratorRule.SKIP,
+            FilesystemIteratorRule.OK
+        )
     );
     filesystemRules.put(
-      "/logs/",
-      new FileExistsRule(
-        new String[] {"/logs.aes128.img", "/logs.aes256.img"},
-        FilesystemIteratorRule.SKIP,
-        FilesystemIteratorRule.OK
-      )
+        "/logs/",
+        new FileExistsRule(
+            new String[]{"/logs.aes128.img", "/logs.aes256.img"},
+            FilesystemIteratorRule.SKIP,
+            FilesystemIteratorRule.OK
+        )
     );
     filesystemRules.put("/lost+found", FilesystemIteratorRule.SKIP);
     filesystemRules.put("/mnt/cdrom", FilesystemIteratorRule.SKIP);
     filesystemRules.put("/mnt/floppy", FilesystemIteratorRule.SKIP);
     filesystemRules.put("/proc/", FilesystemIteratorRule.SKIP);
     if (
-      osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-      || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+        osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+            || osvId == OperatingSystemVersion.CENTOS_7_X86_64
     ) {
       // /run is mounted tmpfs
       filesystemRules.put("/run/", FilesystemIteratorRule.SKIP);
@@ -259,23 +259,23 @@ public class AOServerEnvironment extends PosixFileEnvironment {
     // filesystemRules.put("/var/backups/", FilesystemIteratorRule.SKIP); // CentOS 7 /var/backups is a default
     filesystemRules.put("/var/failover/", FilesystemIteratorRule.SKIP);
     filesystemRules.put(
-      CvsRepository.DEFAULT_CVS_DIRECTORY + "/",
-      new FileExistsRule(
-        new String[] {
-          CvsRepository.DEFAULT_CVS_DIRECTORY + ".aes128.img",
-          CvsRepository.DEFAULT_CVS_DIRECTORY + ".aes256.img"
-        },
-        FilesystemIteratorRule.SKIP,
-        FilesystemIteratorRule.OK
-      )
+        CvsRepository.DEFAULT_CVS_DIRECTORY + "/",
+        new FileExistsRule(
+            new String[]{
+                CvsRepository.DEFAULT_CVS_DIRECTORY + ".aes128.img",
+                CvsRepository.DEFAULT_CVS_DIRECTORY + ".aes256.img"
+            },
+            FilesystemIteratorRule.SKIP,
+            FilesystemIteratorRule.OK
+        )
     );
     filesystemRules.put(
-      "/var/git/",
-      new FileExistsRule(
-        new String[] {"/var/git.aes128.img", "/var/git.aes256.img"},
-        FilesystemIteratorRule.SKIP,
-        FilesystemIteratorRule.OK
-      )
+        "/var/git/",
+        new FileExistsRule(
+            new String[]{"/var/git.aes128.img", "/var/git.aes256.img"},
+            FilesystemIteratorRule.SKIP,
+            FilesystemIteratorRule.OK
+        )
     );
     filesystemRules.put("/var/lib/fail2ban/fail2ban.sqlite3", FilesystemIteratorRule.SKIP);
     filesystemRules.put("/var/lib/mysql/.journal", FilesystemIteratorRule.SKIP);
@@ -292,8 +292,8 @@ public class AOServerEnvironment extends PosixFileEnvironment {
       } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
         // Skip /var/lib/mysql/tmp/(name)/
         filesystemRules.put(
-          "/var/lib/mysql/tmp/" + mysqlServer.getName() + "/",
-          FilesystemIteratorRule.SKIP
+            "/var/lib/mysql/tmp/" + mysqlServer.getName() + "/",
+            FilesystemIteratorRule.SKIP
         );
       } else {
         throw new SQLException("Server found on unexpected operating system: " + osv);
@@ -314,19 +314,19 @@ public class AOServerEnvironment extends PosixFileEnvironment {
       }
     }
     if (
-      osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-      || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+        osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+            || osvId == OperatingSystemVersion.CENTOS_7_X86_64
     ) {
       // /var/lib/nfs/rpc_pipefs is mounted sunrpc
       filesystemRules.put("/var/lib/nfs/rpc_pipefs", FilesystemIteratorRule.SKIP);
     }
     filesystemRules.put(
-      "/var/lib/pgsql/",
-      new FileExistsRule(
-        new String[] {"/var/lib/pgsql.aes128.img", "/var/lib/pgsql.aes256.img"},
-        FilesystemIteratorRule.SKIP,
-        FilesystemIteratorRule.OK
-      )
+        "/var/lib/pgsql/",
+        new FileExistsRule(
+            new String[]{"/var/lib/pgsql.aes128.img", "/var/lib/pgsql.aes256.img"},
+            FilesystemIteratorRule.SKIP,
+            FilesystemIteratorRule.OK
+        )
     );
     filesystemRules.put("/var/lib/pgsql/.journal", FilesystemIteratorRule.SKIP);
     filesystemRules.put("/var/lib/pgsql/lost+found", FilesystemIteratorRule.SKIP); // TODO: just iterate all mounts points and exclude lost+found instead?
@@ -417,28 +417,28 @@ public class AOServerEnvironment extends PosixFileEnvironment {
     filesystemRules.put("/var/run/xtables.lock", FilesystemIteratorRule.SKIP);
     filesystemRules.put("/var/run/xvfb.pid", FilesystemIteratorRule.SKIP);
     filesystemRules.put(
-      "/var/spool/",
-      new FileExistsRule(
-        new String[] {"/var/spool.aes128.img", "/var/spool.aes256.img"},
-        FilesystemIteratorRule.SKIP,
-        FilesystemIteratorRule.OK
-      )
+        "/var/spool/",
+        new FileExistsRule(
+            new String[]{"/var/spool.aes128.img", "/var/spool.aes256.img"},
+            FilesystemIteratorRule.SKIP,
+            FilesystemIteratorRule.OK
+        )
     );
-    if (retention>1) {
+    if (retention > 1) {
       filesystemRules.put("/var/spool/clientmqueue/", FilesystemIteratorRule.SKIP);
     }
     filesystemRules.put("/var/spool/clientmqueue/sm-client.pid", FilesystemIteratorRule.SKIP);
-    if (retention>1) {
+    if (retention > 1) {
       filesystemRules.put("/var/spool/mqueue/", FilesystemIteratorRule.SKIP);
     }
     filesystemRules.put("/var/tmp/", FilesystemIteratorRule.SKIP);
     filesystemRules.put(
-      "/www/",
-      new FileExistsRule(
-        new String[] {"/www.aes128.img", "/www.aes256.img"},
-        FilesystemIteratorRule.SKIP,
-        FilesystemIteratorRule.OK
-      )
+        "/www/",
+        new FileExistsRule(
+            new String[]{"/www.aes128.img", "/www.aes256.img"},
+            FilesystemIteratorRule.SKIP,
+            FilesystemIteratorRule.OK
+        )
     );
     filesystemRules.put("/www/.journal", FilesystemIteratorRule.SKIP);
     filesystemRules.put("/www/aquota.group", FilesystemIteratorRule.SKIP);

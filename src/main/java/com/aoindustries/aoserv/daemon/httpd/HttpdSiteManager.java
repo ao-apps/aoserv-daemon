@@ -88,20 +88,20 @@ public abstract class HttpdSiteManager {
    * </p>
    */
   private static final Set<String> keepWwwDirs = new HashSet<>(Arrays.asList(
-    "disabled", // Provided by aoserv-httpd-site-disabled package
-    // CentOS 5 only
-    "cache", // nginx only?
-    "fastcgi",
-    "error",
-    "icons",
-    // CentOS 7
-    "cgi-bin",
-    "html",
-    "mrtg",
-    // Other filesystem patterns
-    "lost+found",
-    "aquota.group",
-    "aquota.user"
+      "disabled", // Provided by aoserv-httpd-site-disabled package
+      // CentOS 5 only
+      "cache", // nginx only?
+      "fastcgi",
+      "error",
+      "icons",
+      // CentOS 7
+      "cgi-bin",
+      "html",
+      "mrtg",
+      // Other filesystem patterns
+      "lost+found",
+      "aquota.group",
+      "aquota.user"
   ));
 
   /**
@@ -127,17 +127,17 @@ public abstract class HttpdSiteManager {
    * Gets the specific manager for one type of web site.
    */
   public static HttpdSiteManager getInstance(Site site) throws IOException, SQLException {
-    StaticSite staticSite=site.getHttpdStaticSite();
+    StaticSite staticSite = site.getHttpdStaticSite();
     if (staticSite != null) {
       return HttpdStaticSiteManager.getInstance(staticSite);
     }
 
-    com.aoindustries.aoserv.client.web.tomcat.Site tomcatSite=site.getHttpdTomcatSite();
+    com.aoindustries.aoserv.client.web.tomcat.Site tomcatSite = site.getHttpdTomcatSite();
     if (tomcatSite != null) {
       return HttpdTomcatSiteManager.getInstance(tomcatSite);
     }
 
-    throw new SQLException("Site must be either StaticSite and Site: "+site);
+    throw new SQLException("Site must be either StaticSite and Site: " + site);
   }
 
   /**
@@ -146,11 +146,11 @@ public abstract class HttpdSiteManager {
    * Only called by the already synchronized <code>HttpdManager.doRebuild()</code> method.
    */
   static void doRebuild(
-    List<File> deleteFileList,
-    Set<Site> sitesNeedingRestarted,
-    Set<SharedTomcat> sharedTomcatsNeedingRestarted,
-    Set<PackageManager.PackageName> usedPackages,
-    Set<PosixFile> restorecon
+      List<File> deleteFileList,
+      Set<Site> sitesNeedingRestarted,
+      Set<SharedTomcat> sharedTomcatsNeedingRestarted,
+      Set<PackageManager.PackageName> usedPackages,
+      Set<PosixFile> restorecon
   ) throws IOException, SQLException {
     try {
       // Get values used in the rest of the method.
@@ -182,11 +182,11 @@ public abstract class HttpdSiteManager {
         final String siteName = httpdSite.getName();
         PosixFile siteDirectory = new PosixFile(wwwDirectory, siteName, false);
         manager.buildSiteDirectory(
-          siteDirectory,
-          optSlash,
-          sitesNeedingRestarted,
-          sharedTomcatsNeedingRestarted,
-          restorecon
+            siteDirectory,
+            optSlash,
+            sitesNeedingRestarted,
+            sharedTomcatsNeedingRestarted,
+            restorecon
         );
         wwwRemoveList.remove(siteName);
       }
@@ -225,7 +225,7 @@ public abstract class HttpdSiteManager {
     for (Site httpdSite : AOServDaemon.getThisServer().getHttpdSites()) {
       HttpdSiteManager manager = getInstance(httpdSite);
       if (manager instanceof StopStartable) {
-        final StopStartable stopStartRestartable = (StopStartable)manager;
+        final StopStartable stopStartRestartable = (StopStartable) manager;
         Callable<Object> commandCallable;
         if (stopStartRestartable.isStartable()) {
           // Enabled, start or restart
@@ -293,7 +293,7 @@ public abstract class HttpdSiteManager {
     PosixFile daemonDirectory = new PosixFile(siteDirectory, "daemon", false);
     Stat daemonDirectoryStat = daemonDirectory.getStat();
     if (daemonDirectoryStat.exists()) {
-      int daemonUid=daemonDirectoryStat.getUid();
+      int daemonUid = daemonDirectoryStat.getUid();
       UserServer daemonLsa;
       try {
         daemonLsa = AOServDaemon.getThisServer().getLinuxServerAccount(LinuxId.valueOf(daemonUid));
@@ -312,10 +312,10 @@ public abstract class HttpdSiteManager {
               try {
                 Future<Object> stopFuture = AOServDaemon.executorService.submit(() -> {
                   AOServDaemon.suexec(
-                    username,
-                    siteDirectory.getFile(),
-                    scriptFile.getPath()+" stop",
-                    0
+                      username,
+                      siteDirectory.getFile(),
+                      scriptFile.getPath() + " stop",
+                      0
                   );
                   return null;
                 });
@@ -348,12 +348,12 @@ public abstract class HttpdSiteManager {
     Site httpdSite = conn.getWeb().getSite().get(sitePKey);
     Server thisServer = AOServDaemon.getThisServer();
     if (!httpdSite.getLinuxServer().equals(thisServer)) {
-      return "Site #"+sitePKey+" has server of "+httpdSite.getLinuxServer().getHostname()+", which is not this server ("+thisServer.getHostname()+')';
+      return "Site #" + sitePKey + " has server of " + httpdSite.getLinuxServer().getHostname() + ", which is not this server (" + thisServer.getHostname() + ')';
     }
 
     HttpdSiteManager manager = getInstance(httpdSite);
     if (manager instanceof StopStartable) {
-      StopStartable stopStartable = (StopStartable)manager;
+      StopStartable stopStartable = (StopStartable) manager;
       if (stopStartable.isStartable()) {
         Boolean stopped = stopStartable.stop();
         if (stopped == null) {
@@ -369,9 +369,9 @@ public abstract class HttpdSiteManager {
         }
         Boolean started = stopStartable.start();
         return (started == null)
-          ? "Site start status is unknown"
-          // Null means all went well
-          : null;
+            ? "Site start status is unknown"
+            // Null means all went well
+            : null;
       } else {
         return "Site #" + sitePKey + " is not currently startable";
       }
@@ -391,12 +391,12 @@ public abstract class HttpdSiteManager {
     Site httpdSite = conn.getWeb().getSite().get(sitePKey);
     Server thisServer = AOServDaemon.getThisServer();
     if (!httpdSite.getLinuxServer().equals(thisServer)) {
-      return "Site #"+sitePKey+" has server of "+httpdSite.getLinuxServer().getHostname()+", which is not this server ("+thisServer.getHostname()+')';
+      return "Site #" + sitePKey + " has server of " + httpdSite.getLinuxServer().getHostname() + ", which is not this server (" + thisServer.getHostname() + ')';
     }
 
     HttpdSiteManager manager = getInstance(httpdSite);
     if (manager instanceof StopStartable) {
-      StopStartable stopStartable = (StopStartable)manager;
+      StopStartable stopStartable = (StopStartable) manager;
       Boolean stopped = stopStartable.stop();
       if (stopped == null) {
         return "Site stop status is unknown";
@@ -407,7 +407,7 @@ public abstract class HttpdSiteManager {
         return "Site was already stopped";
       }
     } else {
-      return "Site #"+sitePKey+" is not a type of site that can be stopped and started";
+      return "Site #" + sitePKey + " is not a type of site that can be stopped and started";
     }
   }
 
@@ -424,18 +424,18 @@ public abstract class HttpdSiteManager {
    */
   public String getAutoWarningXmlOld() throws IOException, SQLException {
     return
-      "<!--\n"
-      + "  Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
-      + "  to this file will be overwritten.  Please set the is_manual flag for this website\n"
-      + "  to be able to make permanent changes to this file.\n"
-      + "\n"
-      + "  Control Panel: https://www.aoindustries.com/clientarea/control/httpd/HttpdSiteCP.ao?pkey="+httpdSite.getPkey()+"\n"
-      + "\n"
-      + "  AOSH: "+Command.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getName()+" "+httpdSite.getLinuxServer().getHostname()+" true\n"
-      + "\n"
-      + "  support@aoindustries.com\n"
-      + "  (205) 454-2556\n"
-      + "-->\n"
+        "<!--\n"
+            + "  Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
+            + "  to this file will be overwritten.  Please set the is_manual flag for this website\n"
+            + "  to be able to make permanent changes to this file.\n"
+            + "\n"
+            + "  Control Panel: https://www.aoindustries.com/clientarea/control/httpd/HttpdSiteCP.ao?pkey=" + httpdSite.getPkey() + "\n"
+            + "\n"
+            + "  AOSH: " + Command.SET_HTTPD_SITE_IS_MANUAL + " " + httpdSite.getName() + " " + httpdSite.getLinuxServer().getHostname() + " true\n"
+            + "\n"
+            + "  support@aoindustries.com\n"
+            + "  (205) 454-2556\n"
+            + "-->\n"
     ;
   }
 
@@ -446,18 +446,18 @@ public abstract class HttpdSiteManager {
    */
   public String getAutoWarningXml() throws IOException, SQLException {
     return
-      "<!--\n"
-      + "  Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
-      + "  to this file will be overwritten.  Please set the is_manual flag for this website\n"
-      + "  to be able to make permanent changes to this file.\n"
-      + "\n"
-      + "  Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSiteCP.ao?pkey="+httpdSite.getPkey()+"\n"
-      + "\n"
-      + "  AOSH: "+Command.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getName()+" "+httpdSite.getLinuxServer().getHostname()+" true\n"
-      + "\n"
-      + "  support@aoindustries.com\n"
-      + "  (205) 454-2556\n"
-      + "-->\n"
+        "<!--\n"
+            + "  Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
+            + "  to this file will be overwritten.  Please set the is_manual flag for this website\n"
+            + "  to be able to make permanent changes to this file.\n"
+            + "\n"
+            + "  Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSiteCP.ao?pkey=" + httpdSite.getPkey() + "\n"
+            + "\n"
+            + "  AOSH: " + Command.SET_HTTPD_SITE_IS_MANUAL + " " + httpdSite.getName() + " " + httpdSite.getLinuxServer().getHostname() + " true\n"
+            + "\n"
+            + "  support@aoindustries.com\n"
+            + "  (205) 454-2556\n"
+            + "-->\n"
     ;
   }
 
@@ -664,11 +664,11 @@ public abstract class HttpdSiteManager {
           throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
         }
         out
-          .print("exec ")
-          .print(HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getPhpCgiPath(phpMinorVersion))
-          .print(" -d session.save_path=\"")
-          .print(sessionDir)
-          .print("\" \"$@\"\n");
+            .print("exec ")
+            .print(HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getPhpCgiPath(phpMinorVersion))
+            .print(" -d session.save_path=\"")
+            .print(sessionDir)
+            .print("\" \"$@\"\n");
       }
       // Make sure required RPM is installed
       if (requiredPackage != null) {
@@ -722,13 +722,13 @@ public abstract class HttpdSiteManager {
       }
       // TODO: Create/update a php.ini symlink in cgi-bin as a clean placeholder for where client can manage own config
       DaemonFileUtils.atomicWrite(
-        phpFile,
-        bout.toByteArray(),
-        mode,
-        uid,
-        gid,
-        null,
-        restorecon
+          phpFile,
+          bout.toByteArray(),
+          mode,
+          uid,
+          gid,
+          null,
+          restorecon
       );
       // Make sure permissions correct
       Stat phpStat = phpFile.getStat();
@@ -765,7 +765,7 @@ public abstract class HttpdSiteManager {
       try (
         TempFileContext tempFileContext = new TempFileContext(indexFile.getFile().getParent());
         TempFile tempFile = tempFileContext.createTempFile(indexFile.getFile().getName())
-      ) {
+          ) {
         try (ChainWriter out = new ChainWriter(new FileOutputStream(tempFile.getFile()))) {
           out.print("<html>\n"
               + "  <head><title>Test HTML Page for ").textInXhtml(primaryUrl).print("</title></head>\n"
@@ -809,7 +809,7 @@ public abstract class HttpdSiteManager {
       Server thisServer = AOServDaemon.getThisServer();
       UserServer apacheLsa = thisServer.getLinuxServerAccount(User.APACHE);
       if (apacheLsa == null) {
-        throw new SQLException("Unable to find UserServer: "+User.APACHE+" on "+thisServer.getHostname());
+        throw new SQLException("Unable to find UserServer: " + User.APACHE + " on " + thisServer.getHostname());
       }
       uid = apacheLsa.getUid().getId();
     }
@@ -817,11 +817,11 @@ public abstract class HttpdSiteManager {
   }
 
   private static final List<Location> cvsRejectedLocations = Collections.unmodifiableList(
-    Arrays.asList(
-      new Location(true, ".*/\\.#.*"),
-      new Location(true, ".*/CVS(/.*|$)"),
-      new Location(true, ".*/CVSROOT(/.*|$)"),
-      new Location(true, ".*/\\.cvsignore(/.*|$)")
+      Arrays.asList(
+          new Location(true, ".*/\\.#.*"),
+          new Location(true, ".*/CVS(/.*|$)"),
+          new Location(true, ".*/CVSROOT(/.*|$)"),
+          new Location(true, ".*/\\.cvsignore(/.*|$)")
       //standardRejectedLocations.add(new Location(true, "/CVS/Attic"));
       //standardRejectedLocations.add(new Location(true, "/CVS/Entries"));
       // Already covered by Entries: standardRejectedLocations.add(new Location(true, "/CVS/Entries\\.Static"));
@@ -833,26 +833,26 @@ public abstract class HttpdSiteManager {
   );
 
   private static final List<Location> subversionRejectedLocations = Collections.unmodifiableList(
-    Arrays.asList(
-      new Location(true, ".*/\\.svn(/.*|$)"),
-      new Location(true, ".*/\\.svnignore(/.*|$)")
-    )
+      Arrays.asList(
+          new Location(true, ".*/\\.svn(/.*|$)"),
+          new Location(true, ".*/\\.svnignore(/.*|$)")
+      )
   );
 
   private static final List<Location> gitRejectedLocations = Collections.unmodifiableList(
-    Arrays.asList(
-      new Location(true, ".*/\\.git(/.*|$)"),
-      new Location(true, ".*/\\.gitignore(/.*|$)")
-    )
+      Arrays.asList(
+          new Location(true, ".*/\\.git(/.*|$)"),
+          new Location(true, ".*/\\.gitignore(/.*|$)")
+      )
   );
 
   private static final List<Location> coreDumpsRejectedLocations = Collections.singletonList(new Location(true, ".*/core\\.[0-9]{1,5}(/.*|$)"));
 
   private static final List<Location> emacsRejectedLocations = Collections.unmodifiableList(
-    Arrays.asList(
-      new Location(true, ".*/[^/]+~(/.*|$)"),
-      new Location(true, ".*/#[^/]+#(/.*|$)")
-    )
+      Arrays.asList(
+          new Location(true, ".*/[^/]+~(/.*|$)"),
+          new Location(true, ".*/#[^/]+#(/.*|$)")
+      )
   );
 
   private static final List<Location> vimRejectedLocations = Collections.singletonList(new Location(true, ".*/\\.[^/]+\\.swp(/.*|$)"));
@@ -890,10 +890,10 @@ public abstract class HttpdSiteManager {
       if (!(obj instanceof Location)) {
         return false;
       }
-      Location other = (Location)obj;
+      Location other = (Location) obj;
       return
-        isRegularExpression == other.isRegularExpression
-        && location.equals(other.location)
+          isRegularExpression == other.isRegularExpression
+              && location.equals(other.location)
       ;
     }
 
@@ -946,11 +946,13 @@ public abstract class HttpdSiteManager {
     public final String pattern;
     public final String substitution;
     public final boolean noEscape;
+
     private PermanentRewriteRule(String pattern, String substitution, boolean noEscape) {
       this.pattern = pattern;
       this.substitution = substitution;
       this.noEscape = noEscape;
     }
+
     private PermanentRewriteRule(String pattern, String substitution) {
       this(pattern, substitution, true);
     }
@@ -1044,7 +1046,7 @@ public abstract class HttpdSiteManager {
 
     @Override
     public int hashCode() {
-      int hashCode = path.hashCode()*31 + jkCode.hashCode();
+      int hashCode = path.hashCode() * 31 + jkCode.hashCode();
       // Negate for mounts
       if (isMount) {
         hashCode = -hashCode;
@@ -1057,11 +1059,11 @@ public abstract class HttpdSiteManager {
       if (!(obj instanceof JkSetting)) {
         return false;
       }
-      JkSetting other = (JkSetting)obj;
+      JkSetting other = (JkSetting) obj;
       return
-        isMount == other.isMount
-        && path.equals(other.path)
-        && jkCode.equals(other.jkCode)
+          isMount == other.isMount
+              && path.equals(other.path)
+              && jkCode.equals(other.jkCode)
       ;
     }
 
@@ -1101,9 +1103,9 @@ public abstract class HttpdSiteManager {
 
     /** https://httpd.apache.org/docs/2.4/mod/core.html#options */
     public static String generateOptions(
-      boolean enableSsi,
-      boolean enableIndexes,
-      boolean enableFollowSymlinks
+        boolean enableSsi,
+        boolean enableIndexes,
+        boolean enableFollowSymlinks
     ) {
       StringBuilder options = new StringBuilder();
       if (enableFollowSymlinks) {
@@ -1130,8 +1132,8 @@ public abstract class HttpdSiteManager {
 
     /** https://httpd.apache.org/docs/2.4/mod/core.html#options */
     public static String generateCgiOptions(
-      boolean enableCgi,
-      boolean enableFollowSymlinks
+        boolean enableCgi,
+        boolean enableFollowSymlinks
     ) {
       if (enableCgi) {
         if (enableFollowSymlinks) {
@@ -1161,20 +1163,20 @@ public abstract class HttpdSiteManager {
     }
 
     public WebAppSettings(
-      PosixPath docBase,
-      String allowOverride,
-      boolean enableSsi,
-      boolean enableIndexes,
-      boolean enableFollowSymlinks,
-      boolean enableCgi
+        PosixPath docBase,
+        String allowOverride,
+        boolean enableSsi,
+        boolean enableIndexes,
+        boolean enableFollowSymlinks,
+        boolean enableCgi
     ) {
       this(
-        docBase,
-        allowOverride,
-        generateOptions(enableSsi, enableIndexes, enableFollowSymlinks),
-        enableSsi,
-        enableCgi,
-        generateCgiOptions(enableCgi, enableFollowSymlinks)
+          docBase,
+          allowOverride,
+          generateOptions(enableSsi, enableIndexes, enableFollowSymlinks),
+          enableSsi,
+          enableCgi,
+          generateCgiOptions(enableCgi, enableFollowSymlinks)
       );
     }
 

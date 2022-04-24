@@ -40,6 +40,7 @@ import java.util.Set;
 public final class TomcatCommon_3_2_4 extends TomcatCommon_3_X {
 
   private static final TomcatCommon_3_2_4 instance = new TomcatCommon_3_2_4();
+
   public static TomcatCommon_3_2_4 getInstance() {
     return instance;
   }
@@ -51,19 +52,19 @@ public final class TomcatCommon_3_2_4 extends TomcatCommon_3_X {
   @Override
   protected Set<PackageManager.PackageName> getRequiredPackages() throws IOException, SQLException {
     return EnumSet.of(
-      OperatingSystemConfiguration.getOperatingSystemConfiguration().getJdk17PackageName(),
-      PackageManager.PackageName.APACHE_TOMCAT_3_2
+        OperatingSystemConfiguration.getOperatingSystemConfiguration().getJdk17PackageName(),
+        PackageManager.PackageName.APACHE_TOMCAT_3_2
     );
   }
 
   @Override
   public void createWebDtd(String confDirectory, int uid, int gid, int mode, int uid_min, int gid_min) throws IOException {
-    DaemonFileUtils.copyResource(TomcatCommon_3_2_4.class, "web.dtd-3.2.4", confDirectory+"/web.dtd", uid, gid, mode, uid_min, gid_min);
+    DaemonFileUtils.copyResource(TomcatCommon_3_2_4.class, "web.dtd-3.2.4", confDirectory + "/web.dtd", uid, gid, mode, uid_min, gid_min);
   }
 
   @Override
   public void createWebXml(String confDirectory, int uid, int gid, int mode, int uid_min, int gid_min) throws IOException {
-    DaemonFileUtils.copyResource(TomcatCommon_3_2_4.class, "web.xml-3.2.4", confDirectory+"/web.xml", uid, gid, mode, uid_min, gid_min);
+    DaemonFileUtils.copyResource(TomcatCommon_3_2_4.class, "web.xml-3.2.4", confDirectory + "/web.xml", uid, gid, mode, uid_min, gid_min);
   }
 
   @Override

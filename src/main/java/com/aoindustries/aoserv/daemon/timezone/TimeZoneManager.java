@@ -65,19 +65,19 @@ public final class TimeZoneManager extends BuilderThread {
 
     synchronized (System.out) {
       if (
-        // Nothing is done for these operating systems
-        osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
-        && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-        && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-        // Check config after OS check so config entry not needed
-        && AOServDaemonConfiguration.isManagerEnabled(TimeZoneManager.class)
-        && timeZoneManager == null
+          // Nothing is done for these operating systems
+          osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+              && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+              && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+              // Check config after OS check so config entry not needed
+              && AOServDaemonConfiguration.isManagerEnabled(TimeZoneManager.class)
+              && timeZoneManager == null
       ) {
         System.out.print("Starting TimeZoneManager: ");
         // Must be a supported operating system
         if (
-          osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-          || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+            osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                || osvId == OperatingSystemVersion.CENTOS_7_X86_64
         ) {
           AOServConnector conn = AOServDaemon.getConnector();
           timeZoneManager = new TimeZoneManager();
@@ -92,6 +92,7 @@ public final class TimeZoneManager extends BuilderThread {
   }
 
   private static final Object rebuildLock = new Object();
+
   @Override
   protected boolean doRebuild() {
     try {
@@ -129,8 +130,8 @@ public final class TimeZoneManager extends BuilderThread {
           try (ChainWriter newOut = new ChainWriter(bout)) {
             if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
               newOut.print("ZONE=\"").print(timeZone).print("\"\n"
-                     + "UTC=true\n"
-                     + "ARC=false\n");
+                  + "UTC=true\n"
+                  + "ARC=false\n");
             } else {
               throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
             }
@@ -144,14 +145,14 @@ public final class TimeZoneManager extends BuilderThread {
             PosixFile newClockConfig = new PosixFile("/etc/sysconfig/clock.new");
             try (
               OutputStream newClockOut = newClockConfig.getSecureOutputStream(
-                PosixFile.ROOT_UID,
-                PosixFile.ROOT_GID,
-                0755,
-                true,
-                thisServer.getUidMin().getId(),
-                thisServer.getGidMin().getId()
-              )
-            ) {
+                    PosixFile.ROOT_UID,
+                    PosixFile.ROOT_GID,
+                    0755,
+                    true,
+                    thisServer.getUidMin().getId(),
+                    thisServer.getGidMin().getId()
+                )
+                ) {
               newClockOut.write(newBytes);
             }
             // Atomically move into place
@@ -162,17 +163,17 @@ public final class TimeZoneManager extends BuilderThread {
           String correctTarget = "../usr/share/zoneinfo/" + timeZone;
           Stat localtimeStat = ETC_LOCALTIME.getStat();
           if (
-            !localtimeStat.exists()
-            || !localtimeStat.isSymLink()
-            || !correctTarget.equals(ETC_LOCALTIME.readLink())
+              !localtimeStat.exists()
+                  || !localtimeStat.isSymLink()
+                  || !correctTarget.equals(ETC_LOCALTIME.readLink())
           ) {
             if (logger.isLoggable(Level.INFO)) {
               logger.info("Setting time zone: " + timeZone);
             }
             AOServDaemon.exec(
-              "/usr/bin/timedatectl",
-              "set-timezone",
-              timeZone
+                "/usr/bin/timedatectl",
+                "set-timezone",
+                timeZone
             );
           }
         } else {

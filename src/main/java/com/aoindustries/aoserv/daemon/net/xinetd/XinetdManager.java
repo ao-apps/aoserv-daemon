@@ -65,21 +65,22 @@ public final class XinetdManager extends BuilderThread {
   /**
    * The type used for UNLISTED services.
    */
-  public static final String UNLISTED="UNLISTED";
+  public static final String UNLISTED = "UNLISTED";
 
   private static XinetdManager xinetdManager;
 
-  public static final File xinetdDirectory=new File("/etc/xinetd.d");
+  public static final File xinetdDirectory = new File("/etc/xinetd.d");
 
   private XinetdManager() {
     // Do nothing
   }
 
   private static final Object rebuildLock = new Object();
+
   @Override
   protected boolean doRebuild() {
     try {
-      AOServConnector connector=AOServDaemon.getConnector();
+      AOServConnector connector = AOServDaemon.getConnector();
       Server linuxServer = AOServDaemon.getThisServer();
       OperatingSystemVersion osv = linuxServer.getHost().getOperatingSystemVersion();
       int osvId = osv.getPkey();
@@ -91,93 +92,93 @@ public final class XinetdManager extends BuilderThread {
       final ByteArrayOutputStream bout = new ByteArrayOutputStream();
 
       synchronized (rebuildLock) {
-        UserServer nobodyUser=linuxServer.getLinuxServerAccount(User.NOBODY);
-        UserServer rootUser=linuxServer.getLinuxServerAccount(User.ROOT);
-        GroupServer ttyGroup=linuxServer.getLinuxServerGroup(Group.TTY);
+        UserServer nobodyUser = linuxServer.getLinuxServerAccount(User.NOBODY);
+        UserServer rootUser = linuxServer.getLinuxServerAccount(User.ROOT);
+        GroupServer ttyGroup = linuxServer.getLinuxServerGroup(Group.TTY);
 
         // Build a list of services that should be running
         List<Bind> binds = linuxServer.getHost().getNetBinds();
-        List<Service> services=new ArrayList<>(binds.size()+(ImapManager.WUIMAP_CONVERSION_ENABLED ? 1 : 0)); // Worst-case all binds are in xinetd
+        List<Service> services = new ArrayList<>(binds.size() + (ImapManager.WUIMAP_CONVERSION_ENABLED ? 1 : 0)); // Worst-case all binds are in xinetd
 
         if (ImapManager.WUIMAP_CONVERSION_ENABLED) {
           // Remove once conversion to CentOS has been completed
           services.add(
-            new Service(
-              UNLISTED,
-              -1,
-              -1,
-              null,
-              null,
-              null,
-              "wuimap",
-              Protocol.TCP,
-              linuxServer.getPrimaryIPAddress(),
-              Port.valueOf(8143, Protocol.TCP),
-              false,
-              rootUser,
-              null,
-              "/opt/imap-2007d/bin/imapd",
-              null,
-              null,
-              "HOST DURATION",
-              "HOST USERID",
-              -1,
-              null,
-              null
-            )
+              new Service(
+                  UNLISTED,
+                  -1,
+                  -1,
+                  null,
+                  null,
+                  null,
+                  "wuimap",
+                  Protocol.TCP,
+                  linuxServer.getPrimaryIPAddress(),
+                  Port.valueOf(8143, Protocol.TCP),
+                  false,
+                  rootUser,
+                  null,
+                  "/opt/imap-2007d/bin/imapd",
+                  null,
+                  null,
+                  "HOST DURATION",
+                  "HOST USERID",
+                  -1,
+                  null,
+                  null
+              )
           );
         }
 
         for (Bind bind : binds) {
-          Port port=bind.getPort();
-          TcpRedirect redirect=bind.getNetTcpRedirect();
-          AppProtocol protocolObj=bind.getAppProtocol();
-          String protocol=protocolObj.getProtocol();
+          Port port = bind.getPort();
+          TcpRedirect redirect = bind.getNetTcpRedirect();
+          AppProtocol protocolObj = bind.getAppProtocol();
+          String protocol = protocolObj.getProtocol();
           if (
-            redirect != null
-            // || protocol.equals(AppProtocolAUTH)
-            || protocol.equals(AppProtocol.CVSPSERVER)
-            || protocol.equals(AppProtocol.NTALK)
-            || protocol.equals(AppProtocol.TALK)
-            || protocol.equals(AppProtocol.TELNET)
-            || (
-              // FTP is handled through xinetd on CentOS 5
-              osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-              && protocol.equals(AppProtocol.FTP)
-            )
+              redirect != null
+                  // || protocol.equals(AppProtocolAUTH)
+                  || protocol.equals(AppProtocol.CVSPSERVER)
+                  || protocol.equals(AppProtocol.NTALK)
+                  || protocol.equals(AppProtocol.TALK)
+                  || protocol.equals(AppProtocol.TELNET)
+                  || (
+                  // FTP is handled through xinetd on CentOS 5
+                  osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                      && protocol.equals(AppProtocol.FTP)
+              )
           ) {
             Service service;
             if (redirect != null) {
-              Protocol netProtocol=port.getProtocol();
+              Protocol netProtocol = port.getProtocol();
               if (netProtocol != Protocol.TCP) {
-                throw new SQLException("Only TCP ports may be redirected: (net_binds.pkey="+bind.getPkey()+").protocol="+netProtocol);
+                throw new SQLException("Only TCP ports may be redirected: (net_binds.pkey=" + bind.getPkey() + ").protocol=" + netProtocol);
               }
 
-              service=new Service(
-                UNLISTED,
-                -1,
-                -1,
-                redirect.getConnectionsPerSecond()+" "+redirect.getConnectionsPerSecondOverloadSleepTime(),
-                null,
-                null,
-                "redirect",
-                netProtocol,
-                bind.getIpAddress(),
-                port,
-                false,
-                rootUser,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                -1,
-                null,
-                redirect.getDestinationHost().toString()+" "+redirect.getDestinationPort().getPort()
+              service = new Service(
+                  UNLISTED,
+                  -1,
+                  -1,
+                  redirect.getConnectionsPerSecond() + " " + redirect.getConnectionsPerSecondOverloadSleepTime(),
+                  null,
+                  null,
+                  "redirect",
+                  netProtocol,
+                  bind.getIpAddress(),
+                  port,
+                  false,
+                  rootUser,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  -1,
+                  null,
+                  redirect.getDestinationHost().toString() + " " + redirect.getDestinationPort().getPort()
               );
             } else {
-              boolean portMatches=protocolObj.getPort().equals(port);
+              boolean portMatches = protocolObj.getPort().equals(port);
               /*if (protocol.equals(AppProtocol.AUTH)) {
                 service=new Service(
                   portMatches?null:UNLISTED,
@@ -202,36 +203,36 @@ public final class XinetdManager extends BuilderThread {
               } else */
               switch (protocol) {
                 case AppProtocol.CVSPSERVER:
-                  List<CvsRepository> repos=linuxServer.getCvsRepositories();
+                  List<CvsRepository> repos = linuxServer.getCvsRepositories();
                   if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-                    StringBuilder server_args=new StringBuilder();
+                    StringBuilder server_args = new StringBuilder();
                     server_args.append("-f");
                     for (CvsRepository repo : repos) {
                       server_args.append(" --allow-root=").append(repo.getPath());
                     }
                     server_args.append(" pserver");
-                    service=new Service(
-                      portMatches?null:UNLISTED,
-                      -1,
-                      -1,
-                      "100 30",
-                      null,
-                      "REUSE",
-                      portMatches?"cvspserver":"cvspserver-unlisted",
-                      port.getProtocol(),
-                      bind.getIpAddress(),
-                      portMatches?null:port,
-                      false,
-                      rootUser,
-                      null,
-                      "/usr/bin/cvs",
-                      "HOME=" + CvsRepository.DEFAULT_CVS_DIRECTORY,
-                      server_args.toString(),
-                      "HOST DURATION",
-                      "HOST USERID",
-                      -1,
-                      null,
-                      null
+                    service = new Service(
+                        portMatches ? null : UNLISTED,
+                        -1,
+                        -1,
+                        "100 30",
+                        null,
+                        "REUSE",
+                        portMatches ? "cvspserver" : "cvspserver-unlisted",
+                        port.getProtocol(),
+                        bind.getIpAddress(),
+                        portMatches ? null : port,
+                        false,
+                        rootUser,
+                        null,
+                        "/usr/bin/cvs",
+                        "HOME=" + CvsRepository.DEFAULT_CVS_DIRECTORY,
+                        server_args.toString(),
+                        "HOST DURATION",
+                        "HOST USERID",
+                        -1,
+                        null,
+                        null
                     );
                   } else {
                     throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
@@ -239,28 +240,28 @@ public final class XinetdManager extends BuilderThread {
                   break;
                 case AppProtocol.FTP:
                   if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-                    service=new Service(
-                      portMatches?null:UNLISTED,
-                      100,
-                      20, // Was 5, but confsys03 on www7.fc.aoindustries.com hit this limit on 2009-07-31
-                      "100 30",
-                      "/etc/vsftpd/busy_banner",
-                      "IPv4",
-                      portMatches?"ftp":"ftp-unlisted",
-                      port.getProtocol(),
-                      bind.getIpAddress(),
-                      portMatches?null:port,
-                      false,
-                      rootUser,
-                      null,
-                      "/usr/sbin/vsftpd",
-                      null,
-                      "/etc/vsftpd/vhosts/vsftpd_"+bind.getIpAddress().getInetAddress().toString()+"_"+port.getPort()+".conf",
-                      "PID HOST DURATION",
-                      "HOST",
-                      10,
-                      null,
-                      null
+                    service = new Service(
+                        portMatches ? null : UNLISTED,
+                        100,
+                        20, // Was 5, but confsys03 on www7.fc.aoindustries.com hit this limit on 2009-07-31
+                        "100 30",
+                        "/etc/vsftpd/busy_banner",
+                        "IPv4",
+                        portMatches ? "ftp" : "ftp-unlisted",
+                        port.getProtocol(),
+                        bind.getIpAddress(),
+                        portMatches ? null : port,
+                        false,
+                        rootUser,
+                        null,
+                        "/usr/sbin/vsftpd",
+                        null,
+                        "/etc/vsftpd/vhosts/vsftpd_" + bind.getIpAddress().getInetAddress().toString() + "_" + port.getPort() + ".conf",
+                        "PID HOST DURATION",
+                        "HOST",
+                        10,
+                        null,
+                        null
                     );
                   } else {
                     throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
@@ -268,28 +269,28 @@ public final class XinetdManager extends BuilderThread {
                   break;
                 case AppProtocol.NTALK:
                   if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-                    service=new Service(
-                      portMatches?null:UNLISTED,
-                      -1, // instances
-                      -1, // per_source
-                      null, // cps
-                      null, // banner_fail
-                      "IPv4", // flags
-                      portMatches?"ntalk":"ntalk-unlisted",
-                      port.getProtocol(),
-                      bind.getIpAddress(),
-                      portMatches?null:port,
-                      true,
-                      nobodyUser,
-                      ttyGroup,
-                      "/usr/sbin/in.ntalkd",
-                      null, // env
-                      null, // server_args
-                      "HOST DURATION",
-                      "HOST USERID",
-                      -1,
-                      null,
-                      null
+                    service = new Service(
+                        portMatches ? null : UNLISTED,
+                        -1, // instances
+                        -1, // per_source
+                        null, // cps
+                        null, // banner_fail
+                        "IPv4", // flags
+                        portMatches ? "ntalk" : "ntalk-unlisted",
+                        port.getProtocol(),
+                        bind.getIpAddress(),
+                        portMatches ? null : port,
+                        true,
+                        nobodyUser,
+                        ttyGroup,
+                        "/usr/sbin/in.ntalkd",
+                        null, // env
+                        null, // server_args
+                        "HOST DURATION",
+                        "HOST USERID",
+                        -1,
+                        null,
+                        null
                     );
                   } else {
                     throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
@@ -297,28 +298,28 @@ public final class XinetdManager extends BuilderThread {
                   break;
                 case AppProtocol.TALK:
                   if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-                    service=new Service(
-                      portMatches?null:UNLISTED,
-                      -1, // instances
-                      -1, // per_source
-                      null, // cps
-                      null, // banner_fail
-                      "IPv4", // flags
-                      portMatches?"talk":"talk-unlisted",
-                      port.getProtocol(),
-                      bind.getIpAddress(),
-                      portMatches?null:port,
-                      true,
-                      nobodyUser,
-                      ttyGroup,
-                      "/usr/sbin/in.talkd",
-                      null, // env
-                      null, // server_args
-                      "HOST DURATION",
-                      "HOST USERID",
-                      -1,
-                      null,
-                      null
+                    service = new Service(
+                        portMatches ? null : UNLISTED,
+                        -1, // instances
+                        -1, // per_source
+                        null, // cps
+                        null, // banner_fail
+                        "IPv4", // flags
+                        portMatches ? "talk" : "talk-unlisted",
+                        port.getProtocol(),
+                        bind.getIpAddress(),
+                        portMatches ? null : port,
+                        true,
+                        nobodyUser,
+                        ttyGroup,
+                        "/usr/sbin/in.talkd",
+                        null, // env
+                        null, // server_args
+                        "HOST DURATION",
+                        "HOST USERID",
+                        -1,
+                        null,
+                        null
                     );
                   } else {
                     throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
@@ -326,43 +327,43 @@ public final class XinetdManager extends BuilderThread {
                   break;
                 case AppProtocol.TELNET:
                   if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-                    service=new Service(
-                      portMatches?null:UNLISTED,
-                      -1,
-                      -1,
-                      "100 30",
-                      null,
-                      "REUSE",
-                      portMatches?"telnet":"telnet-unlisted",
-                      port.getProtocol(),
-                      bind.getIpAddress(),
-                      portMatches?null:port,
-                      false,
-                      rootUser,
-                      null,
-                      "/usr/sbin/in.telnetd",
-                      null,
-                      null,
-                      "HOST DURATION",
-                      "HOST USERID",
-                      -1,
-                      null,
-                      null
+                    service = new Service(
+                        portMatches ? null : UNLISTED,
+                        -1,
+                        -1,
+                        "100 30",
+                        null,
+                        "REUSE",
+                        portMatches ? "telnet" : "telnet-unlisted",
+                        port.getProtocol(),
+                        bind.getIpAddress(),
+                        portMatches ? null : port,
+                        false,
+                        rootUser,
+                        null,
+                        "/usr/sbin/in.telnetd",
+                        null,
+                        null,
+                        "HOST DURATION",
+                        "HOST USERID",
+                        -1,
+                        null,
+                        null
                     );
                   } else {
                     throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
                   }
                   break;
                 default:
-                  throw new RuntimeException("Unexpected protocol: "+protocol);
+                  throw new RuntimeException("Unexpected protocol: " + protocol);
               }
             }
 
             // Do not add if is a duplicate ip address, net protocol, and port
-            boolean foundDup=false;
+            boolean foundDup = false;
             for (Service other : services) {
               if (service.bindMatches(other)) {
-                foundDup=true;
+                foundDup = true;
                 break;
               }
             }
@@ -372,24 +373,24 @@ public final class XinetdManager extends BuilderThread {
           }
         }
 
-        boolean needsReloaded=false;
+        boolean needsReloaded = false;
 
         // (Re)build configs to match service list
         Set<String> filenames = new HashSet<>();
-        final int numServices=services.size();
-        for (int c=0; c<numServices; c++) {
+        final int numServices = services.size();
+        for (int c = 0; c < numServices; c++) {
           Service service = services.get(c);
           String desiredFilename = service.getService();
           String filename = null;
-          for (int d=1; d<Integer.MAX_VALUE; d++) {
-            String checkFilename = d == 1 ? desiredFilename : (desiredFilename+"-"+d);
+          for (int d = 1; d < Integer.MAX_VALUE; d++) {
+            String checkFilename = d == 1 ? desiredFilename : (desiredFilename + "-" + d);
             if (!filenames.contains(checkFilename)) {
               filename = checkFilename;
               break;
             }
           }
           if (filename == null) {
-            throw new IOException("Unable to find available filename for service: "+desiredFilename);
+            throw new IOException("Unable to find available filename for service: " + desiredFilename);
           }
           filenames.add(filename);
 
@@ -401,12 +402,12 @@ public final class XinetdManager extends BuilderThread {
           byte[] newBytes = bout.toByteArray();
 
           // Move into place if different than existing
-          PosixFile existingUF=new PosixFile(xinetdDirectory, filename);
+          PosixFile existingUF = new PosixFile(xinetdDirectory, filename);
           if (
-            !existingUF.getStat().exists()
-            || !existingUF.contentEquals(newBytes)
+              !existingUF.getStat().exists()
+                  || !existingUF.contentEquals(newBytes)
           ) {
-            PosixFile newUF = new PosixFile(xinetdDirectory, filename+".new");
+            PosixFile newUF = new PosixFile(xinetdDirectory, filename + ".new");
             try (OutputStream newOut = new FileOutputStream(newUF.getFile())) {
               newUF.setMode(0600);
               newOut.write(newBytes);
@@ -422,13 +423,13 @@ public final class XinetdManager extends BuilderThread {
           for (String filename : list) {
             if (!filenames.contains(filename)) {
               new PosixFile(xinetdDirectory, filename).delete();
-              needsReloaded=true;
+              needsReloaded = true;
             }
           }
         }
 
         // Control service
-        PosixFile rcFile=new PosixFile("/etc/rc.d/rc3.d/S56xinetd");
+        PosixFile rcFile = new PosixFile("/etc/rc.d/rc3.d/S56xinetd");
         if (numServices == 0) {
           // Turn off xinetd completely if not already off
           if (rcFile.getStat().exists()) {
@@ -469,24 +470,24 @@ public final class XinetdManager extends BuilderThread {
 
                 // Try more forceful stop/start
                 try {
-                  AOServDaemon.exec(
+                AOServDaemon.exec(
                     "/etc/rc.d/init.d/xinetd",
                     "stop"
-                  );
-                } catch (IOException err2) {
-                  logger.log(Level.SEVERE, null, err2);
-                }
-                try {
-                  Thread.sleep(1000);
-                } catch (InterruptedException err2) {
-                  logger.log(Level.WARNING, null, err2);
-                  // Restore the interrupted status
-                  Thread.currentThread().interrupt();
-                }
-                AOServDaemon.exec(
+                );
+              } catch (IOException err2) {
+                logger.log(Level.SEVERE, null, err2);
+              }
+              try {
+                Thread.sleep(1000);
+              } catch (InterruptedException err2) {
+                logger.log(Level.WARNING, null, err2);
+                // Restore the interrupted status
+                Thread.currentThread().interrupt();
+              }
+              AOServDaemon.exec(
                   "/etc/rc.d/init.d/xinetd",
                   "start"
-                );
+              );
               //}
             }
           }
@@ -509,13 +510,13 @@ public final class XinetdManager extends BuilderThread {
 
     synchronized (System.out) {
       if (
-        // Nothing is done for these operating systems
-        osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
-        && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-        && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-        // Check config after OS check so config entry not needed
-        && AOServDaemonConfiguration.isManagerEnabled(XinetdManager.class)
-        && xinetdManager == null
+          // Nothing is done for these operating systems
+          osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+              && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+              && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+              // Check config after OS check so config entry not needed
+              && AOServDaemonConfiguration.isManagerEnabled(XinetdManager.class)
+              && xinetdManager == null
       ) {
         System.out.print("Starting XinetdManager: ");
         // Must be a supported operating system

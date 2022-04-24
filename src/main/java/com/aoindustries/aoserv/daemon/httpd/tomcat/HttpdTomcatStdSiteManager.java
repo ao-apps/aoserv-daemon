@@ -55,8 +55,8 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
    * Gets the specific manager for one type of web site.
    */
   static HttpdTomcatStdSiteManager<? extends TomcatCommon> getInstance(PrivateTomcatSite stdSite) throws IOException, SQLException {
-    AOServConnector connector=AOServDaemon.getConnector();
-    Version htv=stdSite.getHttpdTomcatSite().getHttpdTomcatVersion();
+    AOServConnector connector = AOServDaemon.getConnector();
+    Version htv = stdSite.getHttpdTomcatSite().getHttpdTomcatVersion();
     if (htv.isTomcat3_1(connector)) {
       return new HttpdTomcatStdSiteManager_3_1(stdSite);
     }
@@ -123,32 +123,32 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
   @Override
   public PosixFile getPidFile() throws IOException, SQLException {
     return new PosixFile(
-      HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
-      + "/"
-      + httpdSite.getName()
-      + "/var/run/tomcat.pid"
+        HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
+            + "/"
+            + httpdSite.getName()
+            + "/var/run/tomcat.pid"
     );
   }
 
   @Override
   public boolean isStartable() throws IOException, SQLException {
     return
-      !httpdSite.isDisabled()
-      && (
-        !httpdSite.isManual()
-        // Script may not exist while in manual mode
-        || new PosixFile(getStartStopScriptPath().toString()).getStat().exists()
-      );
+        !httpdSite.isDisabled()
+            && (
+            !httpdSite.isManual()
+                // Script may not exist while in manual mode
+                || new PosixFile(getStartStopScriptPath().toString()).getStat().exists()
+        );
   }
 
   @Override
   public PosixPath getStartStopScriptPath() throws IOException, SQLException {
     try {
       return PosixPath.valueOf(
-        HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
-        + "/"
-        + httpdSite.getName()
-        + "/bin/tomcat"
+          HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
+              + "/"
+              + httpdSite.getName()
+              + "/bin/tomcat"
       );
     } catch (ValidationException e) {
       throw new IOException(e);
@@ -163,9 +163,9 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
   @Override
   public File getStartStopScriptWorkingDirectory() throws IOException, SQLException {
     return new File(
-      HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
-      + "/"
-      + httpdSite.getName()
+        HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
+            + "/"
+            + httpdSite.getName()
     );
   }
 
@@ -181,21 +181,21 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
     PosixFile daemonUF = new PosixFile(siteDirectory, "daemon", false);
     PosixFile daemonSymlink = new PosixFile(daemonUF, "tomcat", false);
     if (
-      !httpdSite.isDisabled()
-      && (
-        !httpdSite.isManual()
-        // Script may not exist while in manual mode
-        || tomcatUF.getStat().exists()
-      )
+        !httpdSite.isDisabled()
+            && (
+            !httpdSite.isManual()
+                // Script may not exist while in manual mode
+                || tomcatUF.getStat().exists()
+        )
     ) {
       // Enabled
       if (!daemonSymlink.getStat().exists()) {
         daemonSymlink
-          .symLink("../bin/tomcat")
-          .chown(
-            httpdSite.getLinuxServerAccount().getUid().getId(),
-            httpdSite.getLinuxServerGroup().getGid().getId()
-          );
+            .symLink("../bin/tomcat")
+            .chown(
+                httpdSite.getLinuxServerAccount().getUid().getId(),
+                httpdSite.getLinuxServerGroup().getGid().getId()
+            );
       }
     } else {
       // Disabled
@@ -216,9 +216,9 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
     boolean needsRestart = false;
     PosixFile conf = new PosixFile(siteDir + "/conf");
     if (
-      !httpdSite.isManual()
-      // conf directory may not exist while in manual mode
-      || conf.getStat().exists()
+        !httpdSite.isManual()
+            // conf directory may not exist while in manual mode
+            || conf.getStat().exists()
     ) {
       // Rebuild the server.xml
       String autoWarning = getAutoWarningXml();
@@ -228,15 +228,15 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
       if (!httpdSite.isManual() || !confServerXML.getStat().exists()) {
         // Only write to the actual file when missing or changed
         if (
-          DaemonFileUtils.atomicWrite(
-            confServerXML,
-            buildServerXml(siteDirectory, autoWarning),
-            0660,
-            httpdSite.getLinuxServerAccount().getUid().getId(),
-            httpdSite.getLinuxServerGroup().getGid().getId(),
-            null,
-            restorecon
-          )
+            DaemonFileUtils.atomicWrite(
+                confServerXML,
+                buildServerXml(siteDirectory, autoWarning),
+                0660,
+                httpdSite.getLinuxServerAccount().getUid().getId(),
+                httpdSite.getLinuxServerGroup().getGid().getId(),
+                null,
+                restorecon
+            )
         ) {
           // Flag as needing restarted
           needsRestart = true;
@@ -247,23 +247,23 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
           int uid_min = thisServer.getUidMin().getId();
           int gid_min = thisServer.getGidMin().getId();
           DaemonFileUtils.stripFilePrefix(
-            confServerXML,
-            autoWarningOld,
-            uid_min,
-            gid_min
+              confServerXML,
+              autoWarningOld,
+              uid_min,
+              gid_min
           );
           // This will not be necessary once all are Tomcat 8.5 and newer
           DaemonFileUtils.stripFilePrefix(
-            confServerXML,
-            autoWarning,
-            uid_min,
-            gid_min
+              confServerXML,
+              autoWarning,
+              uid_min,
+              gid_min
           );
           DaemonFileUtils.stripFilePrefix(
-            confServerXML,
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + autoWarning,
-            uid_min,
-            gid_min
+              confServerXML,
+              "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + autoWarning,
+              uid_min,
+              gid_min
           );
         } catch (IOException err) {
           // Errors OK because this is done in manual mode and they might have symbolic linked stuff

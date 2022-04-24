@@ -94,8 +94,8 @@ class HttpdTomcatSharedSiteManager_3_2_4 extends HttpdTomcatSharedSiteManager_3_
           + "    <ContextInterceptor className=\"org.apache.tomcat.context.LoadOnStartupInterceptor\" />\n");
 
       for (Worker worker : tomcatSite.getHttpdWorkers()) {
-        Bind netBind=worker.getBind();
-        String protocol=worker.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol();
+        Bind netBind = worker.getBind();
+        String protocol = worker.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol();
 
         out.print("    <Connector className=\"org.apache.tomcat.service.PoolTcpConnector\">\n"
             + "      <Parameter name=\"handler\" value=\"");
@@ -111,7 +111,7 @@ class HttpdTomcatSharedSiteManager_3_2_4 extends HttpdTomcatSharedSiteManager_3_
         }
         out.print("\"/>\n"
             + "      <Parameter name=\"port\" value=\"").textInXmlAttribute(netBind.getPort().getPort()).print("\"/>\n");
-        InetAddress ip=netBind.getIpAddress().getInetAddress();
+        InetAddress ip = netBind.getIpAddress().getInetAddress();
         if (!ip.isUnspecified()) {
           out.print("      <Parameter name=\"inet\" value=\"").textInXmlAttribute(ip).print("\"/>\n");
         }

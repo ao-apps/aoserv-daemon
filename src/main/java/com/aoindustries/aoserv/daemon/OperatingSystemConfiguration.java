@@ -39,82 +39,82 @@ import java.sql.SQLException;
  */
 public enum OperatingSystemConfiguration {
   CENTOS_5_I686_AND_X86_64 {
-    @Override
-    public HttpdOperatingSystemConfiguration getHttpdOperatingSystemConfiguration() {
-      return HttpdOperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64;
+  @Override
+  public HttpdOperatingSystemConfiguration getHttpdOperatingSystemConfiguration() {
+    return HttpdOperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64;
+  }
+  @Override
+  public PosixPath getOpensslDefaultCaFile() {
+    try {
+      return PosixPath.valueOf("/etc/pki/tls/certs/ca-bundle.crt");
+    } catch (ValidationException e) {
+      throw new WrappedException(e);
     }
-    @Override
-    public PosixPath getOpensslDefaultCaFile() {
-      try {
-        return PosixPath.valueOf("/etc/pki/tls/certs/ca-bundle.crt");
-      } catch (ValidationException e) {
-        throw new WrappedException(e);
-      }
+  }
+  @Override
+  public PosixPath getOpensslDefaultChainFile() {
+    try {
+      return PosixPath.valueOf("/etc/pki/tls/certs/server-chain.crt");
+    } catch (ValidationException e) {
+      throw new WrappedException(e);
     }
-    @Override
-    public PosixPath getOpensslDefaultChainFile() {
-      try {
-        return PosixPath.valueOf("/etc/pki/tls/certs/server-chain.crt");
-      } catch (ValidationException e) {
-        throw new WrappedException(e);
-      }
+  }
+  /**
+   * This replace command is copied from /opt/mysql-5.7[-i686]/bin/replace
+   * TODO: Just use sed instead.
+   */
+  @Override
+  public PosixPath getReplaceCommand() {
+    try {
+      return PosixPath.valueOf("/opt/aoserv-daemon/bin/replace");
+    } catch (ValidationException e) {
+      throw new WrappedException(e);
     }
-    /**
-     * This replace command is copied from /opt/mysql-5.7[-i686]/bin/replace
-     * TODO: Just use sed instead.
-     */
-    @Override
-    public PosixPath getReplaceCommand() {
-      try {
-        return PosixPath.valueOf("/opt/aoserv-daemon/bin/replace");
-      } catch (ValidationException e) {
-        throw new WrappedException(e);
-      }
+  }
+  //@Override
+  //public PosixPath getAOServClientScriptInclude() {
+  //  return "/opt/aoserv-client/scripts/aoserv-client.sh";
+  //}
+  @Override
+  public PosixPath getPostgresPath(String minorVersion) {
+    try {
+      return PosixPath.valueOf("/opt/postgresql-" + minorVersion + "-i686");
+    } catch (ValidationException e) {
+      throw new WrappedException(e);
     }
-    //@Override
-    //public PosixPath getAOServClientScriptInclude() {
-    //  return "/opt/aoserv-client/scripts/aoserv-client.sh";
-    //}
-    @Override
-    public PosixPath getPostgresPath(String minorVersion) {
-      try {
-        return PosixPath.valueOf("/opt/postgresql-"+minorVersion+"-i686");
-      } catch (ValidationException e) {
-        throw new WrappedException(e);
-      }
+  }
+  //public PosixPath getMySQLConnectorJavaJarPath() {
+  //  return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
+  //}
+  @Override
+  public PosixPath getDefaultJdkProfileSh() {
+    try {
+      return PosixPath.valueOf("/opt/jdk1-i686/setenv.sh");
+    } catch (ValidationException e) {
+      throw new WrappedException(e);
     }
-    //public PosixPath getMySQLConnectorJavaJarPath() {
-    //  return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
-    //}
-    @Override
-    public PosixPath getDefaultJdkProfileSh() {
-      try {
-        return PosixPath.valueOf("/opt/jdk1-i686/setenv.sh");
-      } catch (ValidationException e) {
-        throw new WrappedException(e);
-      }
+  }
+  @Override
+  public PackageManager.PackageName getDefaultJdkPackageName() {
+    return PackageManager.PackageName.JDK1_I686;
+  }
+  @Override
+  public PosixPath getJdk17ProfileSh() {
+    try {
+      return PosixPath.valueOf("/opt/jdk1.7-i686/setenv.sh");
+    } catch (ValidationException e) {
+      throw new WrappedException(e);
     }
-    @Override
-    public PackageManager.PackageName getDefaultJdkPackageName() {
-      return PackageManager.PackageName.JDK1_I686;
-    }
-    @Override
-    public PosixPath getJdk17ProfileSh() {
-      try {
-        return PosixPath.valueOf("/opt/jdk1.7-i686/setenv.sh");
-      } catch (ValidationException e) {
-        throw new WrappedException(e);
-      }
-    }
-    @Override
-    public PackageManager.PackageName getJdk17PackageName() {
-      return PackageManager.PackageName.JDK17_I686;
-    }
-    @Override
-    public String getPackageReleaseSuffix() {
-      return ".ao";
-    }
-  },
+  }
+  @Override
+  public PackageManager.PackageName getJdk17PackageName() {
+    return PackageManager.PackageName.JDK17_I686;
+  }
+  @Override
+  public String getPackageReleaseSuffix() {
+    return ".ao";
+  }
+},
   CENTOS_5DOM0_I686 {
     @Override
     public HttpdOperatingSystemConfiguration getHttpdOperatingSystemConfiguration() {

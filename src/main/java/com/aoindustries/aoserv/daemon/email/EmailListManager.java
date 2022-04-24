@@ -61,8 +61,8 @@ public final class EmailListManager {
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
     if (
-      osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-      && osvId != OperatingSystemVersion.CENTOS_7_X86_64
+        osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+            && osvId != OperatingSystemVersion.CENTOS_7_X86_64
     ) {
       throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
     }
@@ -78,8 +78,8 @@ public final class EmailListManager {
     OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
     if (
-      osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-      && osvId != OperatingSystemVersion.CENTOS_7_X86_64
+        osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+            && osvId != OperatingSystemVersion.CENTOS_7_X86_64
     ) {
       throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
     }
@@ -96,18 +96,18 @@ public final class EmailListManager {
    * Writes the address list to the file system.
    */
   public static synchronized void setEmailListFile(
-    PosixPath path,
-    String file,
-    int uid,
-    int gid,
-    int mode
+      PosixPath path,
+      String file,
+      int uid,
+      int gid,
+      int mode
   ) throws IOException, SQLException {
     Server thisServer = AOServDaemon.getThisServer();
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
     if (
-      osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-      && osvId != OperatingSystemVersion.CENTOS_7_X86_64
+        osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+            && osvId != OperatingSystemVersion.CENTOS_7_X86_64
     ) {
       throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
     }
@@ -117,9 +117,9 @@ public final class EmailListManager {
 
     // Remove any '/r'
     StringBuilder sb = new StringBuilder();
-    int len=file.length();
-    for (int c=0;c<len;c++) {
-      char ch=file.charAt(c);
+    int len = file.length();
+    for (int c = 0; c < len; c++) {
+      char ch = file.charAt(c);
       if (ch != '\r') {
         sb.append(ch);
       }
@@ -132,10 +132,10 @@ public final class EmailListManager {
     // If a majordomo list, add any new directories
     if (path.toString().startsWith(MajordomoServer.MAJORDOMO_SERVER_DIRECTORY.toString() + '/')) {
       // TODO: Create /etc/mail/majordomo when first needed
-      PosixFile pathUF=new PosixFile(path.toString());
-      PosixFile listDir=pathUF.getParent();
+      PosixFile pathUF = new PosixFile(path.toString());
+      PosixFile listDir = pathUF.getParent();
       if (!listDir.getStat().exists()) {
-        PosixFile serverDir=listDir.getParent();
+        PosixFile serverDir = listDir.getParent();
         if (!serverDir.getStat().exists()) {
           serverDir.mkdir().setMode(0750);
         }
@@ -150,13 +150,13 @@ public final class EmailListManager {
     try (
       TempFileContext tempFileContext = new TempFileContext(pathFile.getParentFile());
       TempFile tempFile = tempFileContext.createTempFile(pathFile.getName())
-    ) {
+        ) {
       try (
         Writer out = new OutputStreamWriter(
-          new PosixFile(tempFile.getFile()).getSecureOutputStream(uid, gid, mode, true, uid_min, gid_min),
-          ENCODING
-        )
-      ) {
+              new PosixFile(tempFile.getFile()).getSecureOutputStream(uid, gid, mode, true, uid_min, gid_min),
+              ENCODING
+          )
+          ) {
         out.write(sb.toString());
       }
 

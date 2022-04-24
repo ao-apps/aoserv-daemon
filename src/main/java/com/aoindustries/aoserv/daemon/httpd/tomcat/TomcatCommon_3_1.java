@@ -40,6 +40,7 @@ import java.util.Set;
 final class TomcatCommon_3_1 extends TomcatCommon_3_X {
 
   private static final TomcatCommon_3_1 instance = new TomcatCommon_3_1();
+
   static TomcatCommon_3_1 getInstance() {
     return instance;
   }
@@ -51,26 +52,26 @@ final class TomcatCommon_3_1 extends TomcatCommon_3_X {
   @Override
   protected Set<PackageManager.PackageName> getRequiredPackages() throws IOException, SQLException {
     return EnumSet.of(
-      OperatingSystemConfiguration.getOperatingSystemConfiguration().getJdk17PackageName(),
-      PackageManager.PackageName.APACHE_TOMCAT_3_1
+        OperatingSystemConfiguration.getOperatingSystemConfiguration().getJdk17PackageName(),
+        PackageManager.PackageName.APACHE_TOMCAT_3_1
     );
   }
 
   @Override
   public void createWebDtd(String confDirectory, int uid, int gid, int mode, int uid_min, int gid_min) throws IOException {
-    DaemonFileUtils.copyResource(TomcatCommon_3_1.class, "web.dtd-3.1", confDirectory+"/web.dtd", uid, gid, mode, uid_min, gid_min);
+    DaemonFileUtils.copyResource(TomcatCommon_3_1.class, "web.dtd-3.1", confDirectory + "/web.dtd", uid, gid, mode, uid_min, gid_min);
   }
 
   @Override
   public void createWebXml(String confDirectory, int uid, int gid, int mode, int uid_min, int gid_min) throws IOException {
-    DaemonFileUtils.copyResource(TomcatCommon_3_1.class, "web.xml-3.1", confDirectory+"/web.xml", uid, gid, mode, uid_min, gid_min);
+    DaemonFileUtils.copyResource(TomcatCommon_3_1.class, "web.xml-3.1", confDirectory + "/web.xml", uid, gid, mode, uid_min, gid_min);
   }
 
   @Override
   public void printTomcatUsers(ChainWriter out) {
-      out.print("<tomcat-users>\n"
-          + "  <user name=\"tomcat\" password=\"tomcat\" roles=\"tomcat\" />\n"
-          + "</tomcat-users>\n");
+    out.print("<tomcat-users>\n"
+        + "  <user name=\"tomcat\" password=\"tomcat\" roles=\"tomcat\" />\n"
+        + "</tomcat-users>\n");
   }
 
   //String getServletApiVersion() {

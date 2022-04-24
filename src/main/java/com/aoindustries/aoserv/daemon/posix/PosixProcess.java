@@ -40,7 +40,7 @@ public abstract class PosixProcess {
    * Constructs a POSIX process given its process ID.
    */
   protected PosixProcess(int pid) {
-    this.pid=pid;
+    this.pid = pid;
   }
 
   /**
@@ -92,9 +92,9 @@ public abstract class PosixProcess {
    */
   public void signal(String signalName) throws IOException {
     AOServDaemon.exec(
-      "/bin/kill",
-      "-"+signalName,
-      Integer.toString(pid)
+        "/bin/kill",
+        "-" + signalName,
+        Integer.toString(pid)
     );
   }
 }

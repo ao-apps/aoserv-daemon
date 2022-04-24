@@ -70,7 +70,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
    * Gets the specific manager for one type of web site.
    */
   public static HttpdTomcatSiteManager<? extends TomcatCommon> getInstance(Site tomcatSite) throws IOException, SQLException {
-    PrivateTomcatSite stdSite=tomcatSite.getHttpdTomcatStdSite();
+    PrivateTomcatSite stdSite = tomcatSite.getHttpdTomcatStdSite();
     if (stdSite != null) {
       return HttpdTomcatStdSiteManager.getInstance(stdSite);
     }
@@ -85,7 +85,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
       return HttpdTomcatSharedSiteManager.getInstance(shrSite);
     }
 
-    throw new SQLException("Site must be one of PrivateTomcatSite, Site, or SharedTomcatSite: "+tomcatSite);
+    throw new SQLException("Site must be one of PrivateTomcatSite, Site, or SharedTomcatSite: " + tomcatSite);
   }
 
   /**
@@ -120,8 +120,8 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
     //}
     List<Context> htcs;
     if (
-      !tomcatSite.getBlockWebinf()
-      || (htcs = tomcatSite.getHttpdTomcatContexts()).isEmpty()
+        !tomcatSite.getBlockWebinf()
+            || (htcs = tomcatSite.getHttpdTomcatContexts()).isEmpty()
     ) {
       return standardRejectedLocations;
     } else {
@@ -134,8 +134,8 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
       Map<String, List<Location>> rejectedLocations = AoCollections.newLinkedHashMap(standardRejectedLocations.size() + 1);
       rejectedLocations.putAll(standardRejectedLocations);
       rejectedLocations.put(
-        "Protect Tomcat webapps",
-        Collections.unmodifiableList(locations)
+          "Protect Tomcat webapps",
+          Collections.unmodifiableList(locations)
       );
       return Collections.unmodifiableMap(rejectedLocations);
     }
@@ -150,17 +150,17 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
   public Boolean stop() throws IOException, SQLException {
     PosixPath scriptPath = getStartStopScriptPath();
     if (
-      !httpdSite.isManual()
-      // Script may not exist while in manual mode
-      || new PosixFile(scriptPath.toString()).getStat().exists()
+        !httpdSite.isManual()
+            // Script may not exist while in manual mode
+            || new PosixFile(scriptPath.toString()).getStat().exists()
     ) {
       PosixFile pidFile = getPidFile();
       if (pidFile.getStat().exists()) {
         AOServDaemon.suexec(
-          getStartStopScriptUsername(),
-          getStartStopScriptWorkingDirectory(),
-          scriptPath + " stop",
-          0
+            getStartStopScriptUsername(),
+            getStartStopScriptWorkingDirectory(),
+            scriptPath + " stop",
+            0
         );
         if (pidFile.getStat().exists()) {
           pidFile.delete();
@@ -179,17 +179,17 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
   public Boolean start() throws IOException, SQLException {
     PosixPath scriptPath = getStartStopScriptPath();
     if (
-      !httpdSite.isManual()
-      // Script may not exist while in manual mode
-      || new PosixFile(scriptPath.toString()).getStat().exists()
+        !httpdSite.isManual()
+            // Script may not exist while in manual mode
+            || new PosixFile(scriptPath.toString()).getStat().exists()
     ) {
       PosixFile pidFile = getPidFile();
       if (!pidFile.getStat().exists()) {
         AOServDaemon.suexec(
-          getStartStopScriptUsername(),
-          getStartStopScriptWorkingDirectory(),
-          scriptPath + " start",
-          0
+            getStartStopScriptUsername(),
+            getStartStopScriptWorkingDirectory(),
+            scriptPath + " start",
+            0
         );
         return true;
       } else {
@@ -202,10 +202,10 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
             System.err.println("Warning: Deleting PID file for dead process: " + pidFile.getPath());
             pidFile.delete();
             AOServDaemon.suexec(
-              getStartStopScriptUsername(),
-              getStartStopScriptWorkingDirectory(),
-              scriptPath + " start",
-              0
+                getStartStopScriptUsername(),
+                getStartStopScriptWorkingDirectory(),
+                scriptPath + " start",
+                0
             );
             return true;
           }
@@ -258,15 +258,15 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
     // Set up all of the webapps
     for (Context htc : tomcatSite.getHttpdTomcatContexts()) {
       webapps.put(
-        htc.getPath(),
-        new WebAppSettings(
-          htc.getDocBase(),
-          httpdSite.getEnableHtaccess() ? "All" : "None",
-          httpdSite.getEnableSsi(),
-          httpdSite.getEnableIndexes(),
-          httpdSite.getEnableFollowSymlinks(),
-          enableCgi()
-        )
+          htc.getPath(),
+          new WebAppSettings(
+              htc.getDocBase(),
+              httpdSite.getEnableHtaccess() ? "All" : "None",
+              httpdSite.getEnableSsi(),
+              httpdSite.getEnableIndexes(),
+              httpdSite.getEnableFollowSymlinks(),
+              enableCgi()
+          )
       );
     }
     return webapps;
@@ -318,7 +318,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
     final TC tomcatCommon = getTomcatCommon();
     final String apacheTomcatDir = tomcatCommon.getApacheTomcatDir();
 
-    final PosixFile rootDirectory = new PosixFile(siteDir+"/webapps/"+Context.ROOT_DOC_BASE);
+    final PosixFile rootDirectory = new PosixFile(siteDir + "/webapps/" + Context.ROOT_DOC_BASE);
     final PosixFile cgibinDirectory = new PosixFile(rootDirectory, "cgi-bin", false);
 
     boolean needsRestart = false;
@@ -326,8 +326,8 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
     // Create and fill in the directory if it does not exist or is owned by root.
     Stat siteDirectoryStat = siteDirectory.getStat();
     final boolean isInstall =
-      !siteDirectoryStat.exists()
-      || siteDirectoryStat.getUid() == PosixFile.ROOT_UID;
+        !siteDirectoryStat.exists()
+            || siteDirectoryStat.getUid() == PosixFile.ROOT_UID;
 
     // Perform upgrade in-place when not doing a full install and the README.txt file missing or changed
     final byte[] readmeTxtContent = generateReadmeTxt(optSlash, apacheTomcatDir, siteDirectory);
@@ -337,14 +337,14 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
     {
       final Stat readmeTxtStat;
       isUpgrade =
-        !isInstall
-        && !httpdSite.isManual()
-        && readmeTxt != null
-        && !(
-          (readmeTxtStat = readmeTxt.getStat()).exists()
-          && readmeTxtStat.isRegularFile()
-          && readmeTxt.contentEquals(readmeTxtContent)
-        );
+          !isInstall
+              && !httpdSite.isManual()
+              && readmeTxt != null
+              && !(
+              (readmeTxtStat = readmeTxt.getStat()).exists()
+                  && readmeTxtStat.isRegularFile()
+                  && readmeTxt.contentEquals(readmeTxtContent)
+          );
     }
     assert !(isInstall && isUpgrade);
     if (isInstall || isUpgrade) {
@@ -370,8 +370,8 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
       // Create or replace the README.txt
       if (readmeTxt != null) {
         DaemonFileUtils.atomicWrite(
-          readmeTxt, readmeTxtContent, 0440, uid, gid,
-          null, null
+            readmeTxt, readmeTxtContent, 0440, uid, gid,
+            null, null
         );
       }
 

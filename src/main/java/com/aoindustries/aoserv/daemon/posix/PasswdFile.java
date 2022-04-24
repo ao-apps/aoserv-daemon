@@ -61,8 +61,8 @@ public final class PasswdFile {
   private static final Logger logger = Logger.getLogger(PasswdFile.class.getName());
 
   private static final PosixFile
-    passwdFile       = new PosixFile("/etc/passwd"),
-    backupPasswdFile = new PosixFile("/etc/passwd-")
+      passwdFile       = new PosixFile("/etc/passwd"),
+      backupPasswdFile = new PosixFile("/etc/passwd-")
   ;
 
   /**
@@ -199,15 +199,15 @@ public final class PasswdFile {
      * Constructs a passwd file entry given all the values.
      */
     public Entry(
-      User.Name username,
-      int uid,
-      int gid,
-      Gecos fullName,
-      Gecos officeLocation,
-      Gecos officePhone,
-      Gecos homePhone,
-      PosixPath home,
-      PosixPath shell
+        User.Name username,
+        int uid,
+        int gid,
+        Gecos fullName,
+        Gecos officeLocation,
+        Gecos officePhone,
+        Gecos homePhone,
+        PosixPath home,
+        PosixPath shell
     ) {
       this.username = username;
       this.uid = uid;
@@ -243,12 +243,12 @@ public final class PasswdFile {
      */
     public <A extends Appendable> A appendTo(A out) throws IOException {
       out
-        .append(username.toString())
-        .append(":x:")
-        .append(Integer.toString(uid))
-        .append(':')
-        .append(Integer.toString(gid))
-        .append(':');
+          .append(username.toString())
+          .append(":x:")
+          .append(Integer.toString(uid))
+          .append(':')
+          .append(Integer.toString(gid))
+          .append(':');
       int commaCount = 0;
       if (fullName != null) {
         out.append(fullName.toString());
@@ -273,10 +273,10 @@ public final class PasswdFile {
         out.append(homePhone.toString());
       }
       out
-        .append(':')
-        .append(home.toString())
-        .append(':')
-        .append(shell.toString());
+          .append(':')
+          .append(home.toString())
+          .append(':')
+          .append(shell.toString());
       return out;
     }
 
@@ -360,11 +360,11 @@ public final class PasswdFile {
       Map<User.Name, Entry> passwdEntries = new LinkedHashMap<>();
       try (
         BufferedReader in = new BufferedReader(
-          new InputStreamReader(
-            new FileInputStream(passwdFile.getFile())
+              new InputStreamReader(
+                  new FileInputStream(passwdFile.getFile())
+              )
           )
-        )
-      ) {
+          ) {
         String line;
         while ((line = in.readLine()) != null) {
           Entry entry = new Entry(line);
@@ -407,13 +407,13 @@ public final class PasswdFile {
   public static void writePasswdFile(byte[] newContents, Set<PosixFile> restorecon) throws IOException {
     assert Thread.holdsLock(passwdLock);
     DaemonFileUtils.atomicWrite(
-      passwdFile,
-      newContents,
-      0644,
-      PosixFile.ROOT_UID,
-      PosixFile.ROOT_GID,
-      backupPasswdFile,
-      restorecon
+        passwdFile,
+        newContents,
+        0644,
+        PosixFile.ROOT_UID,
+        PosixFile.ROOT_GID,
+        backupPasswdFile,
+        restorecon
     );
   }
 
@@ -454,14 +454,14 @@ public final class PasswdFile {
 
         // Verify other fields match
         if (
-          existingEntry.uid != expectedEntry.uid
-          || existingEntry.gid != expectedEntry.gid
-          || !Objects.equals(existingEntry.fullName, expectedEntry.fullName)
-          || !Objects.equals(existingEntry.officeLocation, expectedEntry.officeLocation)
-          || !Objects.equals(existingEntry.officePhone, expectedEntry.officePhone)
-          || !Objects.equals(existingEntry.homePhone, expectedEntry.homePhone)
-          || !existingEntry.home.equals(expectedEntry.home)
-          || !existingEntry.shell.equals(expectedEntry.shell)
+            existingEntry.uid != expectedEntry.uid
+                || existingEntry.gid != expectedEntry.gid
+                || !Objects.equals(existingEntry.fullName, expectedEntry.fullName)
+                || !Objects.equals(existingEntry.officeLocation, expectedEntry.officeLocation)
+                || !Objects.equals(existingEntry.officePhone, expectedEntry.officePhone)
+                || !Objects.equals(existingEntry.homePhone, expectedEntry.homePhone)
+                || !existingEntry.home.equals(expectedEntry.home)
+                || !existingEntry.shell.equals(expectedEntry.shell)
         ) {
           assert existingEntry.username.equals(username);
           if (logger.isLoggable(Level.INFO)) {

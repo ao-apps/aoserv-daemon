@@ -64,11 +64,11 @@ public final class FTPManager extends BuilderThread {
   private static final Logger logger = Logger.getLogger(FTPManager.class.getName());
 
   private static final PosixFile
-    vsFtpdConfNew = new PosixFile("/etc/vsftpd/vsftpd.conf.new"),
-    vsFtpdConf = new PosixFile("/etc/vsftpd/vsftpd.conf"),
-    vsFtpdVhostsirectory = new PosixFile("/etc/vsftpd/vhosts"),
-    vsFtpdChrootList = new PosixFile("/etc/vsftpd/chroot_list"),
-    vsFtpdChrootListNew = new PosixFile("/etc/vsftpd/chroot_list.new")
+      vsFtpdConfNew = new PosixFile("/etc/vsftpd/vsftpd.conf.new"),
+      vsFtpdConf = new PosixFile("/etc/vsftpd/vsftpd.conf"),
+      vsFtpdVhostsirectory = new PosixFile("/etc/vsftpd/vhosts"),
+      vsFtpdChrootList = new PosixFile("/etc/vsftpd/chroot_list"),
+      vsFtpdChrootListNew = new PosixFile("/etc/vsftpd/chroot_list.new")
   ;
 
   /**
@@ -83,6 +83,7 @@ public final class FTPManager extends BuilderThread {
   }
 
   private static final Object rebuildLock = new Object();
+
   @Override
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
   protected boolean doRebuild() {
@@ -201,18 +202,18 @@ public final class FTPManager extends BuilderThread {
 
         // Write each config file
         for (Bind bind : binds) {
-          TcpRedirect redirect=bind.getNetTcpRedirect();
-          PrivateServer privateServer=bind.getPrivateFTPServer();
+          TcpRedirect redirect = bind.getNetTcpRedirect();
+          PrivateServer privateServer = bind.getPrivateFTPServer();
           if (redirect != null) {
             if (privateServer != null) {
-              throw new SQLException("Bind allocated as both TcpRedirect and PrivateServer: "+bind.getPkey());
+              throw new SQLException("Bind allocated as both TcpRedirect and PrivateServer: " + bind.getPkey());
             }
           } else {
-            com.aoapps.net.Protocol netProtocol=bind.getPort().getProtocol();
+            com.aoapps.net.Protocol netProtocol = bind.getPort().getProtocol();
             if (netProtocol != com.aoapps.net.Protocol.TCP) {
-              throw new SQLException("vsftpd may only be configured for TCP service:  (net_binds.pkey="+bind.getPkey()+").net_protocol="+netProtocol);
+              throw new SQLException("vsftpd may only be configured for TCP service:  (net_binds.pkey=" + bind.getPkey() + ").net_protocol=" + netProtocol);
             }
-            IpAddress ia=bind.getIpAddress();
+            IpAddress ia = bind.getIpAddress();
 
             // Write to buffer
             bout.reset();
@@ -248,13 +249,13 @@ public final class FTPManager extends BuilderThread {
                 out.print("ftp_username=").print(privateServer.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername()).print('\n');
               }
               out.print("ftpd_banner=FTP Host [").print(
-                privateServer != null
-                ? privateServer.getHostname()
-                : (
-                  ia.getInetAddress().isUnspecified()
-                  ? thisServer.getHostname()
-                  : ia.getHostname()
-                )
+                  privateServer != null
+                      ? privateServer.getHostname()
+                      : (
+                      ia.getInetAddress().isUnspecified()
+                          ? thisServer.getHostname()
+                          : ia.getHostname()
+                  )
               ).print("]\n"
                   + "pam_service_name=vsftpd\n");
               if (privateServer != null) {
@@ -264,13 +265,13 @@ public final class FTPManager extends BuilderThread {
             byte[] newBytes = bout.toByteArray();
 
             // Only write to filesystem if missing or changed
-            String filename = "vsftpd_"+bind.getIpAddress().getInetAddress().toString()+"_"+bind.getPort().getPort()+".conf";
+            String filename = "vsftpd_" + bind.getIpAddress().getInetAddress().toString() + "_" + bind.getPort().getPort() + ".conf";
             if (!existing.add(filename)) {
-              throw new SQLException("Filename already used: "+filename);
+              throw new SQLException("Filename already used: " + filename);
             }
             PosixFile confFile = new PosixFile(vsFtpdVhostsirectory, filename, false);
             if (!confFile.getStat().exists() || !confFile.contentEquals(newBytes)) {
-              PosixFile newConfFile = new PosixFile(vsFtpdVhostsirectory, filename+".new", false);
+              PosixFile newConfFile = new PosixFile(vsFtpdVhostsirectory, filename + ".new", false);
               try (FileOutputStream newOut = newConfFile.getSecureOutputStream(PosixFile.ROOT_UID, PosixFile.ROOT_GID, 0600, true, uid_min, gid_min)) {
                 newOut.write(newBytes);
               }
@@ -298,7 +299,7 @@ public final class FTPManager extends BuilderThread {
   private static void doRebuildSharedFtpDirectory() throws IOException, SQLException {
     Set<PosixFile> restorecon = new LinkedHashSet<>();
     try {
-      List<File> deleteFileList=new ArrayList<>();
+      List<File> deleteFileList = new ArrayList<>();
 
       Set<String> ftpDirectories;
       {
@@ -347,13 +348,13 @@ public final class FTPManager extends BuilderThread {
 
     synchronized (System.out) {
       if (
-        // Nothing is done for these operating systems
-        osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
-        && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-        && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-        // Check config after OS check so config entry not needed
-        && AOServDaemonConfiguration.isManagerEnabled(FTPManager.class)
-        && ftpManager == null
+          // Nothing is done for these operating systems
+          osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+              && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+              && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+              // Check config after OS check so config entry not needed
+              && AOServDaemonConfiguration.isManagerEnabled(FTPManager.class)
+              && ftpManager == null
       ) {
         System.out.print("Starting FTPManager: ");
         // Must be a supported operating system
@@ -380,21 +381,21 @@ public final class FTPManager extends BuilderThread {
    * Removes any file in the directory that is not listed in <code>files</code>.
    */
   public static void trimFiles(PosixFile dir, String[] files) throws IOException {
-    String[] list=dir.list();
+    String[] list = dir.list();
     if (list != null) {
-      int len=list.length;
-      int flen=files.length;
-      for (int c=0;c<len;c++) {
-        String filename=list[c];
-        boolean found=false;
-        for (int d=0;d<flen;d++) {
+      int len = list.length;
+      int flen = files.length;
+      for (int c = 0; c < len; c++) {
+        String filename = list[c];
+        boolean found = false;
+        for (int d = 0; d < flen; d++) {
           if (filename.equals(files[d])) {
-            found=true;
+            found = true;
             break;
           }
         }
         if (!found) {
-          PosixFile file=new PosixFile(dir, filename, false);
+          PosixFile file = new PosixFile(dir, filename, false);
           if (file.getStat().exists()) {
             file.delete();
           }

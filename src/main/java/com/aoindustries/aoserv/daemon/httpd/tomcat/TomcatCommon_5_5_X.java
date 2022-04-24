@@ -41,6 +41,7 @@ import java.util.Set;
 final class TomcatCommon_5_5_X extends TomcatCommon {
 
   private static final TomcatCommon_5_5_X instance = new TomcatCommon_5_5_X();
+
   static TomcatCommon_5_5_X getInstance() {
     return instance;
   }
@@ -52,8 +53,8 @@ final class TomcatCommon_5_5_X extends TomcatCommon {
   @Override
   protected Set<PackageManager.PackageName> getRequiredPackages() throws IOException, SQLException {
     return EnumSet.of(
-      OperatingSystemConfiguration.getOperatingSystemConfiguration().getJdk17PackageName(),
-      PackageManager.PackageName.APACHE_TOMCAT_5_5
+        OperatingSystemConfiguration.getOperatingSystemConfiguration().getJdk17PackageName(),
+        PackageManager.PackageName.APACHE_TOMCAT_5_5
     );
   }
 

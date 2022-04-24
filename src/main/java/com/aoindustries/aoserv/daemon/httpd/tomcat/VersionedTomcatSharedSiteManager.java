@@ -91,7 +91,7 @@ abstract class VersionedTomcatSharedSiteManager<TC extends VersionedTomcatCommon
     try (
       InputStream in = new FileInputStream("/opt/" + apacheTomcatDir + "/webapps/ROOT/WEB-INF/web.xml");
       OutputStream out = new PosixFile(webXML).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
-    ) {
+        ) {
       IoUtils.copy(in, out);
     }
   }

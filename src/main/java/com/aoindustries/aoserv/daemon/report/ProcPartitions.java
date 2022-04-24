@@ -35,24 +35,24 @@ public final class ProcPartitions {
   public final int[] device_majors;
   public final int[] device_minors;
   public final long[]
-    blocks,
-    rios,
-    rmerges,
-    rsect,
-    ruse,
-    wios,
-    wmerge,
-    wsect,
-    wuse
+      blocks,
+      rios,
+      rmerges,
+      rsect,
+      ruse,
+      wios,
+      wmerge,
+      wsect,
+      wuse
   ;
   public final int[] runnings;
   public final long[]
-    uses,
-    aveq
+      uses,
+      aveq
   ;
 
   public ProcPartitions() {
-    device_majors=device_minors=runnings = EmptyArrays.EMPTY_INT_ARRAY;
-    blocks=rios=rmerges=rsect=ruse=wios=wmerge=wsect=wuse=uses=aveq = EmptyArrays.EMPTY_LONG_ARRAY;
+    device_majors = device_minors = runnings = EmptyArrays.EMPTY_INT_ARRAY;
+    blocks = rios = rmerges = rsect = ruse = wios = wmerge = wsect = wuse = uses = aveq = EmptyArrays.EMPTY_LONG_ARRAY;
   }
 }

@@ -63,8 +63,8 @@ public final class ShadowFile {
   private static final Logger logger = Logger.getLogger(ShadowFile.class.getName());
 
   private static final PosixFile
-    shadowFile       = new PosixFile("/etc/shadow"),
-    backupShadowFile = new PosixFile("/etc/shadow-")
+      shadowFile       = new PosixFile("/etc/shadow"),
+      backupShadowFile = new PosixFile("/etc/shadow-")
   ;
 
   /**
@@ -191,15 +191,15 @@ public final class ShadowFile {
      * Constructs a shadow file entry given all the values.
      */
     public Entry(
-      User.Name username,
-      String password,
-      int changedDate,
-      Integer minPasswordAge,
-      Integer maxPasswordAge,
-      Integer warningDays,
-      Integer inactivateDays,
-      Integer expirationDate,
-      String flag
+        User.Name username,
+        String password,
+        int changedDate,
+        Integer minPasswordAge,
+        Integer maxPasswordAge,
+        Integer warningDays,
+        Integer inactivateDays,
+        Integer expirationDate,
+        String flag
     ) {
       this.username = username;
       this.password = password;
@@ -217,15 +217,15 @@ public final class ShadowFile {
      */
     public Entry(User.Name username, String password, Integer newChangedDate) {
       this(
-        username,
-        password,
-        newChangedDate != null ? newChangedDate : getCurrentDate(),
-        0,
-        99999,
-        7,
-        null,
-        null,
-        null
+          username,
+          password,
+          newChangedDate != null ? newChangedDate : getCurrentDate(),
+          0,
+          99999,
+          7,
+          null,
+          null,
+          null
       );
     }
 
@@ -273,12 +273,12 @@ public final class ShadowFile {
      */
     public <A extends Appendable> A appendTo(A out) throws IOException {
       out
-        .append(username.toString())
-        .append(':')
-        .append(password)
-        .append(':')
-        .append(Integer.toString(changedDate))
-        .append(':')
+          .append(username.toString())
+          .append(':')
+          .append(password)
+          .append(':')
+          .append(Integer.toString(changedDate))
+          .append(':')
       ;
       if (minPasswordAge != null) {
         out.append(minPasswordAge.toString());
@@ -332,15 +332,15 @@ public final class ShadowFile {
         return this;
       } else {
         return new Entry(
-          username,
-          newPassword,
-          newChangedDate != null ? newChangedDate : this.changedDate,
-          minPasswordAge,
-          maxPasswordAge,
-          warningDays,
-          inactivateDays,
-          expirationDate,
-          flag
+            username,
+            newPassword,
+            newChangedDate != null ? newChangedDate : this.changedDate,
+            minPasswordAge,
+            maxPasswordAge,
+            warningDays,
+            inactivateDays,
+            expirationDate,
+            flag
         );
       }
     }
@@ -415,8 +415,8 @@ public final class ShadowFile {
     OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
     if (
-      osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-      && osvId != OperatingSystemVersion.CENTOS_7_X86_64
+        osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+            && osvId != OperatingSystemVersion.CENTOS_7_X86_64
     ) {
       throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
     }
@@ -425,11 +425,11 @@ public final class ShadowFile {
       try {
         try (
           BufferedReader in = new BufferedReader(
-            new InputStreamReader(
-              new FileInputStream(shadowFile.getFile())
+                new InputStreamReader(
+                    new FileInputStream(shadowFile.getFile())
+                )
             )
-          )
-        ) {
+            ) {
           String line;
           while ((line = in.readLine()) != null) {
             Entry entry = new Entry(line);
@@ -454,11 +454,11 @@ public final class ShadowFile {
       Map<User.Name, Entry> shadowEntries = new LinkedHashMap<>();
       try (
         BufferedReader in = new BufferedReader(
-          new InputStreamReader(
-            new FileInputStream(shadowFile.getFile())
+              new InputStreamReader(
+                  new FileInputStream(shadowFile.getFile())
+              )
           )
-        )
-      ) {
+          ) {
         String line;
         while ((line = in.readLine()) != null) {
           Entry entry = new Entry(line);
@@ -516,13 +516,13 @@ public final class ShadowFile {
       }
     }
     DaemonFileUtils.atomicWrite(
-      shadowFile,
-      newContents,
-      mode,
-      PosixFile.ROOT_UID,
-      PosixFile.ROOT_GID,
-      backupShadowFile,
-      restorecon
+        shadowFile,
+        newContents,
+        mode,
+        PosixFile.ROOT_UID,
+        PosixFile.ROOT_GID,
+        backupShadowFile,
+        restorecon
     );
   }
 
@@ -595,8 +595,8 @@ public final class ShadowFile {
 
       Set<PosixFile> restorecon = new LinkedHashSet<>();
       writeShadowFile(
-        createShadowFile(shadowEntries.values()),
-        restorecon
+          createShadowFile(shadowEntries.values()),
+          restorecon
       );
       DaemonFileUtils.restorecon(restorecon);
     }
@@ -607,11 +607,11 @@ public final class ShadowFile {
    */
   public static void setPassword(User.Name username, String plaintext, PosixFile.CryptAlgorithm cryptAlgorithm, boolean updateChangedDate) throws IOException, SQLException {
     setEncryptedPassword(
-      username,
-      plaintext == null || plaintext.isEmpty()
-        ? User.NO_PASSWORD_CONFIG_VALUE
-        : PosixFile.crypt(plaintext, cryptAlgorithm, AOServDaemon.getSecureRandom()),
-      updateChangedDate ? Entry.getCurrentDate() : null
+        username,
+        plaintext == null || plaintext.isEmpty()
+            ? User.NO_PASSWORD_CONFIG_VALUE
+            : PosixFile.crypt(plaintext, cryptAlgorithm, AOServDaemon.getSecureRandom()),
+        updateChangedDate ? Entry.getCurrentDate() : null
     );
   }
 }

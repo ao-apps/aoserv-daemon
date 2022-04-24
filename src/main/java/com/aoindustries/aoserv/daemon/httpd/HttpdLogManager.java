@@ -93,9 +93,9 @@ final class HttpdLogManager {
    * Only called by the already synchronized <code>HttpdManager.doRebuild()</code> method.
    */
   static void doRebuild(
-    List<File> deleteFileList,
-    Set<HttpdServer> serversNeedingReloaded,
-    Set<PosixFile> restorecon
+      List<File> deleteFileList,
+      Set<HttpdServer> serversNeedingReloaded,
+      Set<PosixFile> restorecon
   ) throws IOException, SQLException {
     // Used below
     ByteArrayOutputStream bout = new ByteArrayOutputStream();
@@ -115,9 +115,9 @@ final class HttpdLogManager {
    * Rebuilds the directories under /logs or /var/log/httpd-sites
    */
   private static void doRebuildLogs(
-    Server thisServer,
-    List<File> deleteFileList,
-    Set<HttpdServer> serversNeedingReloaded
+      Server thisServer,
+      List<File> deleteFileList,
+      Set<HttpdServer> serversNeedingReloaded
   ) throws IOException, SQLException {
     // Values used below
     final int logfileUID;
@@ -127,9 +127,9 @@ final class HttpdLogManager {
       // awstats user is required when RPM is installed
       PackageManager.PackageName awstatsPackageName = osConfig.getAwstatsPackageName();
       if (
-        awstatsPackageName != null
-        && PackageManager.getInstalledPackage(awstatsPackageName) != null
-        && awstatsLSA == null
+          awstatsPackageName != null
+              && PackageManager.getInstalledPackage(awstatsPackageName) != null
+              && awstatsLSA == null
       ) {
         throw new SQLException("Unable to find UserServer: " + User.AWSTATS);
       }
@@ -157,9 +157,9 @@ final class HttpdLogManager {
         logDirectories = AoCollections.newHashSet(list.length);
         for (String dirname : list) {
           if (
-            !dirname.equals("lost+found")
-            && !dirname.equals("aquota.group")
-            && !dirname.equals("aquota.user")
+              !dirname.equals("lost+found")
+                  && !dirname.equals("aquota.group")
+                  && !dirname.equals("aquota.user")
           ) {
             logDirectories.add(dirname);
           }
@@ -262,10 +262,10 @@ final class HttpdLogManager {
    * Rebuilds the per-site logrotation files.
    */
   private static void doRebuildLogrotate(
-    Server thisServer,
-    List<File> deleteFileList,
-    ByteArrayOutputStream byteOut,
-    Set<PosixFile> restorecon
+      Server thisServer,
+      List<File> deleteFileList,
+      ByteArrayOutputStream byteOut,
+      Set<PosixFile> restorecon
   ) throws IOException, SQLException {
     final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
     final String siteLogRotationDir;
@@ -279,7 +279,7 @@ final class HttpdLogManager {
         // Nothing done for CentOS 7, we now use wildcard patterns in static /etc/logrotate.d/httpd-(n|sites) files.
         return;
       default :
-        throw new AssertionError("Unexpected value for osConfig: "+osConfig);
+        throw new AssertionError("Unexpected value for osConfig: " + osConfig);
     }
 
     int uid_min = thisServer.getUidMin().getId();
@@ -295,7 +295,7 @@ final class HttpdLogManager {
     Set<PosixPath> completedPaths = AoCollections.newHashSet(logRotationFiles.size());
 
     // For each site, build/rebuild the logrotate.d file as necessary and create any necessary log files
-    ChainWriter chainOut=new ChainWriter(byteOut);
+    ChainWriter chainOut = new ChainWriter(byteOut);
     for (Site site : thisServer.getHttpdSites()) {
       // Write the new file to RAM first
       byteOut.reset();
@@ -326,21 +326,21 @@ final class HttpdLogManager {
       // Do not write empty files, finish the file
       if (wroteOne) {
         chainOut.print(" {\n"
-               + "    missingok\n"
-               + "    daily\n"
-               + "    rotate 379\n"
-               + "}\n");
+            + "    missingok\n"
+            + "    daily\n"
+            + "    rotate 379\n"
+            + "}\n");
         chainOut.flush();
 
         // Write to disk if file missing or doesn't match
         DaemonFileUtils.atomicWrite(
-          new PosixFile(siteLogRotationDir, site.getName()),
-          byteOut.toByteArray(),
-          0640,
-          PosixFile.ROOT_UID,
-          site.getLinuxServerGroup().getGid().getId(),
-          null,
-          restorecon
+            new PosixFile(siteLogRotationDir, site.getName()),
+            byteOut.toByteArray(),
+            0640,
+            PosixFile.ROOT_UID,
+            site.getLinuxServerGroup().getGid().getId(),
+            null,
+            restorecon
         );
 
         // Make sure the newly created or replaced log rotation file is not removed
@@ -415,13 +415,13 @@ final class HttpdLogManager {
           }
         }
         DaemonFileUtils.atomicWrite(
-          new PosixFile(serverLogRotationDir+"/"+filename),
-          byteOut.toByteArray(),
-          0600,
-          PosixFile.ROOT_UID,
-          PosixFile.ROOT_GID,
-          null,
-          restorecon
+            new PosixFile(serverLogRotationDir + "/" + filename),
+            byteOut.toByteArray(),
+            0600,
+            PosixFile.ROOT_UID,
+            PosixFile.ROOT_GID,
+            null,
+            restorecon
         );
       }
 
@@ -440,9 +440,9 @@ final class HttpdLogManager {
    * Rebuilds the /var/log/httpd# or /var/log/httpd[@&lt;name&gt;] directories
    */
   private static void doRebuildVarLogHttpd(
-    Server thisServer,
-    List<File> deleteFileList,
-    Set<PosixFile> restorecon
+      Server thisServer,
+      List<File> deleteFileList,
+      Set<PosixFile> restorecon
   ) throws IOException, SQLException {
     HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
     if (osConfig == HttpdOperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) {
@@ -497,8 +497,8 @@ final class HttpdLogManager {
       // Note: /var/log/httpd will always be left in-place because it is part of the stock httpd RPM.
       for (String filename : varLogDir.list()) {
         if (
-          !keepFilenames.contains(filename)
-          && HTTPD_NAME_REGEXP.matcher(filename).matches()
+            !keepFilenames.contains(filename)
+                && HTTPD_NAME_REGEXP.matcher(filename).matches()
         ) {
           File toDelete = new PosixFile(varLogDir, filename, false).getFile();
           if (logger.isLoggable(Level.INFO)) {

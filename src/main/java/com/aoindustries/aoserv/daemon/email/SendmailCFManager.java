@@ -135,8 +135,8 @@ public final class SendmailCFManager extends BuilderThread {
   private static final String SOURCE_SUFFIX = "-source";
 
   private static final PosixFile
-    submitMc = new PosixFile("/etc/mail/submit.mc"),
-    submitCf = new PosixFile("/etc/mail/submit.cf")
+      submitMc = new PosixFile("/etc/mail/submit.mc"),
+      submitCf = new PosixFile("/etc/mail/submit.cf")
   ;
 
   /**
@@ -175,12 +175,12 @@ public final class SendmailCFManager extends BuilderThread {
    * Builds the config for CentOS 5.
    */
   private static void buildSendmailMcCentOS5(
-    ChainWriter out,
-    Server thisServer,
-    SendmailServer sendmailServer,
-    List<SendmailBind> smtpNetBinds,
-    List<SendmailBind> smtpsNetBinds,
-    List<SendmailBind> submissionNetBinds
+      ChainWriter out,
+      Server thisServer,
+      SendmailServer sendmailServer,
+      List<SendmailBind> smtpNetBinds,
+      List<SendmailBind> smtpsNetBinds,
+      List<SendmailBind> submissionNetBinds
   ) throws IOException, SQLException {
     if (sendmailServer != null && sendmailServer.getName() != null) {
       throw new IllegalArgumentException("Only the unnamed default instance is supported on CentOS 5");
@@ -364,10 +364,10 @@ public final class SendmailCFManager extends BuilderThread {
         ip = primaryIpAddress.getInetAddress();
       }
       out
-        .print("INPUT_MAIL_FILTER(`jilter',`S=")
-        .print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
-        .print(':')
-        .print(jilterNetBind.getPort().getPort()).print('@').print(ip).print(", F=R, T=S:60s;R:60s')\n"
+          .print("INPUT_MAIL_FILTER(`jilter',`S=")
+          .print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
+          .print(':')
+          .print(jilterNetBind.getPort().getPort()).print('@').print(ip).print(", F=R, T=S:60s;R:60s')\n"
           + "dnl\n");
     }
     out.print("dnl Only listen to the IP addresses of this logical server\n"
@@ -384,15 +384,15 @@ public final class SendmailCFManager extends BuilderThread {
           bindName = (ip.isUnspecified() ? hostname : ia.getHostname()) + "-MTA";
         }
         out
-          .print("DAEMON_OPTIONS(`Addr=")
-          .print(ip.toString())
-          .print(", Family=")
-          .print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
-          .print(", Port=")
-          .print(nb.getPort().getPort())
-          .print(", Name=")
-          .print(bindName)
-          .print(", Modifiers=")
+            .print("DAEMON_OPTIONS(`Addr=")
+            .print(ip.toString())
+            .print(", Family=")
+            .print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
+            .print(", Port=")
+            .print(nb.getPort().getPort())
+            .print(", Name=")
+            .print(bindName)
+            .print(", Modifiers=")
         ;
         if (ip.isUnspecified()) {
           out.print("h");
@@ -413,15 +413,15 @@ public final class SendmailCFManager extends BuilderThread {
           bindName = (ip.isUnspecified() ? hostname : ia.getHostname()) + "-TLSMSA";
         }
         out
-          .print("DAEMON_OPTIONS(`Addr=")
-          .print(ip.toString())
-          .print(", Family=")
-          .print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
-          .print(", Port=")
-          .print(nb.getPort().getPort())
-          .print(", Name=")
-          .print(bindName)
-          .print(", Modifiers=")
+            .print("DAEMON_OPTIONS(`Addr=")
+            .print(ip.toString())
+            .print(", Family=")
+            .print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
+            .print(", Port=")
+            .print(nb.getPort().getPort())
+            .print(", Name=")
+            .print(bindName)
+            .print(", Modifiers=")
         ;
         if (ip.isUnspecified()) {
           out.print("hs");
@@ -442,15 +442,15 @@ public final class SendmailCFManager extends BuilderThread {
           bindName = (ip.isUnspecified() ? hostname : ia.getHostname()) + "-MSA";
         }
         out
-          .print("DAEMON_OPTIONS(`Addr=")
-          .print(ip.toString())
-          .print(", Family=")
-          .print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
-          .print(", Port=")
-          .print(nb.getPort().getPort())
-          .print(", Name=")
-          .print(bindName)
-          .print(", Modifiers=")
+            .print("DAEMON_OPTIONS(`Addr=")
+            .print(ip.toString())
+            .print(", Family=")
+            .print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
+            .print(", Port=")
+            .print(nb.getPort().getPort())
+            .print(", Name=")
+            .print(bindName)
+            .print(", Modifiers=")
         ;
         if (ip.isUnspecified()) {
           out.print("Eah");
@@ -468,38 +468,36 @@ public final class SendmailCFManager extends BuilderThread {
       if (clientAddrInet != null) {
         InetAddress ip = clientAddrInet.getInetAddress();
         out
-          .print("CLIENT_OPTIONS(`Addr=")
-          .print(ip.toString())
-          .print(", Family=")
-          .print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
-          .print("')dnl\n"); // AO added
+            .print("CLIENT_OPTIONS(`Addr=")
+            .print(ip.toString())
+            .print(", Family=")
+            .print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
+            .print("')dnl\n"); // AO added
       }
       if (clientAddrInet6 != null) {
         InetAddress ip = clientAddrInet6.getInetAddress();
         out
-          .print("CLIENT_OPTIONS(`Addr=")
-          .print(ip.toString())
-          .print(", Family=")
-          .print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
-          .print("')dnl\n"); // AO added
+            .print("CLIENT_OPTIONS(`Addr=")
+            .print(ip.toString())
+            .print(", Family=")
+            .print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
+            .print("')dnl\n"); // AO added
       }
     }
     out.print("dnl\n"
         + "dnl Enable IDENT lookups\n"
         // TO_IDENT set to 10s was causing normally 1 second email to become 30 second email on www.keepandshare.com
         + "define(`confTO_IDENT',`0s')dnl\n"
-    /*
-      We are now blocking using egress filtering with iptables in /etc/opt/aoserv-daemon/route.
-      This means no special interaction with the firewalls - no outgoing NAT.
-      A local root compromise could still bypass aoserv-jilter and send spam, but this was true before.
-
-    if (thisAoServer.getServer().getServerFarm().useRestrictedSmtpPort()) {
-      out.print("MODIFY_MAILER_FLAGS(`SMTP',`+R')dnl\n"
-          + "MODIFY_MAILER_FLAGS(`ESMTP',`+R')dnl\n"
-          + "MODIFY_MAILER_FLAGS(`SMTP8',`+R')dnl\n"
-          + "MODIFY_MAILER_FLAGS(`DSMTP',`+R')dnl\n");
-    }
-     */
+//          We are now blocking using egress filtering with iptables in /etc/opt/aoserv-daemon/route.
+//          This means no special interaction with the firewalls - no outgoing NAT.
+//          A local root compromise could still bypass aoserv-jilter and send spam, but this was true before.
+//
+//         if (thisAoServer.getServer().getServerFarm().useRestrictedSmtpPort()) {
+//          out.print("MODIFY_MAILER_FLAGS(`SMTP',`+R')dnl\n"
+//              + "MODIFY_MAILER_FLAGS(`ESMTP',`+R')dnl\n"
+//              + "MODIFY_MAILER_FLAGS(`SMTP8',`+R')dnl\n"
+//              + "MODIFY_MAILER_FLAGS(`DSMTP',`+R')dnl\n");
+//        }
         + "MAILER(smtp)dnl\n"
         + "MAILER(procmail)dnl\n"
         + "LOCAL_CONFIG\n"
@@ -516,7 +514,7 @@ public final class SendmailCFManager extends BuilderThread {
       throw new SQLException("No dot (.) in fqdn: " + fqdn);
     }
     out.print("Dw").print(fqdn.substring(0, dotPos)).print("\n"
-        + "Dm").print(fqdn.substring(dotPos+1)).print("\n"
+        + "Dm").print(fqdn.substring(dotPos + 1)).print("\n"
         + "define(`confDOMAIN_NAME', `$w.$m')dnl\n"
         + "\n"
     );
@@ -528,12 +526,12 @@ public final class SendmailCFManager extends BuilderThread {
    * @param sendmailServer  When null, this is the default server config being built for where sendmail installed but not activated
    */
   private static void buildSendmailMcCentOS7(
-    ChainWriter out,
-    Server thisServer,
-    SendmailServer sendmailServer,
-    List<SendmailBind> smtpNetBinds,
-    List<SendmailBind> smtpsNetBinds,
-    List<SendmailBind> submissionNetBinds
+      ChainWriter out,
+      Server thisServer,
+      SendmailServer sendmailServer,
+      List<SendmailBind> smtpNetBinds,
+      List<SendmailBind> smtpsNetBinds,
+      List<SendmailBind> submissionNetBinds
   ) throws IOException, SQLException {
     PosixFile sendmailMc = getSendmailMc(sendmailServer);
     PosixFile sendmailCf = getSendmailCf(sendmailServer);
@@ -821,10 +819,10 @@ public final class SendmailCFManager extends BuilderThread {
         ip = primaryIpAddress.getInetAddress();
       }
       out
-        .print("INPUT_MAIL_FILTER(`jilter', `S=")
-        .print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
-        .print(':')
-        .print(jilterNetBind.getPort().getPort()).print('@').print(ip).print(", F=R, T=S:60s;R:60s')\n");
+          .print("INPUT_MAIL_FILTER(`jilter', `S=")
+          .print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
+          .print(':')
+          .print(jilterNetBind.getPort().getPort()).print('@').print(ip).print(", F=R, T=S:60s;R:60s')\n");
     }
     out.print("dnl #\n"
         + "dnl # For using Cyrus-IMAPd as POP3/IMAP server through LMTP delivery uncomment\n"
@@ -857,14 +855,14 @@ public final class SendmailCFManager extends BuilderThread {
           bindName = (ip.isUnspecified() ? hostname : ia.getHostname()) + "-MTA";
         }
         out
-          .print("DAEMON_OPTIONS(`Addr=")
-          .print(ip.toString())
-          .print(", Family=")
-          .print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
-          .print(", Port=")
-          .print(nb.getPort().getPort())
-          .print(", Name=")
-          .print(bindName);
+            .print("DAEMON_OPTIONS(`Addr=")
+            .print(ip.toString())
+            .print(", Family=")
+            .print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
+            .print(", Port=")
+            .print(nb.getPort().getPort())
+            .print(", Name=")
+            .print(bindName);
         if (!ip.isUnspecified()) {
           out.print(", Modifiers=b");
         }
@@ -889,15 +887,15 @@ public final class SendmailCFManager extends BuilderThread {
           bindName = (ip.isUnspecified() ? hostname : ia.getHostname()) + "-MSA";
         }
         out
-          .print("DAEMON_OPTIONS(`Addr=")
-          .print(ip.toString())
-          .print(", Family=")
-          .print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
-          .print(", Port=")
-          .print(nb.getPort().getPort())
-          .print(", Name=")
-          .print(bindName)
-          .print(", Modifiers=Ea");
+            .print("DAEMON_OPTIONS(`Addr=")
+            .print(ip.toString())
+            .print(", Family=")
+            .print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
+            .print(", Port=")
+            .print(nb.getPort().getPort())
+            .print(", Name=")
+            .print(bindName)
+            .print(", Modifiers=Ea");
         if (!ip.isUnspecified()) {
           out.print('b');
         }
@@ -926,15 +924,15 @@ public final class SendmailCFManager extends BuilderThread {
           bindName = (ip.isUnspecified() ? hostname : ia.getHostname()) + "-TLSMSA";
         }
         out
-          .print("DAEMON_OPTIONS(`Addr=")
-          .print(ip.toString())
-          .print(", Family=")
-          .print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
-          .print(", Port=")
-          .print(nb.getPort().getPort())
-          .print(", Name=")
-          .print(bindName)
-          .print(", Modifiers=s");
+            .print("DAEMON_OPTIONS(`Addr=")
+            .print(ip.toString())
+            .print(", Family=")
+            .print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
+            .print(", Port=")
+            .print(nb.getPort().getPort())
+            .print(", Name=")
+            .print(bindName)
+            .print(", Modifiers=s");
         if (!ip.isUnspecified()) {
           out.print('b');
         }
@@ -1012,19 +1010,19 @@ public final class SendmailCFManager extends BuilderThread {
           + "dnl #\n");
       if (clientAddrInet != null) {
         out
-          .print("CLIENT_OPTIONS(`Addr=")
-          .print(clientAddrInet.toString())
-          .print(", Family=")
-          .print(clientAddrInet.getProtocolFamily().name().toLowerCase(Locale.ROOT))
-          .print("')dnl\n"); // AO added
+            .print("CLIENT_OPTIONS(`Addr=")
+            .print(clientAddrInet.toString())
+            .print(", Family=")
+            .print(clientAddrInet.getProtocolFamily().name().toLowerCase(Locale.ROOT))
+            .print("')dnl\n"); // AO added
       }
       if (clientAddrInet6 != null) {
         out
-          .print("CLIENT_OPTIONS(`Addr=")
-          .print(clientAddrInet6.toString())
-          .print(", Family=")
-          .print(clientAddrInet6.getProtocolFamily().name().toLowerCase(Locale.ROOT))
-          .print("')dnl\n"); // AO added
+            .print("CLIENT_OPTIONS(`Addr=")
+            .print(clientAddrInet6.toString())
+            .print(", Family=")
+            .print(clientAddrInet6.getProtocolFamily().name().toLowerCase(Locale.ROOT))
+            .print("')dnl\n"); // AO added
       }
     }
     out.print("dnl #\n"
@@ -1061,27 +1059,25 @@ public final class SendmailCFManager extends BuilderThread {
         + "dnl MASQUERADE_DOMAIN(localhost.localdomain)dnl\n"
         + "dnl MASQUERADE_DOMAIN(mydomainalias.com)dnl\n"
         + "dnl MASQUERADE_DOMAIN(mydomain.lan)dnl\n"
-    /*
-      We are now blocking using egress filtering with firewalld direct.
-      This means no special interaction with the firewalls - no outgoing NAT.
-      A local root compromise could still bypass aoserv-jilter and send spam, but this was true before.
-
-    if (thisAoServer.getServer().getServerFarm().useRestrictedSmtpPort()) {
-      out.print("dnl #\n"
-          + "dnl # Establish outgoing connections from reserved ports (0-1023).\n"
-          + "dnl # This is used by firewall rules to prevent regular users from sending email directly.\n"
-          + "dnl #\n"
-          + "dnl # Some mail providers, such as yahoo.com, will not allow email from privileged ports,\n"
-          + "dnl # so this is used in conjunction with outgoing NAT on the routers to make connections\n"
-          + "dnl # appear to come from ports >= 1024.\n"
-          + "dnl #\n"
-          + "MODIFY_MAILER_FLAGS(`SMTP', `+R')dnl\n"
-          + "MODIFY_MAILER_FLAGS(`ESMTP', `+R')dnl\n"
-          + "MODIFY_MAILER_FLAGS(`SMTP8', `+R')dnl\n"
-          + "MODIFY_MAILER_FLAGS(`DSMTP', `+R')dnl\n"
-          + "dnl #\n");
-    }
-     */
+//          We are now blocking using egress filtering with firewalld direct.
+//          This means no special interaction with the firewalls - no outgoing NAT.
+//          A local root compromise could still bypass aoserv-jilter and send spam, but this was true before.
+//
+//         if (thisAoServer.getServer().getServerFarm().useRestrictedSmtpPort()) {
+//          out.print("dnl #\n"
+//              + "dnl # Establish outgoing connections from reserved ports (0-1023).\n"
+//              + "dnl # This is used by firewall rules to prevent regular users from sending email directly.\n"
+//              + "dnl #\n"
+//              + "dnl # Some mail providers, such as yahoo.com, will not allow email from privileged ports,\n"
+//              + "dnl # so this is used in conjunction with outgoing NAT on the routers to make connections\n"
+//              + "dnl # appear to come from ports >= 1024.\n"
+//              + "dnl #\n"
+//              + "MODIFY_MAILER_FLAGS(`SMTP', `+R')dnl\n"
+//              + "MODIFY_MAILER_FLAGS(`ESMTP', `+R')dnl\n"
+//              + "MODIFY_MAILER_FLAGS(`SMTP8', `+R')dnl\n"
+//              + "MODIFY_MAILER_FLAGS(`DSMTP', `+R')dnl\n"
+//              + "dnl #\n");
+//        }
         + "MAILER(smtp)dnl\n"
         + "MAILER(procmail)dnl\n"
         + "dnl MAILER(cyrusv2)dnl\n"
@@ -1099,7 +1095,7 @@ public final class SendmailCFManager extends BuilderThread {
       throw new SQLException("No dot (.) in fqdn: " + fqdn);
     }
     out.print("Dw").print(fqdn.substring(0, dotPos)).print("\n"
-        + "Dm").print(fqdn.substring(dotPos+1)).print("\n"
+        + "Dm").print(fqdn.substring(dotPos + 1)).print("\n"
         + "define(`confDOMAIN_NAME', `$w.$m')dnl\n" // AO added for control $j for multi-instance support
         + "\n");
   }
@@ -1150,6 +1146,7 @@ public final class SendmailCFManager extends BuilderThread {
   }
 
   private static final Object rebuildLock = new Object();
+
   @Override
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
   protected boolean doRebuild() {
@@ -1246,20 +1243,20 @@ public final class SendmailCFManager extends BuilderThread {
           if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
             // No aoserv-sendmail-config package
             PackageManager.installPackage(
-              PackageManager.PackageName.SENDMAIL,
-              () -> needsReload[0] = true
+                PackageManager.PackageName.SENDMAIL,
+                () -> needsReload[0] = true
             );
             PackageManager.installPackage(
-              PackageManager.PackageName.SENDMAIL_CF,
-              () -> needsReload[0] = true
+                PackageManager.PackageName.SENDMAIL_CF,
+                () -> needsReload[0] = true
             );
             PackageManager.installPackage(
-              PackageManager.PackageName.CYRUS_SASL,
-              () -> needsReload[0] = true
+                PackageManager.PackageName.CYRUS_SASL,
+                () -> needsReload[0] = true
             );
             PackageManager.installPackage(
-              PackageManager.PackageName.CYRUS_SASL_PLAIN,
-              () -> needsReload[0] = true
+                PackageManager.PackageName.CYRUS_SASL_PLAIN,
+                () -> needsReload[0] = true
             );
             if (!namedServers.isEmpty()) {
               throw new SQLException("Only the unnamed default instance is supported on CentOS 5");
@@ -1267,14 +1264,14 @@ public final class SendmailCFManager extends BuilderThread {
           } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
             // Install aoserv-sendmail-config package if missing
             PackageManager.installPackage(
-              PackageManager.PackageName.AOSERV_SENDMAIL_CONFIG,
-              () -> needsReload[0] = true
+                PackageManager.PackageName.AOSERV_SENDMAIL_CONFIG,
+                () -> needsReload[0] = true
             );
             // Install sendmail-n package as-needed
             if (!namedServers.isEmpty()) {
               PackageManager.installPackage(
-                PackageManager.PackageName.SENDMAIL_N,
-                () -> needsReload[0] = true
+                  PackageManager.PackageName.SENDMAIL_N,
+                  () -> needsReload[0] = true
               );
             }
           } else {
@@ -1392,7 +1389,7 @@ public final class SendmailCFManager extends BuilderThread {
             }
             // Iterate through all servers, and a "null" iteration when there are no servers
             for (SendmailServer sendmailServer : sendmailServers.isEmpty()
-              ? new SendmailServer[] {null}
+              ? new SendmailServer[]{null}
               : sendmailServers.toArray(new SendmailServer[sendmailServers.size()])
             ) {
               // Build the new version of /etc/mail/sendmail[@*].mc in RAM
@@ -1403,21 +1400,21 @@ public final class SendmailCFManager extends BuilderThread {
                 try (ChainWriter out = new ChainWriter(bout)) {
                   if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                     buildSendmailMcCentOS5(
-                      out,
-                      thisServer,
-                      sendmailServer,
-                      (smtpBinds       == null) ? Collections.emptyList() : smtpBinds.get(sendmailServer),
-                      (smtpsBinds      == null) ? Collections.emptyList() : smtpsBinds.get(sendmailServer),
-                      (submissionBinds == null) ? Collections.emptyList() : submissionBinds.get(sendmailServer)
+                        out,
+                        thisServer,
+                        sendmailServer,
+                        (smtpBinds       == null) ? Collections.emptyList() : smtpBinds.get(sendmailServer),
+                        (smtpsBinds      == null) ? Collections.emptyList() : smtpsBinds.get(sendmailServer),
+                        (submissionBinds == null) ? Collections.emptyList() : submissionBinds.get(sendmailServer)
                     );
                   } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
                     buildSendmailMcCentOS7(
-                      out,
-                      thisServer,
-                      sendmailServer,
-                      (smtpBinds       == null) ? Collections.emptyList() : smtpBinds.get(sendmailServer),
-                      (smtpsBinds      == null) ? Collections.emptyList() : smtpsBinds.get(sendmailServer),
-                      (submissionBinds == null) ? Collections.emptyList() : submissionBinds.get(sendmailServer)
+                        out,
+                        thisServer,
+                        sendmailServer,
+                        (smtpBinds       == null) ? Collections.emptyList() : smtpBinds.get(sendmailServer),
+                        (smtpsBinds      == null) ? Collections.emptyList() : smtpsBinds.get(sendmailServer),
+                        (submissionBinds == null) ? Collections.emptyList() : submissionBinds.get(sendmailServer)
                     );
                   } else {
                     throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
@@ -1425,13 +1422,13 @@ public final class SendmailCFManager extends BuilderThread {
                 }
                 // Write the new file if it is different than the old
                 sendmailMcUpdated = DaemonFileUtils.atomicWrite(
-                  sendmailMc,
-                  bout.toByteArray(),
-                  0644,
-                  PosixFile.ROOT_UID,
-                  PosixFile.ROOT_GID,
-                  null,
-                  restorecon
+                    sendmailMc,
+                    bout.toByteArray(),
+                    0644,
+                    PosixFile.ROOT_UID,
+                    PosixFile.ROOT_GID,
+                    null,
+                    restorecon
                 );
               }
 
@@ -1441,22 +1438,22 @@ public final class SendmailCFManager extends BuilderThread {
                 Stat sendmailMcStat = sendmailMc.getStat();
                 Stat sendmailCfStat = sendmailCf.getStat();
                 if (
-                  sendmailMcUpdated
-                  || !sendmailCfStat.exists()
-                  || sendmailCfStat.getModifyTime() < sendmailMcStat.getModifyTime()
+                    sendmailMcUpdated
+                        || !sendmailCfStat.exists()
+                        || sendmailCfStat.getModifyTime() < sendmailMcStat.getModifyTime()
                 ) {
                   // Build to RAM to compare
                   byte[] cfNewBytes = AOServDaemon.execAndCaptureBytes("/usr/bin/m4", sendmailMc.getPath());
                   if (
-                    DaemonFileUtils.atomicWrite(
-                      sendmailCf,
-                      cfNewBytes,
-                      0644,
-                      PosixFile.ROOT_UID,
-                      PosixFile.ROOT_GID,
-                      null,
-                      restorecon
-                    )
+                      DaemonFileUtils.atomicWrite(
+                          sendmailCf,
+                          cfNewBytes,
+                          0644,
+                          PosixFile.ROOT_UID,
+                          PosixFile.ROOT_GID,
+                          null,
+                          restorecon
+                      )
                   ) {
                     needsReload[0] = true;
                   } else {
@@ -1502,10 +1499,10 @@ public final class SendmailCFManager extends BuilderThread {
                     InetAddress primaryAddress = primaryIpAddress.getInetAddress();
                     assert smtpBinds != null;
                     submitAddress = findSmtpAddress(
-                      primaryAddress.getProtocolFamily(),
-                      primaryAddress,
-                      smtpBinds.get(defaultServer),
-                      MSP_PORT
+                        primaryAddress.getProtocolFamily(),
+                        primaryAddress,
+                        smtpBinds.get(defaultServer),
+                        MSP_PORT
                     );
                     if (submitAddress == null) {
                       // TODO: Could look for smtp on ports other than 25?
@@ -1554,13 +1551,13 @@ public final class SendmailCFManager extends BuilderThread {
               }
               // Write the new file if it is different than the old
               submitMcUpdated = DaemonFileUtils.atomicWrite(
-                submitMc,
-                bout.toByteArray(),
-                0644,
-                PosixFile.ROOT_UID,
-                PosixFile.ROOT_GID,
-                null,
-                restorecon
+                  submitMc,
+                  bout.toByteArray(),
+                  0644,
+                  PosixFile.ROOT_UID,
+                  PosixFile.ROOT_GID,
+                  null,
+                  restorecon
               );
             }
 
@@ -1569,22 +1566,22 @@ public final class SendmailCFManager extends BuilderThread {
               Stat submitMcStat = submitMc.getStat();
               Stat submitCfStat = submitCf.getStat();
               if (
-                submitMcUpdated
-                || !submitCfStat.exists()
-                || submitCfStat.getModifyTime() < submitMcStat.getModifyTime()
+                  submitMcUpdated
+                      || !submitCfStat.exists()
+                      || submitCfStat.getModifyTime() < submitMcStat.getModifyTime()
               ) {
                 // Build to RAM to compare
                 byte[] cfNewBytes = AOServDaemon.execAndCaptureBytes("/usr/bin/m4", submitMc.getPath());
                 if (
-                  DaemonFileUtils.atomicWrite(
-                    submitCf,
-                    cfNewBytes,
-                    0644,
-                    PosixFile.ROOT_UID,
-                    PosixFile.ROOT_GID,
-                    null,
-                    restorecon
-                  )
+                    DaemonFileUtils.atomicWrite(
+                        submitCf,
+                        cfNewBytes,
+                        0644,
+                        PosixFile.ROOT_UID,
+                        PosixFile.ROOT_GID,
+                        null,
+                        restorecon
+                    )
                 ) {
                   needsReload[0] = true;
                 } else {
@@ -1648,9 +1645,9 @@ public final class SendmailCFManager extends BuilderThread {
                 if (!link.getStat().exists()) {
                   // Make start at boot
                   AOServDaemon.exec(
-                    "/usr/bin/systemctl",
-                    "enable",
-                    filename
+                      "/usr/bin/systemctl",
+                      "enable",
+                      filename
                   );
                   if (!link.getStat().exists()) {
                     throw new AssertionError("Link does not exist after systemctl enable: " + link);
@@ -1665,21 +1662,21 @@ public final class SendmailCFManager extends BuilderThread {
               if (list != null) {
                 for (String filename : list) {
                   if (
-                    !dontDeleteFilenames.contains(filename)
-                    && (
-                      "sendmail.service".equals(filename)
-                      || SENDMAIL_NAME_SERVICE_REGEXP.matcher(filename).matches()
-                    )
+                      !dontDeleteFilenames.contains(filename)
+                          && (
+                          "sendmail.service".equals(filename)
+                              || SENDMAIL_NAME_SERVICE_REGEXP.matcher(filename).matches()
+                      )
                   ) {
                     AOServDaemon.exec(
-                      "/usr/bin/systemctl",
-                      "stop",
-                      filename
+                        "/usr/bin/systemctl",
+                        "stop",
+                        filename
                     );
                     AOServDaemon.exec(
-                      "/usr/bin/systemctl",
-                      "disable",
-                      filename
+                        "/usr/bin/systemctl",
+                        "disable",
+                        filename
                     );
                     PosixFile link = new PosixFile(HttpdServerManager.MULTI_USER_WANTS_DIRECTORY, filename);
                     if (link.getStat().exists()) {
@@ -1755,12 +1752,12 @@ public final class SendmailCFManager extends BuilderThread {
               if (list != null) {
                 for (String filename : list) {
                   if (
-                    !expectedSendmailCf.contains(filename)
-                    && !expectedSendmailMc.contains(filename)
-                    && (
-                      SENDMAIL_NAME_CF_REGEXP.matcher(filename).matches()
-                      || SENDMAIL_NAME_MC_REGEXP.matcher(filename).matches()
-                    )
+                      !expectedSendmailCf.contains(filename)
+                          && !expectedSendmailMc.contains(filename)
+                          && (
+                          SENDMAIL_NAME_CF_REGEXP.matcher(filename).matches()
+                              || SENDMAIL_NAME_MC_REGEXP.matcher(filename).matches()
+                      )
                   ) {
                     deleteFileList.add(new File(etcMail, filename));
                   }
@@ -1772,8 +1769,8 @@ public final class SendmailCFManager extends BuilderThread {
               if (list != null) {
                 for (String filename : list) {
                   if (
-                    !expectedSendmailPid.contains(filename)
-                    && SENDMAIL_NAME_PID_REGEXP.matcher(filename).matches()
+                      !expectedSendmailPid.contains(filename)
+                          && SENDMAIL_NAME_PID_REGEXP.matcher(filename).matches()
                   ) {
                     File pidFile = new File(run, filename);
                     throw new IOException("Unexpected sendmail PID file exists: " + pidFile);
@@ -1786,8 +1783,8 @@ public final class SendmailCFManager extends BuilderThread {
               if (list != null) {
                 for (String filename : list) {
                   if (
-                    !expectedStatistics.contains(filename)
-                    && STATISTICS_NAME_REGEXP.matcher(filename).matches()
+                      !expectedStatistics.contains(filename)
+                          && STATISTICS_NAME_REGEXP.matcher(filename).matches()
                   ) {
                     deleteFileList.add(new File(varLogMail, filename));
                   }
@@ -1799,8 +1796,8 @@ public final class SendmailCFManager extends BuilderThread {
               if (list != null) {
                 for (String filename : list) {
                   if (
-                    !expectedMqueue.contains(filename)
-                    && MQUEUE_NAME_REGEXP.matcher(filename).matches()
+                      !expectedMqueue.contains(filename)
+                          && MQUEUE_NAME_REGEXP.matcher(filename).matches()
                   ) {
                     deleteFileList.add(new File(varSpool, filename));
                   }
@@ -1811,8 +1808,8 @@ public final class SendmailCFManager extends BuilderThread {
               throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
             }
             if (
-              osvId == OperatingSystemVersion.CENTOS_7_X86_64
-              && AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
+                osvId == OperatingSystemVersion.CENTOS_7_X86_64
+                    && AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
             ) {
               // Uninstall sendmail-after-network-online package on CentOS 7 when not needed
               if (!hasSpecificAddress) {
@@ -1846,8 +1843,8 @@ public final class SendmailCFManager extends BuilderThread {
           }
           // Remove package if not needed
           if (
-            certbotNames.isEmpty()
-            && AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
+              certbotNames.isEmpty()
+                  && AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
           ) {
             PackageManager.removePackage(PackageManager.PackageName.SENDMAIL_COPY_CERTIFICATES);
           }
@@ -1856,9 +1853,9 @@ public final class SendmailCFManager extends BuilderThread {
         }
         // Remove ca-trust-hash package if not needed
         if (
-          caTrustHashSupported
-          && !caTrustHashNeeded
-          && AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
+            caTrustHashSupported
+                && !caTrustHashNeeded
+                && AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
         ) {
           PackageManager.removePackage(PackageManager.PackageName.CA_TRUST_HASH);
         }
@@ -1880,19 +1877,19 @@ public final class SendmailCFManager extends BuilderThread {
 
     synchronized (System.out) {
       if (
-        // Nothing is done for these operating systems
-        osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
-        && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-        && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-        // Check config after OS check so config entry not needed
-        && AOServDaemonConfiguration.isManagerEnabled(SendmailCFManager.class)
-        && sendmailCFManager == null
+          // Nothing is done for these operating systems
+          osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+              && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+              && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+              // Check config after OS check so config entry not needed
+              && AOServDaemonConfiguration.isManagerEnabled(SendmailCFManager.class)
+              && sendmailCFManager == null
       ) {
         System.out.print("Starting SendmailCFManager: ");
         // Must be a supported operating system
         if (
-          osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-          || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+            osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                || osvId == OperatingSystemVersion.CENTOS_7_X86_64
         ) {
           AOServConnector conn = AOServDaemon.getConnector();
           sendmailCFManager = new SendmailCFManager();

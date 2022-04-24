@@ -64,8 +64,8 @@ public final class GShadowFile {
   private static final Logger logger = Logger.getLogger(GShadowFile.class.getName());
 
   private static final PosixFile
-    gshadowFile       = new PosixFile("/etc/gshadow"),
-    backupGShadowFile = new PosixFile("/etc/gshadow-")
+      gshadowFile       = new PosixFile("/etc/gshadow"),
+      backupGShadowFile = new PosixFile("/etc/gshadow-")
   ;
 
   /**
@@ -156,10 +156,10 @@ public final class GShadowFile {
      * Constructs a gshadow file entry given all the values.
      */
     public Entry(
-      Group.Name groupName,
-      String password,
-      Set<User.Name> groupAdministrators,
-      Set<User.Name> groupMembers
+        Group.Name groupName,
+        String password,
+        Set<User.Name> groupAdministrators,
+        Set<User.Name> groupMembers
     ) {
       this.groupName = groupName;
       this.password = password;
@@ -273,11 +273,11 @@ public final class GShadowFile {
       Map<Group.Name, Entry> gshadowEntries = new LinkedHashMap<>();
       try (
         BufferedReader in = new BufferedReader(
-          new InputStreamReader(
-            new FileInputStream(gshadowFile.getFile())
+              new InputStreamReader(
+                  new FileInputStream(gshadowFile.getFile())
+              )
           )
-        )
-      ) {
+          ) {
         String line;
         while ((line = in.readLine()) != null) {
           Entry entry = new Entry(line);
@@ -335,13 +335,13 @@ public final class GShadowFile {
       }
     }
     DaemonFileUtils.atomicWrite(
-      gshadowFile,
-      newContents,
-      mode,
-      PosixFile.ROOT_UID,
-      PosixFile.ROOT_GID,
-      backupGShadowFile,
-      restorecon
+        gshadowFile,
+        newContents,
+        mode,
+        PosixFile.ROOT_UID,
+        PosixFile.ROOT_GID,
+        backupGShadowFile,
+        restorecon
     );
   }
 
@@ -371,12 +371,12 @@ public final class GShadowFile {
             logger.info("Updating group members in " + gshadowFile + ": " + groupName + " -> " + expectedMembers);
           }
           mapEntry.setValue(
-            new Entry(
-              groupName,
-              entry.password,
-              entry.groupAdministrators,
-              expectedMembers
-            )
+              new Entry(
+                  groupName,
+                  entry.password,
+                  entry.groupAdministrators,
+                  expectedMembers
+              )
           );
         }
       } else {
@@ -395,13 +395,13 @@ public final class GShadowFile {
           logger.info("Adding group to " + gshadowFile + ": " + groupName);
         }
         gshadowEntries.put(
-          groupName,
-          new Entry(
             groupName,
-            null,
-            Collections.emptySet(),
-            entry.getValue()
-          )
+            new Entry(
+                groupName,
+                null,
+                Collections.emptySet(),
+                entry.getValue()
+            )
         );
       }
     }

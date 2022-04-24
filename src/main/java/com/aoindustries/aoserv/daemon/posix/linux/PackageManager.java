@@ -311,6 +311,7 @@ public final class PackageManager {
     UTIL_LINUX("util-linux");
 
     private final String rpmName;
+
     // Only needed when trying to automatically remove packages: private final PackageName[] requires;
     private PackageName(String rpmName /* Only needed when trying to automatically remove packages: , PackageName... requires */) {
       this.rpmName = rpmName;
@@ -331,8 +332,8 @@ public final class PackageManager {
    * The path to some executables.
    */
   private static final String
-    RPM_EXE_PATH = "/bin/rpm", // TODO: /usr/bin/rpm once all CentOS 7
-    YUM_EXE_PATH = "/usr/bin/yum"
+      RPM_EXE_PATH = "/bin/rpm", // TODO: /usr/bin/rpm once all CentOS 7
+      YUM_EXE_PATH = "/usr/bin/yum"
   ;
 
   /**
@@ -350,28 +351,28 @@ public final class PackageManager {
         final StringBuilder buffer = new StringBuilder();
         boolean lastNumeric = false;
         final int len = version.length();
-        for (int i=0; i<len; i++) {
+        for (int i = 0; i < len; i++) {
           final char ch = version.charAt(i);
           if (
-            (ch >= '0' && ch <= '9')
-            || (ch >= 'a' && ch <= 'z')
-            || (ch >= 'A' && ch <= 'Z')
+              (ch >= '0' && ch <= '9')
+                  || (ch >= 'a' && ch <= 'z')
+                  || (ch >= 'A' && ch <= 'Z')
           ) {
             final boolean isNumeric = ch >= '0' && ch <= '9';
-            if (buffer.length()>0 && lastNumeric != isNumeric) {
+            if (buffer.length() > 0 && lastNumeric != isNumeric) {
               segments.add(new Segment(lastNumeric, buffer.toString()));
               buffer.setLength(0);
             }
             lastNumeric = isNumeric;
             buffer.append(ch);
           } else {
-            if (buffer.length()>0) {
+            if (buffer.length() > 0) {
               segments.add(new Segment(lastNumeric, buffer.toString()));
               buffer.setLength(0);
             }
           }
         }
-        if (buffer.length()>0) {
+        if (buffer.length() > 0) {
           segments.add(new Segment(lastNumeric, buffer.toString()));
         }
         return segments.toArray(new Segment[segments.size()]);
@@ -396,7 +397,7 @@ public final class PackageManager {
 
       private static String skipLeadingZeros(String value) {
         final int len = value.length();
-        for (int i=0; i<len; i++) {
+        for (int i = 0; i < len; i++) {
           if (value.charAt(i) != '0') {
             return value.substring(i);
           }
@@ -456,7 +457,7 @@ public final class PackageManager {
       if (!(obj instanceof Version)) {
         return false;
       }
-      Version other = (Version)obj;
+      Version other = (Version) obj;
       return version.equals(other.version);
     }
 
@@ -468,7 +469,7 @@ public final class PackageManager {
     @Override
     public int compareTo(Version other) {
       final int len = Math.max(segments.length, other.segments.length);
-      for (int i=0; i<len; i++) {
+      for (int i = 0; i < len; i++) {
         if (i >= segments.length) {
           // the string with more segments is "newer".
           return 1;
@@ -511,11 +512,11 @@ public final class PackageManager {
     private final Architecture architecture;
 
     private RPM(
-      String name,
-      Integer epoch,
-      Version version,
-      Version release,
-      Architecture architecture
+        String name,
+        Integer epoch,
+        Version version,
+        Version release,
+        Architecture architecture
     ) {
       this.name = name;
       this.epoch = epoch;
@@ -548,10 +549,10 @@ public final class PackageManager {
     @Override
     public int hashCode() {
       int hash = name.hashCode();
-      hash = hash*31 + Objects.hashCode(epoch);
-      hash = hash*31 + version.hashCode();
-      hash = hash*31 + release.hashCode();
-      hash = hash*31 + Objects.hashCode(architecture);
+      hash = hash * 31 + Objects.hashCode(epoch);
+      hash = hash * 31 + version.hashCode();
+      hash = hash * 31 + release.hashCode();
+      hash = hash * 31 + Objects.hashCode(architecture);
       return hash;
     }
 
@@ -560,13 +561,13 @@ public final class PackageManager {
       if (!(obj instanceof RPM)) {
         return false;
       }
-      RPM other = (RPM)obj;
+      RPM other = (RPM) obj;
       return
-        name.equals(other.name)
-        && Objects.equals(epoch, other.epoch)
-        && version.equals(other.version)
-        && release.equals(other.release)
-        && Objects.equals(architecture, other.architecture)
+          name.equals(other.name)
+              && Objects.equals(epoch, other.epoch)
+              && version.equals(other.version)
+              && release.equals(other.release)
+              && Objects.equals(architecture, other.architecture)
       ;
     }
 
@@ -634,9 +635,9 @@ public final class PackageManager {
       }
       synchronized (packagesLock) {
         AOServDaemon.exec(
-          RPM_EXE_PATH,
-          "-e",
-          packageIdentifier
+            RPM_EXE_PATH,
+            "-e",
+            packageIdentifier
         );
       }
     }
@@ -679,28 +680,28 @@ public final class PackageManager {
         // Get all RPMs
         SortedSet<RPM> newAllRpms = new TreeSet<>();
         List<String> lines = Strings.splitLines(
-          AOServDaemon.execAndCapture(
-            RPM_EXE_PATH,
-            "-q",
-            "-a",
-            "--queryformat",
-            "%{NAME}\\n%{EPOCH}\\n%{VERSION}\\n%{RELEASE}\\n%{ARCH}\\n"
-          )
+            AOServDaemon.execAndCapture(
+                RPM_EXE_PATH,
+                "-q",
+                "-a",
+                "--queryformat",
+                "%{NAME}\\n%{EPOCH}\\n%{VERSION}\\n%{RELEASE}\\n%{ARCH}\\n"
+            )
         );
-        if ((lines.size()%5) != 0) {
+        if ((lines.size() % 5) != 0) {
           throw new AssertionError("lines.size() not a multiple of 5: " + lines.size());
         }
-        for (int i=0; i<lines.size(); i+=5) {
-          final String epoch = lines.get(i+1);
-          final String arch = lines.get(i+4);
+        for (int i = 0; i < lines.size(); i += 5) {
+          final String epoch = lines.get(i + 1);
+          final String arch = lines.get(i + 4);
           newAllRpms.add(
-            new RPM(
-              lines.get(i),
-              "(none)".equals(epoch) ? null : Integer.parseInt(epoch),
-              new Version(lines.get(i+2)),
-              new Version(lines.get(i+3)),
-              "(none)".equals(arch) ? null : Architecture.valueOf(arch)
-            )
+              new RPM(
+                  lines.get(i),
+                  "(none)".equals(epoch) ? null : Integer.parseInt(epoch),
+                  new Version(lines.get(i + 2)),
+                  new Version(lines.get(i + 3)),
+                  "(none)".equals(arch) ? null : Architecture.valueOf(arch)
+              )
           );
         }
         // Get snapshot after RPM transaction completes because querying the RPMs updates timestamps.
@@ -741,7 +742,7 @@ public final class PackageManager {
           }
           // Notify any listeners
           listenerManager.enqueueEvent(
-            listener -> () -> listener.packageListUpdated(unmodifiableAllRpms)
+              listener -> () -> listener.packageListUpdated(unmodifiableAllRpms)
           );
         } else {
           logger.fine("RPMs not changed");
@@ -807,11 +808,11 @@ public final class PackageManager {
         logger.info("Installing package: " + name.rpmName);
       }
       AOServDaemon.exec(
-        YUM_EXE_PATH,
-        "-q",
-        "-y",
-        "install",
-        name.rpmName
+          YUM_EXE_PATH,
+          "-q",
+          "-y",
+          "install",
+          name.rpmName
       );
       if (onInstall != null) {
         onInstall.run();
@@ -920,26 +921,26 @@ public final class PackageManager {
     synchronized (pollThreadLock) {
       if (pollThread == null) {
         pollThread = new Thread(
-          () -> {
-            while (true) {
-              try {
+            () -> {
+              while (true) {
                 try {
-                  Thread.sleep(60000); // Sleep one minute between polls
-                } catch (InterruptedException e) {
-                  logger.log(Level.WARNING, null, e);
-                  // Restore the interrupted status
-                  Thread.currentThread().interrupt();
-                  break;
+                  try {
+                    Thread.sleep(60000); // Sleep one minute between polls
+                  } catch (InterruptedException e) {
+                    logger.log(Level.WARNING, null, e);
+                    // Restore the interrupted status
+                    Thread.currentThread().interrupt();
+                    break;
+                  }
+                  getAllRpms();
+                } catch (ThreadDeath td) {
+                  throw td;
+                } catch (Throwable t) {
+                  logger.log(Level.SEVERE, null, t);
                 }
-                getAllRpms();
-              } catch (ThreadDeath td) {
-                throw td;
-              } catch (Throwable t) {
-                logger.log(Level.SEVERE, null, t);
               }
-            }
-          },
-          "pollThread"
+            },
+            "pollThread"
         );
         pollThread.setPriority(Thread.NORM_PRIORITY - 2);
         pollThread.start();

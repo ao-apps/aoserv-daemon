@@ -96,37 +96,37 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
     /*
      * Create the skeleton of the site, the directories and links.
      */
-    DaemonFileUtils.mkdir(siteDir+"/bin", 0770, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/conf", 0775, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/daemon", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/bin", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/conf", 0775, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/daemon", 0770, uid, gid);
     if (!httpdSite.isDisabled()) {
-      DaemonFileUtils.ln("../bin/tomcat", siteDir+"/daemon/tomcat", uid, gid);
+      DaemonFileUtils.ln("../bin/tomcat", siteDir + "/daemon/tomcat", uid, gid);
     }
-    DaemonFileUtils.ln("webapps/"+Context.ROOT_DOC_BASE, siteDir+"/htdocs", uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/lib", 0770, uid, gid);
-    DaemonFileUtils.ln("webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/classes", siteDir+"/servlet", uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/var", 0770, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/var/log", 0770, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/var/run", 0770, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/webapps", 0775, uid, gid);
-    final String rootDir = siteDir+"/webapps/"+Context.ROOT_DOC_BASE;
+    DaemonFileUtils.ln("webapps/" + Context.ROOT_DOC_BASE, siteDir + "/htdocs", uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/lib", 0770, uid, gid);
+    DaemonFileUtils.ln("webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/classes", siteDir + "/servlet", uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/var", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/var/log", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/var/run", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/webapps", 0775, uid, gid);
+    final String rootDir = siteDir + "/webapps/" + Context.ROOT_DOC_BASE;
     DaemonFileUtils.mkdir(rootDir, 0775, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/META-INF", 0775, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF", 0775, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/cocoon", 0770, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/conf", 0770, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/work", 0750, uid, gid);
-    final String profileFile=siteDir+"/bin/profile";
+    DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/META-INF", 0775, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF", 0775, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/classes", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/cocoon", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/conf", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/lib", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/work", 0750, uid, gid);
+    final String profileFile = siteDir + "/bin/profile";
     LinuxAccountManager.setBashProfile(lsa, profileFile);
     try (
       ChainWriter out = new ChainWriter(
-        new BufferedOutputStream(
-          new PosixFile(profileFile).getSecureOutputStream(uid, gid, 0750, false, uid_min, gid_min)
+            new BufferedOutputStream(
+                new PosixFile(profileFile).getSecureOutputStream(uid, gid, 0750, false, uid_min, gid_min)
+            )
         )
-      )
-    ) {
+        ) {
       out.print("#!/bin/sh\n"
           + "\n"
           + ". /etc/profile\n"
@@ -188,21 +188,21 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
     /*
      * Write the bin/tomcat script.
      */
-    String tomcatScript=siteDir+"/bin/tomcat";
+    String tomcatScript = siteDir + "/bin/tomcat";
     try (
       ChainWriter out = new ChainWriter(
-        new BufferedOutputStream(
-          new PosixFile(tomcatScript).getSecureOutputStream(
-            uid,
-            gid,
-            0700,
-            false,
-            uid_min,
-            gid_min
-          )
+            new BufferedOutputStream(
+                new PosixFile(tomcatScript).getSecureOutputStream(
+                    uid,
+                    gid,
+                    0700,
+                    false,
+                    uid_min,
+                    gid_min
+                )
+            )
         )
-      )
-    ) {
+        ) {
       out.print("#!/bin/sh\n"
           + "\n"
           + "TOMCAT_HOME=\"").print(siteDir).print("\"\n"
@@ -250,15 +250,15 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
           + "    echo \"        stop  - stop tomcat\"\n"
           + "fi\n");
     }
-    DaemonFileUtils.mkdir(siteDir+"/classes", 0770, uid, gid);
-    String confManifestServlet=siteDir+"/conf/manifest.servlet";
+    DaemonFileUtils.mkdir(siteDir + "/classes", 0770, uid, gid);
+    String confManifestServlet = siteDir + "/conf/manifest.servlet";
     try (
       ChainWriter out = new ChainWriter(
-        new BufferedOutputStream(
-          new PosixFile(confManifestServlet).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+            new BufferedOutputStream(
+                new PosixFile(confManifestServlet).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+            )
         )
-      )
-    ) {
+        ) {
       out.print("Manifest-version: 1.0\n"
           + "Name: javax/servlet\n"
           + "Sealed: true\n"
@@ -278,14 +278,14 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
           + "Implementation-Version: \"2.1.1\"\n"
           + "Implementation-Vendor: \"Sun Microsystems, Inc.\"\n");
     }
-    String confServerDTD=siteDir+"/conf/server.dtd";
+    String confServerDTD = siteDir + "/conf/server.dtd";
     try (
       ChainWriter out = new ChainWriter(
-        new BufferedOutputStream(
-          new PosixFile(confServerDTD).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+            new BufferedOutputStream(
+                new PosixFile(confServerDTD).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+            )
         )
-      )
-    ) {
+        ) {
       out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
           + "\n"
           + "<!ELEMENT Host (ContextManager+)>\n"
@@ -323,23 +323,23 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
           + "    name CDATA #REQUIRED\n"
           + "    value CDATA \"\">\n");
     }
-    tomcatCommon.createTestTomcatXml(siteDir+"/conf", uid, gid, 0660, uid_min, gid_min);
+    tomcatCommon.createTestTomcatXml(siteDir + "/conf", uid, gid, 0660, uid_min, gid_min);
     try (
       ChainWriter out = new ChainWriter(
-        new BufferedOutputStream(
-          new PosixFile(siteDir+"/conf/tomcat-users.xml").getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+            new BufferedOutputStream(
+                new PosixFile(siteDir + "/conf/tomcat-users.xml").getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+            )
         )
-      )
-    ) {
+        ) {
       tomcatCommon.printTomcatUsers(out);
     }
-    tomcatCommon.createWebDtd(siteDir+"/conf", uid, gid, 0660, uid_min, gid_min);
-    tomcatCommon.createWebXml(siteDir+"/conf", uid, gid, 0660, uid_min, gid_min);
+    tomcatCommon.createWebDtd(siteDir + "/conf", uid, gid, 0660, uid_min, gid_min);
+    tomcatCommon.createWebXml(siteDir + "/conf", uid, gid, 0660, uid_min, gid_min);
     for (String tomcatLogFile : TomcatCommon_3_X.tomcatLogFiles) {
-      String filename = siteDir+"/var/log/" + tomcatLogFile;
+      String filename = siteDir + "/var/log/" + tomcatLogFile;
       new PosixFile(filename).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min).close();
     }
-    final String manifestFile=siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/META-INF/MANIFEST.MF";
+    final String manifestFile = siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/META-INF/MANIFEST.MF";
     try (ChainWriter out = new ChainWriter(new PosixFile(manifestFile).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min))) {
       out.print("Manifest-Version: 1.0");
     }
@@ -347,10 +347,10 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
     /*
      * Write the cocoon.properties file.
      */
-    try (OutputStream fileOut = new BufferedOutputStream(new PosixFile(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/conf/cocoon.properties").getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min))) {
+    try (OutputStream fileOut = new BufferedOutputStream(new PosixFile(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/conf/cocoon.properties").getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min))) {
       tomcatCommon.copyCocoonProperties1(fileOut);
       try (ChainWriter out = new ChainWriter(fileOut)) {
-        out.print("processor.xsp.repository = ").print(siteDir).print("/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/cocoon\n");
+        out.print("processor.xsp.repository = ").print(siteDir).print("/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/cocoon\n");
         out.flush();
         tomcatCommon.copyCocoonProperties2(fileOut);
       }
@@ -361,11 +361,11 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
      */
     try (
       ChainWriter out = new ChainWriter(
-        new BufferedOutputStream(
-          new PosixFile(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/web.xml").getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
+            new BufferedOutputStream(
+                new PosixFile(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/web.xml").getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
+            )
         )
-      )
-    ) {
+        ) {
       out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
           + "\n"
           + "<!DOCTYPE web-app\n"

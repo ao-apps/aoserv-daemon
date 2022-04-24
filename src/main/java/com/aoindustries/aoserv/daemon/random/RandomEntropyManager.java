@@ -149,17 +149,17 @@ public final class RandomEntropyManager implements Runnable {
         boolean havegedSupported;
         boolean havegedInstalled;
         if (
-          // Supported operating systems that will automatically install haveged
-          osvId == OperatingSystemVersion.CENTOS_7_X86_64
+            // Supported operating systems that will automatically install haveged
+            osvId == OperatingSystemVersion.CENTOS_7_X86_64
         ) {
           havegedSupported = true;
           havegedInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.HAVEGED) != null;
         } else if (
-          // Supported operating systems that will not automatically install haveged
-          osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
-          || osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-          || osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-          || osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+            // Supported operating systems that will not automatically install haveged
+            osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
+                || osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+                || osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                || osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
         ) {
           havegedSupported = false;
           havegedInstalled = false;
@@ -200,15 +200,15 @@ public final class RandomEntropyManager implements Runnable {
             }
             if (havegedSupported && entropyAvail < HAVEGED_THRESHOLD) {
               PackageManager.installPackage(
-                PackageManager.PackageName.HAVEGED,
-                () -> {
-                  try {
-                    AOServDaemon.exec("/usr/bin/systemctl", "enable", "haveged.service");
-                    AOServDaemon.exec("/usr/bin/systemctl", "start",  "haveged.service");
-                  } catch (IOException e) {
-                    throw new UncheckedIOException(e);
+                  PackageManager.PackageName.HAVEGED,
+                  () -> {
+                    try {
+                      AOServDaemon.exec("/usr/bin/systemctl", "enable", "haveged.service");
+                      AOServDaemon.exec("/usr/bin/systemctl", "start",  "haveged.service");
+                    } catch (IOException e) {
+                      throw new UncheckedIOException(e);
+                    }
                   }
-                }
               );
               havegedInstalled = true;
               obtainThreshold = OBTAIN_THRESHOLD_WITH_HAVEGED;
@@ -230,14 +230,14 @@ public final class RandomEntropyManager implements Runnable {
               int provideBytes = (entropyAvail - DESIRED_BITS) / 8;
               long currentTime = System.currentTimeMillis();
               if (
-                masterNeeded == Long.MIN_VALUE
-                || Math.abs(currentTime - masterLastCheckedTime) >= GET_MASTER_ENTROPY_NEEDED_INTERVAL
+                  masterNeeded == Long.MIN_VALUE
+                      || Math.abs(currentTime - masterLastCheckedTime) >= GET_MASTER_ENTROPY_NEEDED_INTERVAL
               ) {
                 masterNeeded = conn.getMasterEntropyNeeded();
                 masterLastCheckedTime = currentTime;
               }
               if (provideBytes > masterNeeded) {
-                provideBytes = (int)masterNeeded;
+                provideBytes = (int) masterNeeded;
               }
               if (provideBytes > 0) {
                 if (provideBytes > BufferManager.BUFFER_SIZE) {
@@ -290,20 +290,20 @@ public final class RandomEntropyManager implements Runnable {
 
     synchronized (System.out) {
       if (
-        // Nothing is done for these operating systems
-        // All operating systems currently sharing entropy
-        // Check config after OS check so config entry not needed
-        AOServDaemonConfiguration.isManagerEnabled(RandomEntropyManager.class)
-        && thread == null
+          // Nothing is done for these operating systems
+          // All operating systems currently sharing entropy
+          // Check config after OS check so config entry not needed
+          AOServDaemonConfiguration.isManagerEnabled(RandomEntropyManager.class)
+              && thread == null
       ) {
         System.out.print("Starting RandomEntropyManager: ");
         // Must be a supported operating system
         if (
-          osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
-          || osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-          || osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-          || osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-          || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+            osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
+                || osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+                || osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                || osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+                || osvId == OperatingSystemVersion.CENTOS_7_X86_64
         ) {
           // Avoid random manager when in failover mode
           if (AOServDaemon.getThisServer().getFailoverServer() == null) {

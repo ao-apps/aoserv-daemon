@@ -64,6 +64,7 @@ public final class CvsManager extends BuilderThread {
   }
 
   private static final Object rebuildLock = new Object();
+
   @Override
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
   protected boolean doRebuild() {
@@ -72,8 +73,8 @@ public final class CvsManager extends BuilderThread {
       OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
       int osvId = osv.getPkey();
       if (
-        osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-        && osvId != OperatingSystemVersion.CENTOS_7_X86_64
+          osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+              && osvId != OperatingSystemVersion.CENTOS_7_X86_64
       ) {
         throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
       }
@@ -83,11 +84,11 @@ public final class CvsManager extends BuilderThread {
         boolean cvsInstalled;
         // Install RPM when at least one CVS repository is configured
         if (
-          !cvsRepositories.isEmpty()
-          && (
-            osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-            || osvId == OperatingSystemVersion.CENTOS_7_X86_64
-          )
+            !cvsRepositories.isEmpty()
+                && (
+                osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                    || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+            )
         ) {
           // Install any required RPMs
           PackageManager.installPackage(PackageManager.PackageName.CVS);
@@ -98,8 +99,8 @@ public final class CvsManager extends BuilderThread {
         File cvsDir = new File(CvsRepository.DEFAULT_CVS_DIRECTORY.toString());
         // Create /var/cvs if missing
         if (
-          (cvsInstalled || !cvsRepositories.isEmpty())
-          && !cvsDir.exists()
+            (cvsInstalled || !cvsRepositories.isEmpty())
+                && !cvsDir.exists()
         ) {
           new PosixFile(cvsDir).mkdir(false, 0755, PosixFile.ROOT_UID, PosixFile.ROOT_GID);
         }
@@ -149,10 +150,10 @@ public final class CvsManager extends BuilderThread {
           PosixFile cvsRootUF = new PosixFile(cvsUF, "CVSROOT", false);
           if (!cvsRootUF.getStat().exists()) {
             AOServDaemon.suexec(
-              lsa.getLinuxAccount_username_id(),
-              new File(lsa.getHome().toString()),
-              "/usr/bin/cvs -d " + path + " init",
-              0
+                lsa.getLinuxAccount_username_id(),
+                new File(lsa.getHome().toString()),
+                "/usr/bin/cvs -d " + path + " init",
+                0
             );
           }
           // Remove from list
@@ -192,19 +193,19 @@ public final class CvsManager extends BuilderThread {
 
     synchronized (System.out) {
       if (
-        // Nothing is done for these operating systems
-        osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
-        && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-        && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-        // Check config after OS check so config entry not needed
-        && AOServDaemonConfiguration.isManagerEnabled(CvsManager.class)
-        && cvsManager == null
+          // Nothing is done for these operating systems
+          osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+              && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+              && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+              // Check config after OS check so config entry not needed
+              && AOServDaemonConfiguration.isManagerEnabled(CvsManager.class)
+              && cvsManager == null
       ) {
         System.out.print("Starting CvsManager: ");
         // Must be a supported operating system
         if (
-          osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-          || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+            osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                || osvId == OperatingSystemVersion.CENTOS_7_X86_64
         ) {
           AOServConnector conn = AOServDaemon.getConnector();
           cvsManager = new CvsManager();

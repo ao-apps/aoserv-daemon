@@ -66,6 +66,7 @@ public final class MajordomoManager extends BuilderThread {
   }
 
   private static final Object rebuildLock = new Object();
+
   @Override
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
   protected boolean doRebuild() {
@@ -81,10 +82,10 @@ public final class MajordomoManager extends BuilderThread {
       int gid_min = thisServer.getGidMin().getId();
 
       // Reused during processing below
-      final PosixFile serversUF=new PosixFile(MajordomoServer.MAJORDOMO_SERVER_DIRECTORY.toString());
+      final PosixFile serversUF = new PosixFile(MajordomoServer.MAJORDOMO_SERVER_DIRECTORY.toString());
 
       synchronized (rebuildLock) {
-        final List<MajordomoServer> mss=thisServer.getMajordomoServers();
+        final List<MajordomoServer> mss = thisServer.getMajordomoServers();
 
         if (!mss.isEmpty()) {
           // Install package if needed
@@ -102,17 +103,17 @@ public final class MajordomoManager extends BuilderThread {
         {
           Group mailLG = AOServDaemon.getConnector().getLinux().getGroup().get(Group.MAIL);
           if (mailLG == null) {
-            throw new SQLException("Unable to find Group: "+Group.MAIL);
+            throw new SQLException("Unable to find Group: " + Group.MAIL);
           }
-          GroupServer mailLSG=mailLG.getLinuxServerGroup(thisServer);
+          GroupServer mailLSG = mailLG.getLinuxServerGroup(thisServer);
           if (mailLSG == null) {
-            throw new SQLException("Unable to find GroupServer: "+Group.MAIL+" on "+thisServer.getHostname());
+            throw new SQLException("Unable to find GroupServer: " + Group.MAIL + " on " + thisServer.getHostname());
           }
-          mailGID=mailLSG.getGid().getId();
+          mailGID = mailLSG.getGid().getId();
         }
 
         // A list of things to be deleted is maintained
-        List<File> deleteFileList=new ArrayList<>();
+        List<File> deleteFileList = new ArrayList<>();
 
         // Get the list of all things in /etc/mail/majordomo
         String[] list = serversUF.list();
@@ -126,27 +127,27 @@ public final class MajordomoManager extends BuilderThread {
 
         // Take care of all servers
         for (MajordomoServer ms : mss) {
-          String version=ms.getVersion().getVersion();
-          DomainName domain=ms.getDomain().getDomain();
+          String version = ms.getVersion().getVersion();
+          DomainName domain = ms.getDomain().getDomain();
           // Make sure it won't be deleted
           existingServers.remove(domain);
-          String msPath=MajordomoServer.MAJORDOMO_SERVER_DIRECTORY.toString()+'/'+domain;
-          UserServer lsa=ms.getLinuxServerAccount();
-          int lsaUID=lsa.getUid().getId();
-          GroupServer lsg=ms.getLinuxServerGroup();
-          int lsgGID=lsg.getGid().getId();
-          PosixFile msUF=new PosixFile(msPath);
+          String msPath = MajordomoServer.MAJORDOMO_SERVER_DIRECTORY.toString() + '/' + domain;
+          UserServer lsa = ms.getLinuxServerAccount();
+          int lsaUID = lsa.getUid().getId();
+          GroupServer lsg = ms.getLinuxServerGroup();
+          int lsgGID = lsg.getGid().getId();
+          PosixFile msUF = new PosixFile(msPath);
           Stat msUFStat = msUF.getStat();
-          PosixFile listsUF=new PosixFile(msUF, "lists", false);
+          PosixFile listsUF = new PosixFile(msUF, "lists", false);
           if (
-            !msUFStat.exists()
-            || msUFStat.getUid() == PosixFile.ROOT_UID
-            || msUFStat.getGid() == PosixFile.ROOT_GID
+              !msUFStat.exists()
+                  || msUFStat.getUid() == PosixFile.ROOT_UID
+                  || msUFStat.getGid() == PosixFile.ROOT_GID
           ) {
             // Add a new install
             String sharedPath;
             if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-              sharedPath="../../../../opt/majordomo-"+version;
+              sharedPath = "../../../../opt/majordomo-" + version;
             } else {
               throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
             }
@@ -162,7 +163,7 @@ public final class MajordomoManager extends BuilderThread {
             listsUF.setMode(0750).chown(lsaUID, mailGID);
             PosixFile logUF = new PosixFile(msUF, "Log", false);
             logUF.getSecureOutputStream(lsaUID, lsgGID, 0600, false, uid_min, gid_min).close();
-            PosixFile majordomocfUF=new PosixFile(msUF, "majordomo.cf", false);
+            PosixFile majordomocfUF = new PosixFile(msUF, "majordomo.cf", false);
             try (ChainWriter out = new ChainWriter(new BufferedOutputStream(majordomocfUF.getSecureOutputStream(lsaUID, lsgGID, 0600, false, uid_min, gid_min)))) {
               out.print("#\n"
                   + "# A sample configuration file for majordomo.  The defaults are set by\n"
@@ -510,62 +511,62 @@ public final class MajordomoManager extends BuilderThread {
             // Compile, install, and remove the wrapper
             String source;
             if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-              source = "/opt/majordomo-"+version+"/src/majordomo-wrapper.c";
+              source = "/opt/majordomo-" + version + "/src/majordomo-wrapper.c";
             } else {
               throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
             }
             AOServDaemon.exec(
-              "/usr/bin/cc",
-              "-DBIN=\""+msPath+"\"",
-              "-DPATH=\"PATH=/bin:/usr/bin:/usr/ucb\"",
-              "-DHOME=\"HOME="+msPath+"\"",
-              "-DSHELL=\"SHELL=/bin/sh\"",
-              "-DMAJORDOMO_CF=\"MAJORDOMO_CF="+msPath+"/majordomo.cf\"",
-              "-DPOSIX_UID="+lsaUID,
-              "-DPOSIX_GID="+lsgGID,
-              "-o",
-              msPath+"/wrapper",
-              source
+                "/usr/bin/cc",
+                "-DBIN=\"" + msPath + "\"",
+                "-DPATH=\"PATH=/bin:/usr/bin:/usr/ucb\"",
+                "-DHOME=\"HOME=" + msPath + "\"",
+                "-DSHELL=\"SHELL=/bin/sh\"",
+                "-DMAJORDOMO_CF=\"MAJORDOMO_CF=" + msPath + "/majordomo.cf\"",
+                "-DPOSIX_UID=" + lsaUID,
+                "-DPOSIX_GID=" + lsgGID,
+                "-o",
+                msPath + "/wrapper",
+                source
             );
             AOServDaemon.exec(
-              "strip",
-              msPath+"/wrapper"
+                "strip",
+                msPath + "/wrapper"
             );
             new PosixFile(msPath, "wrapper").chown(PosixFile.ROOT_UID, mailGID).setMode(04750);
 
             //  Make the symbolic links
-            new PosixFile(msPath, "Tools").symLink(sharedPath+"/Tools").chown(lsaUID, lsgGID);
-            new PosixFile(msPath, "archive2.pl").symLink(sharedPath+"/archive2.pl").chown(lsaUID, lsgGID);
-            new PosixFile(msPath, "bin").symLink(sharedPath+"/bin").chown(lsaUID, lsgGID);
-            new PosixFile(msPath, "bounce-remind").symLink(sharedPath+"/bounce-remind").chown(lsaUID, lsgGID);
-            new PosixFile(msPath, "config-test").symLink(sharedPath+"/config-test").chown(lsaUID, lsgGID);
-            new PosixFile(msPath, "config_parse.pl").symLink(sharedPath+"/config_parse.pl").chown(lsaUID, lsgGID);
-            new PosixFile(msPath, "digest").symLink(sharedPath+"/digest").chown(lsaUID, lsgGID);
-            new PosixFile(msPath, "majordomo").symLink(sharedPath+"/majordomo").chown(lsaUID, lsgGID);
-            new PosixFile(msPath, "majordomo.pl").symLink(sharedPath+"/majordomo.pl").chown(lsaUID, lsgGID);
-            new PosixFile(msPath, "majordomo_version.pl").symLink(sharedPath+"/majordomo_version.pl").chown(lsaUID, lsgGID);
-            new PosixFile(msPath, "man").symLink(sharedPath+"/man").chown(lsaUID, lsgGID);
-            new PosixFile(msPath, "request-answer").symLink(sharedPath+"/request-answer").chown(lsaUID, lsgGID);
-            new PosixFile(msPath, "resend").symLink(sharedPath+"/resend").chown(lsaUID, lsgGID);
-            new PosixFile(msPath, "sample.cf").symLink(sharedPath+"/sample.cf").chown(lsaUID, lsgGID);
-            new PosixFile(msPath, "shlock.pl").symLink(sharedPath+"/shlock.pl").chown(lsaUID, lsgGID);
+            new PosixFile(msPath, "Tools").symLink(sharedPath + "/Tools").chown(lsaUID, lsgGID);
+            new PosixFile(msPath, "archive2.pl").symLink(sharedPath + "/archive2.pl").chown(lsaUID, lsgGID);
+            new PosixFile(msPath, "bin").symLink(sharedPath + "/bin").chown(lsaUID, lsgGID);
+            new PosixFile(msPath, "bounce-remind").symLink(sharedPath + "/bounce-remind").chown(lsaUID, lsgGID);
+            new PosixFile(msPath, "config-test").symLink(sharedPath + "/config-test").chown(lsaUID, lsgGID);
+            new PosixFile(msPath, "config_parse.pl").symLink(sharedPath + "/config_parse.pl").chown(lsaUID, lsgGID);
+            new PosixFile(msPath, "digest").symLink(sharedPath + "/digest").chown(lsaUID, lsgGID);
+            new PosixFile(msPath, "majordomo").symLink(sharedPath + "/majordomo").chown(lsaUID, lsgGID);
+            new PosixFile(msPath, "majordomo.pl").symLink(sharedPath + "/majordomo.pl").chown(lsaUID, lsgGID);
+            new PosixFile(msPath, "majordomo_version.pl").symLink(sharedPath + "/majordomo_version.pl").chown(lsaUID, lsgGID);
+            new PosixFile(msPath, "man").symLink(sharedPath + "/man").chown(lsaUID, lsgGID);
+            new PosixFile(msPath, "request-answer").symLink(sharedPath + "/request-answer").chown(lsaUID, lsgGID);
+            new PosixFile(msPath, "resend").symLink(sharedPath + "/resend").chown(lsaUID, lsgGID);
+            new PosixFile(msPath, "sample.cf").symLink(sharedPath + "/sample.cf").chown(lsaUID, lsgGID);
+            new PosixFile(msPath, "shlock.pl").symLink(sharedPath + "/shlock.pl").chown(lsaUID, lsgGID);
 
             // Flag as successful by ownership
             msUF.chown(lsaUID, mailGID);
           }
 
           // Verify the correct lists are installed
-          String[] listFiles=listsUF.list();
+          String[] listFiles = listsUF.list();
           Set<String> existingListFiles = AoCollections.newHashSet(listFiles.length);
           existingListFiles.addAll(Arrays.asList(listFiles));
 
           // Add any new files, allow some files to stay
-          List<MajordomoList> mls=ms.getMajordomoLists();
+          List<MajordomoList> mls = ms.getMajordomoLists();
           for (MajordomoList ml : mls) {
-            String listName=ml.getName();
+            String listName = ml.getName();
 
             // Make the list file
-            PosixFile listUF=new PosixFile(listsUF, listName, false);
+            PosixFile listUF = new PosixFile(listsUF, listName, false);
             if (!listUF.getStat().exists()) {
               listUF.getSecureOutputStream(lsaUID, lsgGID, 0644, false, uid_min, gid_min).close();
             } else {
@@ -574,7 +575,7 @@ public final class MajordomoManager extends BuilderThread {
             existingListFiles.remove(listName);
 
             // Make the .config file
-            PosixFile configUF=new PosixFile(listsUF, listName+".config", false);
+            PosixFile configUF = new PosixFile(listsUF, listName + ".config", false);
             if (!configUF.getStat().exists()) {
               try (ChainWriter out = new ChainWriter(configUF.getSecureOutputStream(lsaUID, lsgGID, 0660, false, uid_min, gid_min))) {
                 out.print("# The configuration file for a majordomo mailing list.\n"
@@ -967,25 +968,25 @@ public final class MajordomoManager extends BuilderThread {
                     + "who_access          =   open\n");
               }
             }
-            existingListFiles.remove(listName+".config");
+            existingListFiles.remove(listName + ".config");
 
             // Make the .info file
-            PosixFile infoUF=new PosixFile(listsUF, listName+".info", false);
+            PosixFile infoUF = new PosixFile(listsUF, listName + ".info", false);
             if (!infoUF.getStat().exists()) {
               infoUF.getSecureOutputStream(lsaUID, lsgGID, 0664, false, uid_min, gid_min).close();
             }
-            existingListFiles.remove(listName+".info");
+            existingListFiles.remove(listName + ".info");
 
             // Allow the .intro file
-            PosixFile introUF=new PosixFile(listsUF, listName+".intro", false);
+            PosixFile introUF = new PosixFile(listsUF, listName + ".intro", false);
             if (!introUF.getStat().exists()) {
               introUF.getSecureOutputStream(lsaUID, lsgGID, 0664, false, uid_min, gid_min).close();
             }
-            existingListFiles.remove(listName+".intro");
+            existingListFiles.remove(listName + ".intro");
 
             // Allow the -post file
-            existingListFiles.remove(listName+"-post");
-            existingListFiles.remove(listName+".posters");
+            existingListFiles.remove(listName + "-post");
+            existingListFiles.remove(listName + ".posters");
           }
 
           // Delete the extra files
@@ -1032,13 +1033,13 @@ public final class MajordomoManager extends BuilderThread {
 
     synchronized (System.out) {
       if (
-        // Nothing is done for these operating systems
-        osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
-        && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-        && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-        // Check config after OS check so config entry not needed
-        && AOServDaemonConfiguration.isManagerEnabled(MajordomoManager.class)
-        && majordomoManager == null
+          // Nothing is done for these operating systems
+          osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+              && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+              && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+              // Check config after OS check so config entry not needed
+              && AOServDaemonConfiguration.isManagerEnabled(MajordomoManager.class)
+              && majordomoManager == null
       ) {
         System.out.print("Starting MajordomoManager: ");
         // Must be a supported operating system

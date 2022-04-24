@@ -61,14 +61,14 @@ class HttpdTomcatSharedSiteManager_8_0_X extends HttpdTomcatSharedSiteManager<To
     /*
      * Create the skeleton of the site, the directories and links.
      */
-    DaemonFileUtils.mkdir(siteDir+"/bin", 0770, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/conf", 0775, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/daemon", 0770, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/webapps", 0775, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE, 0775, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF", 0775, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, uid, gid);
-    DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/bin", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/conf", 0775, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/daemon", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/webapps", 0775, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE, 0775, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF", 0775, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/classes", 0770, uid, gid);
+    DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/lib", 0770, uid, gid);
 
     Server thisServer = AOServDaemon.getThisServer();
     int uid_min = thisServer.getUidMin().getId();
@@ -77,14 +77,14 @@ class HttpdTomcatSharedSiteManager_8_0_X extends HttpdTomcatSharedSiteManager<To
     /*
      * Write the ROOT/WEB-INF/web.xml file.
      */
-    String webXML=siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/web.xml";
+    String webXML = siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/web.xml";
     try (
       ChainWriter out = new ChainWriter(
-        new BufferedOutputStream(
-          new PosixFile(webXML).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
+            new BufferedOutputStream(
+                new PosixFile(webXML).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
+            )
         )
-      )
-    ) {
+        ) {
       out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
           + "<web-app xmlns=\"http://xmlns.jcp.org/xml/ns/javaee\"\n"
           + "  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"

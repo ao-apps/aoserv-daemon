@@ -88,8 +88,8 @@ class HttpdTomcatStdSiteManager_3_2_4 extends HttpdTomcatStdSiteManager_3_X<Tomc
           + "    <ContextInterceptor className=\"org.apache.tomcat.context.LoadOnStartupInterceptor\" />\n");
 
       for (Worker worker : tomcatSite.getHttpdWorkers()) {
-        Bind netBind=worker.getBind();
-        String protocol=worker.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol();
+        Bind netBind = worker.getBind();
+        String protocol = worker.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol();
 
         out.print("    <Connector className=\"org.apache.tomcat.service.PoolTcpConnector\">\n"
             + "      <Parameter name=\"handler\" value=\"");
@@ -98,11 +98,11 @@ class HttpdTomcatStdSiteManager_3_2_4 extends HttpdTomcatStdSiteManager_3_X<Tomc
         } else if (protocol.equals(JkProtocol.AJP13)) {
           out.print("org.apache.tomcat.service.connector.Ajp13ConnectionHandler");
         } else {
-          throw new IllegalArgumentException("Unknown AJP version: "+htv);
+          throw new IllegalArgumentException("Unknown AJP version: " + htv);
         }
         out.print("\"/>\n"
             + "      <Parameter name=\"port\" value=\"").textInXmlAttribute(netBind.getPort().getPort()).print("\"/>\n");
-        InetAddress ip=netBind.getIpAddress().getInetAddress();
+        InetAddress ip = netBind.getIpAddress().getInetAddress();
         if (!ip.isUnspecified()) {
           out.print("      <Parameter name=\"inet\" value=\"").textInXmlAttribute(ip).print("\"/>\n");
         }

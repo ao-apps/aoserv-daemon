@@ -98,12 +98,12 @@ public final class Ipset {
    */
   public static String save(String setName, boolean missingAsNull) throws IOException {
     ProcessResult result = ProcessResult.exec(
-      new String[] {
-        IPSET,
-        "-S",
-        setName
-      },
-      CHARSET
+        new String[]{
+            IPSET,
+            "-S",
+            setName
+        },
+        CHARSET
     );
     if (result.getExitVal() == 0) {
       // Skip any comments
@@ -111,7 +111,7 @@ public final class Ipset {
         StringWriter out = new StringWriter();
         try {
           String line;
-          while ((line=in.readLine()) != null) {
+          while ((line = in.readLine()) != null) {
             line = line.trim();
             if (!line.startsWith("#")) {
               out.write(line);
@@ -126,7 +126,7 @@ public final class Ipset {
     } else {
       String stderr = result.getStderr().trim();
       if (!missingAsNull || !stderr.endsWith("Unknown set")) {
-        throw new IOException("Non-zero exit value from " + IPSET + " -S: exitVal=" + result.getExitVal()+", stderr=" + stderr);
+        throw new IOException("Non-zero exit value from " + IPSET + " -S: exitVal=" + result.getExitVal() + ", stderr=" + stderr);
       }
       return null;
     }
@@ -150,7 +150,7 @@ public final class Ipset {
     System.arraycopy(options, 0, newCommand, 4, options.length);
     ProcessResult result = ProcessResult.exec(newCommand, CHARSET);
     if (result.getExitVal() != 0) {
-      throw new IOException("Non-zero exit value from " + IPSET + " -N: exitVal=" + result.getExitVal()+", stderr=" + result.getStderr().trim());
+      throw new IOException("Non-zero exit value from " + IPSET + " -N: exitVal=" + result.getExitVal() + ", stderr=" + result.getStderr().trim());
     }
   }
 
@@ -159,16 +159,16 @@ public final class Ipset {
    */
   public static void delete(String setName, int entry) throws IOException {
     ProcessResult result = ProcessResult.exec(
-      new String[] {
-        IPSET,
-        "-D",
-        setName,
-        IpAddress.getIPAddressForInt(entry)
-      },
-      CHARSET
+        new String[]{
+            IPSET,
+            "-D",
+            setName,
+            IpAddress.getIPAddressForInt(entry)
+        },
+        CHARSET
     );
     if (result.getExitVal() != 0) {
-      throw new IOException("Non-zero exit value from " + IPSET + " -D: exitVal=" + result.getExitVal()+", stderr=" + result.getStderr().trim());
+      throw new IOException("Non-zero exit value from " + IPSET + " -D: exitVal=" + result.getExitVal() + ", stderr=" + result.getStderr().trim());
     }
   }
 
@@ -177,16 +177,16 @@ public final class Ipset {
    */
   public static void add(String setName, int entry) throws IOException {
     ProcessResult result = ProcessResult.exec(
-      new String[] {
-        IPSET,
-        "-A",
-        setName,
-        IpAddress.getIPAddressForInt(entry)
-      },
-      CHARSET
+        new String[]{
+            IPSET,
+            "-A",
+            setName,
+            IpAddress.getIPAddressForInt(entry)
+        },
+        CHARSET
     );
     if (result.getExitVal() != 0) {
-      throw new IOException("Non-zero exit value from " + IPSET + " -A: exitVal=" + result.getExitVal()+", stderr=" + result.getStderr().trim());
+      throw new IOException("Non-zero exit value from " + IPSET + " -A: exitVal=" + result.getExitVal() + ", stderr=" + result.getStderr().trim());
     }
   }
 
@@ -196,14 +196,14 @@ public final class Ipset {
   public static void parse(String save, Set<Integer> entries) throws IOException {
     try (BufferedReader in = new BufferedReader(new StringReader(save))) {
       String line;
-      while ((line=in.readLine()) != null) {
+      while ((line = in.readLine()) != null) {
         line = line.trim();
         if (line.startsWith("-A ")) {
           int spacePos = line.indexOf(' ', 3);
           if (spacePos == -1) {
             throw new IOException("Unable to find second space");
           }
-          entries.add(IpAddress. getIntForIPAddress(line.substring(spacePos+1)));
+          entries.add(IpAddress. getIntForIPAddress(line.substring(spacePos + 1)));
         }
       }
     }
@@ -221,20 +221,20 @@ public final class Ipset {
    * @param  setDir         the directory that stores the on-disk version
    */
   public static void synchronize(
-    Set<Integer> entries,
-    short networkPrefix,
-    String setName,
-    PosixFile setDir
+      Set<Integer> entries,
+      short networkPrefix,
+      String setName,
+      PosixFile setDir
   ) throws IOException {
     Set<Integer> unusedEntries;
-    if (entries.size()>MAX_IPSET_SIZE) {
+    if (entries.size() > MAX_IPSET_SIZE) {
       logger.log(
-        Level.WARNING,
-        "Only the first {0} entries used for ipset \"{1}\"",
-        new Object[] {
-          MAX_IPSET_SIZE,
-          setName
-        }
+          Level.WARNING,
+          "Only the first {0} entries used for ipset \"{1}\"",
+          new Object[]{
+              MAX_IPSET_SIZE,
+              setName
+          }
       );
       unusedEntries = AoCollections.newHashSet(entries.size() - MAX_IPSET_SIZE);
       int count = 0;
@@ -270,8 +270,8 @@ public final class Ipset {
 
     // Parse current set, deleting any that should no longer exist, flagging as modified
     Set<Integer> existingEntries = AoCollections.newLinkedHashSet(
-      // Leave room for 25% growth before any rehash
-      (entries.size() * 5) >> 2
+        // Leave room for 25% growth before any rehash
+        (entries.size() * 5) >> 2
     );
     parse(save, existingEntries);
     Iterator<Integer> iter = existingEntries.iterator();
@@ -301,14 +301,14 @@ public final class Ipset {
     save = SAVE_COMMENT + save;
 
     // Update on-disk storage if missing or changed
-    PosixFile setFile    = new PosixFile(setDir, setName+".ipset",     true);
+    PosixFile setFile    = new PosixFile(setDir, setName + ".ipset",     true);
     byte[] contents = save.getBytes(CHARSET.name());
     if (
-      !setFile.getStat().exists()
-      || !setFile.contentEquals(contents)
+        !setFile.getStat().exists()
+            || !setFile.contentEquals(contents)
     ) {
       // Create in new file
-      PosixFile newSetFile = new PosixFile(setDir, setName+".ipset.new", true);
+      PosixFile newSetFile = new PosixFile(setDir, setName + ".ipset.new", true);
       try (OutputStream out = new FileOutputStream(newSetFile.getFile())) {
         out.write(contents);
       } finally {

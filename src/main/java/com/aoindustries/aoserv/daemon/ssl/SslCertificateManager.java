@@ -149,9 +149,9 @@ public final class SslCertificateManager {
         }
         @SuppressWarnings("deprecation")
         String hashed = Strings.convertToHex(
-          MessageDigest.getInstance(ALGORITHM).digest(
-            AOServDaemon.execAndCaptureBytes(command)
-          )
+            MessageDigest.getInstance(ALGORITHM).digest(
+                AOServDaemon.execAndCaptureBytes(command)
+            )
         );
         getHashedCache.put(cacheKey, new Tuple2<>(modifiedTime, hashed));
         return hashed;
@@ -170,11 +170,11 @@ public final class SslCertificateManager {
     private final Set<String> altNames;
 
     private X509Status(
-      long certModifyTime,
-      Date notBefore,
-      Date notAfter,
-      String commonName,
-      Set<String> altNames
+        long certModifyTime,
+        Date notBefore,
+        Date notAfter,
+        String commonName,
+        Set<String> altNames
     ) {
       this.certModifyTime = certModifyTime;
       this.notBefore = notBefore;
@@ -206,6 +206,7 @@ public final class SslCertificateManager {
   private static final String FACTORY_TYPE = "X.509";
 
   private static final Map<PosixFile, X509Status> x509Cache = new HashMap<>();
+
   /**
    * Gets the x509 status.
    */
@@ -215,8 +216,8 @@ public final class SslCertificateManager {
 
       X509Status cached = allowCached ? x509Cache.get(certCanonical) : null;
       if (
-        cached != null
-        && certModifyTime == cached.certModifyTime
+          cached != null
+              && certModifyTime == cached.certModifyTime
       ) {
         return cached;
       }
@@ -236,7 +237,7 @@ public final class SslCertificateManager {
         // TODO: Try without password
         // Convert to PKCS12
         byte[] pkcs12 = AOServDaemon.execAndCaptureBytes(
-          "openssl", "pkcs12", "-export", "-in", certCanonical.getPath(), "-passout", "pass:" + passphrase
+            "openssl", "pkcs12", "-export", "-in", certCanonical.getPath(), "-passout", "pass:" + passphrase
         );
 
         // Key and cert together, load through Keystore
@@ -273,14 +274,14 @@ public final class SslCertificateManager {
         }
         String alias = aliasSet.iterator().next();
         try {
-          certificate = (X509Certificate)ks.getCertificate(alias);
+          certificate = (X509Certificate) ks.getCertificate(alias);
         } catch (KeyStoreException e) {
           throw new IOException(FACTORY_TYPE + ": Unable to get certificate from pkcs12 conversion from \"" + certCanonical + "\": " + e.toString(), e);
         }
       } else {
         // Cert alone, load directly
         try (InputStream in = new FileInputStream(certCanonical.getFile())) {
-          certificate = (X509Certificate)factory.generateCertificate(in);
+          certificate = (X509Certificate) factory.generateCertificate(in);
         } catch (CertificateException e) {
           throw new IOException(FACTORY_TYPE + ": Unable to generate certificate from \"" + certCanonical + "\": " + e.toString(), e);
         }
@@ -318,9 +319,9 @@ public final class SslCertificateManager {
         } else {
           altNames = AoCollections.newLinkedHashSet(sans.size());
           for (List<?> san : sans) {
-            int type = (Integer)san.get(0);
+            int type = (Integer) san.get(0);
             if (type == 2 /* dNSName */) {
-              String altName = (String)san.get(1);
+              String altName = (String) san.get(1);
               if (!altNames.add(altName)) {
                 throw new IOException(FACTORY_TYPE + ": Duplicate subject alt name: " + altName);
               }
@@ -331,11 +332,11 @@ public final class SslCertificateManager {
         }
       }
       X509Status result = new X509Status(
-        certModifyTime,
-        certificate.getNotBefore(),
-        certificate.getNotAfter(),
-        commonName,
-        altNames
+          certModifyTime,
+          certificate.getNotBefore(),
+          certificate.getNotAfter(),
+          commonName,
+          altNames
       );
       x509Cache.put(certCanonical, result);
       return result;
@@ -359,19 +360,19 @@ public final class SslCertificateManager {
     private final int days;
 
     private CertbotStatus(
-      long cacheTime,
-      PosixFile certCanonicalFile,
-      long certModifyTime,
-      PosixFile chainCanonicalFile,
-      long chainModifyTime,
-      PosixFile fullchainCanonicalFile,
-      long fullchainModifyTime,
-      PosixFile privkeyCanonicalFile,
-      long privkeyModifyTime,
-      long renewalModifyTime,
-      Set<String> domains,
-      String status,
-      int days
+        long cacheTime,
+        PosixFile certCanonicalFile,
+        long certModifyTime,
+        PosixFile chainCanonicalFile,
+        long chainModifyTime,
+        PosixFile fullchainCanonicalFile,
+        long fullchainModifyTime,
+        PosixFile privkeyCanonicalFile,
+        long privkeyModifyTime,
+        long renewalModifyTime,
+        Set<String> domains,
+        String status,
+        int days
     ) {
       this.cacheTime = cacheTime;
       this.certCanonicalFile = certCanonicalFile;
@@ -406,6 +407,7 @@ public final class SslCertificateManager {
   }
 
   private static final Map<String, CertbotStatus> certbotCache = new HashMap<>();
+
   /**
    * Gets the certificate status from certbot.
    */
@@ -425,18 +427,18 @@ public final class SslCertificateManager {
       long renewalModifyTime = renewalFile.getStat().getModifyTime();
       CertbotStatus cached = allowCached ? certbotCache.get(certbotName) : null;
       if (
-        cached != null
-        && (currentTime - cached.cacheTime) < CERTBOT_CACHE_DURATION
-        && (cached.cacheTime - currentTime) < CERTBOT_CACHE_DURATION
-        && certCanonicalFile.equals(cached.certCanonicalFile)
-        && certModifyTime == cached.certModifyTime
-        && chainCanonicalFile.equals(cached.chainCanonicalFile)
-        && chainModifyTime == cached.chainModifyTime
-        && fullchainCanonicalFile.equals(cached.fullchainCanonicalFile)
-        && fullchainModifyTime == cached.fullchainModifyTime
-        && privkeyCanonicalFile.equals(cached.privkeyCanonicalFile)
-        && privkeyModifyTime == cached.privkeyModifyTime
-        && renewalModifyTime == cached.renewalModifyTime
+          cached != null
+              && (currentTime - cached.cacheTime) < CERTBOT_CACHE_DURATION
+              && (cached.cacheTime - currentTime) < CERTBOT_CACHE_DURATION
+              && certCanonicalFile.equals(cached.certCanonicalFile)
+              && certModifyTime == cached.certModifyTime
+              && chainCanonicalFile.equals(cached.chainCanonicalFile)
+              && chainModifyTime == cached.chainModifyTime
+              && fullchainCanonicalFile.equals(cached.fullchainCanonicalFile)
+              && fullchainModifyTime == cached.fullchainModifyTime
+              && privkeyCanonicalFile.equals(cached.privkeyCanonicalFile)
+              && privkeyModifyTime == cached.privkeyModifyTime
+              && renewalModifyTime == cached.renewalModifyTime
       ) {
         return cached;
       }
@@ -464,11 +466,11 @@ public final class SslCertificateManager {
       }
       try (
         BufferedReader in = new BufferedReader(
-          new StringReader(
-            AOServDaemon.execAndCapture("certbot", "certificates", "--cert-name", certbotName)
+              new StringReader(
+                  AOServDaemon.execAndCapture("certbot", "certificates", "--cert-name", certbotName)
+              )
           )
-        )
-      ) {
+          ) {
         String line;
         while ((line = in.readLine()) != null) {
           if (line.startsWith("  Certificate Name: ")) {
@@ -526,19 +528,19 @@ public final class SslCertificateManager {
         }
       }
       CertbotStatus result = new CertbotStatus(
-        currentTime,
-        certCanonicalFile,
-        certModifyTime,
-        chainCanonicalFile,
-        chainModifyTime,
-        fullchainCanonicalFile,
-        fullchainModifyTime,
-        privkeyCanonicalFile,
-        privkeyModifyTime,
-        renewalModifyTime,
-        domains,
-        status,
-        days
+          currentTime,
+          certCanonicalFile,
+          certModifyTime,
+          chainCanonicalFile,
+          chainModifyTime,
+          fullchainCanonicalFile,
+          fullchainModifyTime,
+          privkeyCanonicalFile,
+          privkeyModifyTime,
+          renewalModifyTime,
+          domains,
+          status,
+          days
       );
       certbotCache.put(certbotName, result);
       return result;
@@ -568,403 +570,403 @@ public final class SslCertificateManager {
           throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
       }
       return checkSslCertificateConcurrencyLimiter.executeSerialized(
-        new Tuple2<>(certificate, allowCached),
-        () -> {
-          long currentTime = System.currentTimeMillis();
+          new Tuple2<>(certificate, allowCached),
+          () -> {
+            long currentTime = System.currentTimeMillis();
 
-          String certbotName = certificate.getCertbotName();
-          String commonName = certificate.getCommonName().getName();
-          // Gets a lowercase set of alts names
-          Set<String> expectedAlts;
-          Set<String> expectedAltsLower;
-          {
-            List<CertificateName> altNames = certificate.getAltNames();
-            expectedAlts = AoCollections.newLinkedHashSet(altNames.size());
-            expectedAltsLower = AoCollections.newLinkedHashSet(altNames.size());
-            for (CertificateName altName : altNames) {
-              String name = altName.getName();
-              if (!expectedAlts.add(name)) {
-                throw new SQLException("Duplicate alt name: " + name);
+            String certbotName = certificate.getCertbotName();
+            String commonName = certificate.getCommonName().getName();
+            // Gets a lowercase set of alts names
+            Set<String> expectedAlts;
+            Set<String> expectedAltsLower;
+            {
+              List<CertificateName> altNames = certificate.getAltNames();
+              expectedAlts = AoCollections.newLinkedHashSet(altNames.size());
+              expectedAltsLower = AoCollections.newLinkedHashSet(altNames.size());
+              for (CertificateName altName : altNames) {
+                String name = altName.getName();
+                if (!expectedAlts.add(name)) {
+                  throw new SQLException("Duplicate alt name: " + name);
+                }
+                String lower = name.toLowerCase(Locale.ROOT);
+                if (!expectedAltsLower.add(lower)) {
+                  throw new SQLException("Duplicate lower alt name: " + lower);
+                }
               }
-              String lower = name.toLowerCase(Locale.ROOT);
-              if (!expectedAltsLower.add(lower)) {
-                throw new SQLException("Duplicate lower alt name: " + lower);
+            }
+            List<Check> results = new ArrayList<>();
+
+            // First make sure all expected files exist
+            PosixFile keyFile   = getPosixFile(certificate.getKeyFile());
+            PosixFile csrFile   = getPosixFile(certificate.getCsrFile());
+            PosixFile certFile  = getPosixFile(certificate.getCertFile());
+            PosixFile chainFile = getPosixFile(certificate.getChainFile());
+
+            // Stat each file
+            Stat keyStat   = keyFile.getStat();
+            Stat csrStat   = (csrFile == null) ? null : csrFile.getStat();
+            Stat certStat  = certFile.getStat();
+            Stat chainStat = (chainFile == null) ? null : chainFile.getStat();
+
+            // Make sure each expected file exists
+            boolean keyExists = keyStat.exists();
+            results.add(new Check("Key exists?", Boolean.toString(keyExists), keyExists ? NONE : CRITICAL, keyFile.toString()));
+            boolean csrExists;
+            if (csrStat != null) {
+              assert csrFile != null;
+              csrExists = csrStat.exists();
+              results.add(new Check("CSR exists?", Boolean.toString(csrExists), csrExists ? NONE : MEDIUM, csrFile.toString()));
+            } else {
+              csrExists = false;
+            }
+            boolean certExists = certStat.exists();
+            results.add(new Check("Cert exists?", Boolean.toString(certExists), certExists ? NONE : CRITICAL, certFile.toString()));
+            boolean chainExists;
+            if (chainStat != null) {
+              assert chainFile != null;
+              chainExists = chainStat.exists();
+              results.add(new Check("Chain exists?", Boolean.toString(chainExists), chainExists ? NONE : CRITICAL, chainFile.toString()));
+            } else {
+              chainExists = false;
+            }
+
+            // Follow symbolic links to target
+            PosixFile keyCanonical;
+            Stat keyCanonicalStat;
+            boolean keyCanonicalExists;
+            if (keyExists && keyStat.isSymLink()) {
+              keyCanonical = new PosixFile(keyFile.getFile().getCanonicalPath());
+              keyCanonicalStat = keyCanonical.getStat();
+              keyCanonicalExists = keyCanonicalStat.exists();
+              results.add(new Check("Canonical key exists?", Boolean.toString(keyCanonicalExists), keyCanonicalExists ? NONE : CRITICAL, keyCanonical.toString()));
+            } else {
+              keyCanonical = keyFile;
+              keyCanonicalStat = keyStat;
+              keyCanonicalExists = keyExists;
+            }
+            PosixFile csrCanonical;
+            Stat csrCanonicalStat;
+            boolean csrCanonicalExists;
+            if (csrExists && csrStat.isSymLink()) {
+              csrCanonical = new PosixFile(csrFile.getFile().getCanonicalPath());
+              csrCanonicalStat = csrCanonical.getStat();
+              csrCanonicalExists = csrCanonicalStat.exists();
+              results.add(new Check("Canonical CSR exists?", Boolean.toString(csrCanonicalExists), csrCanonicalExists ? NONE : MEDIUM, csrCanonical.toString()));
+            } else {
+              csrCanonical = csrFile;
+              csrCanonicalStat = csrStat;
+              csrCanonicalExists = csrExists;
+            }
+            PosixFile certCanonical;
+            Stat certCanonicalStat;
+            boolean certCanonicalExists;
+            if (certExists && certStat.isSymLink()) {
+              certCanonical = new PosixFile(certFile.getFile().getCanonicalPath());
+              certCanonicalStat = certCanonical.getStat();
+              certCanonicalExists = certCanonicalStat.exists();
+              results.add(new Check("Canonical cert exists?", Boolean.toString(certCanonicalExists), certCanonicalExists ? NONE : CRITICAL, certCanonical.toString()));
+            } else {
+              certCanonical = certFile;
+              certCanonicalStat = certStat;
+              certCanonicalExists = certExists;
+            }
+            Stat chainCanonicalStat;
+            boolean chainCanonicalExists;
+            if (chainExists && chainStat.isSymLink()) {
+              PosixFile chainCanonical = new PosixFile(chainFile.getFile().getCanonicalPath());
+              chainCanonicalStat = chainCanonical.getStat();
+              chainCanonicalExists = chainCanonicalStat.exists();
+              results.add(new Check("Canonical chain exists?", Boolean.toString(chainCanonicalExists), chainCanonicalExists ? NONE : CRITICAL, chainCanonical.toString()));
+            } else {
+              chainCanonicalStat = chainStat;
+              chainCanonicalExists = chainExists;
+            }
+
+            // Get the last modified of each file, or 0 for a file that doesn't exist
+            long keyModifyTime   = keyCanonicalExists   ? keyCanonicalStat  .getModifyTime() : 0;
+            long csrModifyTime   = csrCanonicalExists   ? csrCanonicalStat  .getModifyTime() : 0;
+            long certModifyTime  = certCanonicalExists  ? certCanonicalStat .getModifyTime() : 0;
+            long chainModifyTime = chainCanonicalExists ? chainCanonicalStat.getModifyTime() : 0; // TODO: How to verify chain?
+
+            // New: Compare by public key: https://www.sslshopper.com/certificate-key-matcher.html
+            // Old: Compare by modulus: https://support.asperasoft.com/hc/en-us/articles/216128468-OpenSSL-commands-to-check-and-verify-your-SSL-certificate-key-and-CSR
+            String keyHash  = keyCanonicalExists  ? getCommandHash(
+                keyCanonical,
+                isNewOpenssl ? "pkey" : "rsa",
+                keyModifyTime,
+                allowCached,
+                isNewOpenssl
+                    ? new String[]{"openssl", "pkey", "-outform", "PEM", "-in", keyCanonical.getPath(), "-pubout"}
+                    : new String[]{"openssl", "rsa", "-in", keyCanonical.getPath(), "-noout", "-modulus"}
+            ) : null;
+            String csrHash  = csrCanonicalExists  ? getCommandHash(
+                csrCanonical,
+                "req",
+                csrModifyTime,
+                allowCached,
+                isNewOpenssl
+                    ? new String[]{"openssl", "req", "-outform", "PEM", "-in", csrCanonical.getPath(), "-pubkey", "-noout"}
+                    : new String[]{"openssl", "req", "-in", csrCanonical.getPath(), "-noout", "-modulus"}
+            ) : null;
+            String certHash = certCanonicalExists ? getCommandHash(
+                certCanonical,
+                "x509",
+                certModifyTime,
+                allowCached,
+                isNewOpenssl
+                    ? new String[]{"openssl", "x509", "-outform", "PEM", "-in", certCanonical.getPath(), "-pubkey", "-noout"}
+                    : new String[]{"openssl", "x509", "-in", certCanonical.getPath(), "-noout", "-modulus"}
+            ) : null;
+            // TODO: Do we need to support both cert and fullchain files no Certificate class?  Check both with x509 command for match
+            // TODO: PostgreSQL uses fullchain for Let's Encrypt.
+            if (keyHash != null) {
+              results.add(new Check("Key " + ALGORITHM, keyHash, NONE, null));
+            }
+            if (csrHash != null) {
+              if (keyHash == null || keyHash.equals(csrHash)) {
+                results.add(new Check("CSR " + ALGORITHM, csrHash, NONE, null));
+              } else {
+                results.add(new Check("CSR " + ALGORITHM, csrHash, MEDIUM, "CSR does not match Key"));
               }
             }
-          }
-          List<Check> results = new ArrayList<>();
-
-          // First make sure all expected files exist
-          PosixFile keyFile   = getPosixFile(certificate.getKeyFile());
-          PosixFile csrFile   = getPosixFile(certificate.getCsrFile());
-          PosixFile certFile  = getPosixFile(certificate.getCertFile());
-          PosixFile chainFile = getPosixFile(certificate.getChainFile());
-
-          // Stat each file
-          Stat keyStat   = keyFile.getStat();
-          Stat csrStat   = (csrFile == null) ? null : csrFile.getStat();
-          Stat certStat  = certFile.getStat();
-          Stat chainStat = (chainFile == null) ? null : chainFile.getStat();
-
-          // Make sure each expected file exists
-          boolean keyExists = keyStat.exists();
-          results.add(new Check("Key exists?", Boolean.toString(keyExists), keyExists ? NONE : CRITICAL, keyFile.toString()));
-          boolean csrExists;
-          if (csrStat != null) {
-            assert csrFile != null;
-            csrExists = csrStat.exists();
-            results.add(new Check("CSR exists?", Boolean.toString(csrExists), csrExists ? NONE : MEDIUM, csrFile.toString()));
-          } else {
-            csrExists = false;
-          }
-          boolean certExists = certStat.exists();
-          results.add(new Check("Cert exists?", Boolean.toString(certExists), certExists ? NONE : CRITICAL, certFile.toString()));
-          boolean chainExists;
-          if (chainStat != null) {
-            assert chainFile != null;
-            chainExists = chainStat.exists();
-            results.add(new Check("Chain exists?", Boolean.toString(chainExists), chainExists ? NONE : CRITICAL, chainFile.toString()));
-          } else {
-            chainExists = false;
-          }
-
-          // Follow symbolic links to target
-          PosixFile keyCanonical;
-          Stat keyCanonicalStat;
-          boolean keyCanonicalExists;
-          if (keyExists && keyStat.isSymLink()) {
-            keyCanonical = new PosixFile(keyFile.getFile().getCanonicalPath());
-            keyCanonicalStat = keyCanonical.getStat();
-            keyCanonicalExists = keyCanonicalStat.exists();
-            results.add(new Check("Canonical key exists?", Boolean.toString(keyCanonicalExists), keyCanonicalExists ? NONE : CRITICAL, keyCanonical.toString()));
-          } else {
-            keyCanonical = keyFile;
-            keyCanonicalStat = keyStat;
-            keyCanonicalExists = keyExists;
-          }
-          PosixFile csrCanonical;
-          Stat csrCanonicalStat;
-          boolean csrCanonicalExists;
-          if (csrExists && csrStat.isSymLink()) {
-            csrCanonical = new PosixFile(csrFile.getFile().getCanonicalPath());
-            csrCanonicalStat = csrCanonical.getStat();
-            csrCanonicalExists = csrCanonicalStat.exists();
-            results.add(new Check("Canonical CSR exists?", Boolean.toString(csrCanonicalExists), csrCanonicalExists ? NONE : MEDIUM, csrCanonical.toString()));
-          } else {
-            csrCanonical = csrFile;
-            csrCanonicalStat = csrStat;
-            csrCanonicalExists = csrExists;
-          }
-          PosixFile certCanonical;
-          Stat certCanonicalStat;
-          boolean certCanonicalExists;
-          if (certExists && certStat.isSymLink()) {
-            certCanonical = new PosixFile(certFile.getFile().getCanonicalPath());
-            certCanonicalStat = certCanonical.getStat();
-            certCanonicalExists = certCanonicalStat.exists();
-            results.add(new Check("Canonical cert exists?", Boolean.toString(certCanonicalExists), certCanonicalExists ? NONE : CRITICAL, certCanonical.toString()));
-          } else {
-            certCanonical = certFile;
-            certCanonicalStat = certStat;
-            certCanonicalExists = certExists;
-          }
-          Stat chainCanonicalStat;
-          boolean chainCanonicalExists;
-          if (chainExists && chainStat.isSymLink()) {
-            PosixFile chainCanonical = new PosixFile(chainFile.getFile().getCanonicalPath());
-            chainCanonicalStat = chainCanonical.getStat();
-            chainCanonicalExists = chainCanonicalStat.exists();
-            results.add(new Check("Canonical chain exists?", Boolean.toString(chainCanonicalExists), chainCanonicalExists ? NONE : CRITICAL, chainCanonical.toString()));
-          } else {
-            chainCanonicalStat = chainStat;
-            chainCanonicalExists = chainExists;
-          }
-
-          // Get the last modified of each file, or 0 for a file that doesn't exist
-          long keyModifyTime   = keyCanonicalExists   ? keyCanonicalStat  .getModifyTime() : 0;
-          long csrModifyTime   = csrCanonicalExists   ? csrCanonicalStat  .getModifyTime() : 0;
-          long certModifyTime  = certCanonicalExists  ? certCanonicalStat .getModifyTime() : 0;
-          long chainModifyTime = chainCanonicalExists ? chainCanonicalStat.getModifyTime() : 0; // TODO: How to verify chain?
-
-          // New: Compare by public key: https://www.sslshopper.com/certificate-key-matcher.html
-          // Old: Compare by modulus: https://support.asperasoft.com/hc/en-us/articles/216128468-OpenSSL-commands-to-check-and-verify-your-SSL-certificate-key-and-CSR
-          String keyHash  = keyCanonicalExists  ? getCommandHash(
-            keyCanonical,
-            isNewOpenssl ? "pkey" : "rsa",
-            keyModifyTime,
-            allowCached,
-            isNewOpenssl
-              ? new String[] {"openssl", "pkey", "-outform", "PEM", "-in", keyCanonical.getPath(), "-pubout"}
-              : new String[] {"openssl", "rsa", "-in", keyCanonical.getPath(), "-noout", "-modulus"}
-          ) : null;
-          String csrHash  = csrCanonicalExists  ? getCommandHash(
-            csrCanonical,
-            "req",
-            csrModifyTime,
-            allowCached,
-            isNewOpenssl
-              ? new String[] {"openssl", "req", "-outform", "PEM", "-in", csrCanonical.getPath(), "-pubkey", "-noout"}
-              : new String[] {"openssl", "req", "-in", csrCanonical.getPath(), "-noout", "-modulus"}
-          ) : null;
-          String certHash = certCanonicalExists ? getCommandHash(
-            certCanonical,
-            "x509",
-            certModifyTime,
-            allowCached,
-            isNewOpenssl
-              ? new String[] {"openssl", "x509", "-outform", "PEM", "-in", certCanonical.getPath(), "-pubkey", "-noout"}
-              : new String[] {"openssl", "x509", "-in", certCanonical.getPath(), "-noout", "-modulus"}
-          ) : null;
-          // TODO: Do we need to support both cert and fullchain files no Certificate class?  Check both with x509 command for match
-          // TODO: PostgreSQL uses fullchain for Let's Encrypt.
-          if (keyHash != null) {
-            results.add(new Check("Key " + ALGORITHM, keyHash, NONE, null));
-          }
-          if (csrHash != null) {
-            if (keyHash == null || keyHash.equals(csrHash)) {
-              results.add(new Check("CSR " + ALGORITHM, csrHash, NONE, null));
-            } else {
-              results.add(new Check("CSR " + ALGORITHM, csrHash, MEDIUM, "CSR does not match Key"));
+            if (certHash != null) {
+              if (keyHash == null || keyHash.equals(certHash)) {
+                results.add(new Check("Cert " + ALGORITHM, certHash, NONE, null));
+              } else {
+                results.add(new Check("Cert " + ALGORITHM, certHash, CRITICAL, "Cert does not match Key"));
+              }
             }
-          }
-          if (certHash != null) {
-            if (keyHash == null || keyHash.equals(certHash)) {
-              results.add(new Check("Cert " + ALGORITHM, certHash, NONE, null));
-            } else {
-              results.add(new Check("Cert " + ALGORITHM, certHash, CRITICAL, "Cert does not match Key"));
-            }
-          }
 
-          // TODO: cyrus and sendmail copies match (for let's encrypt) (mysql, postgresql later)
-          // TODO: cyrus and sendmail permissions as expected (possibly on copy) (mysql, postgresql later)
+            // TODO: cyrus and sendmail copies match (for let's encrypt) (mysql, postgresql later)
+            // TODO: cyrus and sendmail permissions as expected (possibly on copy) (mysql, postgresql later)
 
-          // Configuration:
-          // TODO: DNS settings
-          // TODO: Hostnames match what is used by (case-insensitive match), low if match but different case?
-          //       HttpdSiteBinds, CyrusServers, SendmailServers, ...
-          // TODO: No extra hostnames - low level warning if any found
+            // Configuration:
+            // TODO: DNS settings
+            // TODO: Hostnames match what is used by (case-insensitive match), low if match but different case?
+            //       HttpdSiteBinds, CyrusServers, SendmailServers, ...
+            // TODO: No extra hostnames - low level warning if any found
 
-          // TODO: Self-signed as low
-          // TODO: Untrusted by openssl as high (with chain and fullchain verified separately)
-          //       or Java's Certificate.verify method?
+            // TODO: Self-signed as low
+            // TODO: Untrusted by openssl as high (with chain and fullchain verified separately)
+            //       or Java's Certificate.verify method?
 
-          // TODO: Certificate max alert level setting? (with an "until" date?) - this used to cap in NOC or restrict statuses here?
+            // TODO: Certificate max alert level setting? (with an "until" date?) - this used to cap in NOC or restrict statuses here?
 
-          // x509 parsing
-          if (certCanonicalExists) {
-            DateFormat df = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.LONG);
-            df.setTimeZone(thisServer.getTimeZone().getTimeZone());
+            // x509 parsing
+            if (certCanonicalExists) {
+              DateFormat df = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.LONG);
+              df.setTimeZone(thisServer.getTimeZone().getTimeZone());
 
-            X509Status x509Status = getX509Status(certCanonical, keyCanonical, allowCached);
-            Date notBefore = x509Status.getNotBefore();
-            if (notBefore != null) {
-              results.add(
-                new Check(
-                  FACTORY_TYPE + " Not Before",
-                  df.format(notBefore),
-                  currentTime < notBefore.getTime() ? CRITICAL : NONE,
-                  null
-                )
-              );
-            }
-            Date notAfter = x509Status.getNotAfter();
-            if (notAfter != null) {
-              long daysLeft = (notAfter.getTime() - currentTime) / (24L * 60 * 60 * 1000);
-              String dateStr = df.format(notAfter);
-              AlertLevel alertLevel = (daysLeft <= (certbotName != null ? CERTBOT_CRITICAL_DAYS : OTHER_CRITICAL_DAYS)) ? CRITICAL
+              X509Status x509Status = getX509Status(certCanonical, keyCanonical, allowCached);
+              Date notBefore = x509Status.getNotBefore();
+              if (notBefore != null) {
+                results.add(
+                    new Check(
+                        FACTORY_TYPE + " Not Before",
+                        df.format(notBefore),
+                        currentTime < notBefore.getTime() ? CRITICAL : NONE,
+                        null
+                    )
+                );
+              }
+              Date notAfter = x509Status.getNotAfter();
+              if (notAfter != null) {
+                long daysLeft = (notAfter.getTime() - currentTime) / (24L * 60 * 60 * 1000);
+                String dateStr = df.format(notAfter);
+                AlertLevel alertLevel = (daysLeft <= (certbotName != null ? CERTBOT_CRITICAL_DAYS : OTHER_CRITICAL_DAYS)) ? CRITICAL
                     : daysLeft <= (certbotName != null ? CERTBOT_HIGH_DAYS : OTHER_HIGH_DAYS) ? HIGH
                     : daysLeft <= (certbotName != null ? CERTBOT_MEDIUM_DAYS : OTHER_MEDIUM_DAYS) ? MEDIUM
                     : daysLeft <= (certbotName != null ? CERTBOT_LOW_DAYS : OTHER_LOW_DAYS) ? LOW
                     : NONE;
-              results.add(
-                new Check(
-                  FACTORY_TYPE + " Not After",
-                  dateStr,
-                  alertLevel,
-                  alertLevel == NONE
-                    ? null
-                    : (
-                      (alertLevel == CRITICAL ? "Certificate expired " : "Certificate expires ")
-                      + dateStr
+                results.add(
+                    new Check(
+                        FACTORY_TYPE + " Not After",
+                        dateStr,
+                        alertLevel,
+                        alertLevel == NONE
+                            ? null
+                            : (
+                            (alertLevel == CRITICAL ? "Certificate expired " : "Certificate expires ")
+                                + dateStr
+                        )
                     )
-                )
-              );
-            }
-            String x509CN = x509Status.getCommonName();
-            boolean commonNameMatches = x509CN.equals(commonName);
-            boolean commonNameMatchesIgnoreCase = x509CN.equalsIgnoreCase(commonName);
-            results.add(
-              new Check(
-                FACTORY_TYPE + " Subject CN",
-                x509CN,
-                commonNameMatches ? NONE
-                  : commonNameMatchesIgnoreCase ? LOW : HIGH,
-                commonNameMatches ? null : "Expected: " + commonName
-              )
-            );
-            // The set of alt names should match expected
-            Set<String> altNames = x509Status.getAltNames();
-            boolean altNamesMatch = expectedAlts.equals(altNames);
-            boolean altNamesMatchLower;
-            if (altNamesMatch) {
-              altNamesMatchLower = true;
-            } else {
-              Set<String> lowerAltnames = AoCollections.newLinkedHashSet(altNames.size());
-              for (String altName : altNames) {
-                String lower = altName.toLowerCase(Locale.ROOT);
-                if (!lowerAltnames.add(lower)) {
-                  throw new IOException("Duplicate lower alt name: " + lower);
-                }
+                );
               }
-              altNamesMatchLower = expectedAltsLower.equals(lowerAltnames);
-            }
-            results.add(
-              new Check(
-                FACTORY_TYPE + " Subject Alternative Name",
-                StringUtils.join(altNames, ' '),
-                altNamesMatch ? NONE : altNamesMatchLower ? LOW : HIGH,
-                altNamesMatch ? null : "Expected: " + StringUtils.join(expectedAlts, ' ')
-              )
-            );
-          }
-
-          // Let's Encrypt certificate status
-          if (certbotName != null) {
-            CertbotStatus certbotStatus = getCertbotStatus(certbotName, allowCached);
-
-            String status = certbotStatus.getStatus();
-            results.add(new Check("Certbot status", status, "VALID".equals(status) ? NONE : CRITICAL, null));
-            int days = certbotStatus.getDays();
-            results.add(
-              new Check(
-                "Certbot days left",
-                days == -1 ? "EXPIRED" : Integer.toString(days),
-                days == -1 || days <= CERTBOT_CRITICAL_DAYS ? CRITICAL
-                  : days <= CERTBOT_HIGH_DAYS ? HIGH
-                  : days <= CERTBOT_MEDIUM_DAYS ? MEDIUM
-                  : days <= CERTBOT_LOW_DAYS ? LOW
-                  : NONE,
-                null
-              )
-            );
-
-            final String CERTBOT_DOMAINS = "Certbot Subject Alternative Name";
-            Set<String> domains = certbotStatus.getDomains();
-            if (domains.isEmpty()) {
+              String x509CN = x509Status.getCommonName();
+              boolean commonNameMatches = x509CN.equals(commonName);
+              boolean commonNameMatchesIgnoreCase = x509CN.equalsIgnoreCase(commonName);
               results.add(
-                new Check(
-                  CERTBOT_DOMAINS,
-                  "(empty)",
-                  HIGH,
-                  "No domains from certbot"
-                )
+                  new Check(
+                      FACTORY_TYPE + " Subject CN",
+                      x509CN,
+                      commonNameMatches ? NONE
+                          : commonNameMatchesIgnoreCase ? LOW : HIGH,
+                      commonNameMatches ? null : "Expected: " + commonName
+                  )
               );
-            } else {
-              // The first domain should equal the common name
-              String firstDomain = domains.iterator().next();
-              boolean commonNameMatches = firstDomain.equals(commonName);
-              boolean commonNameMatchesIgnoreCase = firstDomain.equalsIgnoreCase(commonName);
-              results.add(
-                new Check(
-                  "Certbot Subject CN",
-                  firstDomain,
-                  commonNameMatches ? NONE
-                    : commonNameMatchesIgnoreCase ? LOW : HIGH,
-                  commonNameMatches ? null : "Expected: " + commonName
-                )
-              );
-
-              // The set of domains should match Alt names
-              boolean altNamesMatch = expectedAlts.equals(domains);
+              // The set of alt names should match expected
+              Set<String> altNames = x509Status.getAltNames();
+              boolean altNamesMatch = expectedAlts.equals(altNames);
               boolean altNamesMatchLower;
               if (altNamesMatch) {
                 altNamesMatchLower = true;
               } else {
-                Set<String> lowerDomains = AoCollections.newLinkedHashSet(domains.size());
-                for (String domain : domains) {
-                  String lower = domain.toLowerCase(Locale.ROOT);
-                  if (!lowerDomains.add(lower)) {
-                    throw new IOException("Duplicate lower domain: " + lower);
+                Set<String> lowerAltnames = AoCollections.newLinkedHashSet(altNames.size());
+                for (String altName : altNames) {
+                  String lower = altName.toLowerCase(Locale.ROOT);
+                  if (!lowerAltnames.add(lower)) {
+                    throw new IOException("Duplicate lower alt name: " + lower);
                   }
                 }
-                altNamesMatchLower = expectedAltsLower.equals(lowerDomains);
+                altNamesMatchLower = expectedAltsLower.equals(lowerAltnames);
               }
               results.add(
-                new Check(
-                  CERTBOT_DOMAINS,
-                  StringUtils.join(domains, ' '),
-                  altNamesMatch ? NONE : altNamesMatchLower ? LOW : HIGH,
-                  altNamesMatch ? null : "Expected: " + StringUtils.join(expectedAlts, ' ')
-                )
+                  new Check(
+                      FACTORY_TYPE + " Subject Alternative Name",
+                      StringUtils.join(altNames, ' '),
+                      altNamesMatch ? NONE : altNamesMatchLower ? LOW : HIGH,
+                      altNamesMatch ? null : "Expected: " + StringUtils.join(expectedAlts, ' ')
+                  )
               );
             }
-          }
 
-          // Low-level if certificate appears unused
-          List<CyrusImapdBind> cyrusBinds = certificate.getCyrusImapdBinds();
-          List<CyrusImapdServer> cyrusServers = certificate.getCyrusImapdServers();
-          List<VirtualHost> hsbs = certificate.getHttpdSiteBinds();
-          List<SendmailServer> sendmailServers = certificate.getSendmailServersByServerCertificate();
-          List<SendmailServer> sendmailClients = certificate.getSendmailServersByClientCertificate();
-          List<CertificateOtherUse> otherUses = certificate.getOtherUses();
-          int useCount = 0;
-          StringBuilder usedBy = new StringBuilder();
-          if (!cyrusBinds.isEmpty()) {
-            int size = cyrusBinds.size();
-            useCount += size;
-            usedBy.append(size).append(size == 1 ? " CyrusImapdBind" : " CyrusImapdBinds");
-          }
-          if (!cyrusServers.isEmpty()) {
-            if (usedBy.length() > 0) {
-              usedBy.append(", ");
-            }
-            int size = cyrusServers.size();
-            useCount += size;
-            usedBy.append(size).append(size == 1 ? " CyrusImapdServer" : " CyrusImapdServers");
-          }
-          if (!hsbs.isEmpty()) {
-            if (usedBy.length() > 0) {
-              usedBy.append(", ");
-            }
-            int size = hsbs.size();
-            useCount += size;
-            usedBy.append(size).append(size == 1 ? " VirtualHost" : " VirtualHosts");
-          }
-          if (!sendmailServers.isEmpty()) {
-            if (usedBy.length() > 0) {
-              usedBy.append(", ");
-            }
-            int size = sendmailServers.size();
-            useCount += size;
-            usedBy.append(size).append(size == 1 ? " SendmailServer(Host)" : " SendmailServers(Host)");
-          }
-          if (!sendmailClients.isEmpty()) {
-            if (usedBy.length() > 0) {
-              usedBy.append(", ");
-            }
-            int size = sendmailClients.size();
-            useCount += size;
-            usedBy.append(size).append(size == 1 ? " SendmailServer(Client)" : " SendmailServers(Client)");
-          }
-          for (CertificateOtherUse otherUse : otherUses) {
-            if (usedBy.length() > 0) {
-              usedBy.append(", ");
-            }
-            int count = otherUse.getCount();
-            useCount += count;
-            usedBy.append(otherUse.toString());
-          }
-          results.add(
-            new Check(
-              "Certificate used?",
-              Integer.toString(useCount),
-              useCount == 0 ? LOW : NONE,
-              usedBy.length() == 0 ? "Certificate appears to be unused" : usedBy.toString()
-            )
-          );
+            // Let's Encrypt certificate status
+            if (certbotName != null) {
+              CertbotStatus certbotStatus = getCertbotStatus(certbotName, allowCached);
 
-          return results;
-        }
+              String status = certbotStatus.getStatus();
+              results.add(new Check("Certbot status", status, "VALID".equals(status) ? NONE : CRITICAL, null));
+              int days = certbotStatus.getDays();
+              results.add(
+                  new Check(
+                      "Certbot days left",
+                      days == -1 ? "EXPIRED" : Integer.toString(days),
+                      days == -1 || days <= CERTBOT_CRITICAL_DAYS ? CRITICAL
+                          : days <= CERTBOT_HIGH_DAYS ? HIGH
+                          : days <= CERTBOT_MEDIUM_DAYS ? MEDIUM
+                          : days <= CERTBOT_LOW_DAYS ? LOW
+                          : NONE,
+                      null
+                  )
+              );
+
+              final String CERTBOT_DOMAINS = "Certbot Subject Alternative Name";
+              Set<String> domains = certbotStatus.getDomains();
+              if (domains.isEmpty()) {
+                results.add(
+                    new Check(
+                        CERTBOT_DOMAINS,
+                        "(empty)",
+                        HIGH,
+                        "No domains from certbot"
+                    )
+                );
+              } else {
+                // The first domain should equal the common name
+                String firstDomain = domains.iterator().next();
+                boolean commonNameMatches = firstDomain.equals(commonName);
+                boolean commonNameMatchesIgnoreCase = firstDomain.equalsIgnoreCase(commonName);
+                results.add(
+                    new Check(
+                        "Certbot Subject CN",
+                        firstDomain,
+                        commonNameMatches ? NONE
+                            : commonNameMatchesIgnoreCase ? LOW : HIGH,
+                        commonNameMatches ? null : "Expected: " + commonName
+                    )
+                );
+
+                // The set of domains should match Alt names
+                boolean altNamesMatch = expectedAlts.equals(domains);
+                boolean altNamesMatchLower;
+                if (altNamesMatch) {
+                  altNamesMatchLower = true;
+                } else {
+                  Set<String> lowerDomains = AoCollections.newLinkedHashSet(domains.size());
+                  for (String domain : domains) {
+                    String lower = domain.toLowerCase(Locale.ROOT);
+                    if (!lowerDomains.add(lower)) {
+                      throw new IOException("Duplicate lower domain: " + lower);
+                    }
+                  }
+                  altNamesMatchLower = expectedAltsLower.equals(lowerDomains);
+                }
+                results.add(
+                    new Check(
+                        CERTBOT_DOMAINS,
+                        StringUtils.join(domains, ' '),
+                        altNamesMatch ? NONE : altNamesMatchLower ? LOW : HIGH,
+                        altNamesMatch ? null : "Expected: " + StringUtils.join(expectedAlts, ' ')
+                    )
+                );
+              }
+            }
+
+            // Low-level if certificate appears unused
+            List<CyrusImapdBind> cyrusBinds = certificate.getCyrusImapdBinds();
+            List<CyrusImapdServer> cyrusServers = certificate.getCyrusImapdServers();
+            List<VirtualHost> hsbs = certificate.getHttpdSiteBinds();
+            List<SendmailServer> sendmailServers = certificate.getSendmailServersByServerCertificate();
+            List<SendmailServer> sendmailClients = certificate.getSendmailServersByClientCertificate();
+            List<CertificateOtherUse> otherUses = certificate.getOtherUses();
+            int useCount = 0;
+            StringBuilder usedBy = new StringBuilder();
+            if (!cyrusBinds.isEmpty()) {
+              int size = cyrusBinds.size();
+              useCount += size;
+              usedBy.append(size).append(size == 1 ? " CyrusImapdBind" : " CyrusImapdBinds");
+            }
+            if (!cyrusServers.isEmpty()) {
+              if (usedBy.length() > 0) {
+                usedBy.append(", ");
+              }
+              int size = cyrusServers.size();
+              useCount += size;
+              usedBy.append(size).append(size == 1 ? " CyrusImapdServer" : " CyrusImapdServers");
+            }
+            if (!hsbs.isEmpty()) {
+              if (usedBy.length() > 0) {
+                usedBy.append(", ");
+              }
+              int size = hsbs.size();
+              useCount += size;
+              usedBy.append(size).append(size == 1 ? " VirtualHost" : " VirtualHosts");
+            }
+            if (!sendmailServers.isEmpty()) {
+              if (usedBy.length() > 0) {
+                usedBy.append(", ");
+              }
+              int size = sendmailServers.size();
+              useCount += size;
+              usedBy.append(size).append(size == 1 ? " SendmailServer(Host)" : " SendmailServers(Host)");
+            }
+            if (!sendmailClients.isEmpty()) {
+              if (usedBy.length() > 0) {
+                usedBy.append(", ");
+              }
+              int size = sendmailClients.size();
+              useCount += size;
+              usedBy.append(size).append(size == 1 ? " SendmailServer(Client)" : " SendmailServers(Client)");
+            }
+            for (CertificateOtherUse otherUse : otherUses) {
+              if (usedBy.length() > 0) {
+                usedBy.append(", ");
+              }
+              int count = otherUse.getCount();
+              useCount += count;
+              usedBy.append(otherUse.toString());
+            }
+            results.add(
+                new Check(
+                    "Certificate used?",
+                    Integer.toString(useCount),
+                    useCount == 0 ? LOW : NONE,
+                    usedBy.length() == 0 ? "Certificate appears to be unused" : usedBy.toString()
+                )
+            );
+
+            return results;
+          }
       );
     } catch (InterruptedException e) {
       // Restore the interrupted status

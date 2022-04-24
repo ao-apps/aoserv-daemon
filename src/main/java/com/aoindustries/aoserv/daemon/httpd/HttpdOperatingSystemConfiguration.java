@@ -40,64 +40,64 @@ import java.sql.SQLException;
  */
 public enum HttpdOperatingSystemConfiguration {
   CENTOS_5_I686_AND_X86_64 {
-    @Override
-    public OperatingSystemConfiguration getOperatingSystemConfiguration() {
-      return OperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64;
-    }
-    //public String getDefaultPhpPostgresMinorVersion() {
-    //    return "9.2";
-    //}
-    @Override
-    public PosixPath getPhpCgiPath(String minorVersion) {
-      try {
-        if (minorVersion.startsWith("4.")) {
-          return PosixPath.valueOf("/opt/php-4-i686/bin/php-cgi");
-        } else if (minorVersion.startsWith("5.")) {
-          return PosixPath.valueOf("/opt/php-" + minorVersion + "-i686/bin/php-cgi");
-        } else {
-          throw new AssertionError("Unexpected PHP version: "+minorVersion);
-        }
-      } catch (ValidationException e) {
-        throw new WrappedException(e);
+  @Override
+  public OperatingSystemConfiguration getOperatingSystemConfiguration() {
+    return OperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64;
+  }
+  //public String getDefaultPhpPostgresMinorVersion() {
+  //    return "9.2";
+  //}
+  @Override
+  public PosixPath getPhpCgiPath(String minorVersion) {
+    try {
+      if (minorVersion.startsWith("4.")) {
+        return PosixPath.valueOf("/opt/php-4-i686/bin/php-cgi");
+      } else if (minorVersion.startsWith("5.")) {
+        return PosixPath.valueOf("/opt/php-" + minorVersion + "-i686/bin/php-cgi");
+      } else {
+        throw new AssertionError("Unexpected PHP version: " + minorVersion);
       }
+    } catch (ValidationException e) {
+      throw new WrappedException(e);
     }
-    @Override
-    public PosixPath getHttpdSitesDirectory() {
-      return OperatingSystemVersion.getHttpdSitesDirectory(OperatingSystemVersion.CENTOS_5_I686_AND_X86_64);
+  }
+  @Override
+  public PosixPath getHttpdSitesDirectory() {
+    return OperatingSystemVersion.getHttpdSitesDirectory(OperatingSystemVersion.CENTOS_5_I686_AND_X86_64);
+  }
+  @Override
+  public String getHttpdSitesOptSlash() {
+    return "../../opt/";
+  }
+  @Override
+  public PosixPath getHttpdSharedTomcatsDirectory() {
+    return OperatingSystemVersion.getHttpdSharedTomcatsDirectory(OperatingSystemVersion.CENTOS_5_I686_AND_X86_64);
+  }
+  @Override
+  public String getHttpdSharedTomcatsOptSlash() {
+    return "../../opt/";
+  }
+  @Override
+  public PackageManager.PackageName getAwstatsPackageName() {
+    return PackageManager.PackageName.AWSTATS_6;
+  }
+  @Override
+  public PosixPath getAwstatsVarDirectory() {
+    try {
+      return PosixPath.valueOf("/var/opt/awstats-6");
+    } catch (ValidationException e) {
+      throw new WrappedException(e);
     }
-    @Override
-    public String getHttpdSitesOptSlash() {
-      return "../../opt/";
+  }
+  @Override
+  public PosixPath getAwstatsBinDirectory() {
+    try {
+      return PosixPath.valueOf("/opt/awstats-6");
+    } catch (ValidationException e) {
+      throw new WrappedException(e);
     }
-    @Override
-    public PosixPath getHttpdSharedTomcatsDirectory() {
-      return OperatingSystemVersion.getHttpdSharedTomcatsDirectory(OperatingSystemVersion.CENTOS_5_I686_AND_X86_64);
-    }
-    @Override
-    public String getHttpdSharedTomcatsOptSlash() {
-      return "../../opt/";
-    }
-    @Override
-    public PackageManager.PackageName getAwstatsPackageName() {
-      return PackageManager.PackageName.AWSTATS_6;
-    }
-    @Override
-    public PosixPath getAwstatsVarDirectory() {
-      try {
-        return PosixPath.valueOf("/var/opt/awstats-6");
-      } catch (ValidationException e) {
-        throw new WrappedException(e);
-      }
-    }
-    @Override
-    public PosixPath getAwstatsBinDirectory() {
-      try {
-        return PosixPath.valueOf("/opt/awstats-6");
-      } catch (ValidationException e) {
-        throw new WrappedException(e);
-      }
-    }
-  },
+  }
+},
   CENTOS_7_X86_64 {
     @Override
     public OperatingSystemConfiguration getOperatingSystemConfiguration() {
@@ -116,7 +116,7 @@ public enum HttpdOperatingSystemConfiguration {
         } else if (minorVersion.startsWith("8.")) {
           return PosixPath.valueOf("/opt/php-" + minorVersion + "/bin/php-cgi");
         } else {
-          throw new AssertionError("Unexpected PHP version: "+minorVersion);
+          throw new AssertionError("Unexpected PHP version: " + minorVersion);
         }
       } catch (ValidationException e) {
         throw new WrappedException(e);
@@ -242,7 +242,7 @@ public enum HttpdOperatingSystemConfiguration {
    */
   public PosixPath getAwstatsHostsDirectory() {
     try {
-      return PosixPath.valueOf(getAwstatsVarDirectory()+"/hosts");
+      return PosixPath.valueOf(getAwstatsVarDirectory() + "/hosts");
     } catch (ValidationException e) {
       throw new WrappedException(e);
     }
@@ -258,7 +258,7 @@ public enum HttpdOperatingSystemConfiguration {
    */
   public PosixPath getAwstatsIconDirectory() {
     try {
-      return PosixPath.valueOf(getAwstatsBinDirectory()+"/wwwroot/icon");
+      return PosixPath.valueOf(getAwstatsBinDirectory() + "/wwwroot/icon");
     } catch (ValidationException e) {
       throw new WrappedException(e);
     }

@@ -38,6 +38,6 @@ public final class MDStat {
   public final int[] active_partitions;   // *** In data
 
   public MDStat() {
-    device_majors=device_minors=total_partitions=active_partitions = EmptyArrays.EMPTY_INT_ARRAY;
+    device_majors = device_minors = total_partitions = active_partitions = EmptyArrays.EMPTY_INT_ARRAY;
   }
 }

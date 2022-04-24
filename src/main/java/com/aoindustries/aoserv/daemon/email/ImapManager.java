@@ -173,9 +173,9 @@ public final class ImapManager extends BuilderThread {
   private static final File subsysLockFile = new File("/var/lock/subsys/cyrus-imapd");
 
   private static final PosixFile
-    cyrusRcFile = new PosixFile("/etc/rc.d/rc3.d/S65cyrus-imapd"),
-    cyrusConfFile = new PosixFile("/etc/cyrus.conf"),
-    imapdConfFile = new PosixFile("/etc/imapd.conf")
+      cyrusRcFile = new PosixFile("/etc/rc.d/rc3.d/S65cyrus-imapd"),
+      cyrusConfFile = new PosixFile("/etc/cyrus.conf"),
+      imapdConfFile = new PosixFile("/etc/imapd.conf")
   ;
 
   private static final PosixFile wuBackupDirectory = new PosixFile("/var/opt/imap-2007d/backup");
@@ -184,6 +184,7 @@ public final class ImapManager extends BuilderThread {
    * These directories may be in the imapSpool and will be ignored.
    */
   private static final Set<String> imapSpoolIgnoreDirectories = new HashSet<>();
+
   static {
     imapSpoolIgnoreDirectories.add("domain");
     imapSpoolIgnoreDirectories.add("stage.");
@@ -215,9 +216,9 @@ public final class ImapManager extends BuilderThread {
    * The filenames used for copies of certificates
    */
   static final String
-    CERTIFICATE_COPY_KEY = "key.pem",
-    CERTIFICATE_COPY_CERT = "cert.pem",
-    CERTIFICATE_COPY_CHAIN = "chain.pem";
+      CERTIFICATE_COPY_KEY = "key.pem",
+      CERTIFICATE_COPY_CERT = "cert.pem",
+      CERTIFICATE_COPY_CHAIN = "chain.pem";
 
   /**
    * The prefix of Let's Encrypt links generated from a copy directory.
@@ -230,9 +231,9 @@ public final class ImapManager extends BuilderThread {
    * The filenames used by Let's Encrypt certificates
    */
   static final String
-    LETS_ENCRYPT_KEY = "/privkey.pem",
-    LETS_ENCRYPT_CERT = "/" + CERTIFICATE_COPY_CERT,
-    LETS_ENCRYPT_CHAIN = "/" + CERTIFICATE_COPY_CHAIN;
+      LETS_ENCRYPT_KEY = "/privkey.pem",
+      LETS_ENCRYPT_CERT = "/" + CERTIFICATE_COPY_CERT,
+      LETS_ENCRYPT_CHAIN = "/" + CERTIFICATE_COPY_CHAIN;
 
   /**
    * The suffix used for links to source files for cyrus-imapd-copy-certificates.
@@ -331,7 +332,7 @@ public final class ImapManager extends BuilderThread {
     synchronized (_adminStoreLock) {
       if (_adminSession != session || _adminStore == null) {
         // Create and cache new store here
-        IMAPStore newStore = (IMAPStore)session.getStore();
+        IMAPStore newStore = (IMAPStore) session.getStore();
         newStore.connect(user, password);
         _adminSession = session;
         _adminStore = newStore;
@@ -361,10 +362,10 @@ public final class ImapManager extends BuilderThread {
    * Gets access to the old IMAPStore for wu-imapd.
    */
   private static IMAPStore getOldUserStore(
-    PrintWriter logOut,
-    User.Name username,
-    String[] tempPassword,
-    PosixFile passwordBackup
+      PrintWriter logOut,
+      User.Name username,
+      String[] tempPassword,
+      PosixFile passwordBackup
   ) throws IOException, SQLException, MessagingException {
     if (!WUIMAP_CONVERSION_ENABLED) {
       throw new AssertionError();
@@ -376,16 +377,16 @@ public final class ImapManager extends BuilderThread {
       throw new AssertionError("This hard-coded port must be valid", e);
     }
     return getUserStore(
-      logOut,
-      new Tuple3<>(
-        AOServDaemon.getThisServer().getPrimaryIPAddress().getInetAddress(),
-        wuPort,
-        false
-      ),
-      username,
-      username.toString(),
-      tempPassword,
-      passwordBackup
+        logOut,
+        new Tuple3<>(
+            AOServDaemon.getThisServer().getPrimaryIPAddress().getInetAddress(),
+            wuPort,
+            false
+        ),
+        username,
+        username.toString(),
+        tempPassword,
+        passwordBackup
     );
   }
 
@@ -393,10 +394,10 @@ public final class ImapManager extends BuilderThread {
    * Gets access to the new IMAPStore for cyrus.
    */
   private static IMAPStore getNewUserStore(
-    PrintWriter logOut,
-    User.Name username,
-    String[] tempPassword,
-    PosixFile passwordBackup
+      PrintWriter logOut,
+      User.Name username,
+      String[] tempPassword,
+      PosixFile passwordBackup
   ) throws IOException, SQLException, MessagingException {
     if (!WUIMAP_CONVERSION_ENABLED) {
       throw new AssertionError();
@@ -407,12 +408,12 @@ public final class ImapManager extends BuilderThread {
     }
     String usernameStr = username.toString();
     return getUserStore(
-      logOut,
-      imapServer,
-      username,
-      usernameStr.indexOf('@') == -1 ? (usernameStr + "@default") : usernameStr,
-      tempPassword,
-      passwordBackup
+        logOut,
+        imapServer,
+        username,
+        usernameStr.indexOf('@') == -1 ? (usernameStr + "@default") : usernameStr,
+        tempPassword,
+        passwordBackup
     );
   }
 
@@ -420,12 +421,12 @@ public final class ImapManager extends BuilderThread {
    * Gets the IMAPStore for the provided user to the given IpAddress and port.
    */
   private static IMAPStore getUserStore(
-    PrintWriter logOut,
-    Tuple3<InetAddress, Port, Boolean> imapServer,
-    User.Name username,
-    String imapUsername,
-    String[] tempPassword,
-    PosixFile passwordBackup
+      PrintWriter logOut,
+      Tuple3<InetAddress, Port, Boolean> imapServer,
+      User.Name username,
+      String imapUsername,
+      String[] tempPassword,
+      PosixFile passwordBackup
   ) throws IOException, SQLException, MessagingException {
     if (!WUIMAP_CONVERSION_ENABLED) {
       throw new AssertionError();
@@ -440,7 +441,7 @@ public final class ImapManager extends BuilderThread {
         try (
           TempFileContext tempFileContext = new TempFileContext(passwordBackup.getFile().getParentFile());
           TempFile tempFile = tempFileContext.createTempFile(passwordBackup.getFile().getName())
-        ) {
+            ) {
           try (PrintWriter out = new PrintWriter(new FileOutputStream(tempFile.getFile()))) {
             out.println(encryptedPassword);
           }
@@ -458,7 +459,7 @@ public final class ImapManager extends BuilderThread {
     Session session = getSession(imapServer);
 
     // Create new store
-    IMAPStore store = (IMAPStore)session.getStore();
+    IMAPStore store = (IMAPStore) session.getStore();
     store.connect(imapUsername, password);
     return store;
   }
@@ -516,6 +517,7 @@ public final class ImapManager extends BuilderThread {
   }
 
   private static final Object rebuildLock = new Object();
+
   @Override
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
   protected boolean doRebuild() {
@@ -525,8 +527,8 @@ public final class ImapManager extends BuilderThread {
       OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
       int osvId = osv.getPkey();
       if (
-        osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-        || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+          osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+              || osvId == OperatingSystemVersion.CENTOS_7_X86_64
       ) {
         // Used inside synchronized block
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
@@ -587,21 +589,21 @@ public final class ImapManager extends BuilderThread {
           if (cyrusServer != null) {
             if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
               PackageManager.installPackage(
-                PackageManager.PackageName.CYRUS_IMAPD,
-                () -> needsReload[0] = true
+                  PackageManager.PackageName.CYRUS_IMAPD,
+                  () -> needsReload[0] = true
               );
               PackageManager.installPackage(
-                PackageManager.PackageName.CYRUS_SASL,
-                () -> needsReload[0] = true
+                  PackageManager.PackageName.CYRUS_SASL,
+                  () -> needsReload[0] = true
               );
               PackageManager.installPackage(
-                PackageManager.PackageName.CYRUS_SASL_PLAIN,
-                () -> needsReload[0] = true
+                  PackageManager.PackageName.CYRUS_SASL_PLAIN,
+                  () -> needsReload[0] = true
               );
             } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
               PackageManager.installPackage(
-                PackageManager.PackageName.AOSERV_IMAPD_CONFIG,
-                () -> needsReload[0] = true
+                  PackageManager.PackageName.AOSERV_IMAPD_CONFIG,
+                  () -> needsReload[0] = true
               );
             } else {
               throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
@@ -666,7 +668,7 @@ public final class ImapManager extends BuilderThread {
                     }
                     AOServDaemon.exec("/etc/rc.d/init.d/cyrus-imapd", "stop");
                     if (subsysLockFile.exists()) {
-                      throw new IOException(subsysLockFile.getPath()+" still exists after service stop");
+                      throw new IOException(subsysLockFile.getPath() + " still exists after service stop");
                     }
                   }
 
@@ -677,7 +679,7 @@ public final class ImapManager extends BuilderThread {
                     }
                     AOServDaemon.exec("/sbin/chkconfig", "cyrus-imapd", "off");
                     if (cyrusRcFile.getStat().exists()) {
-                      throw new IOException(cyrusRcFile.getPath()+" still exists after chkconfig off");
+                      throw new IOException(cyrusRcFile.getPath() + " still exists after chkconfig off");
                     }
                   }
                 } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
@@ -750,8 +752,8 @@ public final class ImapManager extends BuilderThread {
                     out.print("#  imap\t\tcmd=\"imapd\" listen=\"imap\" prefork=5\n");
                     if (!imapBinds.isEmpty()) {
                       int prefork = Math.max(
-                        IMAP_PREFORK_MAX / imapBinds.size(),
-                        IMAP_PREFORK_MIN
+                          IMAP_PREFORK_MAX / imapBinds.size(),
+                          IMAP_PREFORK_MIN
                       );
                       int counter = 1;
                       for (CyrusImapdBind cib : imapBinds) {
@@ -767,15 +769,15 @@ public final class ImapManager extends BuilderThread {
                         }
                         InetAddress ia = imapBind.getIpAddress().getInetAddress();
                         out
-                          .print("\tcmd=\"imapd\" listen=\"[")
-                          .print(ia.toString())
-                          .print("]:")
-                          .print(port.getPort())
-                          .print("\" proto=\"")
-                          .print(getCyrusProtocol(port.getProtocol(), ia.getProtocolFamily()))
-                          .print("\" prefork=")
-                          .print(prefork)
-                          .print('\n');
+                            .print("\tcmd=\"imapd\" listen=\"[")
+                            .print(ia.toString())
+                            .print("]:")
+                            .print(port.getPort())
+                            .print("\" proto=\"")
+                            .print(getCyrusProtocol(port.getProtocol(), ia.getProtocolFamily()))
+                            .print("\" prefork=")
+                            .print(prefork)
+                            .print('\n');
                         tlsServices.put(serviceName, cib);
                         if (!ia.isLoopback() && !ia.isUnspecified()) {
                           hasSpecificAddress = true;
@@ -788,8 +790,8 @@ public final class ImapManager extends BuilderThread {
                     out.print("#  imaps\t\tcmd=\"imapd -s\" listen=\"imaps\" prefork=1\n");
                     if (!imapsBinds.isEmpty()) {
                       int prefork = Math.max(
-                        IMAPS_PREFORK_MAX / imapsBinds.size(),
-                        IMAPS_PREFORK_MIN
+                          IMAPS_PREFORK_MAX / imapsBinds.size(),
+                          IMAPS_PREFORK_MIN
                       );
                       int counter = 1;
                       for (CyrusImapdBind cib : imapsBinds) {
@@ -805,14 +807,14 @@ public final class ImapManager extends BuilderThread {
                         }
                         InetAddress ia = imapsBind.getIpAddress().getInetAddress();
                         out
-                          .print("\tcmd=\"imapd -s\" listen=\"[")
-                          .print(ia.toString())
-                          .print("]:").print(port.getPort())
-                          .print("\" proto=\"")
-                          .print(getCyrusProtocol(port.getProtocol(), ia.getProtocolFamily()))
-                          .print("\" prefork=")
-                          .print(prefork)
-                          .print('\n');
+                            .print("\tcmd=\"imapd -s\" listen=\"[")
+                            .print(ia.toString())
+                            .print("]:").print(port.getPort())
+                            .print("\" proto=\"")
+                            .print(getCyrusProtocol(port.getProtocol(), ia.getProtocolFamily()))
+                            .print("\" prefork=")
+                            .print(prefork)
+                            .print('\n');
                         tlsServices.put(serviceName, cib);
                         if (!ia.isLoopback() && !ia.isUnspecified()) {
                           hasSpecificAddress = true;
@@ -825,8 +827,8 @@ public final class ImapManager extends BuilderThread {
                     out.print("#  pop3\t\tcmd=\"pop3d\" listen=\"pop3\" prefork=3\n");
                     if (!pop3Binds.isEmpty()) {
                       int prefork = Math.max(
-                        POP3_PREFORK_MAX / pop3Binds.size(),
-                        POP3_PREFORK_MIN
+                          POP3_PREFORK_MAX / pop3Binds.size(),
+                          POP3_PREFORK_MIN
                       );
                       int counter = 1;
                       for (CyrusImapdBind cib : pop3Binds) {
@@ -842,15 +844,15 @@ public final class ImapManager extends BuilderThread {
                         }
                         InetAddress ia = pop3Bind.getIpAddress().getInetAddress();
                         out
-                          .print("\tcmd=\"pop3d\" listen=\"[")
-                          .print(ia.toString())
-                          .print("]:")
-                          .print(port.getPort())
-                          .print("\" proto=\"")
-                          .print(getCyrusProtocol(port.getProtocol(), ia.getProtocolFamily()))
-                          .print("\" prefork=")
-                          .print(prefork)
-                          .print('\n');
+                            .print("\tcmd=\"pop3d\" listen=\"[")
+                            .print(ia.toString())
+                            .print("]:")
+                            .print(port.getPort())
+                            .print("\" proto=\"")
+                            .print(getCyrusProtocol(port.getProtocol(), ia.getProtocolFamily()))
+                            .print("\" prefork=")
+                            .print(prefork)
+                            .print('\n');
                         tlsServices.put(serviceName, cib);
                         if (!ia.isLoopback() && !ia.isUnspecified()) {
                           hasSpecificAddress = true;
@@ -863,8 +865,8 @@ public final class ImapManager extends BuilderThread {
                     out.print("#  pop3s\t\tcmd=\"pop3d -s\" listen=\"pop3s\" prefork=1\n");
                     if (!pop3sBinds.isEmpty()) {
                       int prefork = Math.max(
-                        POP3S_PREFORK_MAX / pop3sBinds.size(),
-                        POP3S_PREFORK_MIN
+                          POP3S_PREFORK_MAX / pop3sBinds.size(),
+                          POP3S_PREFORK_MIN
                       );
                       int counter = 1;
                       for (CyrusImapdBind cib : pop3sBinds) {
@@ -880,15 +882,15 @@ public final class ImapManager extends BuilderThread {
                         }
                         InetAddress ia = pop3sBind.getIpAddress().getInetAddress();
                         out
-                          .print("\tcmd=\"pop3d -s\" listen=\"[")
-                          .print(ia.toString())
-                          .print("]:")
-                          .print(port.getPort())
-                          .print("\" proto=\"")
-                          .print(getCyrusProtocol(port.getProtocol(), ia.getProtocolFamily()))
-                          .print("\" prefork=")
-                          .print(prefork)
-                          .print('\n');
+                            .print("\tcmd=\"pop3d -s\" listen=\"[")
+                            .print(ia.toString())
+                            .print("]:")
+                            .print(port.getPort())
+                            .print("\" proto=\"")
+                            .print(getCyrusProtocol(port.getProtocol(), ia.getProtocolFamily()))
+                            .print("\" prefork=")
+                            .print(prefork)
+                            .print('\n');
                         tlsServices.put(serviceName, cib);
                         if (!ia.isLoopback() && !ia.isUnspecified()) {
                           hasSpecificAddress = true;
@@ -911,14 +913,14 @@ public final class ImapManager extends BuilderThread {
                       }
                       InetAddress ia = sieveBind.getIpAddress().getInetAddress();
                       out
-                        .print("\tcmd=\"timsieved\" listen=\"[")
-                        .print(ia.toString())
-                        .print("]:")
-                        .print(port.getPort())
-                        .print("\" proto=\"")
-                        .print(getCyrusProtocol(port.getProtocol(), ia.getProtocolFamily()))
-                        .print("\" prefork=0\n"
-                      );
+                          .print("\tcmd=\"timsieved\" listen=\"[")
+                          .print(ia.toString())
+                          .print("]:")
+                          .print(port.getPort())
+                          .print("\" proto=\"")
+                          .print(getCyrusProtocol(port.getProtocol(), ia.getProtocolFamily()))
+                          .print("\" prefork=0\n"
+                          );
                       if (!ia.isLoopback() && !ia.isUnspecified()) {
                         hasSpecificAddress = true;
                       }
@@ -1024,15 +1026,15 @@ public final class ImapManager extends BuilderThread {
                 }
                 // Only write when changed
                 if (
-                  DaemonFileUtils.atomicWrite(
-                    cyrusConfFile,
-                    bout.toByteArray(),
-                    0644,
-                    PosixFile.ROOT_UID,
-                    PosixFile.ROOT_GID,
-                    null,
-                    restorecon
-                  )
+                    DaemonFileUtils.atomicWrite(
+                        cyrusConfFile,
+                        bout.toByteArray(),
+                        0644,
+                        PosixFile.ROOT_UID,
+                        PosixFile.ROOT_GID,
+                        null,
+                        restorecon
+                    )
                 ) {
                   needsReload[0] = true;
                 }
@@ -1233,15 +1235,15 @@ public final class ImapManager extends BuilderThread {
                 }
                 // Only write when changed
                 if (
-                  DaemonFileUtils.atomicWrite(
-                    imapdConfFile,
-                    bout.toByteArray(),
-                    0644,
-                    PosixFile.ROOT_UID,
-                    PosixFile.ROOT_GID,
-                    null,
-                    restorecon
-                  )
+                    DaemonFileUtils.atomicWrite(
+                        imapdConfFile,
+                        bout.toByteArray(),
+                        0644,
+                        PosixFile.ROOT_UID,
+                        PosixFile.ROOT_GID,
+                        null,
+                        restorecon
+                    )
                 ) {
                   needsReload[0] = true;
                 }
@@ -1259,7 +1261,7 @@ public final class ImapManager extends BuilderThread {
                   }
                   AOServDaemon.exec("/sbin/chkconfig", "cyrus-imapd", "on");
                   if (!cyrusRcFile.getStat().exists()) {
-                    throw new IOException(cyrusRcFile.getPath()+" still does not exist after chkconfig on");
+                    throw new IOException(cyrusRcFile.getPath() + " still does not exist after chkconfig on");
                   }
                 }
 
@@ -1270,7 +1272,7 @@ public final class ImapManager extends BuilderThread {
                   }
                   AOServDaemon.exec("/etc/rc.d/init.d/cyrus-imapd", "start");
                   if (!subsysLockFile.exists()) {
-                    throw new IOException(subsysLockFile.getPath()+" still does not exist after service start");
+                    throw new IOException(subsysLockFile.getPath() + " still does not exist after service start");
                   }
                 } else {
                   if (needsReload[0]) {
@@ -1300,9 +1302,9 @@ public final class ImapManager extends BuilderThread {
             }
             // Uninstall cyrus-imapd-after-network-online package on CentOS 7 when not needed
             if (
-              !hasSpecificAddress
-              && osvId == OperatingSystemVersion.CENTOS_7_X86_64
-              && AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
+                !hasSpecificAddress
+                    && osvId == OperatingSystemVersion.CENTOS_7_X86_64
+                    && AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
             ) {
               PackageManager.removePackage(PackageManager.PackageName.CYRUS_IMAPD_AFTER_NETWORK_ONLINE);
             }
@@ -1326,8 +1328,8 @@ public final class ImapManager extends BuilderThread {
             }
             // Remove package if not needed
             if (
-              certbotNames.isEmpty()
-              && AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
+                certbotNames.isEmpty()
+                    && AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
             ) {
               PackageManager.removePackage(PackageManager.PackageName.CYRUS_IMAPD_COPY_CERTIFICATES);
             }
@@ -1521,15 +1523,15 @@ public final class ImapManager extends BuilderThread {
   }
 
   private static void convertImapDirectory(
-    final PrintWriter logOut,
-    final User.Name username,
-    final int junkRetention,
-    final int trashRetention,
-    final PosixFile directory,
-    final PosixFile backupDirectory,
-    final String folderPath,
-    final String[] tempPassword,
-    final PosixFile passwordBackup
+      final PrintWriter logOut,
+      final User.Name username,
+      final int junkRetention,
+      final int trashRetention,
+      final PosixFile directory,
+      final PosixFile backupDirectory,
+      final String folderPath,
+      final String[] tempPassword,
+      final PosixFile passwordBackup
   ) throws IOException, SQLException, MessagingException {
     // Careful not a symbolic link
     if (!directory.getStat().isDirectory()) {
@@ -1562,7 +1564,7 @@ public final class ImapManager extends BuilderThread {
         // Get New Store
         try (IMAPStore newStore = getNewUserStore(logOut, username, tempPassword, passwordBackup)) {
           // Get New Folder
-          IMAPFolder newFolder = (IMAPFolder)newStore.getFolder(folderName);
+          IMAPFolder newFolder = (IMAPFolder) newStore.getFolder(folderName);
           try {
             // Create the new folder if doesn't exist
             if (!newFolder.exists()) {
@@ -1635,13 +1637,13 @@ public final class ImapManager extends BuilderThread {
   }
 
   private static final Flags.Flag[] systemFlags = {
-    Flags.Flag.ANSWERED,
-    Flags.Flag.DELETED,
-    Flags.Flag.DRAFT,
-    Flags.Flag.FLAGGED,
-    Flags.Flag.RECENT,
-    Flags.Flag.SEEN,
-    Flags.Flag.USER
+      Flags.Flag.ANSWERED,
+      Flags.Flag.DELETED,
+      Flags.Flag.DRAFT,
+      Flags.Flag.FLAGGED,
+      Flags.Flag.RECENT,
+      Flags.Flag.SEEN,
+      Flags.Flag.USER
   };
 
   private static final Object appendCounterLock = new Object();
@@ -1705,15 +1707,15 @@ public final class ImapManager extends BuilderThread {
   }
 
   private static void convertImapFile(
-    final PrintWriter logOut,
-    final User.Name username,
-    final int junkRetention,
-    final int trashRetention,
-    final PosixFile file,
-    final PosixFile backupFile,
-    final String folderName,
-    final String[] tempPassword,
-    final PosixFile passwordBackup
+      final PrintWriter logOut,
+      final User.Name username,
+      final int junkRetention,
+      final int trashRetention,
+      final PosixFile file,
+      final PosixFile backupFile,
+      final String folderName,
+      final String[] tempPassword,
+      final PosixFile passwordBackup
   ) throws IOException, SQLException, MessagingException {
     // Careful not a symolic link
     if (!file.getStat().isRegularFile()) {
@@ -1726,7 +1728,7 @@ public final class ImapManager extends BuilderThread {
       try (
         TempFileContext tempFileContext = new TempFileContext(backupFile.getFile().getParentFile());
         TempFile tempFile = tempFileContext.createTempFile(backupFile.getFile().getName())
-      ) {
+          ) {
         PosixFile tempUF = new PosixFile(tempFile.getFile());
         file.copyTo(tempUF, true);
         tempUF.chown(PosixFile.ROOT_UID, PosixFile.ROOT_GID).setMode(0600).renameTo(backupFile);
@@ -1736,12 +1738,12 @@ public final class ImapManager extends BuilderThread {
     // Delete the file if it is not a mailbox or is empty
     String filename = file.getFile().getName();
     if (
-      filename.startsWith(".")
-      && (
-        filename.endsWith(".index.ids")
-        || filename.endsWith(".index")
-        || filename.endsWith(".index.sorted")
-      )
+        filename.startsWith(".")
+            && (
+            filename.endsWith(".index.ids")
+                || filename.endsWith(".index")
+                || filename.endsWith(".index.sorted")
+        )
     ) {
       log(logOut, Level.FINE, username, "Deleting non-mailbox file: " + file.getPath());
       file.delete();
@@ -1753,7 +1755,7 @@ public final class ImapManager extends BuilderThread {
       boolean deleteOldFolder;
       try (IMAPStore oldStore = getOldUserStore(logOut, username, tempPassword, passwordBackup)) {
         // Get Old Folder
-        IMAPFolder oldFolder = (IMAPFolder)oldStore.getFolder(folderName);
+        IMAPFolder oldFolder = (IMAPFolder) oldStore.getFolder(folderName);
         try {
           if (!oldFolder.exists()) {
             throw new MessagingException(username + ": Old folder doesn't exist: " + folderName);
@@ -1762,7 +1764,7 @@ public final class ImapManager extends BuilderThread {
           // Get New Store
           try (IMAPStore newStore = getNewUserStore(logOut, username, tempPassword, passwordBackup)) {
             // Get New Folder
-            IMAPFolder newFolder = (IMAPFolder)newStore.getFolder(folderName);
+            IMAPFolder newFolder = (IMAPFolder) newStore.getFolder(folderName);
             try {
               // Should already exist
               if (!newFolder.exists()) {
@@ -1785,16 +1787,16 @@ public final class ImapManager extends BuilderThread {
                 } else {
                   long messageAge = (System.currentTimeMillis() - oldMessage.getReceivedDate().getTime()) / (24L * 60 * 60 * 1000);
                   if (
-                    junkRetention != -1
-                    && "Junk".equals(folderName)
-                    && messageAge > junkRetention
+                      junkRetention != -1
+                          && "Junk".equals(folderName)
+                          && messageAge > junkRetention
                   ) {
                     log(logOut, Level.FINER, username, "\"" + folderName + "\": Deleting old junk message (" + messageAge + ">" + junkRetention + " days) " + (c + 1) + " of " + len + " (" + Strings.getApproximateSize(oldMessage.getSize()) + ")");
                     oldMessage.setFlag(Flags.Flag.DELETED, true);
                   } else if (
-                    trashRetention != -1
-                    && "Trash".equals(folderName)
-                    && messageAge > trashRetention
+                      trashRetention != -1
+                          && "Trash".equals(folderName)
+                          && messageAge > trashRetention
                   ) {
                     log(logOut, Level.FINER, username, "\"" + folderName + "\": Deleting old trash message (" + messageAge + ">" + trashRetention + " days) " + (c + 1) + " of " + len + " (" + Strings.getApproximateSize(oldMessage.getSize()) + ")");
                     oldMessage.setFlag(Flags.Flag.DELETED, true);
@@ -1805,7 +1807,7 @@ public final class ImapManager extends BuilderThread {
 
                       // Copy to newFolder
                       incAppendCounter();
-                      AppendUID[] newUids = newFolder.appendUIDMessages(new Message[] {oldMessage});
+                      AppendUID[] newUids = newFolder.appendUIDMessages(new Message[]{oldMessage});
                       if (newUids.length != 1) {
                         throw new MessagingException("newUids.length != 1: " + newUids.length);
                       }
@@ -1834,14 +1836,14 @@ public final class ImapManager extends BuilderThread {
                           if (newFlags.contains(flag)) {
                             // New should not have
                             if (
-                              // This is OK to ignore since it was added by append
-                              flag == Flags.Flag.RECENT
+                                // This is OK to ignore since it was added by append
+                                flag == Flags.Flag.RECENT
                             ) {
                               // This failed: newMessage.setFlag(flag, false);
                               effectiveNewFlags.remove(flag);
                             } else if (
-                              // This was set by append but needs to be unset
-                              flag == Flags.Flag.SEEN
+                                // This was set by append but needs to be unset
+                                flag == Flags.Flag.SEEN
                             ) {
                               newMessage.setFlag(flag, false);
                               newFlags = newMessage.getFlags();
@@ -1858,8 +1860,8 @@ public final class ImapManager extends BuilderThread {
                           //} else {
                             // Add the user flag
                             effectiveNewFlags.add(flag);
-                            newMessage.setFlags(new Flags(flag), true);
-                            newFlags = newMessage.getFlags();
+                          newMessage.setFlags(new Flags(flag), true);
+                          newFlags = newMessage.getFlags();
                           //}
                         }
                       }
@@ -1888,7 +1890,7 @@ public final class ImapManager extends BuilderThread {
                         log(logOut, Level.WARNING, username, "\"" + folderName + "\": Not able to copy message: " + message);
                         Enumeration<?> headers = oldMessage.getAllHeaders();
                         while (headers.hasMoreElements()) {
-                          Header header = (Header)headers.nextElement();
+                          Header header = (Header) headers.nextElement();
                           log(logOut, Level.WARNING, username, "\"" + folderName + "\": \"" + header.getName() + "\" = \"" + header.getValue() + "\"");
                         }
                       } else {
@@ -1939,7 +1941,7 @@ public final class ImapManager extends BuilderThread {
           file.delete();
         } else {
           // Confirm file should is gone
-          throw new IOException(username+": File still exists: " + file.getPath());
+          throw new IOException(username + ": File still exists: " + file.getPath());
         }
       }
     }
@@ -1986,7 +1988,7 @@ public final class ImapManager extends BuilderThread {
 
             // INBOX
             String inboxFolderName = getFolderName(user, domain, "");
-            IMAPFolder inboxFolder = (IMAPFolder)store.getFolder(inboxFolderName);
+            IMAPFolder inboxFolder = (IMAPFolder) store.getFolder(inboxFolderName);
             try {
               if (!inboxFolder.exists()) {
                 if (isDebug) {
@@ -2007,7 +2009,7 @@ public final class ImapManager extends BuilderThread {
 
             // Trash
             String trashFolderName = getFolderName(user, domain, "Trash");
-            IMAPFolder trashFolder = (IMAPFolder)store.getFolder(trashFolderName);
+            IMAPFolder trashFolder = (IMAPFolder) store.getFolder(trashFolderName);
             try {
               if (!trashFolder.exists()) {
                 if (isDebug) {
@@ -2039,7 +2041,7 @@ public final class ImapManager extends BuilderThread {
 
             // Junk
             String junkFolderName = getFolderName(user, domain, "Junk");
-            IMAPFolder junkFolder = (IMAPFolder)store.getFolder(junkFolderName);
+            IMAPFolder junkFolder = (IMAPFolder) store.getFolder(junkFolderName);
             try {
               if (lsa.getEmailSpamAssassinIntegrationMode().getName().equals(SpamAssassinMode.IMAP)) {
                 // Junk folder required for IMAP mode
@@ -2078,115 +2080,115 @@ public final class ImapManager extends BuilderThread {
               assert convertors != null;
               assert executorService != null;
               convertors.put(
-                lsa,
-                executorService.submit(() -> {
-                  // Create the backup directory
-                  if (!wuBackupDirectory.getStat().exists()) {
-                    if (isDebug) {
-                      logger.fine("Creating directory: " + wuBackupDirectory.getPath());
-                    }
-                    wuBackupDirectory.mkdir(true, 0700);
-                  }
-                  PosixFile userBackupDirectory = new PosixFile(wuBackupDirectory, laUsername.toString(), false);
-                  if (!userBackupDirectory.getStat().exists()) {
-                    if (isDebug) {
-                      logger.fine(laUsername + ": Creating backup directory: " + userBackupDirectory.getPath());
-                    }
-                    userBackupDirectory.mkdir(false, 0700);
-                  }
-
-                  // Per-user logs
-                  PosixFile logFile = new PosixFile(userBackupDirectory, "log", false);
-                  if (isTrace) {
-                    logger.finer(laUsername + ": Using logfile: " + logFile.getPath());
-                  }
-                  try (PrintWriter logOut = new PrintWriter(new FileOutputStream(logFile.getFile(), true))) {
-                    if (logFile.getStat().getMode() != 0600) {
-                      logFile.setMode(0600);
-                    }
-                    // Password backup is delayed until immediately before the password is reset.
-                    // This avoids unnecessary password resets.
-                    PosixFile passwordBackup = new PosixFile(userBackupDirectory, "passwd", false);
-
-                    // Backup the mailboxlist
-                    PosixFile homeDir = new PosixFile(homePath.toString());
-                    PosixFile mailBoxListFile = new PosixFile(homeDir, ".mailboxlist", false);
-                    Stat mailBoxListFileStat = mailBoxListFile.getStat();
-                    if (mailBoxListFileStat.exists()) {
-                      if (!mailBoxListFileStat.isRegularFile()) {
-                        throw new IOException("Not a regular file: " + mailBoxListFile.getPath());
+                  lsa,
+                  executorService.submit(() -> {
+                    // Create the backup directory
+                    if (!wuBackupDirectory.getStat().exists()) {
+                      if (isDebug) {
+                        logger.fine("Creating directory: " + wuBackupDirectory.getPath());
                       }
-                      PosixFile mailBoxListBackup = new PosixFile(userBackupDirectory, "mailboxlist", false);
-                      if (!mailBoxListBackup.getStat().exists()) {
-                        log(logOut, Level.FINE, laUsername, "Backing-up mailboxlist");
-                        try (
+                      wuBackupDirectory.mkdir(true, 0700);
+                    }
+                    PosixFile userBackupDirectory = new PosixFile(wuBackupDirectory, laUsername.toString(), false);
+                    if (!userBackupDirectory.getStat().exists()) {
+                      if (isDebug) {
+                        logger.fine(laUsername + ": Creating backup directory: " + userBackupDirectory.getPath());
+                      }
+                      userBackupDirectory.mkdir(false, 0700);
+                    }
+
+                    // Per-user logs
+                    PosixFile logFile = new PosixFile(userBackupDirectory, "log", false);
+                    if (isTrace) {
+                      logger.finer(laUsername + ": Using logfile: " + logFile.getPath());
+                    }
+                    try (PrintWriter logOut = new PrintWriter(new FileOutputStream(logFile.getFile(), true))) {
+                      if (logFile.getStat().getMode() != 0600) {
+                        logFile.setMode(0600);
+                      }
+                      // Password backup is delayed until immediately before the password is reset.
+                      // This avoids unnecessary password resets.
+                      PosixFile passwordBackup = new PosixFile(userBackupDirectory, "passwd", false);
+
+                      // Backup the mailboxlist
+                      PosixFile homeDir = new PosixFile(homePath.toString());
+                      PosixFile mailBoxListFile = new PosixFile(homeDir, ".mailboxlist", false);
+                      Stat mailBoxListFileStat = mailBoxListFile.getStat();
+                      if (mailBoxListFileStat.exists()) {
+                        if (!mailBoxListFileStat.isRegularFile()) {
+                          throw new IOException("Not a regular file: " + mailBoxListFile.getPath());
+                        }
+                        PosixFile mailBoxListBackup = new PosixFile(userBackupDirectory, "mailboxlist", false);
+                        if (!mailBoxListBackup.getStat().exists()) {
+                          log(logOut, Level.FINE, laUsername, "Backing-up mailboxlist");
+                          try (
                           TempFileContext tempFileContext = new TempFileContext(mailBoxListBackup.getFile().getParentFile());
                           TempFile tempFile = tempFileContext.createTempFile(mailBoxListBackup.getFile().getName())
-                        ) {
-                          PosixFile tempUF = new PosixFile(tempFile.getFile());
-                          mailBoxListFile.copyTo(tempUF, true);
-                          tempUF.chown(PosixFile.ROOT_UID, PosixFile.ROOT_GID).setMode(0600).renameTo(mailBoxListBackup);
+                              ) {
+                            PosixFile tempUF = new PosixFile(tempFile.getFile());
+                            mailBoxListFile.copyTo(tempUF, true);
+                            tempUF.chown(PosixFile.ROOT_UID, PosixFile.ROOT_GID).setMode(0600).renameTo(mailBoxListBackup);
+                          }
+                        }
+                      }
+
+                      // The password will be reset to a random value upon first use, subsequent
+                      // accesses will use the same password.
+                      String[] tempPassword = new String[1];
+                      int junkRetention = lsa.getJunkEmailRetention();
+                      int trashRetention = lsa.getTrashEmailRetention();
+                      // Convert old INBOX
+                      PosixFile inboxFile = new PosixFile(mailSpool, laUsername.toString());
+                      Stat inboxFileStat = inboxFile.getStat();
+                      if (inboxFileStat.exists()) {
+                        if (!inboxFileStat.isRegularFile()) {
+                          throw new IOException("Not a regular file: " + inboxFile.getPath());
+                        }
+                        convertImapFile(logOut, laUsername, junkRetention, trashRetention, inboxFile, new PosixFile(userBackupDirectory, "INBOX", false), "INBOX", tempPassword, passwordBackup);
+                      }
+
+                      // Convert old folders from UW software
+                      if (
+                          !"/home/a/acccorpapp".equals(homeDir.getPath())
+                              && !"/home/acccorpapp".equals(homeDir.getPath())
+                      ) {
+                        PosixFile mailDir = new PosixFile(homeDir, "Mail", false);
+                        Stat mailDirStat = mailDir.getStat();
+                        if (mailDirStat.exists()) {
+                          if (!mailDirStat.isDirectory()) {
+                            throw new IOException("Not a directory: " + mailDir.getPath());
+                          }
+                          convertImapDirectory(logOut, laUsername, junkRetention, trashRetention, mailDir, new PosixFile(userBackupDirectory, "Mail", false), "", tempPassword, passwordBackup);
+                        }
+                      }
+
+                      // Remove the mailboxlist file
+                      if (mailBoxListFile.getStat().exists()) {
+                        mailBoxListFile.delete();
+                      }
+
+                      // Restore passwd, if needed
+                      if (passwordBackup.getStat().exists()) {
+                        String currentEncryptedPassword = LinuxAccountManager.getEncryptedPassword(laUsername).getElement1();
+                        String savedEncryptedPassword;
+                        try (BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(passwordBackup.getFile())))) {
+                          savedEncryptedPassword = in.readLine();
+                        }
+                        if (savedEncryptedPassword == null) {
+                          throw new IOException("Unable to load saved password");
+                        }
+                        if (!savedEncryptedPassword.equals(currentEncryptedPassword)) {
+                          log(logOut, Level.FINE, laUsername, "Restoring password");
+                          LinuxAccountManager.setEncryptedPassword(laUsername, savedEncryptedPassword, null);
+                          PosixFile passwordBackupOld = new PosixFile(userBackupDirectory, "passwd.old", false);
+                          passwordBackup.renameTo(passwordBackupOld);
+                        } else {
+                          passwordBackup.delete();
                         }
                       }
                     }
-
-                    // The password will be reset to a random value upon first use, subsequent
-                    // accesses will use the same password.
-                    String[] tempPassword = new String[1];
-                    int junkRetention = lsa.getJunkEmailRetention();
-                    int trashRetention = lsa.getTrashEmailRetention();
-                    // Convert old INBOX
-                    PosixFile inboxFile = new PosixFile(mailSpool, laUsername.toString());
-                    Stat inboxFileStat = inboxFile.getStat();
-                    if (inboxFileStat.exists()) {
-                      if (!inboxFileStat.isRegularFile()) {
-                        throw new IOException("Not a regular file: " + inboxFile.getPath());
-                      }
-                      convertImapFile(logOut, laUsername, junkRetention, trashRetention, inboxFile, new PosixFile(userBackupDirectory, "INBOX", false), "INBOX", tempPassword, passwordBackup);
-                    }
-
-                    // Convert old folders from UW software
-                    if (
-                      !"/home/a/acccorpapp".equals(homeDir.getPath())
-                      && !"/home/acccorpapp".equals(homeDir.getPath())
-                    ) {
-                      PosixFile mailDir = new PosixFile(homeDir, "Mail", false);
-                      Stat mailDirStat = mailDir.getStat();
-                      if (mailDirStat.exists()) {
-                        if (!mailDirStat.isDirectory()) {
-                          throw new IOException("Not a directory: " + mailDir.getPath());
-                        }
-                        convertImapDirectory(logOut, laUsername, junkRetention, trashRetention, mailDir, new PosixFile(userBackupDirectory, "Mail", false), "", tempPassword, passwordBackup);
-                      }
-                    }
-
-                    // Remove the mailboxlist file
-                    if (mailBoxListFile.getStat().exists()) {
-                      mailBoxListFile.delete();
-                    }
-
-                    // Restore passwd, if needed
-                    if (passwordBackup.getStat().exists()) {
-                      String currentEncryptedPassword = LinuxAccountManager.getEncryptedPassword(laUsername).getElement1();
-                      String savedEncryptedPassword;
-                      try (BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(passwordBackup.getFile())))) {
-                        savedEncryptedPassword = in.readLine();
-                      }
-                      if (savedEncryptedPassword == null) {
-                        throw new IOException("Unable to load saved password");
-                      }
-                      if (!savedEncryptedPassword.equals(currentEncryptedPassword)) {
-                        log(logOut, Level.FINE, laUsername, "Restoring password");
-                        LinuxAccountManager.setEncryptedPassword(laUsername, savedEncryptedPassword, null);
-                        PosixFile passwordBackupOld = new PosixFile(userBackupDirectory, "passwd.old", false);
-                        passwordBackup.renameTo(passwordBackupOld);
-                      } else {
-                        passwordBackup.delete();
-                      }
-                    }
-                  }
-                  return null;
-                })
+                    return null;
+                  })
               );
             }
           }
@@ -2212,7 +2214,7 @@ public final class ImapManager extends BuilderThread {
                 String extraInfo;
                 Throwable cause = err.getCause();
                 if (cause instanceof ReadOnlyFolderException) {
-                  ReadOnlyFolderException rofe = (ReadOnlyFolderException)cause;
+                  ReadOnlyFolderException rofe = (ReadOnlyFolderException) cause;
                   extraInfo = "lsa = " + lsa + ", folder = " + rofe.getFolder().getFullName();
                 } else {
                   extraInfo = "lsa = " + lsa;
@@ -2272,7 +2274,7 @@ public final class ImapManager extends BuilderThread {
             String cyrusFolder = getFolderName(user, domain, "");
 
             // Make sure the user folder exists
-            IMAPFolder userFolder = (IMAPFolder)store.getFolder(cyrusFolder);
+            IMAPFolder userFolder = (IMAPFolder) store.getFolder(cyrusFolder);
             try {
               if (!userFolder.exists()) {
                 throw new MessagingException("Folder doesn't exist: " + cyrusFolder);
@@ -2335,19 +2337,19 @@ public final class ImapManager extends BuilderThread {
 
     synchronized (System.out) {
       if (
-        // Nothing is done for these operating systems
-        osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
-        && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-        && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-        // Check config after OS check so config entry not needed
-        && AOServDaemonConfiguration.isManagerEnabled(ImapManager.class)
-        && imapManager == null
+          // Nothing is done for these operating systems
+          osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+              && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+              && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+              // Check config after OS check so config entry not needed
+              && AOServDaemonConfiguration.isManagerEnabled(ImapManager.class)
+              && imapManager == null
       ) {
         System.out.print("Starting ImapManager: ");
         // Must be a supported operating system
         if (
-          osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-          || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+            osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                || osvId == OperatingSystemVersion.CENTOS_7_X86_64
         ) {
           AOServConnector conn = AOServDaemon.getConnector();
           imapManager = new ImapManager();
@@ -2384,8 +2386,8 @@ public final class ImapManager extends BuilderThread {
     }
     long[] sizes = new long[folderNames.length];
     if (
-      osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-      || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+        osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+            || osvId == OperatingSystemVersion.CENTOS_7_X86_64
     ) {
       String user = getUser(username);
       String domain = getDomain(username);
@@ -2447,21 +2449,21 @@ public final class ImapManager extends BuilderThread {
   @SuppressWarnings({"unchecked"})
   private static List<Annotation> getAnnotations(IMAPFolder folder, final String entry, final String attribute) throws MessagingException {
     final String mailboxName = folder.getFullName();
-    List<Annotation> annotations = (List)folder.doCommand(p -> {
+    List<Annotation> annotations = (List) folder.doCommand(p -> {
       // Issue command
       Argument args = new Argument();
       args.writeString(mailboxName);
       args.writeNString(entry);
       args.writeNString(attribute);
       Response[] r = p.command("GETANNOTATION", args);
-      Response response = r[r.length-1];
+      Response response = r[r.length - 1];
       // Grab response
-      List<Annotation> annotations1 = new ArrayList<>(r.length-1);
+      List<Annotation> annotations1 = new ArrayList<>(r.length - 1);
       if (response.isOK()) {
         // command succesful
         for (int i = 0, len = r.length; i < len; i++) {
           if (r[i] instanceof IMAPResponse) {
-            IMAPResponse ir = (IMAPResponse)r[i];
+            IMAPResponse ir = (IMAPResponse) r[i];
             if (ir.keyEquals("ANNOTATION")) {
               String mailboxName1 = ir.readAtomString();
               String entry1 = ir.readAtomString();
@@ -2501,8 +2503,8 @@ public final class ImapManager extends BuilderThread {
     List<Annotation> annotations = getAnnotations(folder, entry, attribute);
     for (Annotation annotation : annotations) {
       if (
-        annotation.getMailboxName().equals(folderName)
-        && annotation.getEntry().equals(entry)
+          annotation.getMailboxName().equals(folderName)
+              && annotation.getEntry().equals(entry)
       ) {
         // Look for the "value.shared" attribute
         String value = annotation.getAttribute(attribute);
@@ -2545,7 +2547,7 @@ public final class ImapManager extends BuilderThread {
       args.writeArgument(list);
 
       Response[] r = p.command("SETANNOTATION", args);
-      Response response = r[r.length-1];
+      Response response = r[r.length - 1];
 
       // Grab response
       if (!response.isOK()) {
@@ -2582,7 +2584,7 @@ public final class ImapManager extends BuilderThread {
       int attempt = 1;
       for (; attempt <= 10; attempt++) {
         try {
-          IMAPFolder mailbox = (IMAPFolder)store.getFolder(folderName);
+          IMAPFolder mailbox = (IMAPFolder) store.getFolder(folderName);
           try {
             String value = getAnnotation(mailbox, "/vendor/cmu/cyrus-imapd/size", "value.shared");
             if (value != null) {
@@ -2625,8 +2627,8 @@ public final class ImapManager extends BuilderThread {
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
     if (
-      osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-      || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+        osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+            || osvId == OperatingSystemVersion.CENTOS_7_X86_64
     ) {
       return getCyrusFolderSize(username, "", true);
       /*
@@ -2649,8 +2651,8 @@ ad OK Completed
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
     if (
-      osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-      || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+        osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+            || osvId == OperatingSystemVersion.CENTOS_7_X86_64
     ) {
       try {
         // Connect to the store
@@ -2662,7 +2664,7 @@ ad OK Completed
         String user = getUser(username);
         String domain = getDomain(username);
         String inboxFolderName = getFolderName(user, domain, "");
-        IMAPFolder inboxFolder = (IMAPFolder)store.getFolder(inboxFolderName);
+        IMAPFolder inboxFolder = (IMAPFolder) store.getFolder(inboxFolderName);
         try {
           String value = getAnnotation(inboxFolder, "/vendor/cmu/cyrus-imapd/lastupdate", "value.shared");
           if (value == null) {
@@ -2752,7 +2754,7 @@ ad OK Completed
           // time zone
           int zoneHours = Integer.parseInt(value.substring(space2 + 1, value.length() - 2));
           int zoneMinutes = Integer.parseInt(value.substring(value.length() - 2));
-          if (zoneHours<0) {
+          if (zoneHours < 0) {
             zoneMinutes = -zoneMinutes;
           }
 
@@ -2806,8 +2808,8 @@ ad OK Completed
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
     if (
-      osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-      || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+        osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+            || osvId == OperatingSystemVersion.CENTOS_7_X86_64
     ) {
       filesystemRules.put("/var/lib/imap/proc/", FilesystemIteratorRule.SKIP);
       filesystemRules.put("/var/lib/imap/socket/", FilesystemIteratorRule.SKIP);
@@ -2828,26 +2830,26 @@ ad OK Completed
           if ("default".equals(domain)) {
             // /var/spool/imap/(u)/user/(user^name)/Junk
             filesystemRules.put(
-              "/var/spool/imap/"
-              + user.charAt(0)
-              + "/user/"
-              + user.replace('.', '^')
-              + "/Junk",
-              FilesystemIteratorRule.SKIP
+                "/var/spool/imap/"
+                    + user.charAt(0)
+                    + "/user/"
+                    + user.replace('.', '^')
+                    + "/Junk",
+                FilesystemIteratorRule.SKIP
             );
           } else {
             // /var/spool/imap/domain/(d)/(domain.com)/(u)/user/(user^name)/Junk
             filesystemRules.put(
-              "/var/spool/imap/domain/"
-              + domain.charAt(0)
-              + "/"
-              + domain
-              + "/"
-              + user.charAt(0)
-              + "/user/"
-              + user.replace('.', '^')
-              + "/Junk",
-              FilesystemIteratorRule.SKIP
+                "/var/spool/imap/domain/"
+                    + domain.charAt(0)
+                    + "/"
+                    + domain
+                    + "/"
+                    + user.charAt(0)
+                    + "/user/"
+                    + user.replace('.', '^')
+                    + "/Junk",
+                FilesystemIteratorRule.SKIP
             );
           }
         }

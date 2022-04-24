@@ -61,49 +61,49 @@ public final class Service {
   private final String redirect;
 
   public Service(
-    String type,
-    int instances,
-    int per_source,
-    String cps,
-    String banner_fail,
-    String flags,
-    String service,
-    com.aoapps.net.Protocol socket_type,
-    IpAddress bind,
-    Port port,
-    boolean wait,
-    UserServer user,
-    GroupServer group,
-    String server,
-    String env,
-    String server_args,
-    String log_on_success,
-    String log_on_failure,
-    int nice,
-    String rlimit_as,
-    String redirect
+      String type,
+      int instances,
+      int per_source,
+      String cps,
+      String banner_fail,
+      String flags,
+      String service,
+      com.aoapps.net.Protocol socket_type,
+      IpAddress bind,
+      Port port,
+      boolean wait,
+      UserServer user,
+      GroupServer group,
+      String server,
+      String env,
+      String server_args,
+      String log_on_success,
+      String log_on_failure,
+      int nice,
+      String rlimit_as,
+      String redirect
   ) throws SQLException {
-    this.type=type;
-    this.instances=instances;
+    this.type = type;
+    this.instances = instances;
     this.per_source = per_source;
-    this.cps=cps;
+    this.cps = cps;
     this.banner_fail = banner_fail;
-    this.flags=flags;
-    this.service=service;
-    this.socket_type=socket_type;
-    this.bind=bind;
-    this.port=port;
-    this.wait=wait;
-    this.user=user;
-    this.group=group;
-    this.server=server;
+    this.flags = flags;
+    this.service = service;
+    this.socket_type = socket_type;
+    this.bind = bind;
+    this.port = port;
+    this.wait = wait;
+    this.user = user;
+    this.group = group;
+    this.server = server;
     this.env = env;
-    this.server_args=server_args;
-    this.log_on_success=log_on_success;
-    this.log_on_failure=log_on_failure;
-    this.nice=nice;
-    this.rlimit_as=rlimit_as;
-    this.redirect=redirect;
+    this.server_args = server_args;
+    this.log_on_success = log_on_success;
+    this.log_on_failure = log_on_failure;
+    this.nice = nice;
+    this.rlimit_as = rlimit_as;
+    this.redirect = redirect;
 
     if (redirect != null && (server != null || env != null || server_args != null)) {
       throw new SQLException("Unable to provide server, env, or server_args when a redirect is requested");
@@ -159,12 +159,12 @@ public final class Service {
     } else if (socket_type == com.aoapps.net.Protocol.UDP) {
       out.print("dgram");
     } else {
-      throw new SQLException("Unknown value for socket_type: "+socket_type);
+      throw new SQLException("Unknown value for socket_type: " + socket_type);
     }
     out.print('\n');
 
     if (bind != null) {
-      InetAddress ip=bind.getInetAddress();
+      InetAddress ip = bind.getInetAddress();
       if (!ip.isUnspecified()) {
         out.print("\tbind = ").print(ip.toString()).print('\n');
       }
@@ -176,7 +176,7 @@ public final class Service {
       out.print("\tport = ").print(port.getPort()).print('\n');
     }
 
-    out.print("\twait = ").print(wait?"yes":"no").print('\n');
+    out.print("\twait = ").print(wait ? "yes" : "no").print('\n');
 
     out.print("\tuser = ").print(user.getLinuxAccount().getUsername().getUsername()).print('\n');
 
@@ -222,10 +222,10 @@ public final class Service {
 
   public boolean bindMatches(Service other) {
     return
-      bind.equals(other.bind)
-      && socket_type.equals(other.socket_type)
-      && service.equals(other.service)
-      && Objects.equals(port, other.port)
+        bind.equals(other.bind)
+            && socket_type.equals(other.socket_type)
+            && service.equals(other.service)
+            && Objects.equals(port, other.port)
     ;
   }
 }

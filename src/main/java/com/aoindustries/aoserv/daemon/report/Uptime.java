@@ -38,54 +38,54 @@ import java.sql.SQLException;
  */
 public final class Uptime {
 
-  private static final String[] cmd={"/usr/bin/uptime"};
+  private static final String[] cmd = {"/usr/bin/uptime"};
 
   public final int numUsers;
   public final float load;
 
   public Uptime() throws IOException, SQLException {
     String line = AOServDaemon.execCall(
-      stdout -> {
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(stdout))) {
-          return in.readLine();
-        }
-      },
-      cmd
+        stdout -> {
+          try (BufferedReader in = new BufferedReader(new InputStreamReader(stdout))) {
+            return in.readLine();
+          }
+        },
+        cmd
     );
     if (line == null) {
       throw new EOFException("Nothing output by /usr/bin/uptime");
     }
 
     // Find the third colon, then back two commas
-    int pos=line.lastIndexOf(':');
-    pos=line.lastIndexOf(',', pos-1);
-    pos=line.lastIndexOf(',', pos-1)+1;
+    int pos = line.lastIndexOf(':');
+    pos = line.lastIndexOf(',', pos - 1);
+    pos = line.lastIndexOf(',', pos - 1) + 1;
 
     // skip past spaces
-    int len=line.length();
-    while (pos<len && line.charAt(pos) == ' ') pos++;
+    int len = line.length();
+    while (pos < len && line.charAt(pos) == ' ') pos++;
 
     // find next space
-    int pos2=pos+1;
-    while (pos2<len && line.charAt(pos2) != ' ') pos2++;
+    int pos2 = pos + 1;
+    while (pos2 < len && line.charAt(pos2) != ' ') pos2++;
 
     // Parse the number of users
-    numUsers=Integer.parseInt(line.substring(pos, pos2));
+    numUsers = Integer.parseInt(line.substring(pos, pos2));
 
     // Only the top-level server keeps track of load
     if (AOServDaemon.getThisServer().getFailoverServer() == null) {
       // Find the next colon
-      pos=line.indexOf(':', pos2+1)+1;
+      pos = line.indexOf(':', pos2 + 1) + 1;
 
       // Skip any whitespace
-      while (pos<len && line.charAt(pos) == ' ') pos++;
+      while (pos < len && line.charAt(pos) == ' ') pos++;
 
       // Find the next comma
-      pos2=line.indexOf(',', pos);
+      pos2 = line.indexOf(',', pos);
 
-      load=Float.parseFloat(line.substring(pos, pos2));
+      load = Float.parseFloat(line.substring(pos, pos2));
     } else {
-      load=0.00f;
+      load = 0.00f;
     }
   }
 
@@ -106,9 +106,9 @@ public final class Uptime {
   @Override
   public String toString() {
     return
-      getClass().getName()
-      +"?numUsers="+numUsers
-      +"&load="+load
+        getClass().getName()
+            + "?numUsers=" + numUsers
+            + "&load=" + load
     ;
   }
 }

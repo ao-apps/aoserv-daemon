@@ -46,7 +46,7 @@ public final class DhcpManager implements Runnable {
 
   public static final int POLL_INTERVAL = 5 * 60 * 1000;
 
-  private static final String GET_DHCP_ADDRESS="/opt/aoserv-daemon/bin/get_dhcp_address";
+  private static final String GET_DHCP_ADDRESS = "/opt/aoserv-daemon/bin/get_dhcp_address";
 
   private static Thread thread;
 
@@ -56,24 +56,24 @@ public final class DhcpManager implements Runnable {
 
   public static InetAddress getDhcpAddress(String device) throws IOException {
     try {
-      String[] cmd={
-        GET_DHCP_ADDRESS,
-        device
+      String[] cmd = {
+          GET_DHCP_ADDRESS,
+          device
       };
       // Make sure /sbin/ifconfig is installed as required by get_dhcp_address
       PackageManager.installPackage(PackageManager.PackageName.NET_TOOLS);
       String ip;
       {
         ip = AOServDaemon.execCall(
-          stdout -> {
-            try (BufferedReader in = new BufferedReader(new InputStreamReader(stdout))) {
-              return in.readLine();
-            }
-          },
-          cmd
+            stdout -> {
+              try (BufferedReader in = new BufferedReader(new InputStreamReader(stdout))) {
+                return in.readLine();
+              }
+            },
+            cmd
         );
-        if (ip == null || (ip=ip.trim()).length() == 0) {
-          throw new IOException("Unable to find IP address for device: "+device);
+        if (ip == null || (ip = ip.trim()).length() == 0) {
+          throw new IOException("Unable to find IP address for device: " + device);
         }
       }
       return InetAddress.valueOf(ip);
@@ -121,9 +121,9 @@ public final class DhcpManager implements Runnable {
           break;
         }
         for (Device nd : AOServDaemon.getThisServer().getHost().getNetDevices()) {
-          IpAddress primaryIP=nd.getPrimaryIPAddress();
+          IpAddress primaryIP = nd.getPrimaryIPAddress();
           if (primaryIP.isDhcp()) {
-            InetAddress dhcpAddress=getDhcpAddress(nd.getDeviceId().getName());
+            InetAddress dhcpAddress = getDhcpAddress(nd.getDeviceId().getName());
             if (!primaryIP.getInetAddress().equals(dhcpAddress)) {
               primaryIP.setDHCPAddress(dhcpAddress);
             }

@@ -69,7 +69,7 @@ public final class MySQLCreditCardScanner implements CronJob {
       synchronized (System.out) {
         if (mySQLCreditCardScanner == null) {
           System.out.print("Starting MySQLCreditCardScanner: ");
-          mySQLCreditCardScanner=new MySQLCreditCardScanner();
+          mySQLCreditCardScanner = new MySQLCreditCardScanner();
           CronDaemon.addCronJob(mySQLCreditCardScanner, logger);
           System.out.println("Done");
         }
@@ -78,9 +78,9 @@ public final class MySQLCreditCardScanner implements CronJob {
   }
 
   private static final Schedule schedule = (int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) ->
-    minute == 30
-    && hour == 2
-    && dayOfWeek == Calendar.SUNDAY;
+      minute == 30
+          && hour == 2
+          && dayOfWeek == Calendar.SUNDAY;
 
   @Override
   public Schedule getSchedule() {
@@ -117,20 +117,20 @@ public final class MySQLCreditCardScanner implements CronJob {
         Port port = mysqlServer.getBind().getPort();
         List<Database> mysqlDatabases = mysqlServer.getMySQLDatabases();
         for (Database database : mysqlDatabases) {
-          Database.Name name=database.getName();
+          Database.Name name = database.getName();
 
           // Get connection to the database
           Class.forName(AOServDaemonConfiguration.getMySqlDriver());
           try (Connection conn = DriverManager.getConnection(
-            MySQLDatabaseManager.getJdbcUrl(port, name),
-            AOServDaemonConfiguration.getMySqlUser(serverName),
-            AOServDaemonConfiguration.getMySqlPassword(serverName)
+              MySQLDatabaseManager.getJdbcUrl(port, name),
+              AOServDaemonConfiguration.getMySqlUser(serverName),
+              AOServDaemonConfiguration.getMySqlPassword(serverName)
           )) {
             try {
               Account account = database.getPackage().getAccount();
               StringBuilder report = reports.get(account);
               if (report == null) {
-                reports.put(account, report=new StringBuilder());
+                reports.put(account, report = new StringBuilder());
               }
               scanForCards(thisServer, mysqlServer, database, conn, name.toString(), report);
             } catch (SQLException e) {
@@ -142,7 +142,7 @@ public final class MySQLCreditCardScanner implements CronJob {
       }
       for (Account account : reports.keySet()) {
         StringBuilder report = reports.get(account);
-        if (report != null && report.length()>0) {
+        if (report != null && report.length() > 0) {
           /* TODO
           AOServDaemon.getConnector().getCurrentAdministrator().addTicket(
             account,
@@ -167,7 +167,7 @@ public final class MySQLCreditCardScanner implements CronJob {
 
   public static void scanForCards(com.aoindustries.aoserv.client.linux.Server thisServer, Server mysqlServer, Database database, Connection conn, String catalog, StringBuilder report) throws SQLException {
     DatabaseMetaData metaData = conn.getMetaData();
-    String[] tableTypes = new String[] {"TABLE"};
+    String[] tableTypes = new String[]{"TABLE"};
     try (ResultSet tables = metaData.getTables(catalog, null, null, tableTypes)) {
       while (tables.next()) {
         String table = tables.getString(3);
@@ -199,13 +199,13 @@ public final class MySQLCreditCardScanner implements CronJob {
                 buffer.append(")\\w*$')");
               } else {
                 report.append('\n')
-                  .append("Unable to scan column, unsafe name\n")
-                  .append('\n')
-                  .append("Host........: ").append(thisServer.getHostname()).append('\n')
-                  .append("MySQL Host..: ").append(mysqlServer.toString()).append('\n')
-                  .append("Database......: ").append(database.getName()).append('\n')
-                  .append("Table.........: ").append(table).append('\n')
-                  .append("Column........: ").append(column).append('\n');
+                    .append("Unable to scan column, unsafe name\n")
+                    .append('\n')
+                    .append("Host........: ").append(thisServer.getHostname()).append('\n')
+                    .append("MySQL Host..: ").append(mysqlServer.toString()).append('\n')
+                    .append("Database......: ").append(database.getName()).append('\n')
+                    .append("Table.........: ").append(table).append('\n')
+                    .append("Column........: ").append(column).append('\n');
               }
             }
           }
@@ -230,25 +230,25 @@ public final class MySQLCreditCardScanner implements CronJob {
             ErrorPrinter.addSQL(e, currentSQL);
             throw e;
           }
-          if (ccCount>50 && (ccCount*2) >= rowCount) {
+          if (ccCount > 50 && (ccCount * 2) >= rowCount) {
             report.append('\n')
-              .append("Credit cards found in database\n")
+                .append("Credit cards found in database\n")
+                .append('\n')
+                .append("Host........: ").append(thisServer.getHostname()).append('\n')
+                .append("MySQL Host..: ").append(mysqlServer.toString()).append('\n')
+                .append("Database......: ").append(database.getName()).append('\n')
+                .append("Table.........: ").append(table).append('\n')
+                .append("Row Count.....: ").append(rowCount).append('\n')
+                .append("Credit Cards..: ").append(ccCount).append('\n');
+          }
+        } else {
+          report.append('\n')
+              .append("Unable to scan table, unsafe name\n")
               .append('\n')
               .append("Host........: ").append(thisServer.getHostname()).append('\n')
               .append("MySQL Host..: ").append(mysqlServer.toString()).append('\n')
               .append("Database......: ").append(database.getName()).append('\n')
-              .append("Table.........: ").append(table).append('\n')
-              .append("Row Count.....: ").append(rowCount).append('\n')
-              .append("Credit Cards..: ").append(ccCount).append('\n');
-          }
-        } else {
-          report.append('\n')
-            .append("Unable to scan table, unsafe name\n")
-            .append('\n')
-            .append("Host........: ").append(thisServer.getHostname()).append('\n')
-            .append("MySQL Host..: ").append(mysqlServer.toString()).append('\n')
-            .append("Database......: ").append(database.getName()).append('\n')
-            .append("Table.........: ").append(table).append('\n');
+              .append("Table.........: ").append(table).append('\n');
         }
       }
     }

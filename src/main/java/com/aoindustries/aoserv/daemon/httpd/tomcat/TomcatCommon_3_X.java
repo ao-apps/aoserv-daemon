@@ -44,12 +44,12 @@ public abstract class TomcatCommon_3_X extends TomcatCommon {
   /**
    * The list of files that are contained in [/var]/www/{site}/var/log directories.
    */
-  public static final String[] tomcatLogFiles={
-    "jasper.log",
-    "jvm_crashes.log",
-    "servlet.log",
-    "servlet_err",
-    "tomcat.log"
+  public static final String[] tomcatLogFiles = {
+      "jasper.log",
+      "jvm_crashes.log",
+      "servlet.log",
+      "servlet_err",
+      "tomcat.log"
   };
 
   @Override
@@ -61,7 +61,7 @@ public abstract class TomcatCommon_3_X extends TomcatCommon {
    * Creates the test-tomcat.xml file in the provided conf directory.
    */
   public void createTestTomcatXml(String confDirectory, int uid, int gid, int mode, int uid_min, int gid_min) throws IOException {
-    DaemonFileUtils.copyResource(TomcatCommon_3_X.class, "test-tomcat.xml", confDirectory+"/test-tomcat.xml", uid, gid, 0660, uid_min, gid_min);
+    DaemonFileUtils.copyResource(TomcatCommon_3_X.class, "test-tomcat.xml", confDirectory + "/test-tomcat.xml", uid, gid, 0660, uid_min, gid_min);
   }
 
   public abstract void createWebDtd(String confDirectory, int uid, int gid, int mode, int uid_min, int gid_min) throws IOException;

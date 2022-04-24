@@ -114,7 +114,7 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
       out.print("            validationQuery=\"").textInXmlAttribute(dataSource.getValidationQuery()).print("\"\n"
           + "            validationQueryTimeout=\"30\"\n"
           + "            testWhileIdle=\"true\"\n");
-          // The default is "true": + "            testOnBorrow=\"true\"\n");
+      // The default is "true": + "            testOnBorrow=\"true\"\n");
     }
     int timeBetweenEvictionRunsMillis = 30000; // Clean every 30 seconds
     int numTestsPerEvictionRun;
@@ -194,8 +194,8 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 
   protected static byte[] generateProfileUmaskSh(String optSlash, String apacheTomcatDir, PosixFile installDir) {
     return (
-      "umask 0027\n"
-      + "export UMASK=0027\n"
+        "umask 0027\n"
+            + "export UMASK=0027\n"
     ).getBytes(StandardCharsets.UTF_8);
   }
 
@@ -261,10 +261,10 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
         throw new IllegalArgumentException("No hyphen in combined version and release: " + versionAndRelase);
       }
       return compareTo(
-        new Version(
-          new PackageManager.Version(versionAndRelase.substring(0, last)),
-          new PackageManager.Version(versionAndRelase.substring(last + 1))
-        )
+          new Version(
+              new PackageManager.Version(versionAndRelase.substring(0, last)),
+              new PackageManager.Version(versionAndRelase.substring(last + 1))
+          )
       );
     }
   }

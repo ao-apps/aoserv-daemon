@@ -67,34 +67,34 @@ public final class NetworkMonitor {
         final String networkName = config.getName();
         synchronized (System.out) {
           if (!inMonitors.containsKey(networkName)) {
-            System.out.print("Starting NetworkMonitor(" + networkName +", in): ");
+            System.out.print("Starting NetworkMonitor(" + networkName + ", in): ");
             NetworkMonitor monitor = new NetworkMonitor(
-              config.getDevice(),
-              "in",
-              config.getNetworkRanges(),
-              config.getInNetworkDirection(),
-              config.getInCountDirection(),
-              config.getNullRouteFifoErrorRate(),
-              config.getNullRouteFifoErrorRateMinPps(),
-              config.getNullRoutePacketRate(),
-              config.getNullRouteBitRate()
+                config.getDevice(),
+                "in",
+                config.getNetworkRanges(),
+                config.getInNetworkDirection(),
+                config.getInCountDirection(),
+                config.getNullRouteFifoErrorRate(),
+                config.getNullRouteFifoErrorRateMinPps(),
+                config.getNullRoutePacketRate(),
+                config.getNullRouteBitRate()
             );
             inMonitors.put(networkName, monitor);
             monitor.startThread();
             System.out.println("Done");
           }
           if (!outMonitors.containsKey(networkName)) {
-            System.out.print("Starting NetworkMonitor(" + networkName +", out): ");
+            System.out.print("Starting NetworkMonitor(" + networkName + ", out): ");
             NetworkMonitor monitor = new NetworkMonitor(
-              config.getDevice(),
-              "out",
-              config.getNetworkRanges(),
-              config.getOutNetworkDirection(),
-              config.getOutCountDirection(),
-              null, // Null routes only done on incoming traffic
-              null, // Null routes only done on incoming traffic
-              null, // Null routes only done on incoming traffic
-              null  // Null routes only done on incoming traffic
+                config.getDevice(),
+                "out",
+                config.getNetworkRanges(),
+                config.getOutNetworkDirection(),
+                config.getOutCountDirection(),
+                null, // Null routes only done on incoming traffic
+                null, // Null routes only done on incoming traffic
+                null, // Null routes only done on incoming traffic
+                null  // Null routes only done on incoming traffic
             );
             outMonitors.put(networkName, monitor);
             monitor.startThread();
@@ -118,15 +118,15 @@ public final class NetworkMonitor {
   private Thread thread;
 
   private NetworkMonitor(
-    String device,
-    String direction,
-    List<String> networkRanges,
-    AOServDaemonConfiguration.NetworkMonitorConfiguration.NetworkDirection networkDirection,
-    AOServDaemonConfiguration.NetworkMonitorConfiguration.CountDirection countDirection,
-    Long nullRouteFifoErrorRate,
-    Long nullRouteFifoErrorRateMinPps,
-    Long nullRoutePacketRate,
-    Long nullRouteBitRate
+      String device,
+      String direction,
+      List<String> networkRanges,
+      AOServDaemonConfiguration.NetworkMonitorConfiguration.NetworkDirection networkDirection,
+      AOServDaemonConfiguration.NetworkMonitorConfiguration.CountDirection countDirection,
+      Long nullRouteFifoErrorRate,
+      Long nullRouteFifoErrorRateMinPps,
+      Long nullRoutePacketRate,
+      Long nullRouteBitRate
   ) {
     this.device = device;
     this.direction = direction;
@@ -142,6 +142,7 @@ public final class NetworkMonitor {
   static class Counts {
     final long packets;
     final long bytes;
+
     Counts(long packets, long bytes) {
       this.packets = packets;
       this.bytes   = bytes;
@@ -154,14 +155,14 @@ public final class NetworkMonitor {
     final long packets = in.readLong();
     final long bytes   = in.readLong();
     if (
-      packets  == 0
-      && bytes == 0
+        packets  == 0
+            && bytes == 0
     ) {
       return ZERO_COUNTS;
     }
     return new Counts(
-      packets,
-      bytes
+        packets,
+        bytes
     );
   }
 
@@ -174,15 +175,16 @@ public final class NetworkMonitor {
     final long tcpBytes;
     final long otherPackets;
     final long otherBytes;
+
     ProtocolCounts(
-      long icmpPackets,
-      long icmpBytes,
-      long udpPackets,
-      long udpBytes,
-      long tcpPackets,
-      long tcpBytes,
-      long otherPackets,
-      long otherBytes
+        long icmpPackets,
+        long icmpBytes,
+        long udpPackets,
+        long udpBytes,
+        long tcpPackets,
+        long tcpBytes,
+        long otherPackets,
+        long otherBytes
     ) {
       this.icmpPackets  = icmpPackets;
       this.icmpBytes    = icmpBytes;
@@ -221,26 +223,26 @@ public final class NetworkMonitor {
     final long otherPackets = in.readLong();
     final long otherBytes   = in.readLong();
     if (
-      icmpPackets     == 0
-      && icmpBytes    == 0
-      && udpPackets   == 0
-      && udpBytes     == 0
-      && tcpPackets   == 0
-      && tcpBytes     == 0
-      && otherPackets == 0
-      && otherBytes   == 0
+        icmpPackets     == 0
+            && icmpBytes    == 0
+            && udpPackets   == 0
+            && udpBytes     == 0
+            && tcpPackets   == 0
+            && tcpBytes     == 0
+            && otherPackets == 0
+            && otherBytes   == 0
     ) {
       return ZERO_PROTOCOL_COUNTS;
     }
     return new ProtocolCounts(
-      icmpPackets,
-      icmpBytes,
-      udpPackets,
-      udpBytes,
-      tcpPackets,
-      tcpBytes,
-      otherPackets,
-      otherBytes
+        icmpPackets,
+        icmpBytes,
+        udpPackets,
+        udpBytes,
+        tcpPackets,
+        tcpBytes,
+        otherPackets,
+        otherBytes
     );
   }
 
@@ -255,11 +257,12 @@ public final class NetworkMonitor {
     final byte prefix;
     final ProtocolCounts totalCounts;
     final ProtocolCounts[] ips;
+
     IPv4Network(
-      int address,
-      byte prefix,
-      ProtocolCounts totalCounts,
-      ProtocolCounts[] ips
+        int address,
+        byte prefix,
+        ProtocolCounts totalCounts,
+        ProtocolCounts[] ips
     ) {
       this.address = address;
       this.prefix = prefix;
@@ -329,16 +332,16 @@ public final class NetworkMonitor {
 
   private synchronized void startThread() {
     if (thread == null) {
-      final String threadName = NetworkMonitor.class.getName()+"("+device+", "+direction+")";
-      final String errorInThreadName = threadName+".errorIn";
+      final String threadName = NetworkMonitor.class.getName() + "(" + device + ", " + direction + ")";
+      final String errorInThreadName = threadName + ".errorIn";
       final boolean controllingNullRoutes = nullRouteFifoErrorRate != null || nullRoutePacketRate != null || nullRouteBitRate != null;
 
       // Determine which sys file to watch for fifo errors
       final File fifoErrorsFile;
       if (nullRouteFifoErrorRate != null) {
         fifoErrorsFile = new File(
-          "/sys/class/net/" + device + "/statistics/"
-          + (networkDirection == AOServDaemonConfiguration.NetworkMonitorConfiguration.NetworkDirection.in ? "rx_fifo_errors" : "tx_fifo_errors")
+            "/sys/class/net/" + device + "/statistics/"
+                + (networkDirection == AOServDaemonConfiguration.NetworkMonitorConfiguration.NetworkDirection.in ? "rx_fifo_errors" : "tx_fifo_errors")
         );
       } else {
         fifoErrorsFile = null;
@@ -352,9 +355,9 @@ public final class NetworkMonitor {
           while (!Thread.currentThread().isInterrupted()) {
             try {
               final String[] cmd = new String[
-                (controllingNullRoutes ? 0 : 1)
-                + 6
-                + networkRanges.size()
+              (controllingNullRoutes ? 0 : 1)
+                  + 6
+                  + networkRanges.size()
               ];
               int index = 0;
               // No nice level when controlling null routes
@@ -411,7 +414,7 @@ public final class NetworkMonitor {
                     // Read one record
                     final byte protocolVersion = in.readByte();
                     if (protocolVersion != 1) {
-                      throw new IOException("Unexpected protocolVersion: "+protocolVersion);
+                      throw new IOException("Unexpected protocolVersion: " + protocolVersion);
                     }
                     final long timeStartSeconds = in.readLong();
                     final int timeStartMicros = in.readInt();
@@ -429,7 +432,7 @@ public final class NetworkMonitor {
                     final ProtocolCounts otherNetwork = readProtocolCounts(in);
                     final int numNetworks = in.readInt();
                     final Network[] networks = new Network[numNetworks];
-                    for (int netIndex=0; netIndex<numNetworks; netIndex++) {
+                    for (int netIndex = 0; netIndex < numNetworks; netIndex++) {
                       final byte ipVersion = in.readByte();
                       if (ipVersion == 4) {
                         final int address = in.readInt();
@@ -437,7 +440,7 @@ public final class NetworkMonitor {
                         final ProtocolCounts totalCounts = readProtocolCounts(in);
                         final int numIps = 1 << (32 - prefix);
                         final ProtocolCounts[] ips = new ProtocolCounts[numIps];
-                        for (int ipIndex=0; ipIndex<numIps; ipIndex++) {
+                        for (int ipIndex = 0; ipIndex < numIps; ipIndex++) {
                           ips[ipIndex] = readProtocolCounts(in);
                         }
                         networks[netIndex] = new IPv4Network(address, prefix, totalCounts, ips);
@@ -484,13 +487,13 @@ public final class NetworkMonitor {
                     // Compute time span of last sample in microseconds
                     long timeSpanMicros = (timeEndSeconds - timeStartSeconds) * MICROS_PER_SECOND + (timeEndMicros - timeStartMicros);
                     // Do not null route on short samples
-                    if (timeSpanMicros >= (MICROS_PER_SECOND/2)) {
+                    if (timeSpanMicros >= (MICROS_PER_SECOND / 2)) {
                       // Add null route on fifo errors
                       if (nullRouteFifoErrorRate != null) {
                         long newFifoErrors = Long.parseLong(FileUtils.readFileAsString(fifoErrorsFile).trim());
                         if (
-                          lastFifoErrors != null
-                          && newFifoErrors >= lastFifoErrors
+                            lastFifoErrors != null
+                                && newFifoErrors >= lastFifoErrors
                         ) {
                           long fifoErrorRate = getPacketRate(newFifoErrors - lastFifoErrors, timeSpanMicros);
                           if (fifoErrorRate >= nullRouteFifoErrorRate) {
@@ -499,9 +502,9 @@ public final class NetworkMonitor {
                             long highestPacketCount = Long.MIN_VALUE;
                             for (Network network : networks) {
                               if (network instanceof IPv4Network) {
-                                IPv4Network ipv4Network = (IPv4Network)network;
+                                IPv4Network ipv4Network = (IPv4Network) network;
                                 ProtocolCounts[] ips = ipv4Network.ips;
-                                for (int ipIndex=0, len=ips.length; ipIndex<len; ipIndex++) {
+                                for (int ipIndex = 0, len = ips.length; ipIndex < len; ipIndex++) {
                                   long packetCount = ips[ipIndex].getPackets();
                                   if (packetCount > highestPacketCount) {
                                     nullingIp = ipv4Network.address + ipIndex;
@@ -516,8 +519,8 @@ public final class NetworkMonitor {
                               throw new AssertionError("Unable to find IP to null route");
                             }
                             if (
-                              nullRouteFifoErrorRateMinPps != null
-                              && highestPacketCount < nullRouteFifoErrorRateMinPps
+                                nullRouteFifoErrorRateMinPps != null
+                                    && highestPacketCount < nullRouteFifoErrorRateMinPps
                             ) {
                               PrintStream out = System.out;
                               synchronized (out) {
@@ -562,9 +565,9 @@ public final class NetworkMonitor {
                           long highestPacketCount = Long.MIN_VALUE;
                           for (Network network : networks) {
                             if (network instanceof IPv4Network) {
-                              IPv4Network ipv4Network = (IPv4Network)network;
+                              IPv4Network ipv4Network = (IPv4Network) network;
                               ProtocolCounts[] ips = ipv4Network.ips;
-                              for (int ipIndex=0, len=ips.length; ipIndex<len; ipIndex++) {
+                              for (int ipIndex = 0, len = ips.length; ipIndex < len; ipIndex++) {
                                 long packetCount = ips[ipIndex].getPackets();
                                 if (packetCount > highestPacketCount) {
                                   nullingIp = ipv4Network.address + ipIndex;
@@ -604,9 +607,9 @@ public final class NetworkMonitor {
                           long highestByteCount = Long.MIN_VALUE;
                           for (Network network : networks) {
                             if (network instanceof IPv4Network) {
-                              IPv4Network ipv4Network = (IPv4Network)network;
+                              IPv4Network ipv4Network = (IPv4Network) network;
                               ProtocolCounts[] ips = ipv4Network.ips;
-                              for (int ipIndex=0, len=ips.length; ipIndex<len; ipIndex++) {
+                              for (int ipIndex = 0, len = ips.length; ipIndex < len; ipIndex++) {
                                 long byteCount = ips[ipIndex].getBytes();
                                 if (byteCount > highestByteCount) {
                                   nullingIp = ipv4Network.address + ipIndex;

@@ -290,9 +290,9 @@ public final class HttpdServerManager {
    * Only called by the already synchronized <code>HttpdManager.doRebuild()</code> method.
    */
   static void doRebuild(
-    List<File> deleteFileList,
-    Set<HttpdServer> serversNeedingReloaded,
-    Set<PosixFile> restorecon
+      List<File> deleteFileList,
+      Set<HttpdServer> serversNeedingReloaded,
+      Set<PosixFile> restorecon
   ) throws IOException, SQLException {
     // Used below
     ByteArrayOutputStream bout = new ByteArrayOutputStream();
@@ -322,11 +322,11 @@ public final class HttpdServerManager {
    * or /etc/httpd/sites-available and /etc/httpd/sites-enabled
    */
   private static void doRebuildConfHosts(
-    Server thisServer,
-    ByteArrayOutputStream bout,
-    List<File> deleteFileList,
-    Set<HttpdServer> serversNeedingReloaded,
-    Set<PosixFile> restorecon
+      Server thisServer,
+      ByteArrayOutputStream bout,
+      List<File> deleteFileList,
+      Set<HttpdServer> serversNeedingReloaded,
+      Set<PosixFile> restorecon
   ) throws IOException, SQLException {
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
@@ -353,15 +353,15 @@ public final class HttpdServerManager {
           final PosixFile sharedFile = new PosixFile(CONF_HOSTS, siteName);
           if (!manager.httpdSite.isManual() || !sharedFile.getStat().exists()) {
             if (
-              DaemonFileUtils.atomicWrite(
-                sharedFile,
-                buildHttpdSiteSharedFile(manager, bout, restorecon),
-                0640,
-                PosixFile.ROOT_UID,
-                lsgGID,
-                null,
-                restorecon
-              )
+                DaemonFileUtils.atomicWrite(
+                    sharedFile,
+                    buildHttpdSiteSharedFile(manager, bout, restorecon),
+                    0640,
+                    PosixFile.ROOT_UID,
+                    lsgGID,
+                    null,
+                    restorecon
+                )
             ) {
               // File changed, all servers that use this site need restarted
               for (VirtualHost hsb : binds) {
@@ -384,9 +384,9 @@ public final class HttpdServerManager {
             {
               String bindEscapedName = bind.getSystemdEscapedName();
               if (bindEscapedName == null) {
-                bindFilename = siteName+"_"+nb.getIpAddress().getInetAddress()+"_"+nb.getPort().getPort();
+                bindFilename = siteName + "_" + nb.getIpAddress().getInetAddress() + "_" + nb.getPort().getPort();
               } else {
-                bindFilename = siteName+"_"+nb.getIpAddress().getInetAddress()+"_"+nb.getPort().getPort()+"_"+bindEscapedName;
+                bindFilename = siteName + "_" + nb.getIpAddress().getInetAddress() + "_" + nb.getPort().getPort() + "_" + bindEscapedName;
               }
             }
             final PosixFile bindFile = new PosixFile(CONF_HOSTS, bindFilename);
@@ -397,10 +397,10 @@ public final class HttpdServerManager {
 
             // Will only be verified when not exists, auto mode, disabled, or predisabled config need to be restored
             if (
-              !exists                                 // Not exists
-              || !isManual                            // Auto mode
-              || isDisabled                           // Disabled
-              || predisableConfig != null               // Predisabled config needs to be restored
+                !exists                                 // Not exists
+                    || !isManual                            // Auto mode
+                    || isDisabled                           // Disabled
+                    || predisableConfig != null               // Predisabled config needs to be restored
             ) {
               // Save manual config file for later restoration
               if (exists && isManual && isDisabled && predisableConfig == null) {
@@ -418,23 +418,23 @@ public final class HttpdServerManager {
                   PackageManager.installPackage(PackageManager.PackageName.AOSERV_HTTPD_SITE_DISABLED);
                 }
                 newContent = buildHttpdSiteBindFile(
-                  manager,
-                  bind,
-                  isDisabled ? Site.DISABLED : siteName,
-                  bout
+                    manager,
+                    bind,
+                    isDisabled ? Site.DISABLED : siteName,
+                    bout
                 );
               }
               // Write only when missing or modified
               if (
-                DaemonFileUtils.atomicWrite(
-                  bindFile,
-                  newContent,
-                  0640,
-                  PosixFile.ROOT_UID,
-                  lsgGID,
-                  null,
-                  restorecon
-                )
+                  DaemonFileUtils.atomicWrite(
+                      bindFile,
+                      newContent,
+                      0640,
+                      PosixFile.ROOT_UID,
+                      lsgGID,
+                      null,
+                      restorecon
+                  )
               ) {
                 // Reload server if the file is modified
                 serversNeedingReloaded.add(httpdBind.getHttpdServer());
@@ -482,15 +482,15 @@ public final class HttpdServerManager {
           final PosixFile sharedFile = new PosixFile(SITES_AVAILABLE, sharedFilename);
           if (!manager.httpdSite.isManual() || !sharedFile.getStat().exists()) {
             if (
-              DaemonFileUtils.atomicWrite(
-                sharedFile,
-                buildHttpdSiteSharedFile(manager, bout, restorecon),
-                0640,
-                PosixFile.ROOT_UID,
-                lsgGID,
-                null,
-                restorecon
-              )
+                DaemonFileUtils.atomicWrite(
+                    sharedFile,
+                    buildHttpdSiteSharedFile(manager, bout, restorecon),
+                    0640,
+                    PosixFile.ROOT_UID,
+                    lsgGID,
+                    null,
+                    restorecon
+                )
             ) {
               // File changed, all servers that use this site need restarted
               for (VirtualHost hsb : binds) {
@@ -514,9 +514,9 @@ public final class HttpdServerManager {
             {
               String bindEscapedName = bind.getSystemdEscapedName();
               if (bindEscapedName == null) {
-                bindFilename = siteName+"_"+nb.getIpAddress().getInetAddress()+"_"+nb.getPort().getPort()+".conf";
+                bindFilename = siteName + "_" + nb.getIpAddress().getInetAddress() + "_" + nb.getPort().getPort() + ".conf";
               } else {
-                bindFilename = siteName+"_"+nb.getIpAddress().getInetAddress()+"_"+nb.getPort().getPort()+"_"+bindEscapedName+".conf";
+                bindFilename = siteName + "_" + nb.getIpAddress().getInetAddress() + "_" + nb.getPort().getPort() + "_" + bindEscapedName + ".conf";
               }
             }
             final PosixFile bindFile = new PosixFile(SITES_AVAILABLE, bindFilename);
@@ -527,10 +527,10 @@ public final class HttpdServerManager {
 
             // Will only be verified when not exists, auto mode, disabled, or predisabled config need to be restored
             if (
-              !exists                                 // Not exists
-              || !isManual                            // Auto mode
-              || isDisabled                           // Disabled
-              || predisableConfig != null               // Predisabled config needs to be restored
+                !exists                                 // Not exists
+                    || !isManual                            // Auto mode
+                    || isDisabled                           // Disabled
+                    || predisableConfig != null               // Predisabled config needs to be restored
             ) {
               // Save manual config file for later restoration
               if (exists && isManual && isDisabled && predisableConfig == null) {
@@ -548,23 +548,23 @@ public final class HttpdServerManager {
                   PackageManager.installPackage(PackageManager.PackageName.AOSERV_HTTPD_SITE_DISABLED);
                 }
                 newContent = buildHttpdSiteBindFile(
-                  manager,
-                  bind,
-                  isDisabled ? (Site.DISABLED+".inc") : sharedFilename,
-                  bout
+                    manager,
+                    bind,
+                    isDisabled ? (Site.DISABLED + ".inc") : sharedFilename,
+                    bout
                 );
               }
               // Write only when missing or modified
               if (
-                DaemonFileUtils.atomicWrite(
-                  bindFile,
-                  newContent,
-                  0640,
-                  PosixFile.ROOT_UID,
-                  lsgGID,
-                  null,
-                  restorecon
-                )
+                  DaemonFileUtils.atomicWrite(
+                      bindFile,
+                      newContent,
+                      0640,
+                      PosixFile.ROOT_UID,
+                      lsgGID,
+                      null,
+                      restorecon
+                  )
               ) {
                 // Reload server if the file is modified
                 serversNeedingReloaded.add(httpdBind.getHttpdServer());
@@ -576,9 +576,9 @@ public final class HttpdServerManager {
         // Mark files for deletion
         for (String filename : extraFiles) {
           if (
-            !filename.equals(Site.DISABLED + ".inc")
-            && !filename.equals("README")
-            && !filename.equals("README.txt") // 1.0.0~snapshot only
+              !filename.equals(Site.DISABLED + ".inc")
+                  && !filename.equals("README")
+                  && !filename.equals("README.txt") // 1.0.0~snapshot only
           ) {
             File toDelete = new File(SITES_AVAILABLE, filename);
             if (logger.isLoggable(Level.INFO)) {
@@ -612,9 +612,9 @@ public final class HttpdServerManager {
             {
               String bindEscapedName = bind.getSystemdEscapedName();
               if (bindEscapedName == null) {
-                bindFilename = siteName+"_"+nb.getIpAddress().getInetAddress()+"_"+nb.getPort().getPort()+".conf";
+                bindFilename = siteName + "_" + nb.getIpAddress().getInetAddress() + "_" + nb.getPort().getPort() + ".conf";
               } else {
-                bindFilename = siteName+"_"+nb.getIpAddress().getInetAddress()+"_"+nb.getPort().getPort()+"_"+bindEscapedName+".conf";
+                bindFilename = siteName + "_" + nb.getIpAddress().getInetAddress() + "_" + nb.getPort().getPort() + "_" + bindEscapedName + ".conf";
               }
             }
             final String symlinkTarget = "../sites-available/" + bindFilename;
@@ -626,9 +626,9 @@ public final class HttpdServerManager {
             extraFiles.remove(bindFilename);
 
             if (
-              !symlinkStat.exists()
-              || !symlinkStat.isSymLink()
-              || !symlinkTarget.equals(symlinkFile.readLink())
+                !symlinkStat.exists()
+                    || !symlinkStat.isSymLink()
+                    || !symlinkTarget.equals(symlinkFile.readLink())
             ) {
               if (symlinkStat.exists()) {
                 symlinkFile.delete();
@@ -642,8 +642,8 @@ public final class HttpdServerManager {
         // Mark files for deletion
         for (String filename : extraFiles) {
           if (
-            !filename.equals("README")
-            && !filename.equals("README.txt") // 1.0.0~snapshot only
+              !filename.equals("README")
+                  && !filename.equals("README.txt") // 1.0.0~snapshot only
           ) {
             File toDelete = new File(SITES_ENABLED, filename);
             if (logger.isLoggable(Level.INFO)) {
@@ -746,11 +746,11 @@ public final class HttpdServerManager {
                 + "    RewriteEngine on\n");
             for (HttpdSiteManager.PermanentRewriteRule permanentRewrite : permanentRewrites) {
               out
-                .print("    RewriteRule ")
-                .print(escape(dollarVariable, permanentRewrite.pattern))
-                .print(' ')
-                .print(escape(dollarVariable, permanentRewrite.substitution))
-                .print(" [L");
+                  .print("    RewriteRule ")
+                  .print(escape(dollarVariable, permanentRewrite.pattern))
+                  .print(' ')
+                  .print(escape(dollarVariable, permanentRewrite.substitution))
+                  .print(" [L");
               if (permanentRewrite.noEscape) {
                 out.print(",NE");
               }
@@ -768,7 +768,7 @@ public final class HttpdServerManager {
               if (hsal.getHandler() != null) {
                 throw new NotImplementedException("SetHandler not implemented on " + osv);
               }
-              out.print(hsal.getIsRegularExpression()?"<LocationMatch ":"<Location ").print(escape(dollarVariable, hsal.getPath())).print(">\n");
+              out.print(hsal.getIsRegularExpression() ? "<LocationMatch " : "<Location ").print(escape(dollarVariable, hsal.getPath())).print(">\n");
               if (hsal.getAuthUserFile() != null) {
                 out.print("    AuthType Basic\n");
               }
@@ -791,7 +791,7 @@ public final class HttpdServerManager {
                 }
                 out.print('\n');
               }
-              out.print(hsal.getIsRegularExpression()?"</LocationMatch>\n":"</Location>\n");
+              out.print(hsal.getIsRegularExpression() ? "</LocationMatch>\n" : "</Location>\n");
             }
           }
 
@@ -851,13 +851,13 @@ public final class HttpdServerManager {
                 + "<IfModule mod_jk.c>\n");
             for (HttpdSiteManager.JkSetting setting : jkSettings) {
               out
-                .print("    ")
-                .print(setting.isMount() ? "JkMount" : "JkUnMount")
-                .print(' ')
-                .print(escape(dollarVariable, setting.getPath()))
-                .print(' ')
-                .print(escape(dollarVariable, setting.getJkCode()))
-                .print('\n');
+                  .print("    ")
+                  .print(setting.isMount() ? "JkMount" : "JkUnMount")
+                  .print(' ')
+                  .print(escape(dollarVariable, setting.getPath()))
+                  .print(' ')
+                  .print(escape(dollarVariable, setting.getJkCode()))
+                  .print('\n');
             }
             out.print("\n"
                 + "    # Remove jsessionid for non-jk requests\n"
@@ -879,11 +879,11 @@ public final class HttpdServerManager {
             SoftwareVersion modPhpVersion = hsb.getHttpdBind().getHttpdServer().getModPhpVersion();
             if (modPhpVersion != null) {
               modPhpMajorVersions.add(
-                Integer.parseInt(
-                  getMajorPhpVersion(
-                    modPhpVersion.getVersion()
+                  Integer.parseInt(
+                      getMajorPhpVersion(
+                          modPhpVersion.getVersion()
+                      )
                   )
-                )
               );
             }
           }
@@ -906,15 +906,15 @@ public final class HttpdServerManager {
               }
             }
             out
-              .print(indent).print("<IfModule actions_module>\n")
-              .print(indent).print("    Action php-script /cgi-bin/php\n")
-              // Avoid *.php.txt going to PHP: https://www.php.net/manual/en/install.unix.apache2.php
-              //+ "            AddHandler php-script .php\n"
-              .print(indent).print("    <FilesMatch \\.php$>\n")
-              .print(indent).print("        SetHandler php-script\n")
-              .print(indent).print("    </FilesMatch>\n")
-              .print(indent).print("</IfModule>\n");
-            for (int i=0; i<modPhpMajorVersions.size(); i++) {
+                .print(indent).print("<IfModule actions_module>\n")
+                .print(indent).print("    Action php-script /cgi-bin/php\n")
+                // Avoid *.php.txt going to PHP: https://www.php.net/manual/en/install.unix.apache2.php
+                //+ "            AddHandler php-script .php\n"
+                .print(indent).print("    <FilesMatch \\.php$>\n")
+                .print(indent).print("        SetHandler php-script\n")
+                .print(indent).print("    </FilesMatch>\n")
+                .print(indent).print("</IfModule>\n");
+            for (int i = 0; i < modPhpMajorVersions.size(); i++) {
               indent = indent.substring(0, indent.length() - 4);
               out.print(indent).print("</IfModule>\n");
             }
@@ -973,9 +973,9 @@ public final class HttpdServerManager {
                 // Other handler or no handler
                 indent = "";
               }
-              out.print(indent).print(hsal.getIsRegularExpression()?"<LocationMatch ":"<Location ").print(escape(dollarVariable, hsal.getPath())).print(">\n");
+              out.print(indent).print(hsal.getIsRegularExpression() ? "<LocationMatch " : "<Location ").print(escape(dollarVariable, hsal.getPath())).print(">\n");
               boolean includeAuthType = hsal.getAuthUserFile() != null;
-              boolean includeAuthName = hsal.getAuthName().length()>0;
+              boolean includeAuthName = hsal.getAuthName().length() > 0;
               if (includeAuthType || includeAuthName) {
                 out.print(indent).print("    <IfModule authn_core_module>\n");
                 if (includeAuthType) {
@@ -989,20 +989,20 @@ public final class HttpdServerManager {
               if (hsal.getAuthUserFile() != null) {
                 PackageManager.installPackage(PackageManager.PackageName.HTTPD_TOOLS);
                 out
-                  .print(indent).print("    <IfModule authn_file_module>\n")
-                  .print(indent).print("        AuthUserFile ").print(getEscapedPrefixReplacement(dollarVariable, hsal.getAuthUserFile().toString(), "/var/www/" + httpdSite.getName() + "/", "/var/www/${site.name}/")).print('\n')
-                  .print(indent).print("    </IfModule>\n");
+                    .print(indent).print("    <IfModule authn_file_module>\n")
+                    .print(indent).print("        AuthUserFile ").print(getEscapedPrefixReplacement(dollarVariable, hsal.getAuthUserFile().toString(), "/var/www/" + httpdSite.getName() + "/", "/var/www/${site.name}/")).print('\n')
+                    .print(indent).print("    </IfModule>\n");
               }
               if (hsal.getAuthGroupFile() != null) {
                 out
-                  .print(indent).print("    <IfModule authz_groupfile_module>\n")
-                  .print(indent).print("        AuthGroupFile ").print(getEscapedPrefixReplacement(dollarVariable, hsal.getAuthGroupFile().toString(), "/var/www/" + httpdSite.getName() + "/", "/var/www/${site.name}/")).print('\n')
-                  .print(indent).print("    </IfModule>\n");
+                    .print(indent).print("    <IfModule authz_groupfile_module>\n")
+                    .print(indent).print("        AuthGroupFile ").print(getEscapedPrefixReplacement(dollarVariable, hsal.getAuthGroupFile().toString(), "/var/www/" + httpdSite.getName() + "/", "/var/www/${site.name}/")).print('\n')
+                    .print(indent).print("    </IfModule>\n");
               }
-              if (hsal.getRequire().length()>0) {
+              if (hsal.getRequire().length() > 0) {
                 out
-                  .print(indent).print("    <IfModule authz_core_module>\n")
-                  .print(indent).print("        Require");
+                    .print(indent).print("    <IfModule authz_core_module>\n")
+                    .print(indent).print("        Require");
                 // Split on space, escaping each term
                 for (String term : Strings.split(hsal.getRequire(), ' ')) {
                   if (!term.isEmpty()) {
@@ -1010,23 +1010,23 @@ public final class HttpdServerManager {
                   }
                 }
                 out.print('\n')
-                  .print(indent).print("    </IfModule>\n");
+                    .print(indent).print("    </IfModule>\n");
               }
               if (handler != null) {
                 out.print('\n')
-                  .print(indent).print("    SetHandler ").print(escape(dollarVariable, handler)).print('\n');
+                    .print(indent).print("    SetHandler ").print(escape(dollarVariable, handler)).print('\n');
                 if (Location.Handler.SERVER_STATUS.equals(handler)) {
                   // Limit server status to GET and POST
                   // See https://httpd.apache.org/docs/2.4/mod/core.html#limitexcept
                   out
-                    .print(indent).print("    <IfModule authz_core_module>\n")
-                    .print(indent).print("        <LimitExcept GET POST>\n")
-                    .print(indent).print("            Require all denied\n")
-                    .print(indent).print("        </LimitExcept>\n")
-                    .print(indent).print("    </IfModule>\n");
+                      .print(indent).print("    <IfModule authz_core_module>\n")
+                      .print(indent).print("        <LimitExcept GET POST>\n")
+                      .print(indent).print("            Require all denied\n")
+                      .print(indent).print("        </LimitExcept>\n")
+                      .print(indent).print("    </IfModule>\n");
                 }
               }
-              out.print(indent).print(hsal.getIsRegularExpression()?"</LocationMatch>\n":"</Location>\n");
+              out.print(indent).print(hsal.getIsRegularExpression() ? "</LocationMatch>\n" : "</Location>\n");
               if (Location.Handler.SERVER_STATUS.equals(handler)) {
                 out.print("</IfModule>\n");
               }
@@ -1034,10 +1034,10 @@ public final class HttpdServerManager {
           }
 
           if (
-            manager.blockAllTraceAndTrackRequests()
-            || httpdSite.getBlockScm()
-            || httpdSite.getBlockCoreDumps()
-            || httpdSite.getBlockEditorBackups()
+              manager.blockAllTraceAndTrackRequests()
+                  || httpdSite.getBlockScm()
+                  || httpdSite.getBlockCoreDumps()
+                  || httpdSite.getBlockEditorBackups()
           ) {
             out.print("\n"
                 + "# Site options\n");
@@ -1085,11 +1085,11 @@ public final class HttpdServerManager {
                 + "    RewriteEngine on\n");
             for (HttpdSiteManager.PermanentRewriteRule permanentRewrite : permanentRewrites) {
               out
-                .print("    RewriteRule ")
-                .print(escape(dollarVariable, permanentRewrite.pattern))
-                .print(' ')
-                .print(escape(dollarVariable, permanentRewrite.substitution))
-                .print(" [END");
+                  .print("    RewriteRule ")
+                  .print(escape(dollarVariable, permanentRewrite.pattern))
+                  .print(' ')
+                  .print(escape(dollarVariable, permanentRewrite.substitution))
+                  .print(" [END");
               if (permanentRewrite.noEscape) {
                 out.print(",NE");
               }
@@ -1120,11 +1120,11 @@ public final class HttpdServerManager {
               out.print("\n"
                   + "# Set up the default webapp\n"
                   + "DocumentRoot ")
-                .print(CERTBOT_COMPAT
-                  ? escape(dollarVariable, docBase.toString())
-                  : getEscapedPrefixReplacement(dollarVariable, docBase.toString(), "/var/www/" + httpdSite.getName() + "/", "/var/www/${site.name}/"))
-                .print("\n"
-                  + "<Directory ").print(getEscapedPrefixReplacement(dollarVariable, docBase.toString(), "/var/www/" + httpdSite.getName() + "/", "/var/www/${site.name}/")).print(">\n"
+                  .print(CERTBOT_COMPAT
+                      ? escape(dollarVariable, docBase.toString())
+                      : getEscapedPrefixReplacement(dollarVariable, docBase.toString(), "/var/www/" + httpdSite.getName() + "/", "/var/www/${site.name}/"))
+                  .print("\n"
+                      + "<Directory ").print(getEscapedPrefixReplacement(dollarVariable, docBase.toString(), "/var/www/" + httpdSite.getName() + "/", "/var/www/${site.name}/")).print(">\n"
                   + "    <IfModule authz_core_module>\n"
                   + "        Require all granted\n"
                   + "    </IfModule>\n"
@@ -1278,13 +1278,13 @@ public final class HttpdServerManager {
                 + "<IfModule jk_module>\n");
             for (HttpdSiteManager.JkSetting setting : jkSettings) {
               out
-                .print("    ")
-                .print(setting.isMount() ? "JkMount" : "JkUnMount")
-                .print(' ')
-                .print(escape(dollarVariable, setting.getPath()))
-                .print(' ')
-                .print(escape(dollarVariable, setting.getJkCode()))
-                .print('\n');
+                  .print("    ")
+                  .print(setting.isMount() ? "JkMount" : "JkUnMount")
+                  .print(' ')
+                  .print(escape(dollarVariable, setting.getPath()))
+                  .print(' ')
+                  .print(escape(dollarVariable, setting.getJkCode()))
+                  .print('\n');
             }
             out.print("\n"
                 + "    # Remove jsessionid for non-jk requests\n"
@@ -1308,14 +1308,14 @@ public final class HttpdServerManager {
    * </ul>
    */
   private static void doRebuildConf(
-    Server thisServer,
-    ByteArrayOutputStream bout,
-    List<File> deleteFileList,
-    Set<HttpdServer> serversNeedingReloaded,
-    Set<Port> enabledAjpPorts,
-    Set<PosixFile> restorecon,
-    boolean[] hasAnyCgi,
-    boolean[] hasAnyModPhp
+      Server thisServer,
+      ByteArrayOutputStream bout,
+      List<File> deleteFileList,
+      Set<HttpdServer> serversNeedingReloaded,
+      Set<Port> enabledAjpPorts,
+      Set<PosixFile> restorecon,
+      boolean[] hasAnyCgi,
+      boolean[] hasAnyModPhp
   ) throws IOException, SQLException {
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
@@ -1340,15 +1340,15 @@ public final class HttpdServerManager {
       httpdConfFilenames.add(httpdConfFilename);
       // Rebuild the httpd.conf file
       if (
-        DaemonFileUtils.atomicWrite(
-          httpdConf,
-          buildHttpdConf(hs, sites, httpdConfFilenames, varLibPhpFilenames, bout, restorecon, hasAnyCgi, hasAnyModPhp),
-          0644,
-          PosixFile.ROOT_UID,
-          PosixFile.ROOT_GID,
-          null,
-          restorecon
-        )
+          DaemonFileUtils.atomicWrite(
+              httpdConf,
+              buildHttpdConf(hs, sites, httpdConfFilenames, varLibPhpFilenames, bout, restorecon, hasAnyCgi, hasAnyModPhp),
+              0644,
+              PosixFile.ROOT_UID,
+              PosixFile.ROOT_GID,
+              null,
+              restorecon
+          )
       ) {
         serversNeedingReloaded.add(hs);
       }
@@ -1379,15 +1379,15 @@ public final class HttpdServerManager {
         PosixFile workersFile = new PosixFile(CONF_DIRECTORY, workersFilename);
         httpdConfFilenames.add(workersFilename);
         if (
-          DaemonFileUtils.atomicWrite(
-            workersFile,
-            buildWorkersFile(hs, bout, enabledAjpPorts),
-            0644,
-            PosixFile.ROOT_UID,
-            PosixFile.ROOT_GID,
-            null,
-            restorecon
-          )
+            DaemonFileUtils.atomicWrite(
+                workersFile,
+                buildWorkersFile(hs, bout, enabledAjpPorts),
+                0644,
+                PosixFile.ROOT_UID,
+                PosixFile.ROOT_GID,
+                null,
+                restorecon
+            )
         ) {
           serversNeedingReloaded.add(hs);
         }
@@ -1413,9 +1413,9 @@ public final class HttpdServerManager {
         }
         // Default server with user apache and group apache uses the default at /usr/lib/tmpfiles.d/httpd.conf
         if (
-          escapedName != null
-          || !user.equals(User.APACHE)
-          || !group.equals(Group.APACHE)
+            escapedName != null
+                || !user.equals(User.APACHE)
+                || !group.equals(Group.APACHE)
         ) {
           etcTmpfilesFilenames.add(tmpFilesFilename);
           // Custom entry in /etc/tmpfiles.d/httpd[@<name>].conf
@@ -1433,15 +1433,15 @@ public final class HttpdServerManager {
           }
           PosixFile tmpFilesUF = new PosixFile(ETC_TMPFILES_D, tmpFilesFilename);
           if (
-            DaemonFileUtils.atomicWrite(
-              tmpFilesUF,
-              newContent,
-              0644,
-              PosixFile.ROOT_UID,
-              PosixFile.ROOT_GID,
-              null,
-              restorecon
-            )
+              DaemonFileUtils.atomicWrite(
+                  tmpFilesUF,
+                  newContent,
+                  0644,
+                  PosixFile.ROOT_UID,
+                  PosixFile.ROOT_GID,
+                  null,
+                  restorecon
+              )
           ) {
             serversNeedingReloaded.add(hs);
           }
@@ -1450,23 +1450,23 @@ public final class HttpdServerManager {
         runFilenames.add(runFilename);
         PosixFile runDirUF = new PosixFile("/run", runFilename);
         if (
-          DaemonFileUtils.mkdir(
-            runDirUF,
-            0710,
-            PosixFile.ROOT_UID,
-            gid
-          )
+            DaemonFileUtils.mkdir(
+                runDirUF,
+                0710,
+                PosixFile.ROOT_UID,
+                gid
+            )
         ) {
           serversNeedingReloaded.add(hs);
         }
         PosixFile htcachecleanDirUF = new PosixFile(runDirUF, "htcacheclean", false);
         if (
-          DaemonFileUtils.mkdir(
-            htcachecleanDirUF,
-            0700,
-            uid,
-            gid
-          )
+            DaemonFileUtils.mkdir(
+                htcachecleanDirUF,
+                0700,
+                uid,
+                gid
+            )
         ) {
           serversNeedingReloaded.add(hs);
         }
@@ -1498,15 +1498,15 @@ public final class HttpdServerManager {
         }
         for (String filename : list) {
           if (
-            !httpdConfFilenames.contains(filename)
-            && (
-              // Note: httpd.conf is never deleted
-              filename.equals(phpDefault)
-              || filename.equals(workersDefault)
-              || httpdConfPattern.matcher(filename).matches()
-              || phpPattern.matcher(filename).matches()
-              || workersPattern.matcher(filename).matches()
-            )
+              !httpdConfFilenames.contains(filename)
+                  && (
+                  // Note: httpd.conf is never deleted
+                  filename.equals(phpDefault)
+                      || filename.equals(workersDefault)
+                      || httpdConfPattern.matcher(filename).matches()
+                      || phpPattern.matcher(filename).matches()
+                      || workersPattern.matcher(filename).matches()
+              )
           ) {
             File toDelete = new File(CONF_DIRECTORY, filename);
             if (logger.isLoggable(Level.INFO)) {
@@ -1523,11 +1523,11 @@ public final class HttpdServerManager {
       if (list != null) {
         for (String filename : list) {
           if (
-            !varLibPhpFilenames.contains(filename)
-            && (
-              PHP_SESSION.equals(filename)
-              || PHP_SESSION_REGEXP.matcher(filename).matches()
-            )
+              !varLibPhpFilenames.contains(filename)
+                  && (
+                  PHP_SESSION.equals(filename)
+                      || PHP_SESSION_REGEXP.matcher(filename).matches()
+              )
           ) {
             File toDelete = new File(VAR_LIB_PHP_DIRECTORY.getFile(), filename);
             if (logger.isLoggable(Level.INFO)) {
@@ -1544,11 +1544,11 @@ public final class HttpdServerManager {
       if (list != null) {
         for (String filename : list) {
           if (
-            !etcTmpfilesFilenames.contains(filename)
-            && (
-              "httpd.conf".equals(filename)
-              || HTTPD_NAME_CONF_REGEXP.matcher(filename).matches()
-            )
+              !etcTmpfilesFilenames.contains(filename)
+                  && (
+                  "httpd.conf".equals(filename)
+                      || HTTPD_NAME_CONF_REGEXP.matcher(filename).matches()
+              )
           ) {
             File toDelete = new File(ETC_TMPFILES_D, filename);
             if (logger.isLoggable(Level.INFO)) {
@@ -1563,9 +1563,9 @@ public final class HttpdServerManager {
       if (list != null) {
         for (String filename : list) {
           if (
-            !runFilenames.contains(filename)
-            // Note: /run/httpd is not deleted since it is part of the standard RPM
-            && HTTPD_NAME_REGEXP.matcher(filename).matches()
+              !runFilenames.contains(filename)
+                  // Note: /run/httpd is not deleted since it is part of the standard RPM
+                  && HTTPD_NAME_REGEXP.matcher(filename).matches()
           ) {
             File toDelete = new File("/run", filename);
             if (logger.isLoggable(Level.INFO)) {
@@ -1597,8 +1597,8 @@ public final class HttpdServerManager {
    */
   private static String getPhpModule(String phpMajorVersion) {
     if (
-      "5".equals(phpMajorVersion)
-      || "7".equals(phpMajorVersion)
+        "5".equals(phpMajorVersion)
+            || "7".equals(phpMajorVersion)
     ) {
       return "php" + phpMajorVersion + "_module";
     } else {
@@ -1611,8 +1611,8 @@ public final class HttpdServerManager {
    */
   private static String getLibPhpSo(String phpMajorVersion) {
     if (
-      "5".equals(phpMajorVersion)
-      || "7".equals(phpMajorVersion)
+        "5".equals(phpMajorVersion)
+            || "7".equals(phpMajorVersion)
     ) {
       return "libphp" + phpMajorVersion + ".so";
     } else {
@@ -1624,12 +1624,12 @@ public final class HttpdServerManager {
    * Builds the httpd#.conf file for CentOS 5
    */
   private static byte[] buildHttpdConfCentOs5(
-    HttpdServer hs,
-    List<Site> sites,
-    Set<String> httpdConfFilenames,
-    ByteArrayOutputStream bout,
-    boolean[] hasAnyCgi,
-    boolean[] hasAnyModPhp
+      HttpdServer hs,
+      List<Site> sites,
+      Set<String> httpdConfFilenames,
+      ByteArrayOutputStream bout,
+      boolean[] hasAnyCgi,
+      boolean[] hasAnyModPhp
   ) throws IOException, SQLException {
     final String dollarVariable = CENTOS_5_DOLLAR_VARIABLE;
     final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
@@ -1822,10 +1822,10 @@ public final class HttpdServerManager {
             + "    SetHandler application/x-httpd-php\n"
             + "</FilesMatch>\n");
 
-            // TODO: Enable .phps when first needed by a client application, and as a default-off per-site option
-            //+ "<FilesMatch \\.phps$>\n"
-            //+ "    SetHandler application/x-httpd-php-source\n"
-            //+ "</FilesMatch>\n"
+        // TODO: Enable .phps when first needed by a client application, and as a default-off per-site option
+        //+ "<FilesMatch \\.phps$>\n"
+        //+ "    SetHandler application/x-httpd-php-source\n"
+        //+ "</FilesMatch>\n"
 
       }
       out.print("\n"
@@ -1890,30 +1890,30 @@ public final class HttpdServerManager {
 
       // List of binds
       for (HttpdBind hb : hs.getHttpdBinds()) {
-        Bind nb=hb.getNetBind();
-        InetAddress ip=nb.getIpAddress().getInetAddress();
-        int port=nb.getPort().getPort();
+        Bind nb = hb.getNetBind();
+        InetAddress ip = nb.getIpAddress().getInetAddress();
+        int port = nb.getPort().getPort();
         out.print("Listen ").print(escape(dollarVariable, ip.toBracketedString() + ":" + port)).print("\n"
             + "NameVirtualHost ").print(escape(dollarVariable, ip.toBracketedString() + ":" + port)).print('\n');
       }
 
       // The list of sites to include
-      for (int d=0;d<2;d++) {
-        boolean listFirst=d == 0;
+      for (int d = 0; d < 2; d++) {
+        boolean listFirst = d == 0;
         out.print('\n');
         for (Site site : sites) {
           if (site.getListFirst() == listFirst) {
             for (VirtualHost bind : site.getHttpdSiteBinds(hs)) {
-              Bind nb=bind.getHttpdBind().getNetBind();
-              InetAddress ipAddress=nb.getIpAddress().getInetAddress();
-              int port=nb.getPort().getPort();
+              Bind nb = bind.getHttpdBind().getNetBind();
+              InetAddress ipAddress = nb.getIpAddress().getInetAddress();
+              int port = nb.getPort().getPort();
               String includeFilename;
               {
                 String bindEscapedName = bind.getSystemdEscapedName();
                 if (bindEscapedName == null) {
-                  includeFilename = "conf/hosts/" + site.getName()+"_"+ipAddress+"_"+port;
+                  includeFilename = "conf/hosts/" + site.getName() + "_" + ipAddress + "_" + port;
                 } else {
-                  includeFilename = "conf/hosts/" + site.getName()+"_"+ipAddress+"_"+port+"_"+bindEscapedName;
+                  includeFilename = "conf/hosts/" + site.getName() + "_" + ipAddress + "_" + port + "_" + bindEscapedName;
                 }
               }
               out.print("Include ").print(escape(dollarVariable, includeFilename)).print('\n');
@@ -1930,14 +1930,14 @@ public final class HttpdServerManager {
    */
   @SuppressWarnings("UnnecessaryLabelOnBreakStatement")
   private static byte[] buildHttpdConfCentOs7(
-    HttpdServer hs,
-    List<Site> sites,
-    Set<String> httpdConfFilenames,
-    Set<String> varLibPhpFilenames,
-    ByteArrayOutputStream bout,
-    Set<PosixFile> restorecon,
-    boolean[] hasAnyCgi,
-    boolean[] hasAnyModPhp
+      HttpdServer hs,
+      List<Site> sites,
+      Set<String> httpdConfFilenames,
+      Set<String> varLibPhpFilenames,
+      ByteArrayOutputStream bout,
+      Set<PosixFile> restorecon,
+      boolean[] hasAnyCgi,
+      boolean[] hasAnyModPhp
   ) throws IOException, SQLException {
     final String dollarVariable = CENTOS_7_DOLLAR_VARIABLE;
     final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
@@ -1947,8 +1947,8 @@ public final class HttpdServerManager {
     OperatingSystemVersion osv = hs.getLinuxServer().getHost().getOperatingSystemVersion();
     assert osv.getPkey() == OperatingSystemVersion.CENTOS_7_X86_64;
     PackageManager.installPackages(
-      PackageManager.PackageName.HTTPD,
-      PackageManager.PackageName.AOSERV_HTTPD_CONFIG
+        PackageManager.PackageName.HTTPD,
+        PackageManager.PackageName.AOSERV_HTTPD_CONFIG
     );
     final String escapedName = hs.getSystemdEscapedName();
     bout.reset();
@@ -2713,13 +2713,13 @@ public final class HttpdServerManager {
           // Replace symlink if goes to a different PHP version?
           String actualTarget = phpIni.readLink();
           if (
-            !actualTarget.equals(expectedTarget)
-            && (
-              // PHP 5
-              actualTarget.startsWith("../../../../opt/php-")
-              // PHP 7+
-              || actualTarget.startsWith("../../../opt/php-")
-            )
+              !actualTarget.equals(expectedTarget)
+                  && (
+                  // PHP 5
+                  actualTarget.startsWith("../../../../opt/php-")
+                      // PHP 7+
+                      || actualTarget.startsWith("../../../opt/php-")
+              )
           ) {
             // Update link
             phpIni.delete();
@@ -2785,8 +2785,8 @@ public final class HttpdServerManager {
           + "# Binds\n"
           + "#\n");
       for (HttpdBind hb : hs.getHttpdBinds()) {
-        Bind nb=hb.getNetBind();
-        InetAddress ip=nb.getIpAddress().getInetAddress();
+        Bind nb = hb.getNetBind();
+        InetAddress ip = nb.getIpAddress().getInetAddress();
         int port = nb.getPort().getPort();
         out.print("Listen ").print(escape(dollarVariable, ip.toBracketedString() + ":" + port));
         String appProtocol = nb.getAppProtocol().getProtocol();
@@ -2815,14 +2815,14 @@ public final class HttpdServerManager {
             for (VirtualHost bind : site.getHttpdSiteBinds(hs)) {
               Bind nb = bind.getHttpdBind().getNetBind();
               InetAddress ipAddress = nb.getIpAddress().getInetAddress();
-              int port=nb.getPort().getPort();
+              int port = nb.getPort().getPort();
               String includeFilename;
               {
                 String bindEscapedName = bind.getSystemdEscapedName();
                 if (bindEscapedName == null) {
-                  includeFilename = "sites-enabled/" + site.getName()+"_"+ipAddress+"_"+port + ".conf";
+                  includeFilename = "sites-enabled/" + site.getName() + "_" + ipAddress + "_" + port + ".conf";
                 } else {
-                  includeFilename = "sites-enabled/" + site.getName()+"_"+ipAddress+"_"+port+"_"+bindEscapedName + ".conf";
+                  includeFilename = "sites-enabled/" + site.getName() + "_" + ipAddress + "_" + port + "_" + bindEscapedName + ".conf";
                 }
               }
               out.print("Include ").print(escape(dollarVariable, includeFilename)).print('\n');
@@ -2838,20 +2838,20 @@ public final class HttpdServerManager {
    * Builds the httpd[[-]#].conf file contents for the provided HttpdServer.
    */
   private static byte[] buildHttpdConf(
-    HttpdServer hs,
-    List<Site> sites,
-    Set<String> httpdConfFilenames,
-    Set<String> varLibPhpFilenames,
-    ByteArrayOutputStream bout,
-    Set<PosixFile> restorecon,
-    boolean[] hasAnyCgi,
-    boolean[] hasAnyModPhp
+      HttpdServer hs,
+      List<Site> sites,
+      Set<String> httpdConfFilenames,
+      Set<String> varLibPhpFilenames,
+      ByteArrayOutputStream bout,
+      Set<PosixFile> restorecon,
+      boolean[] hasAnyCgi,
+      boolean[] hasAnyModPhp
   ) throws IOException, SQLException {
     HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
     switch (osConfig) {
       case CENTOS_5_I686_AND_X86_64 : return buildHttpdConfCentOs5(hs, sites, httpdConfFilenames, bout, hasAnyCgi, hasAnyModPhp);
       case CENTOS_7_X86_64          : return buildHttpdConfCentOs7(hs, sites, httpdConfFilenames, varLibPhpFilenames, bout, restorecon, hasAnyCgi, hasAnyModPhp);
-      default                       : throw new AssertionError("Unexpected value for osConfig: "+osConfig);
+      default                       : throw new AssertionError("Unexpected value for osConfig: " + osConfig);
     }
   }
 
@@ -2956,26 +2956,26 @@ public final class HttpdServerManager {
     // String substitution = rewriteRule.getSubstitution();
     String pattern = rewriteRule.getPattern();
     return
-      (
-        "^".equals(pattern)
-        || "^(.*)$".equals(pattern)
-      )
-      // && !substitution.equals("-")
-      && (
-        // Redirects with "L", "last", or "END"
-        rewriteRule.hasFlag("R", "redirect")
-        && rewriteRule.hasFlag("L", "last", "END")
-      ) || (
-        // Proxy via "P" or "proxy" ("L" is implied)
-        rewriteRule.hasFlag("P", "proxy")
-      ) || (
-        // Flag "L", "last", "END" stops processing, expecting request to still be handled by this virtual host configuration
-        !rewriteRule.hasFlag("L", "last", "END")
-        // Flag "S" or "skip" jumps to a different rule, so does not constitute redirecting all
-        && !rewriteRule.hasFlag("S", "skip")
-        // Flag "T" or "type" sets the MIME type, so does not constitute redirecting all
-        && !rewriteRule.hasFlag("T", "type")
-      );
+        (
+            "^".equals(pattern)
+                || "^(.*)$".equals(pattern)
+        )
+            // && !substitution.equals("-")
+            && (
+            // Redirects with "L", "last", or "END"
+            rewriteRule.hasFlag("R", "redirect")
+                && rewriteRule.hasFlag("L", "last", "END")
+        ) || (
+            // Proxy via "P" or "proxy" ("L" is implied)
+            rewriteRule.hasFlag("P", "proxy")
+        ) || (
+            // Flag "L", "last", "END" stops processing, expecting request to still be handled by this virtual host configuration
+            !rewriteRule.hasFlag("L", "last", "END")
+                // Flag "S" or "skip" jumps to a different rule, so does not constitute redirecting all
+                && !rewriteRule.hasFlag("S", "skip")
+                // Flag "T" or "type" sets the MIME type, so does not constitute redirecting all
+                && !rewriteRule.hasFlag("T", "type")
+        );
   }
 
   /**
@@ -3001,7 +3001,7 @@ public final class HttpdServerManager {
           out.print("<VirtualHost ").print(escape(dollarVariable, ipAddress.toBracketedString() + ":" + port)).print(">\n"
               + "    ServerName \\\n"
               + "        ").print(escape(dollarVariable, primaryHostname)).print('\n');
-          List<VirtualHostName> altURLs=bind.getAltHttpdSiteURLs();
+          List<VirtualHostName> altURLs = bind.getAltHttpdSiteURLs();
           if (!altURLs.isEmpty()) {
             out.print("    ServerAlias");
             for (VirtualHostName altURL : altURLs) {
@@ -3143,15 +3143,15 @@ public final class HttpdServerManager {
               + "Define site.server_admin     ").print(escape(dollarVariable, manager.httpdSite.getServerAdmin().toString())).print("\n"
               + "\n"
               + "<VirtualHost ")
-            .print(CERTBOT_COMPAT ? escape(dollarVariable, ipString) : "${bind.ip_address}")
-            .print(':')
-            .print(CERTBOT_COMPAT ? port : "${bind.port}")
-            .print(">\n"
-              + "    ServerName \\\n"
-              + "        ")
-            .print(CERTBOT_COMPAT ? escape(dollarVariable, primaryHostname) : "${bind.primary_hostname}")
-            .print('\n');
-          List<VirtualHostName> altURLs=bind.getAltHttpdSiteURLs();
+              .print(CERTBOT_COMPAT ? escape(dollarVariable, ipString) : "${bind.ip_address}")
+              .print(':')
+              .print(CERTBOT_COMPAT ? port : "${bind.port}")
+              .print(">\n"
+                  + "    ServerName \\\n"
+                  + "        ")
+              .print(CERTBOT_COMPAT ? escape(dollarVariable, primaryHostname) : "${bind.primary_hostname}")
+              .print('\n');
+          List<VirtualHostName> altURLs = bind.getAltHttpdSiteURLs();
           if (!altURLs.isEmpty()) {
             out.print("    ServerAlias");
             for (VirtualHostName altURL : altURLs) {
@@ -3308,6 +3308,7 @@ public final class HttpdServerManager {
   }
 
   private static final Object processControlLock = new Object();
+
   private static void reloadConfigs(HttpdServer hs) throws IOException, SQLException {
     OperatingSystemVersion osv = hs.getLinuxServer().getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
@@ -3317,17 +3318,17 @@ public final class HttpdServerManager {
           String name = hs.getName();
           int num = (name == null) ? 1 : Integer.parseInt(name);
           AOServDaemon.exec(
-            "/etc/rc.d/init.d/httpd" + num,
-            "reload" // Should this be restart for SSL changes?
+              "/etc/rc.d/init.d/httpd" + num,
+              "reload" // Should this be restart for SSL changes?
           );
           break;
         }
         case OperatingSystemVersion.CENTOS_7_X86_64 : {
           String escapedName = hs.getSystemdEscapedName();
           AOServDaemon.exec(
-            "/usr/bin/systemctl",
-            "reload-or-restart",
-            (escapedName == null) ? "httpd.service" : ("httpd@" + escapedName + ".service")
+              "/usr/bin/systemctl",
+              "reload-or-restart",
+              (escapedName == null) ? "httpd.service" : ("httpd@" + escapedName + ".service")
           );
           break;
         }
@@ -3350,8 +3351,8 @@ public final class HttpdServerManager {
             String name = hs.getName();
             int num = (name == null) ? 1 : Integer.parseInt(name);
             AOServDaemon.exec(
-              "/etc/rc.d/init.d/httpd" + num,
-              command
+                "/etc/rc.d/init.d/httpd" + num,
+                command
             );
           }
           break;
@@ -3359,9 +3360,9 @@ public final class HttpdServerManager {
           for (HttpdServer hs : AOServDaemon.getThisServer().getHttpdServers()) {
             String escapedName = hs.getSystemdEscapedName();
             AOServDaemon.exec(
-              "/usr/bin/systemctl",
-              command,
-              (escapedName == null) ? "httpd.service" : ("httpd@" + escapedName + ".service")
+                "/usr/bin/systemctl",
+                command,
+                (escapedName == null) ? "httpd.service" : ("httpd@" + escapedName + ".service")
             );
           }
           break;
@@ -3408,36 +3409,36 @@ public final class HttpdServerManager {
     if (pos == -1) {
       return version;
     }
-    pos = version.indexOf('.', pos+1);
+    pos = version.indexOf('.', pos + 1);
     return pos == -1 ? version : version.substring(0, pos);
   }
 
   private static final PosixFile[] centOs5AlwaysDelete = {
-    new PosixFile("/etc/httpd/conf/httpd1.conf.old"),
-    new PosixFile("/etc/httpd/conf/httpd2.conf.old"),
-    new PosixFile("/etc/httpd/conf/httpd3.conf.old"),
-    new PosixFile("/etc/httpd/conf/httpd4.conf.old"),
-    new PosixFile("/etc/httpd/conf/httpd5.conf.old"),
-    new PosixFile("/etc/httpd/conf/httpd6.conf.old"),
-    new PosixFile("/etc/httpd/conf/httpd7.conf.old"),
-    new PosixFile("/etc/httpd/conf/httpd8.conf.old"),
-    new PosixFile("/etc/httpd/conf/workers1.properties.old"),
-    new PosixFile("/etc/httpd/conf/workers2.properties.old"),
-    new PosixFile("/etc/httpd/conf/workers3.properties.old"),
-    new PosixFile("/etc/httpd/conf/workers4.properties.old"),
-    new PosixFile("/etc/httpd/conf/workers5.properties.old"),
-    new PosixFile("/etc/httpd/conf/workers6.properties.old"),
-    new PosixFile("/etc/httpd/conf/workers7.properties.old"),
-    new PosixFile("/etc/httpd/conf/workers8.properties.old"),
-    new PosixFile("/etc/rc.d/init.d/httpd"),
-    new PosixFile("/opt/aoserv-daemon/init.d/httpd1"),
-    new PosixFile("/opt/aoserv-daemon/init.d/httpd2"),
-    new PosixFile("/opt/aoserv-daemon/init.d/httpd3"),
-    new PosixFile("/opt/aoserv-daemon/init.d/httpd4"),
-    new PosixFile("/opt/aoserv-daemon/init.d/httpd5"),
-    new PosixFile("/opt/aoserv-daemon/init.d/httpd6"),
-    new PosixFile("/opt/aoserv-daemon/init.d/httpd7"),
-    new PosixFile("/opt/aoserv-daemon/init.d/httpd8")
+      new PosixFile("/etc/httpd/conf/httpd1.conf.old"),
+      new PosixFile("/etc/httpd/conf/httpd2.conf.old"),
+      new PosixFile("/etc/httpd/conf/httpd3.conf.old"),
+      new PosixFile("/etc/httpd/conf/httpd4.conf.old"),
+      new PosixFile("/etc/httpd/conf/httpd5.conf.old"),
+      new PosixFile("/etc/httpd/conf/httpd6.conf.old"),
+      new PosixFile("/etc/httpd/conf/httpd7.conf.old"),
+      new PosixFile("/etc/httpd/conf/httpd8.conf.old"),
+      new PosixFile("/etc/httpd/conf/workers1.properties.old"),
+      new PosixFile("/etc/httpd/conf/workers2.properties.old"),
+      new PosixFile("/etc/httpd/conf/workers3.properties.old"),
+      new PosixFile("/etc/httpd/conf/workers4.properties.old"),
+      new PosixFile("/etc/httpd/conf/workers5.properties.old"),
+      new PosixFile("/etc/httpd/conf/workers6.properties.old"),
+      new PosixFile("/etc/httpd/conf/workers7.properties.old"),
+      new PosixFile("/etc/httpd/conf/workers8.properties.old"),
+      new PosixFile("/etc/rc.d/init.d/httpd"),
+      new PosixFile("/opt/aoserv-daemon/init.d/httpd1"),
+      new PosixFile("/opt/aoserv-daemon/init.d/httpd2"),
+      new PosixFile("/opt/aoserv-daemon/init.d/httpd3"),
+      new PosixFile("/opt/aoserv-daemon/init.d/httpd4"),
+      new PosixFile("/opt/aoserv-daemon/init.d/httpd5"),
+      new PosixFile("/opt/aoserv-daemon/init.d/httpd6"),
+      new PosixFile("/opt/aoserv-daemon/init.d/httpd7"),
+      new PosixFile("/opt/aoserv-daemon/init.d/httpd8")
   };
 
   /**
@@ -3466,11 +3467,11 @@ public final class HttpdServerManager {
    * Also stops and disables instances that should no longer exist.
    */
   private static void doRebuildInitScripts(
-    Server thisServer,
-    ByteArrayOutputStream bout,
-    List<File> deleteFileList,
-    Set<HttpdServer> serversNeedingReloaded,
-    Set<PosixFile> restorecon
+      Server thisServer,
+      ByteArrayOutputStream bout,
+      List<File> deleteFileList,
+      Set<HttpdServer> serversNeedingReloaded,
+      Set<PosixFile> restorecon
   ) throws IOException, SQLException {
     List<HttpdServer> hss = thisServer.getHttpdServers();
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
@@ -3538,7 +3539,7 @@ public final class HttpdServerManager {
                   out.print('\n');
                   break;
                 default:
-                  throw new SQLException("Unexpected version for mod_php: "+version);
+                  throw new SQLException("Unexpected version for mod_php: " + version);
               }
 
               // Make sure required RPM is installed
@@ -3549,29 +3550,29 @@ public final class HttpdServerManager {
             out.print("NUM=").print(num).print("\n"
                 + ". /opt/aoserv-daemon/init.d/httpd\n");
           }
-          String filename = "httpd"+num;
+          String filename = "httpd" + num;
           dontDeleteFilenames.add(filename);
           if (
-            DaemonFileUtils.atomicWrite(
-              new PosixFile(INIT_DIRECTORY, filename),
-              bout.toByteArray(),
-              0700,
-              PosixFile.ROOT_UID,
-              PosixFile.ROOT_GID,
-              null,
-              restorecon
-            )
+              DaemonFileUtils.atomicWrite(
+                  new PosixFile(INIT_DIRECTORY, filename),
+                  bout.toByteArray(),
+                  0700,
+                  PosixFile.ROOT_UID,
+                  PosixFile.ROOT_GID,
+                  null,
+                  restorecon
+              )
           ) {
             // Make start at boot
             AOServDaemon.exec(
-              "/sbin/chkconfig",
-              "--add",
-              filename
+                "/sbin/chkconfig",
+                "--add",
+                filename
             );
             AOServDaemon.exec(
-              "/sbin/chkconfig",
-              filename,
-              "on"
+                "/sbin/chkconfig",
+                filename,
+                "on"
             );
             // Make reload
             serversNeedingReloaded.add(hs);
@@ -3581,20 +3582,20 @@ public final class HttpdServerManager {
         if (list != null) {
           for (String filename : list) {
             if (
-              !dontDeleteFilenames.contains(filename)
-              && HTTPD_N_REGEXP.matcher(filename).matches()
+                !dontDeleteFilenames.contains(filename)
+                    && HTTPD_N_REGEXP.matcher(filename).matches()
             ) {
               // chkconfig off
               AOServDaemon.exec(
-                "/sbin/chkconfig",
-                filename,
-                "off"
+                  "/sbin/chkconfig",
+                  filename,
+                  "off"
               );
               // stop
               String fullPath = INIT_DIRECTORY + '/' + filename;
               AOServDaemon.exec(
-                fullPath,
-                "stop"
+                  fullPath,
+                  "stop"
               );
               File toDelete = new File(fullPath);
               if (logger.isLoggable(Level.INFO)) {
@@ -3624,9 +3625,9 @@ public final class HttpdServerManager {
             if (!link.getStat().exists()) {
               // Make start at boot
               AOServDaemon.exec(
-                "/usr/bin/systemctl",
-                "enable",
-                filename
+                  "/usr/bin/systemctl",
+                  "enable",
+                  filename
               );
               if (!link.getStat().exists()) {
                 throw new AssertionError("Link does not exist after systemctl enable: " + link);
@@ -3640,24 +3641,24 @@ public final class HttpdServerManager {
         if (list != null) {
           for (String filename : list) {
             if (
-              !dontDeleteFilenames.contains(filename)
-              && (
-                "httpd.service".equals(filename)
-                || HTTPD_NAME_SERVICE_REGEXP.matcher(filename).matches()
-              )
+                !dontDeleteFilenames.contains(filename)
+                    && (
+                    "httpd.service".equals(filename)
+                        || HTTPD_NAME_SERVICE_REGEXP.matcher(filename).matches()
+                )
             ) {
               // Note: It seems OK to send escaped service filename, so we're not unescaping back to the original service name
               // stop
               AOServDaemon.exec(
-                "/usr/bin/systemctl",
-                "stop",
-                filename
+                  "/usr/bin/systemctl",
+                  "stop",
+                  filename
               );
               // disable
               AOServDaemon.exec(
-                "/usr/bin/systemctl",
-                "disable",
-                filename
+                  "/usr/bin/systemctl",
+                  "disable",
+                  filename
               );
               PosixFile link = new PosixFile(MULTI_USER_WANTS_DIRECTORY, filename);
               if (link.getStat().exists()) {
@@ -3681,11 +3682,11 @@ public final class HttpdServerManager {
    * Manages SELinux.
    */
   private static void doRebuildSELinux(
-    Server linuxServer,
-    Set<HttpdServer> serversNeedingReloaded,
-    Set<Port> enabledAjpPorts,
-    boolean hasAnyCgi,
-    boolean hasAnyModPhp
+      Server linuxServer,
+      Set<HttpdServer> serversNeedingReloaded,
+      Set<Port> enabledAjpPorts,
+      boolean hasAnyCgi,
+      boolean hasAnyModPhp
   ) throws IOException, SQLException {
     OperatingSystemVersion osv = linuxServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
@@ -3731,7 +3732,9 @@ public final class HttpdServerManager {
     }
   }
 
-  private static class SeBoolLock {/* Empty lock class to help heap profile */}
+  private static class SeBoolLock {
+    // Empty lock class to help heap profile
+  }
   private static final SeBoolLock seBoolLock = new SeBoolLock();
 
   private static void setSeBool(String bool, boolean value) throws IOException {
@@ -3765,100 +3768,100 @@ public final class HttpdServerManager {
   public static int getHttpdServerConcurrency(int httpdServer) throws IOException, SQLException {
     try {
       return getHttpdServerConcurrencyLimiter.executeSerialized(
-        httpdServer,
-        () -> {
-          AOServConnector conn = AOServDaemon.getConnector();
-          Server thisServer = AOServDaemon.getThisServer();
-          OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
-          int osvId = osv.getPkey();
-          HttpdServer hs = conn.getWeb().getHttpdServer().get(httpdServer);
-          if (hs == null) {
-            throw new SQLException("HttpdServer not found: " + httpdServer);
-          }
-          int ppid;
-          {
-            if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-              String name = hs.getName();
-              int num = (name == null ? 1 : Integer.parseInt(name));
-              ppid = Integer.parseInt(
-                FileUtils.readFileAsString(
-                  new File("/var/run/httpd" + num + ".pid")
-                ).trim()
-              );
-            } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-              String serviceName;
-              {
-                String systemdName = hs.getSystemdEscapedName();
-                if (systemdName == null) {
-                  serviceName = "httpd.service";
-                } else {
-                  serviceName = "httpd@" + systemdName + ".service";
-                }
-              }
-              // Get the parent PID from systemd
-              String pidLine = AOServDaemon.execAndCapture(
-                "/usr/bin/systemctl",
-                "show",
-                "--property=MainPID",
-                serviceName
-              );
-              int pos = pidLine.indexOf('=');
-              if (pos == -1) {
-                throw new IOException("No \"=\" in output from systemctl: " + pidLine);
-              }
-              try {
-                ppid = Integer.parseInt(pidLine.substring(pos + 1).trim());
-              } catch (NumberFormatException e) {
-                throw new IOException("Can't parse pidLine: " + pidLine, e);
-              }
-            } else {
-              throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+          httpdServer,
+          () -> {
+            AOServConnector conn = AOServDaemon.getConnector();
+            Server thisServer = AOServDaemon.getThisServer();
+            OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
+            int osvId = osv.getPkey();
+            HttpdServer hs = conn.getWeb().getHttpdServer().get(httpdServer);
+            if (hs == null) {
+              throw new SQLException("HttpdServer not found: " + httpdServer);
             }
-          }
-          // Count the number of processes that have the expected cmdline (to distiguish from mod_wsgi workers)
-          // and have the correct ppid
-          int count = 0;
-          {
-            File procDir = new File("/proc");
-            String[] procList = procDir.list();
-            if (procList == null) {
-              throw new IOException("Not a directory? " + procDir);
-            }
-            for (String filename : procList) {
-              int flen = filename.length();
-              boolean allNum = true;
-              for (int d = 0; d < flen; d++) {
-                char ch = filename.charAt(d);
-                if (ch<'0' || ch>'9') {
-                  allNum = false;
-                  break;
+            int ppid;
+            {
+              if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                String name = hs.getName();
+                int num = (name == null ? 1 : Integer.parseInt(name));
+                ppid = Integer.parseInt(
+                    FileUtils.readFileAsString(
+                        new File("/var/run/httpd" + num + ".pid")
+                    ).trim()
+                );
+              } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+                String serviceName;
+                {
+                  String systemdName = hs.getSystemdEscapedName();
+                  if (systemdName == null) {
+                    serviceName = "httpd.service";
+                  } else {
+                    serviceName = "httpd@" + systemdName + ".service";
+                  }
                 }
-              }
-              if (allNum) {
+                // Get the parent PID from systemd
+                String pidLine = AOServDaemon.execAndCapture(
+                    "/usr/bin/systemctl",
+                    "show",
+                    "--property=MainPID",
+                    serviceName
+                );
+                int pos = pidLine.indexOf('=');
+                if (pos == -1) {
+                  throw new IOException("No \"=\" in output from systemctl: " + pidLine);
+                }
                 try {
-                  int pid = Integer.parseInt(filename);
-                  LinuxProcess process = new LinuxProcess(pid);
-                  String[] cmdline = process.getCmdline();
-                  if (
-                    cmdline.length >= 1
-                    && "/usr/sbin/httpd".equals(cmdline[0])
+                  ppid = Integer.parseInt(pidLine.substring(pos + 1).trim());
+                } catch (NumberFormatException e) {
+                  throw new IOException("Can't parse pidLine: " + pidLine, e);
+                }
+              } else {
+                throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+              }
+            }
+            // Count the number of processes that have the expected cmdline (to distiguish from mod_wsgi workers)
+            // and have the correct ppid
+            int count = 0;
+            {
+              File procDir = new File("/proc");
+              String[] procList = procDir.list();
+              if (procList == null) {
+                throw new IOException("Not a directory? " + procDir);
+              }
+              for (String filename : procList) {
+                int flen = filename.length();
+                boolean allNum = true;
+                for (int d = 0; d < flen; d++) {
+                  char ch = filename.charAt(d);
+                  if (ch < '0' || ch > '9') {
+                    allNum = false;
+                    break;
+                  }
+                }
+                if (allNum) {
+                  try {
+                    int pid = Integer.parseInt(filename);
+                    LinuxProcess process = new LinuxProcess(pid);
+                    String[] cmdline = process.getCmdline();
+                    if (
+                        cmdline.length >= 1
+                            && "/usr/sbin/httpd".equals(cmdline[0])
                     // Not on CentOS 5: && "-DFOREGROUND".equals(cmdline[cmdline.length - 1])
                   ) {
-                    String statusPpid = process.getStatus("PPid");
-                    if (statusPpid != null && Integer.parseInt(statusPpid) == ppid) {
-                      count++;
+                      String statusPpid = process.getStatus("PPid");
+                      if (statusPpid != null && Integer.parseInt(statusPpid) == ppid) {
+                        count++;
+                      }
                     }
-                  }
-                } catch (FileNotFoundException err) {
-                  if (logger.isLoggable(Level.FINE)) {
-                    logger.log(Level.FINE, "It is normal that this is thrown if the process has already closed", err);
+                  } catch (FileNotFoundException err) {
+                    if (logger.isLoggable(Level.FINE)) {
+                      logger.log(Level.FINE, "It is normal that this is thrown if the process has already closed", err);
+                    }
                   }
                 }
               }
             }
+            return count;
           }
-          return count;
-        }
       );
     } catch (InterruptedException e) {
       InterruptedIOException ioErr = new InterruptedIOException(e.getMessage());

@@ -160,8 +160,8 @@ public final class SshdManager extends BuilderThread {
         + "#\n"
         + "Port " + DEFAULT_PORT + "\n"
         + "Protocol 2\n");
-        // Changed to not allow Protocol 1 on 2005-02-01 by Dan Armstrong
-        //+ "Protocol 2,1\n");
+    // Changed to not allow Protocol 1 on 2005-02-01 by Dan Armstrong
+    //+ "Protocol 2,1\n");
     writeListenAddresses(nbs, out);
     out.print("AcceptEnv SCREEN_SESSION\n"
         + "SyslogFacility AUTHPRIV\n"
@@ -265,7 +265,7 @@ public final class SshdManager extends BuilderThread {
         + "# Authentication:\n"
         + "\n"
         + "#LoginGraceTime 2m\n"
-      // TODO: When there is at least one non-disabled sudoer, should this be automatically set to "no"?
+        // TODO: When there is at least one non-disabled sudoer, should this be automatically set to "no"?
         + "#PermitRootLogin yes\n"
         + "#StrictModes yes\n"
         + "#MaxAuthTries 6\n"
@@ -381,6 +381,7 @@ public final class SshdManager extends BuilderThread {
   }
 
   private static final Object rebuildLock = new Object();
+
   @Override
   @SuppressWarnings("SleepWhileHoldingLock")
   protected boolean doRebuild() {
@@ -423,22 +424,22 @@ public final class SshdManager extends BuilderThread {
           // Install openssh-server package if missing (when there is at least one port)
           if (!nbs.isEmpty()) {
             PackageManager.installPackage(
-              PackageManager.PackageName.OPENSSH_SERVER,
-              () -> {
-                // Enable service after package installation
-                try {
-                  if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-                    AOServDaemon.exec("/sbin/chkconfig", "sshd", "on");
-                  } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-                    AOServDaemon.exec("/usr/bin/systemctl", "enable", "sshd.service");
-                  } else {
-                    throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+                PackageManager.PackageName.OPENSSH_SERVER,
+                () -> {
+                  // Enable service after package installation
+                  try {
+                    if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                      AOServDaemon.exec("/sbin/chkconfig", "sshd", "on");
+                    } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+                      AOServDaemon.exec("/usr/bin/systemctl", "enable", "sshd.service");
+                    } else {
+                      throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+                    }
+                  } catch (IOException e) {
+                    throw new UncheckedIOException(e);
                   }
-                } catch (IOException e) {
-                  throw new UncheckedIOException(e);
+                  needsRestart[0] = true;
                 }
-                needsRestart[0] = true;
-              }
             );
             // Install sshd-after-network-online package on CentOS 7 when needed
             if (hasSpecificAddress && osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
@@ -473,15 +474,15 @@ public final class SshdManager extends BuilderThread {
 
             // Write the new file only when file changed
             if (
-              DaemonFileUtils.atomicWrite(
-                new PosixFile("/etc/ssh/sshd_config"),
-                newConfig,
-                0600,
-                PosixFile.ROOT_UID,
-                PosixFile.ROOT_GID,
-                null,
-                restorecon
-              )
+                DaemonFileUtils.atomicWrite(
+                    new PosixFile("/etc/ssh/sshd_config"),
+                    newConfig,
+                    0600,
+                    PosixFile.ROOT_UID,
+                    PosixFile.ROOT_GID,
+                    null,
+                    restorecon
+                )
             ) {
               needsRestart[0] = true;
             }
@@ -534,8 +535,8 @@ public final class SshdManager extends BuilderThread {
                 // Try reload config first
                 try {
                   AOServDaemon.exec(
-                    "/etc/rc.d/init.d/sshd",
-                    "reload"
+                      "/etc/rc.d/init.d/sshd",
+                      "reload"
                   );
                 } catch (IOException err) {
                   logger.log(Level.SEVERE, null, err);
@@ -543,8 +544,8 @@ public final class SshdManager extends BuilderThread {
                   // Try more forceful stop/start
                   try {
                     AOServDaemon.exec(
-                      "/etc/rc.d/init.d/sshd",
-                      "stop"
+                        "/etc/rc.d/init.d/sshd",
+                        "stop"
                     );
                   } catch (IOException err2) {
                     logger.log(Level.SEVERE, null, err2);
@@ -557,8 +558,8 @@ public final class SshdManager extends BuilderThread {
                     Thread.currentThread().interrupt();
                   }
                   AOServDaemon.exec(
-                    "/etc/rc.d/init.d/sshd",
-                    "start"
+                      "/etc/rc.d/init.d/sshd",
+                      "start"
                   );
                 }
               } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
@@ -572,9 +573,9 @@ public final class SshdManager extends BuilderThread {
           }
           // Uninstall sshd-after-network-online package on CentOS 7 when not needed
           if (
-            !hasSpecificAddress
-            && osvId == OperatingSystemVersion.CENTOS_7_X86_64
-            && AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
+              !hasSpecificAddress
+                  && osvId == OperatingSystemVersion.CENTOS_7_X86_64
+                  && AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
           ) {
             PackageManager.removePackage(PackageManager.PackageName.SSHD_AFTER_NETWORK_ONLINE);
           }
@@ -599,19 +600,19 @@ public final class SshdManager extends BuilderThread {
 
     synchronized (System.out) {
       if (
-        // Nothing is done for these operating systems
-        osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
-        && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-        && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-        // Check config after OS check so config entry not needed
-        && AOServDaemonConfiguration.isManagerEnabled(SshdManager.class)
-        && sshdManager == null
+          // Nothing is done for these operating systems
+          osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+              && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+              && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+              // Check config after OS check so config entry not needed
+              && AOServDaemonConfiguration.isManagerEnabled(SshdManager.class)
+              && sshdManager == null
       ) {
         System.out.print("Starting SshdManager: ");
         // Must be a supported operating system
         if (
-          osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-          || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+            osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                || osvId == OperatingSystemVersion.CENTOS_7_X86_64
         ) {
           AOServConnector conn = AOServDaemon.getConnector();
           sshdManager = new SshdManager();

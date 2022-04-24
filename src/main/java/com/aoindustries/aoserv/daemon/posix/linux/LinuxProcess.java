@@ -75,7 +75,7 @@ public class LinuxProcess extends PosixProcess {
   private File getProc() {
     synchronized (this) {
       if (processProc == null) {
-        processProc=new File(proc, String.valueOf(pid));
+        processProc = new File(proc, String.valueOf(pid));
       }
       return processProc;
     }
@@ -116,7 +116,7 @@ public class LinuxProcess extends PosixProcess {
           split.add(sb.toString());
           sb.setLength(0);
         } else {
-          sb.append((char)ch);
+          sb.append((char) ch);
         }
       }
     }

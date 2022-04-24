@@ -31,57 +31,57 @@ package com.aoindustries.aoserv.daemon.report;
 public final class ProcSys {
 
   public final int
-    files_allocated,
-    files_used,
-    files_max,
-    nr_inodes,
-    nr_free_inodes,
-    inode_preshrink,
-    msgmax,
-    msgmnb,
-    msgmni,
-    nr_msg,
-    entropy_avail,
-    rtsig_max,
-    rtsig_nr,
-    semmsl,
-    semmns,
-    semopm,
-    semmni,
-    nr_sem,
-    shmall,
-    shmmax,
-    shmmni,
-    nr_shm,
-    shm_used,
-    threads_max
+      files_allocated,
+      files_used,
+      files_max,
+      nr_inodes,
+      nr_free_inodes,
+      inode_preshrink,
+      msgmax,
+      msgmnb,
+      msgmni,
+      nr_msg,
+      entropy_avail,
+      rtsig_max,
+      rtsig_nr,
+      semmsl,
+      semmns,
+      semopm,
+      semmni,
+      nr_sem,
+      shmall,
+      shmmax,
+      shmmni,
+      nr_shm,
+      shm_used,
+      threads_max
   ;
 
   public ProcSys() {
     files_allocated
-    =files_used
-    =files_max
-    =nr_inodes
-    =nr_free_inodes
-    =inode_preshrink
-    =msgmax
-    =msgmnb
-    =msgmni
-    =nr_msg
-    =entropy_avail
-    =rtsig_max
-    =rtsig_nr
-    =semmsl
-    =semmns
-    =semopm
-    =semmni
-    =nr_sem
-    =shmall
-    =shmmax
-    =shmmni
-    =nr_shm
-    =shm_used
-    =threads_max
-    =0;
+        = files_used
+        = files_max
+        = nr_inodes
+        = nr_free_inodes
+        = inode_preshrink
+        = msgmax
+        = msgmnb
+        = msgmni
+        = nr_msg
+        = entropy_avail
+        = rtsig_max
+        = rtsig_nr
+        = semmsl
+        = semmns
+        = semopm
+        = semmni
+        = nr_sem
+        = shmall
+        = shmmax
+        = shmmni
+        = nr_shm
+        = shm_used
+        = threads_max
+        = 0;
   }
 }

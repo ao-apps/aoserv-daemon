@@ -62,11 +62,11 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
 
   @Override
   protected void buildSiteDirectory(
-    PosixFile siteDirectory,
-    String optSlash,
-    Set<Site> sitesNeedingRestarted,
-    Set<SharedTomcat> sharedTomcatsNeedingRestarted,
-    Set<PosixFile> restorecon
+      PosixFile siteDirectory,
+      String optSlash,
+      Set<Site> sitesNeedingRestarted,
+      Set<SharedTomcat> sharedTomcatsNeedingRestarted,
+      Set<PosixFile> restorecon
   ) throws IOException, SQLException {
     final boolean isAuto = !httpdSite.isManual();
     final int apacheUid = getApacheUid();
@@ -79,7 +79,7 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
       siteDirectory.mkdir(false, 0700);
       siteDirectoryStat = siteDirectory.getStat();
     } else if (!siteDirectoryStat.isDirectory()) {
-      throw new IOException("Not a directory: "+siteDirectory);
+      throw new IOException("Not a directory: " + siteDirectory);
     }
 
     // New if still owned by root
@@ -138,20 +138,20 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
     try {
       SortedMap<String, WebAppSettings> webapps = new TreeMap<>();
       webapps.put(
-        "",
-        new WebAppSettings(
-          PosixPath.valueOf(
-            HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory().toString()
-              +'/'
-              +httpdSite.getName()
-              +"/htdocs"
-          ),
-          httpdSite.getEnableHtaccess() ? "AuthConfig Indexes Limit" : "None",
-          httpdSite.getEnableSsi(),
-          httpdSite.getEnableIndexes(),
-          httpdSite.getEnableFollowSymlinks(),
-          enableCgi()
-        )
+          "",
+          new WebAppSettings(
+              PosixPath.valueOf(
+                  HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory().toString()
+                      + '/'
+                      + httpdSite.getName()
+                      + "/htdocs"
+              ),
+              httpdSite.getEnableHtaccess() ? "AuthConfig Indexes Limit" : "None",
+              httpdSite.getEnableSsi(),
+              httpdSite.getEnableIndexes(),
+              httpdSite.getEnableFollowSymlinks(),
+              enableCgi()
+          )
       );
       return webapps;
     } catch (ValidationException e) {

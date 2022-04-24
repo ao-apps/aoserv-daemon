@@ -105,16 +105,16 @@ public final class BackupManager {
       throw new IllegalArgumentException("files.size() = " + files.size());
     }
     PackageManager.installPackages(
-      PackageManager.PackageName.TAR,
-      PackageManager.PackageName.GZIP
+        PackageManager.PackageName.TAR,
+        PackageManager.PackageName.GZIP
     );
-    int len=files.size();
-    String[] cmd=new String[len+5];
-    cmd[0]="/bin/tar";
-    cmd[1]="-C";
-    cmd[2]="/";
-    cmd[3]="-czf";
-    cmd[4]=backupFile.getPath();
+    int len = files.size();
+    String[] cmd = new String[len + 5];
+    cmd[0] = "/bin/tar";
+    cmd[1] = "-C";
+    cmd[2] = "/";
+    cmd[3] = "-czf";
+    cmd[4] = backupFile.getPath();
     // strips the leading / as it builds the command
     for (int c = 0; c < len; c++) {
       cmd[c + 5] = files.get(c).getPath().substring(1);
@@ -263,7 +263,7 @@ public final class BackupManager {
           // Not y10k compatible ;)
           GregorianCalendar fileCal = new GregorianCalendar();
           fileCal.set(Calendar.YEAR, Integer.parseInt(filename.substring(0, 4)));
-          fileCal.set(Calendar.MONTH, Integer.parseInt(filename.substring(4, 6))-1);
+          fileCal.set(Calendar.MONTH, Integer.parseInt(filename.substring(4, 6)) - 1);
           fileCal.set(Calendar.DAY_OF_MONTH, Integer.parseInt(filename.substring(6, 8)));
           fileCal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(filename.substring(9, 11)));
           fileCal.set(Calendar.MINUTE, Integer.parseInt(filename.substring(11, 13)));
@@ -273,19 +273,19 @@ public final class BackupManager {
           long age = (System.currentTimeMillis() - fileCal.getTime().getTime());
           if (age >= (MAX_OLDACCOUNTS_AGE * 2)) {
             logger.warning(
-              filename + "\n"
-                + "File date unexpectedly far in the past; refusing to delete.\n"
-                + "This could be due to a system time change or a very long outage.\n"
-                + "Please investigate and removed as-needed."
+                filename + "\n"
+                    + "File date unexpectedly far in the past; refusing to delete.\n"
+                    + "This could be due to a system time change or a very long outage.\n"
+                    + "Please investigate and removed as-needed."
             );
           } else if (age >= MAX_OLDACCOUNTS_AGE) {
             new PosixFile(oldaccountsDir, filename, true).delete();
           } else if (age < 0) {
             logger.warning(
-              filename + "\n"
-                + "File date is in the future.\n"
-                + "This could be due to a system time change or a clock problem.\n"
-                + "Please investigate and removed as-needed."
+                filename + "\n"
+                    + "File date is in the future.\n"
+                    + "This could be due to a system time change or a clock problem.\n"
+                    + "Please investigate and removed as-needed."
             );
           }
         }
@@ -313,25 +313,25 @@ public final class BackupManager {
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
   private static long getDFColumn(PosixPath path, int column) throws IOException {
     return AOServDaemon.execCall(
-      stdout -> {
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(stdout))) {
-          // The first line is the column labels
-          String line = in.readLine();
-          if (line == null) {
-            throw new IOException("EOF when trying to read column labels");
+        stdout -> {
+          try (BufferedReader in = new BufferedReader(new InputStreamReader(stdout))) {
+            // The first line is the column labels
+            String line = in.readLine();
+            if (line == null) {
+              throw new IOException("EOF when trying to read column labels");
+            }
+            line = in.readLine();
+            if (line == null) {
+              throw new IOException("EOF when trying to read values");
+            }
+            String[] columns = Strings.split(line);
+            return 1024 * Long.parseLong(columns[column]);
           }
-          line = in.readLine();
-          if (line == null) {
-            throw new IOException("EOF when trying to read values");
-          }
-          String[] columns = Strings.split(line);
-          return 1024 * Long.parseLong(columns[column]);
-        }
-      },
-      DF,
-      "-k",
-      "-P",
-      path.toString()
+        },
+        DF,
+        "-k",
+        "-P",
+        path.toString()
     );
   }
 

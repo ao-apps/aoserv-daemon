@@ -39,7 +39,7 @@ public final class DF {
   public final long[] frees;
 
   public DF() {
-    device_majors=device_minors = EmptyArrays.EMPTY_INT_ARRAY;
-    totals=useds=frees = EmptyArrays.EMPTY_LONG_ARRAY;
+    device_majors = device_minors = EmptyArrays.EMPTY_INT_ARRAY;
+    totals = useds = frees = EmptyArrays.EMPTY_LONG_ARRAY;
   }
 }

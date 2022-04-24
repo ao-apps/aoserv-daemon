@@ -37,8 +37,8 @@ public abstract class DBReportData {
   @Override
   public String toString() {
     return
-      getClass().getName()
-      +"?numUsers="+numUsers
+        getClass().getName()
+            + "?numUsers=" + numUsers
     ;
   }
 }

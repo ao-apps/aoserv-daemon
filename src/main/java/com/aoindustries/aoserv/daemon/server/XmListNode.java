@@ -43,7 +43,7 @@ public final class XmListNode {
     XmListNode rootNode = new XmListNode("");
     int pos = parseResult(rootNode, result, 0);
     // Everything after pos should be whitespace
-    if (result.substring(pos).trim().length()>0) {
+    if (result.substring(pos).trim().length() > 0) {
       throw new ParseException("Non-whitespace remaining after completed parsing in:\n" + result, pos);
     }
     return rootNode;
@@ -56,22 +56,22 @@ public final class XmListNode {
    * @param pos
    * @return
    */
-  static int parseResult(XmListNode node, String result, int pos) throws ParseException{
+  static int parseResult(XmListNode node, String result, int pos) throws ParseException {
     int len = result.length();
 
-    while (pos<len) {
+    while (pos < len) {
       // Look for the next non-whitespace character
-      while (pos<len && result.charAt(pos) <= ' ') pos++;
-      if (pos<len) {
+      while (pos < len && result.charAt(pos) <= ' ') pos++;
+      if (pos < len) {
         if (result.charAt(pos) == '(') {
           // If is a (, start a sublist
           int nameStart = ++pos;
-          while (pos<len && result.charAt(pos)>' ' && result.charAt(pos) != ')') pos++;
+          while (pos < len && result.charAt(pos) > ' ' && result.charAt(pos) != ')') pos++;
           if (pos >= len) {
             throw new ParseException("Unexpected end of result in:\n" + result, pos);
           }
           String name = result.substring(nameStart, pos);
-          if (name.length()>0) {
+          if (name.length() > 0) {
             XmListNode newNode = new XmListNode(name);
             pos = parseResult(newNode, result, pos);
             if (pos >= len) {
@@ -87,12 +87,12 @@ public final class XmListNode {
         } else {
           // Is a raw value, parse up to either whitespace or )
           int valueStart = pos;
-          while (pos<len && (result.charAt(pos)>' ' && result.charAt(pos) != ')')) pos++;
+          while (pos < len && (result.charAt(pos) > ' ' && result.charAt(pos) != ')')) pos++;
           if (pos >= len) {
             throw new ParseException("Unexpected end of result in:\n" + result, pos);
           }
           String value = result.substring(valueStart, pos).trim();
-          if (value.length()>0) {
+          if (value.length() > 0) {
             node.list.add(value);
           }
           if (result.charAt(pos) == ')') {
@@ -107,6 +107,7 @@ public final class XmListNode {
 
   private final String id;
   private final List<Object> list;
+
   private XmListNode(String id) {
     this.id = id;
     this.list = new ArrayList<>();
@@ -127,26 +128,26 @@ public final class XmListNode {
   public XmListNode getChild(String childNodeName) throws ParseException {
     for (Object child : list) {
       if (child instanceof XmListNode) {
-        XmListNode childNode = (XmListNode)child;
+        XmListNode childNode = (XmListNode) child;
         if (childNode.id.equals(childNodeName)) {
           return childNode;
         }
       }
     }
-    throw new ParseException("No child node named '"+childNodeName+"' found", 0);
+    throw new ParseException("No child node named '" + childNodeName + "' found", 0);
   }
 
   public String getString(String childNodeName) throws ParseException {
     XmListNode childNode = getChild(childNodeName);
     // Should have a sublist of length 1
     if (childNode.list.size() != 1) {
-      throw new ParseException("child list must have length 1, got "+childNode.list.size(), 0);
+      throw new ParseException("child list must have length 1, got " + childNode.list.size(), 0);
     }
     Object childNodeValue = childNode.list.get(0);
     if (!(childNodeValue instanceof String)) {
       throw new ParseException("child node list element is not a String", 0);
     }
-    return (String)childNodeValue;
+    return (String) childNodeValue;
   }
 
   public int getInt(String childNodeName) throws ParseException {

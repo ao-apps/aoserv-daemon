@@ -70,19 +70,19 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
    * </p>
    */
   private static final Set<String> keepWwwgroupDirs = new HashSet<>(Arrays.asList(
-    // Other filesystem patterns
-    "lost+found",
-    "aquota.group",
-    "aquota.user"
+      // Other filesystem patterns
+      "lost+found",
+      "aquota.group",
+      "aquota.user"
   ));
 
   /**
    * Gets the specific manager for one version of shared Tomcat.
    */
   static HttpdSharedTomcatManager<? extends TomcatCommon> getInstance(SharedTomcat sharedTomcat) throws IOException, SQLException {
-    AOServConnector connector=AOServDaemon.getConnector();
+    AOServConnector connector = AOServDaemon.getConnector();
 
-    Version htv=sharedTomcat.getHttpdTomcatVersion();
+    Version htv = sharedTomcat.getHttpdTomcatVersion();
     if (htv.isTomcat3_1(connector)) {
       return new HttpdSharedTomcatManager_3_1(sharedTomcat);
     }
@@ -113,7 +113,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
     if (htv.isTomcat10_0_X(connector)) {
       return new HttpdSharedTomcatManager_10_0_X(sharedTomcat);
     }
-    throw new SQLException("Unsupported version of shared Tomcat: "+htv.getTechnologyVersion(connector).getVersion()+" on "+sharedTomcat);
+    throw new SQLException("Unsupported version of shared Tomcat: " + htv.getTechnologyVersion(connector).getVersion() + " on " + sharedTomcat);
   }
 
   /**
@@ -122,9 +122,9 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
    * Only called by the already synchronized <code>HttpdManager.doRebuild()</code> method.
    */
   public static void doRebuild(
-    List<File> deleteFileList,
-    Set<SharedTomcat> sharedTomcatsNeedingRestarted,
-    Set<PackageManager.PackageName> usedPackages
+      List<File> deleteFileList,
+      Set<SharedTomcat> sharedTomcatsNeedingRestarted,
+      Set<PackageManager.PackageName> usedPackages
   ) throws IOException, SQLException {
     try {
       // Get values used in the rest of the method.
@@ -156,10 +156,10 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
         final String tomcatName = sharedTomcat.getName();
         PosixFile sharedTomcatDirectory = new PosixFile(wwwgroupDirectory, tomcatName, false);
         manager.buildSharedTomcatDirectory(
-          optSlash,
-          sharedTomcatDirectory,
-          deleteFileList,
-          sharedTomcatsNeedingRestarted
+            optSlash,
+            sharedTomcatDirectory,
+            deleteFileList,
+            sharedTomcatsNeedingRestarted
         );
         if (!sharedTomcat.isManual() && manager.upgradeSharedTomcatDirectory(optSlash, sharedTomcatDirectory)) {
           sharedTomcatsNeedingRestarted.add(sharedTomcat);
@@ -281,18 +281,18 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
    */
   String getAutoWarningXmlOld() throws IOException, SQLException {
     return
-      "<!--\n"
-      + "  Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
-      + "  to this file will be overwritten.  Please set the is_manual flag for this multi-site\n"
-      + "  JVM to be able to make permanent changes to this file.\n"
-      + "\n"
-      + "  Control Panel: https://www.aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP.ao?pkey="+sharedTomcat.getPkey()+"\n"
-      + "\n"
-      + "  AOSH: "+Command.SET_HTTPD_SHARED_TOMCAT_IS_MANUAL+" "+sharedTomcat.getName()+" "+sharedTomcat.getLinuxServer().getHostname()+" true\n"
-      + "\n"
-      + "  support@aoindustries.com\n"
-      + "  (866) 270-6195\n"
-      + "-->\n"
+        "<!--\n"
+            + "  Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
+            + "  to this file will be overwritten.  Please set the is_manual flag for this multi-site\n"
+            + "  JVM to be able to make permanent changes to this file.\n"
+            + "\n"
+            + "  Control Panel: https://www.aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP.ao?pkey=" + sharedTomcat.getPkey() + "\n"
+            + "\n"
+            + "  AOSH: " + Command.SET_HTTPD_SHARED_TOMCAT_IS_MANUAL + " " + sharedTomcat.getName() + " " + sharedTomcat.getLinuxServer().getHostname() + " true\n"
+            + "\n"
+            + "  support@aoindustries.com\n"
+            + "  (866) 270-6195\n"
+            + "-->\n"
     ;
   }
 
@@ -303,18 +303,18 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
    */
   String getAutoWarningXml() throws IOException, SQLException {
     return
-      "<!--\n"
-      + "  Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
-      + "  to this file will be overwritten.  Please set the is_manual flag for this multi-site\n"
-      + "  JVM to be able to make permanent changes to this file.\n"
-      + "\n"
-      + "  Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP.ao?pkey="+sharedTomcat.getPkey()+"\n"
-      + "\n"
-      + "  AOSH: "+Command.SET_HTTPD_SHARED_TOMCAT_IS_MANUAL+" "+sharedTomcat.getName()+" "+sharedTomcat.getLinuxServer().getHostname()+" true\n"
-      + "\n"
-      + "  support@aoindustries.com\n"
-      + "  (205) 454-2556\n"
-      + "-->\n"
+        "<!--\n"
+            + "  Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
+            + "  to this file will be overwritten.  Please set the is_manual flag for this multi-site\n"
+            + "  JVM to be able to make permanent changes to this file.\n"
+            + "\n"
+            + "  Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP.ao?pkey=" + sharedTomcat.getPkey() + "\n"
+            + "\n"
+            + "  AOSH: " + Command.SET_HTTPD_SHARED_TOMCAT_IS_MANUAL + " " + sharedTomcat.getName() + " " + sharedTomcat.getLinuxServer().getHostname() + " true\n"
+            + "\n"
+            + "  support@aoindustries.com\n"
+            + "  (205) 454-2556\n"
+            + "-->\n"
     ;
   }
 
@@ -400,10 +400,10 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
    */
   public PosixFile getPidFile() throws IOException, SQLException {
     return new PosixFile(
-      HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSharedTomcatsDirectory()
-      + "/"
-      + sharedTomcat.getName()
-      + "/var/run/tomcat.pid"
+        HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSharedTomcatsDirectory()
+            + "/"
+            + sharedTomcat.getName()
+            + "/var/run/tomcat.pid"
     );
   }
 
@@ -421,21 +421,21 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
       }
     }
     return
-      hasEnabledSite
-      && (
-        !sharedTomcat.isManual()
-        // Script may not exist while in manual mode
-        || new PosixFile(getStartStopScriptPath().toString()).getStat().exists()
-      );
+        hasEnabledSite
+            && (
+            !sharedTomcat.isManual()
+                // Script may not exist while in manual mode
+                || new PosixFile(getStartStopScriptPath().toString()).getStat().exists()
+        );
   }
 
   public PosixPath getStartStopScriptPath() throws IOException, SQLException {
     try {
       return PosixPath.valueOf(
-        HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSharedTomcatsDirectory()
-        + "/"
-        + sharedTomcat.getName()
-        + "/bin/tomcat"
+          HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSharedTomcatsDirectory()
+              + "/"
+              + sharedTomcat.getName()
+              + "/bin/tomcat"
       );
     } catch (ValidationException e) {
       throw new IOException(e);
@@ -444,9 +444,9 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 
   public File getStartStopScriptWorkingDirectory() throws IOException, SQLException {
     return new File(
-      HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSharedTomcatsDirectory()
-      + "/"
-      + sharedTomcat.getName()
+        HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSharedTomcatsDirectory()
+            + "/"
+            + sharedTomcat.getName()
     );
   }
 
@@ -454,17 +454,17 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
   public Boolean stop() throws IOException, SQLException {
     PosixPath scriptPath = getStartStopScriptPath();
     if (
-      !sharedTomcat.isManual()
-      // Script may not exist while in manual mode
-      || new PosixFile(scriptPath.toString()).getStat().exists()
+        !sharedTomcat.isManual()
+            // Script may not exist while in manual mode
+            || new PosixFile(scriptPath.toString()).getStat().exists()
     ) {
       PosixFile pidFile = getPidFile();
       if (pidFile.getStat().exists()) {
         AOServDaemon.suexec(
-          sharedTomcat.getLinuxServerAccount().getLinuxAccount_username_id(),
-          getStartStopScriptWorkingDirectory(),
-          scriptPath + " stop",
-          0
+            sharedTomcat.getLinuxServerAccount().getLinuxAccount_username_id(),
+            getStartStopScriptWorkingDirectory(),
+            scriptPath + " stop",
+            0
         );
         if (pidFile.getStat().exists()) {
           pidFile.delete();
@@ -483,17 +483,17 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
   public Boolean start() throws IOException, SQLException {
     PosixPath scriptPath = getStartStopScriptPath();
     if (
-      !sharedTomcat.isManual()
-      // Script may not exist while in manual mode
-      || new PosixFile(scriptPath.toString()).getStat().exists()
+        !sharedTomcat.isManual()
+            // Script may not exist while in manual mode
+            || new PosixFile(scriptPath.toString()).getStat().exists()
     ) {
       PosixFile pidFile = getPidFile();
       if (!pidFile.getStat().exists()) {
         AOServDaemon.suexec(
-          sharedTomcat.getLinuxServerAccount().getLinuxAccount_username_id(),
-          getStartStopScriptWorkingDirectory(),
-          scriptPath + " start",
-          0
+            sharedTomcat.getLinuxServerAccount().getLinuxAccount_username_id(),
+            getStartStopScriptWorkingDirectory(),
+            scriptPath + " start",
+            0
         );
         return true;
       } else {
@@ -506,10 +506,10 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
             System.err.println("Warning: Deleting PID file for dead process: " + pidFile.getPath());
             pidFile.delete();
             AOServDaemon.suexec(
-              sharedTomcat.getLinuxServerAccount().getLinuxAccount_username_id(),
-              getStartStopScriptWorkingDirectory(),
-              scriptPath + " start",
-              0
+                sharedTomcat.getLinuxServerAccount().getLinuxAccount_username_id(),
+                getStartStopScriptWorkingDirectory(),
+                scriptPath + " start",
+                0
             );
             return true;
           }
