@@ -34,3 +34,6 @@ d5608599d7dcfe2883babc69c93a36aa7657868e
 
 # Blank line added?
 b956fbb070ba722aedaa182defd9049bcdceaee0
+
+# Performed automatic source code clean-up with rewrite-maven-plugin
+8c2df5594cde2c239b32811aeeb30c8576883f4a
