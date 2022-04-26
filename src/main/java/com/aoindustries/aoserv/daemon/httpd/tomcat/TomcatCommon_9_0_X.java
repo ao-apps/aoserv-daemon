@@ -153,6 +153,28 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
       Version version = new Version(rpm.getVersion(), rpm.getRelease());
       String suffix = osConfig.getPackageReleaseSuffix();
       // Downgrade support
+      if (version.compareTo("9.0.62-3" + suffix) < 0) {
+        UpgradeSymlink[] downgradeSymlinks_9_0_62_3 = {
+            // mysql-connector-java-8.0.29.jar -> mysql-connector-java-8.0.28.jar
+            new UpgradeSymlink(
+                "lib/mysql-connector-java-8.0.29.jar",
+                "/dev/null",
+                "lib/mysql-connector-java-8.0.28.jar",
+                "/dev/null"
+            ),
+            new UpgradeSymlink(
+                "lib/mysql-connector-java-8.0.29.jar",
+                "../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.29.jar",
+                "lib/mysql-connector-java-8.0.28.jar",
+                "../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.28.jar"
+            ),
+        };
+        for (UpgradeSymlink symlink : downgradeSymlinks_9_0_62_3) {
+          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
+            needsRestart = true;
+          }
+        }
+      }
       if (version.compareTo("9.0.62-2" + suffix) < 0) {
         UpgradeSymlink[] downgradeSymlinks_9_0_62_2 = {
             // postgresql-42.3.4.jar -> postgresql-42.3.3.jar
@@ -639,7 +661,29 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
           }
         }
       }
-      if (version.compareTo("9.0.62-2" + suffix) > 0) {
+      if (version.compareTo("9.0.62-3" + suffix) >= 0) {
+        UpgradeSymlink[] upgradeSymlinks_9_0_62_3 = {
+            // mysql-connector-java-8.0.28.jar -> mysql-connector-java-8.0.29.jar
+            new UpgradeSymlink(
+                "lib/mysql-connector-java-8.0.28.jar",
+                "/dev/null",
+                "lib/mysql-connector-java-8.0.29.jar",
+                "/dev/null"
+            ),
+            new UpgradeSymlink(
+                "lib/mysql-connector-java-8.0.28.jar",
+                "../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.28.jar",
+                "lib/mysql-connector-java-8.0.29.jar",
+                "../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.29.jar"
+            ),
+        };
+        for (UpgradeSymlink symlink : upgradeSymlinks_9_0_62_3) {
+          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
+            needsRestart = true;
+          }
+        }
+      }
+      if (version.compareTo("9.0.62-3" + suffix) > 0) {
         throw new IllegalStateException("Version of Tomcat newer than expected: " + version);
       }
     }
