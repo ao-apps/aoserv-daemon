@@ -88,7 +88,7 @@ public final class GroupFile {
      * Constructs a group file entry given one line of the <code>/etc/group</code> file, not including
      * the trailing newline (<code>'\n'</code>).
      */
-    public Entry(String line) throws ValidationException {
+    private Entry(String line) throws ValidationException {
       List<String> values = Strings.split(line, ':');
       int len = values.size();
       if (len < 3) {

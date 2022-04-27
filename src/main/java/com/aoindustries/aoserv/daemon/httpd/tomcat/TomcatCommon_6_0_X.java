@@ -104,9 +104,9 @@ final class TomcatCommon_6_0_X extends TomcatCommon {
             || osConfig == OperatingSystemConfiguration.CENTOS_7_X86_64
     ) {
       String rpmVersion = PackageManager.getInstalledPackage(PackageManager.PackageName.APACHE_TOMCAT_6_0).getVersion().toString();
-      if (rpmVersion.equals("6.0.37")) {
+      if ("6.0.37".equals(rpmVersion)) {
         // Nothing to do
-      } else if (rpmVersion.equals("6.0.45")) {
+      } else if ("6.0.45".equals(rpmVersion)) {
         UpgradeSymlink[] upgradeSymlinks_6_0_45 = {
             new UpgradeSymlink(
                 "lib/ecj-4.2.2.jar",
@@ -147,7 +147,7 @@ final class TomcatCommon_6_0_X extends TomcatCommon {
             needsRestart = true;
           }
         }
-      } else if (rpmVersion.equals("6.0.53")) {
+      } else if ("6.0.53".equals(rpmVersion)) {
         UpgradeSymlink[] upgradeSymlinks_6_0_53 = {
             // mysql-connector-java-5.1.38-bin.jar -> mysql-connector-java-5.1.42-bin.jar
             // mysql-connector-java-5.1.41-bin.jar -> mysql-connector-java-5.1.42-bin.jar

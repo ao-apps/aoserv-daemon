@@ -157,9 +157,9 @@ final class HttpdLogManager {
         logDirectories = AoCollections.newHashSet(list.length);
         for (String dirname : list) {
           if (
-              !dirname.equals("lost+found")
-                  && !dirname.equals("aquota.group")
-                  && !dirname.equals("aquota.user")
+              !"lost+found".equals(dirname)
+                  && !"aquota.group".equals(dirname)
+                  && !"aquota.user".equals(dirname)
           ) {
             logDirectories.add(dirname);
           }

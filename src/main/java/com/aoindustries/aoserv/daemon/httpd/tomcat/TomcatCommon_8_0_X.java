@@ -106,9 +106,9 @@ final class TomcatCommon_8_0_X extends TomcatCommon {
             || osConfig == OperatingSystemConfiguration.CENTOS_7_X86_64
     ) {
       String rpmVersion = PackageManager.getInstalledPackage(PackageManager.PackageName.APACHE_TOMCAT_8_0).getVersion().toString();
-      if (rpmVersion.equals("8.0.30")) {
+      if ("8.0.30".equals(rpmVersion)) {
         // Nothing to do
-      } else if (rpmVersion.equals("8.0.32")) {
+      } else if ("8.0.32".equals(rpmVersion)) {
         UpgradeSymlink[] upgradeSymlinks_8_0_32 = {
             new UpgradeSymlink(
                 "lib/postgresql-9.4.1207.jar",
@@ -126,7 +126,7 @@ final class TomcatCommon_8_0_X extends TomcatCommon {
             needsRestart = true;
           }
         }
-      } else if (rpmVersion.equals("8.0.43")) {
+      } else if ("8.0.43".equals(rpmVersion)) {
         UpgradeSymlink[] upgradeSymlinks_8_0_43 = {
             // ecj-4.4.2.jar -> ecj-4.6.1.jar
             new UpgradeSymlink(
@@ -185,7 +185,7 @@ final class TomcatCommon_8_0_X extends TomcatCommon {
             needsRestart = true;
           }
         }
-      } else if (rpmVersion.equals("8.0.44")) {
+      } else if ("8.0.44".equals(rpmVersion)) {
         UpgradeSymlink[] upgradeSymlinks_8_0_44 = {
             // ecj-4.6.1.jar -> ecj-4.6.3.jar
             new UpgradeSymlink(
@@ -205,10 +205,10 @@ final class TomcatCommon_8_0_X extends TomcatCommon {
           }
         }
       } else if (
-          rpmVersion.equals("8.0.45")
-              || rpmVersion.equals("8.0.46")
-              || rpmVersion.equals("8.0.47")
-              || rpmVersion.equals("8.0.48")
+          "8.0.45".equals(rpmVersion)
+              || "8.0.46".equals(rpmVersion)
+              || "8.0.47".equals(rpmVersion)
+              || "8.0.48".equals(rpmVersion)
       ) {
         UpgradeSymlink[] upgradeSymlinks_8_0_45 = {
             // mysql-connector-java-5.1.42-bin.jar -> mysql-connector-java-5.1.45-bin.jar
@@ -258,10 +258,10 @@ final class TomcatCommon_8_0_X extends TomcatCommon {
           }
         }
       } else if (
-          rpmVersion.equals("8.0.49")
-              || rpmVersion.equals("8.0.50")
-              || rpmVersion.equals("8.0.51")
-              || rpmVersion.equals("8.0.52")
+          "8.0.49".equals(rpmVersion)
+              || "8.0.50".equals(rpmVersion)
+              || "8.0.51".equals(rpmVersion)
+              || "8.0.52".equals(rpmVersion)
       ) {
         UpgradeSymlink[] upgradeSymlinks_8_0_49 = {
             // mysql-connector-java-5.1.45-bin.jar -> mysql-connector-java-5.1.46-bin.jar
@@ -299,7 +299,7 @@ final class TomcatCommon_8_0_X extends TomcatCommon {
           }
         }
       } else if (
-          rpmVersion.equals("8.0.53")
+          "8.0.53".equals(rpmVersion)
       ) {
         UpgradeSymlink[] upgradeSymlinks_8_0_53 = {
             // mysql-connector-java-5.1.46-bin.jar -> mysql-connector-java-5.1.47-bin.jar

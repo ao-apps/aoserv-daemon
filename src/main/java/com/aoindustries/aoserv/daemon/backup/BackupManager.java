@@ -270,7 +270,7 @@ public final class BackupManager {
           fileCal.set(Calendar.SECOND, Integer.parseInt(filename.substring(13, 15)));
 
           // If more than double the max age, we might have a system time problem or an extended down time
-          long age = (System.currentTimeMillis() - fileCal.getTime().getTime());
+          long age = System.currentTimeMillis() - fileCal.getTime().getTime();
           if (age >= (MAX_OLDACCOUNTS_AGE * 2)) {
             logger.warning(
                 filename + "\n"

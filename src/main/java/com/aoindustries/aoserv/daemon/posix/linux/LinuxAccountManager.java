@@ -445,14 +445,14 @@ public final class LinuxAccountManager extends BuilderThread {
               synchronized (GroupFile.groupLock) {
                 synchronized (GShadowFile.gshadowLock) {
                   // Build new file contents
-                  byte[] newPasswdContent  = PasswdFile .buildPasswdFile(passwdEntries, uidMin, uidMax);
-                  byte[] newShadowContent  = ShadowFile .buildShadowFile(usernames);
-                  byte[] newGroupContent   = GroupFile  .buildGroupFile  (groupEntries, gidMin, gidMax);
+                  byte[] newPasswdContent  = PasswdFile.buildPasswdFile(passwdEntries, uidMin, uidMax);
+                  byte[] newShadowContent  = ShadowFile.buildShadowFile(usernames);
+                  byte[] newGroupContent   = GroupFile.buildGroupFile  (groupEntries, gidMin, gidMax);
                   byte[] newGShadowContent = GShadowFile.buildGShadowFile(groups);
                   // Write any updates
-                  PasswdFile .writePasswdFile(newPasswdContent,  restorecon);
-                  ShadowFile .writeShadowFile(newShadowContent,  restorecon);
-                  GroupFile  .writeGroupFile  (newGroupContent,   restorecon);
+                  PasswdFile.writePasswdFile(newPasswdContent,  restorecon);
+                  ShadowFile.writeShadowFile(newShadowContent,  restorecon);
+                  GroupFile.writeGroupFile  (newGroupContent,   restorecon);
                   GShadowFile.writeGShadowFile(newGShadowContent, restorecon);
                 }
               }
@@ -540,15 +540,13 @@ public final class LinuxAccountManager extends BuilderThread {
             boolean chownHome;
             {
               Stat homeDirStat = homeDir.getStat();
-              chownHome = (
-                  !isWWWAndUser
-                      && (
-                      homeDirStat.getUid() == PosixFile.ROOT_UID
-                          || homeDirStat.getGid() == PosixFile.ROOT_GID
-                  )
-                      // Do not set permissions for encrypted home directories
-                      && !(new PosixFile(homeStr + ".aes256.img").getStat().exists())
-              );
+              chownHome = !isWWWAndUser
+                  && (
+                  homeDirStat.getUid() == PosixFile.ROOT_UID
+                      || homeDirStat.getGid() == PosixFile.ROOT_GID
+              )
+                  // Do not set permissions for encrypted home directories
+                  && !(new PosixFile(homeStr + ".aes256.img").getStat().exists());
               if (chownHome) {
                 copySkel = true;
               }

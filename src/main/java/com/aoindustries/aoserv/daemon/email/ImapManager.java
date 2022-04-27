@@ -1367,7 +1367,7 @@ public final class ImapManager extends BuilderThread {
     if (folder.length() > 0) {
       sb.append('/').append(folder);
     }
-    if (!domain.equals("default")) {
+    if (!"default".equals(domain)) {
       sb.append('@').append(domain);
     }
     return sb.toString();
@@ -1386,7 +1386,7 @@ public final class ImapManager extends BuilderThread {
   private static void rebuildAcl(IMAPFolder folder, String user, String domain, Rights rights) throws MessagingException {
     boolean isDebug = logger.isLoggable(Level.FINE);
     // Determine the username
-    String username = domain.equals("default") ? user : (user + '@' + domain);
+    String username = "default".equals(domain) ? user : (user + '@' + domain);
     if (isDebug) {
       logger.fine(folder.getFullName() + ": Getting ACL: " + username);
     }
@@ -1488,7 +1488,7 @@ public final class ImapManager extends BuilderThread {
             }
             String hashSubFilename = hashSubFilenames[0];
             File userDir = new File(hashDir, hashSubFilename);
-            if (!hashSubFilename.equals("user")) {
+            if (!"user".equals(hashSubFilename)) {
               throw new IOException("hashSubFilenames should only contain a \"user\" directory: " + userDir);
             }
             String[] userSubFilenames = userDir.list();
@@ -1648,7 +1648,7 @@ public final class ImapManager extends BuilderThread {
 
   private static final Object appendCounterLock = new Object();
   private static long appendCounterStart = -1;
-  private static long appendCounter = 0;
+  private static long appendCounter;
 
   private static void incAppendCounter() {
     synchronized (appendCounterLock) {
@@ -1927,7 +1927,7 @@ public final class ImapManager extends BuilderThread {
           }
         }
         // Delete old folder if completely empty, error otherwise
-        if (deleteOldFolder && !folderName.equals("INBOX")) {
+        if (deleteOldFolder && !"INBOX".equals(folderName)) {
           log(logOut, Level.FINE, username, "Deleting mailbox: " + folderName);
           if (!oldFolder.delete(false)) {
             throw new IOException(username + ": Unable to delete mailbox: " + folderName);
@@ -1936,7 +1936,7 @@ public final class ImapManager extends BuilderThread {
       }
       if (deleteOldFolder && file.getStat().exists()) {
         // If INBOX, need to remove file
-        if (folderName.equals("INBOX")) {
+        if ("INBOX".equals(folderName)) {
           log(logOut, Level.FINE, username, "Deleting mailbox file: " + file.getPath());
           file.delete();
         } else {
@@ -2265,7 +2265,7 @@ public final class ImapManager extends BuilderThread {
       for (String domain : allUsers.keySet()) {
         for (String user : allUsers.get(domain)) {
           String lsaUsername;
-          if (domain.equals("default")) {
+          if ("default".equals(domain)) {
             lsaUsername = user;
           } else {
             lsaUsername = user + '@' + domain;
@@ -2396,7 +2396,7 @@ public final class ImapManager extends BuilderThread {
         if (folderName.contains("..")) {
           sizes[c] = -1;
         } else {
-          boolean isInbox = folderName.equals("INBOX");
+          boolean isInbox = "INBOX".equals(folderName);
           sizes[c] = getCyrusFolderSize(user, isInbox ? "" : folderName, domain, !isInbox);
         }
       }

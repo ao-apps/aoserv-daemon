@@ -458,7 +458,7 @@ public final class DistroGenerator {
     private Stack<String[]> currentLists;
     private Stack<Integer> currentIndexes;
 
-    private boolean done = false;
+    private boolean done;
 
     /**
      * <p>
@@ -599,7 +599,7 @@ public final class DistroGenerator {
           }
           // Get the current filename
           String filename;
-          if (currentDirectory.equals("/")) {
+          if ("/".equals(currentDirectory)) {
             filename = "/" + currentList[currentIndex++];
           } else {
             filename = currentDirectory + '/' + currentList[currentIndex++];

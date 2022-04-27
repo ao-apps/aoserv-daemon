@@ -97,7 +97,7 @@ public final class VirtualServerManager {
     private final String name;
     private final String onReboot;
 
-    XmList(String serverName) throws ParseException, IOException, SQLException {
+    private XmList(String serverName) throws ParseException, IOException, SQLException {
       OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
       int osvId = osv.getPkey();
       if (
@@ -117,7 +117,7 @@ public final class VirtualServerManager {
           throw new ParseException("Expected one child of the root node, got " + rootNode.size(), 0);
         }
         XmListNode domainNode = (XmListNode) rootNode.get(0);
-        if (!domainNode.getId().equals("domain")) {
+        if (!"domain".equals(domainNode.getId())) {
           throw new ParseException("Expected only child of the root node to have the id 'domain', got '" + domainNode.getId() + "'", 0);
         }
         domid = domainNode.getInt("domid");
@@ -364,7 +364,7 @@ public final class VirtualServerManager {
           int vncPort = Integer.MIN_VALUE;
           for (int c = 1; c < values.size(); c += 5) {
             if (
-                !values.get(c).trim().equals("PTCP")
+                !"PTCP".equals(values.get(c).trim())
                     || !values.get(c + 2).startsWith("TST=")
                     || !values.get(c + 3).startsWith("TQR=")
                     || !values.get(c + 4).startsWith("TQS=")
@@ -373,7 +373,7 @@ public final class VirtualServerManager {
             }
             if (
                 (values.get(c + 1).startsWith("n127.0.0.1:") || values.get(c + 1).startsWith("n*:"))
-                    && values.get(c + 2).equals("TST=LISTEN")
+                    && "TST=LISTEN".equals(values.get(c + 2))
             ) {
               vncPort = Integer.parseInt(values.get(c + 1).substring(values.get(c + 1).indexOf(':') + 1));
               break;

@@ -116,7 +116,7 @@ public final class GShadowFile {
      * Constructs a gshadow file entry given one line of the <code>/etc/gshadow</code> file, not including
      * the trailing newline (<code>'\n'</code>).
      */
-    public Entry(String line) throws ValidationException {
+    private Entry(String line) throws ValidationException {
       List<String> values = Strings.split(line, ':');
       int len = values.size();
       if (len < 1) {

@@ -63,11 +63,15 @@ public final class Uptime {
 
     // skip past spaces
     int len = line.length();
-    while (pos < len && line.charAt(pos) == ' ') pos++;
+    while (pos < len && line.charAt(pos) == ' ') {
+      pos++;
+    }
 
     // find next space
     int pos2 = pos + 1;
-    while (pos2 < len && line.charAt(pos2) != ' ') pos2++;
+    while (pos2 < len && line.charAt(pos2) != ' ') {
+      pos2++;
+    }
 
     // Parse the number of users
     numUsers = Integer.parseInt(line.substring(pos, pos2));
@@ -78,7 +82,9 @@ public final class Uptime {
       pos = line.indexOf(':', pos2 + 1) + 1;
 
       // Skip any whitespace
-      while (pos < len && line.charAt(pos) == ' ') pos++;
+      while (pos < len && line.charAt(pos) == ' ') {
+        pos++;
+      }
 
       // Find the next comma
       pos2 = line.indexOf(',', pos);

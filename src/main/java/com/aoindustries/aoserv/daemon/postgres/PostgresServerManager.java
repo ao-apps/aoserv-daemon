@@ -324,14 +324,14 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
           if (list != null) {
             for (String filename : list) {
               if (
-                  !filename.equals("stderr")
-                      && !filename.equals("stdout")
+                  !"stderr".equals(filename)
+                      && !"stdout".equals(filename)
               ) {
                 // Must be in postgresql-2006-02-14_011332.log format
                 // TODO: *.csv, too
                 if (
                     filename.length() != 32
-                        || !filename.substring(0, 11).equals("postgresql-")
+                        || !"postgresql-".equals(filename.substring(0, 11))
                         || filename.charAt(11) < '0' || filename.charAt(11) > '9'
                         || filename.charAt(12) < '0' || filename.charAt(12) > '9'
                         || filename.charAt(13) < '0' || filename.charAt(13) > '9'

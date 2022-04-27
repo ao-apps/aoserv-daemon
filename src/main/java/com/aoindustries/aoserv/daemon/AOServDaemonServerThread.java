@@ -861,13 +861,17 @@ public final class AOServDaemonServerThread extends Thread {
               User.Name username = User.Name.valueOf(in.readUTF());
               int numFolders = in.readCompressedInt();
               String[] folderNames = new String[numFolders];
-              for (int c = 0; c < numFolders; c++) folderNames[c] = in.readUTF();
+              for (int c = 0; c < numFolders; c++) {
+                folderNames[c] = in.readUTF();
+              }
               if (daemonKey == null) {
                 throw new IOException("Only the master server may GET_IMAP_FOLDER_SIZES");
               }
               long[] sizes = ImapManager.getImapFolderSizes(username, folderNames);
               out.write(AOServDaemonProtocol.DONE);
-              for (int c = 0; c < numFolders; c++) out.writeLong(sizes[c]);
+              for (int c = 0; c < numFolders; c++) {
+                out.writeLong(sizes[c]);
+              }
             }
               break;
             case AOServDaemonProtocol.GET_INBOX_ATTRIBUTES :

@@ -577,8 +577,8 @@ public final class HttpdServerManager {
         for (String filename : extraFiles) {
           if (
               !filename.equals(Site.DISABLED + ".inc")
-                  && !filename.equals("README")
-                  && !filename.equals("README.txt") // 1.0.0~snapshot only
+                  && !"README".equals(filename)
+                  && !"README.txt".equals(filename) // 1.0.0~snapshot only
           ) {
             File toDelete = new File(SITES_AVAILABLE, filename);
             if (logger.isLoggable(Level.INFO)) {
@@ -642,8 +642,8 @@ public final class HttpdServerManager {
         // Mark files for deletion
         for (String filename : extraFiles) {
           if (
-              !filename.equals("README")
-                  && !filename.equals("README.txt") // 1.0.0~snapshot only
+              !"README".equals(filename)
+                  && !"README.txt".equals(filename) // 1.0.0~snapshot only
           ) {
             File toDelete = new File(SITES_ENABLED, filename);
             if (logger.isLoggable(Level.INFO)) {
@@ -2809,7 +2809,7 @@ public final class HttpdServerManager {
           + "#\n");
       // TODO: Could use wildcard include if there are no list-first sites (or they happen to match the ordering?) and there is only one apache instance
       for (int d = 0; d < 2; d++) {
-        boolean listFirst = (d == 0);
+        boolean listFirst = d == 0;
         for (Site site : sites) {
           if (site.getListFirst() == listFirst) {
             for (VirtualHost bind : site.getHttpdSiteBinds(hs)) {
@@ -3733,7 +3733,9 @@ public final class HttpdServerManager {
   }
 
   private static class SeBoolLock {
-    // Empty lock class to help heap profile
+    private SeBoolLock() {
+      // Empty lock class to help heap profile
+    }
   }
   private static final SeBoolLock seBoolLock = new SeBoolLock();
 
@@ -3782,7 +3784,7 @@ public final class HttpdServerManager {
             {
               if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                 String name = hs.getName();
-                int num = (name == null ? 1 : Integer.parseInt(name));
+                int num = name == null ? 1 : Integer.parseInt(name);
                 ppid = Integer.parseInt(
                     FileUtils.readFileAsString(
                         new File("/var/run/httpd" + num + ".pid")

@@ -49,7 +49,7 @@ public abstract class SocketServerManager {
     // Do nothing
   }
 
-  private boolean started = false;
+  private boolean started;
 
   @SuppressWarnings({"UseOfSystemOutOrSystemErr", "UseSpecificCatch", "SleepWhileInLoop", "BroadCatchBlock", "TooBroadCatch", "SleepWhileHoldingLock"})
   public final void start() throws IOException, SQLException {

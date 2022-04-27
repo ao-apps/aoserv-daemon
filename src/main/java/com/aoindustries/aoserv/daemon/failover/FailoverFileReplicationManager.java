@@ -385,7 +385,10 @@ public final class FailoverFileReplicationManager {
    * Keeps track of things that will need to be done after a successful replication pass.
    */
   private static class PostPassChecklist {
-    boolean restartMySQLs = false;
+    boolean restartMySQLs;
+
+    private PostPassChecklist() {
+    }
   }
 
   private static void updated(int retention, PostPassChecklist postPassChecklist, String relativePath) {
@@ -413,6 +416,9 @@ public final class FailoverFileReplicationManager {
     private Object message2;
     private Object message3;
     private Object message4;
+
+    private Activity() {
+    }
 
     private synchronized void update(
         Object message1,
@@ -2304,7 +2310,7 @@ public final class FailoverFileReplicationManager {
     final long modifyTime;
     final long size;
 
-    ModifyTimeAndSize(long modifyTime, long size) {
+    private ModifyTimeAndSize(long modifyTime, long size) {
       this.modifyTime = modifyTime;
       this.size = size;
     }
@@ -2484,13 +2490,13 @@ public final class FailoverFileReplicationManager {
   private static boolean deleteOnCleanup(String fromServer, int retention, String relativePath, List<Server.Name> replicatedMySQLServers, List<String> replicatedMySQLMinorVersions) {
     boolean isDebug = logger.isLoggable(Level.FINE);
     if (
-        relativePath.equals("/proc")
+        "/proc".equals(relativePath)
             || relativePath.startsWith("/proc/")
-            || relativePath.equals("/sys")
+            || "/sys".equals(relativePath)
             || relativePath.startsWith("/sys/")
-            || relativePath.equals("/selinux")
+            || "/selinux".equals(relativePath)
             || relativePath.startsWith("/selinux/")
-            || relativePath.equals("/dev/pts")
+            || "/dev/pts".equals(relativePath)
             || relativePath.startsWith("/dev/pts/")
     ) {
       if (isDebug) {
@@ -2577,8 +2583,7 @@ public final class FailoverFileReplicationManager {
                       gcal.set(Calendar.MILLISECOND, 0);
                       int age = SafeMath.castInt(
                           (fromServerDate - gcal.getTimeInMillis())
-                              /
-                              (24L * 60 * 60 * 1000)
+                              / (24L * 60 * 60 * 1000)
                       );
                       if (age >= 0) {
                         // Must also be a date directory with no extension, or one of the expected extensions to delete:
@@ -2845,7 +2850,7 @@ public final class FailoverFileReplicationManager {
     }
   }
 
-  private static boolean started = false;
+  private static boolean started;
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() throws IOException, SQLException {

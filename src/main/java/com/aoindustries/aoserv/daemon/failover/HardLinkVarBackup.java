@@ -81,7 +81,7 @@ public final class HardLinkVarBackup {
 
   @SuppressWarnings("UnusedAssignment")
   public static void main(String[] args) {
-    final boolean debug = args.length > 0 && args[0].equalsIgnoreCase("debug");
+    final boolean debug = args.length > 0 && "debug".equalsIgnoreCase(args[0]);
     @SuppressWarnings("UseOfSystemOutOrSystemErr")
     final PrintStream out = System.out;
     @SuppressWarnings("UseOfSystemOutOrSystemErr")
@@ -201,7 +201,7 @@ public final class HardLinkVarBackup {
         for (int c = 0; c < numIterators; c++) {
           PosixFile uf = unixFiles[c];
           if (uf != null) {
-            if (isLowestRelativePaths[c] = (relativePaths[c].equals(lowestRelativePath))) {
+            if (isLowestRelativePaths[c] = relativePaths[c].equals(lowestRelativePath)) {
               // Keep stats
               totalObjects++;
               try {
@@ -226,7 +226,7 @@ public final class HardLinkVarBackup {
                   int gid = ufStat.getGid();
 
                   // Look for regular file up the list to link to
-                  for (int d = (c - 1); d >= 0; d--) {
+                  for (int d = c - 1; d >= 0; d--) {
                     PosixFile otherUF = unixFiles[d];
                     if (
                         otherUF != null

@@ -61,12 +61,16 @@ public final class XmListNode {
 
     while (pos < len) {
       // Look for the next non-whitespace character
-      while (pos < len && result.charAt(pos) <= ' ') pos++;
+      while (pos < len && result.charAt(pos) <= ' ') {
+        pos++;
+      }
       if (pos < len) {
         if (result.charAt(pos) == '(') {
           // If is a (, start a sublist
           int nameStart = ++pos;
-          while (pos < len && result.charAt(pos) > ' ' && result.charAt(pos) != ')') pos++;
+          while (pos < len && result.charAt(pos) > ' ' && result.charAt(pos) != ')') {
+            pos++;
+          }
           if (pos >= len) {
             throw new ParseException("Unexpected end of result in:\n" + result, pos);
           }
@@ -87,7 +91,9 @@ public final class XmListNode {
         } else {
           // Is a raw value, parse up to either whitespace or )
           int valueStart = pos;
-          while (pos < len && (result.charAt(pos) > ' ' && result.charAt(pos) != ')')) pos++;
+          while (pos < len && (result.charAt(pos) > ' ' && result.charAt(pos) != ')')) {
+            pos++;
+          }
           if (pos >= len) {
             throw new ParseException("Unexpected end of result in:\n" + result, pos);
           }

@@ -52,7 +52,7 @@ public abstract class HttpdJBossSiteManager<TC extends TomcatCommon> extends Htt
   public static HttpdJBossSiteManager<? extends TomcatCommon> getInstance(Site jbossSite) throws IOException, SQLException {
     AOServConnector connector = AOServDaemon.getConnector();
     String jbossVersion = jbossSite.getHttpdJBossVersion().getTechnologyVersion(connector).getVersion();
-    if (jbossVersion.equals("2.2.2")) {
+    if ("2.2.2".equals(jbossVersion)) {
       return new HttpdJBossSiteManager_2_2_2(jbossSite);
     }
     throw new SQLException("Unsupported version of standard JBoss: " + jbossVersion + " on " + jbossSite);

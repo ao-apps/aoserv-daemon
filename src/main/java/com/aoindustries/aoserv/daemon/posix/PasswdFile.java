@@ -119,7 +119,7 @@ public final class PasswdFile {
      * Constructs a passwd file entry given one line of the <code>/etc/passwd</code> file, not including
      * the trailing newline (<code>'\n'</code>).
      */
-    public Entry(String line) throws ValidationException {
+    private Entry(String line) throws ValidationException {
       List<String> values = Strings.split(line, ':');
       int len = values.size();
       if (len < 7) {

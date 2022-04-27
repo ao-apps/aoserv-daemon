@@ -297,7 +297,7 @@ public final class SslCertificateManager {
           throw new IOException(FACTORY_TYPE + ": Unable to parse common name \"" + x509Name + "\": " + e.toString(), e);
         }
         for (Rdn rdn : ln.getRdns()) {
-          if (rdn.getType().equalsIgnoreCase("CN")) {
+          if ("CN".equalsIgnoreCase(rdn.getType())) {
             commonName = rdn.getValue().toString();
             break;
           }
@@ -683,9 +683,9 @@ public final class SslCertificateManager {
             }
 
             // Get the last modified of each file, or 0 for a file that doesn't exist
-            long keyModifyTime   = keyCanonicalExists   ? keyCanonicalStat  .getModifyTime() : 0;
-            long csrModifyTime   = csrCanonicalExists   ? csrCanonicalStat  .getModifyTime() : 0;
-            long certModifyTime  = certCanonicalExists  ? certCanonicalStat .getModifyTime() : 0;
+            long keyModifyTime   = keyCanonicalExists   ? keyCanonicalStat.getModifyTime() : 0;
+            long csrModifyTime   = csrCanonicalExists   ? csrCanonicalStat.getModifyTime() : 0;
+            long certModifyTime  = certCanonicalExists  ? certCanonicalStat.getModifyTime() : 0;
             long chainModifyTime = chainCanonicalExists ? chainCanonicalStat.getModifyTime() : 0; // TODO: How to verify chain?
 
             // New: Compare by public key: https://www.sslshopper.com/certificate-key-matcher.html

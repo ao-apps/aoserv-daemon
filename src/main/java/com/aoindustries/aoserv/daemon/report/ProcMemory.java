@@ -82,33 +82,33 @@ public final class ProcMemory {
         while ((line = in.readLine()) != null) {
           String[] words = Strings.split(line);
           String label = words[0];
-          if (label.equals("MemTotal:")) {
+          if ("MemTotal:".equals(label)) {
             _mem_total = Integer.parseInt(words[1]);
-          } else if (label.equals("MemFree:")) {
+          } else if ("MemFree:".equals(label)) {
             _mem_free = Integer.parseInt(words[1]);
-          } else if (label.equals("MemShared:")) {
+          } else if ("MemShared:".equals(label)) {
             _mem_shared = Integer.parseInt(words[1]);
-          } else if (label.equals("Buffers:")) {
+          } else if ("Buffers:".equals(label)) {
             _buffers = Integer.parseInt(words[1]);
-          } else if (label.equals("Cached:")) {
+          } else if ("Cached:".equals(label)) {
             _cached = Integer.parseInt(words[1]);
-          } else if (label.equals("SwapCached:")) {
+          } else if ("SwapCached:".equals(label)) {
             _swap_cached = Integer.parseInt(words[1]);
-          } else if (label.equals("Active:")) {
+          } else if ("Active:".equals(label)) {
             _active = Integer.parseInt(words[1]);
-          } else if (label.equals("Inact_dirty:")) {
+          } else if ("Inact_dirty:".equals(label)) {
             _inact_dirty = Integer.parseInt(words[1]);
-          } else if (label.equals("Inact_clean:")) {
+          } else if ("Inact_clean:".equals(label)) {
             _inact_clean = Integer.parseInt(words[1]);
-          } else if (label.equals("Inact_target:")) {
+          } else if ("Inact_target:".equals(label)) {
             _inact_target = Integer.parseInt(words[1]);
-          } else if (label.equals("HighTotal:")) {
+          } else if ("HighTotal:".equals(label)) {
             _high_total = Integer.parseInt(words[1]);
-          } else if (label.equals("HighFree:")) {
+          } else if ("HighFree:".equals(label)) {
             _high_free = Integer.parseInt(words[1]);
-          } else if (label.equals("LowTotal:")) {
+          } else if ("LowTotal:".equals(label)) {
             _low_total = Integer.parseInt(words[1]);
-          } else if (label.equals("LowFree:")) {
+          } else if ("LowFree:".equals(label)) {
             _low_free = Integer.parseInt(words[1]);
           }
         }

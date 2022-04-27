@@ -168,7 +168,7 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
    */
   protected abstract boolean doRebuild();
 
-  private int waitForBuildCount = 0;
+  private int waitForBuildCount;
 
   public void waitForBuild() {
     synchronized (this) {

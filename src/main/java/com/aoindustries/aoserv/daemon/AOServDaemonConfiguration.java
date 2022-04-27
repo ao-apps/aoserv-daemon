@@ -228,7 +228,7 @@ public final class AOServDaemonConfiguration {
     private final Long nullRoutePacketRate;
     private final Long nullRouteBitRate;
 
-    NetworkMonitorConfiguration(
+    private NetworkMonitorConfiguration(
         String name,
         String device,
         List<String> networkRanges,

@@ -687,7 +687,7 @@ public final class AWStatsManager extends BuilderThread {
           // Remove any extra config files
           for (String filename : existingConfigFiles) {
             if (
-                !filename.equals("awstats.conf.inc")
+                !"awstats.conf.inc".equals(filename)
                     // Also keep any rpmnew or rpmsave files
                     && !filename.startsWith("awstats.conf.inc.rpm")
             ) {
@@ -801,8 +801,8 @@ public final class AWStatsManager extends BuilderThread {
               && (
               // May not contain zero terminator
               queryString.isEmpty()
-                  || queryString.equals("framename=mainright")
-                  || queryString.equals("framename=mainleft")
+                  || "framename=mainright".equals(queryString)
+                  || "framename=mainleft".equals(queryString)
                   || queryString.matches("^framename=mainright&output=\\w*$")
                   || queryString.matches(
                   "^"

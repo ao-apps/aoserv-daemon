@@ -88,15 +88,15 @@ public final class ProcStat {
             _userCPUTimes.add(Long.valueOf(words[1]) * 10);
             _niceCPUTimes.add(Long.valueOf(words[2]) * 10);
             _sysCPUTimes.add(Long.valueOf(words[3]) * 10);
-          } else if (label.equals("page")) {
+          } else if ("page".equals(label)) {
             _pagesIn = Long.parseLong(words[1]);
             _pagesOut = Long.parseLong(words[2]);
-          } else if (label.equals("swap")) {
+          } else if ("swap".equals(label)) {
             _swapsIn = Long.parseLong(words[1]);
             _swapsOut = Long.parseLong(words[2]);
-          } else if (label.equals("ctxt")) {
+          } else if ("ctxt".equals(label)) {
             _contextSwitches = Long.parseLong(words[1]);
-          } else if (label.equals("processes")) {
+          } else if ("processes".equals(label)) {
             _processes = Long.parseLong(words[1]);
           }
         }

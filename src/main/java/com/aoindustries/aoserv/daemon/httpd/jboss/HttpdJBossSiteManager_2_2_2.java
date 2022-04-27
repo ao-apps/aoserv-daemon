@@ -117,7 +117,9 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
     command[0] = "/bin/cp";
     command[1] = "-rdp";
     command[command.length - 1] = siteDir;
-    for (int i = 0; i < contents.length; i++) command[i + 2] = templateDir + "/" + contents[i];
+    for (int i = 0; i < contents.length; i++) {
+      command[i + 2] = templateDir + "/" + contents[i];
+    }
     AOServDaemon.exec(command);
     // chown
     AOServDaemon.exec(

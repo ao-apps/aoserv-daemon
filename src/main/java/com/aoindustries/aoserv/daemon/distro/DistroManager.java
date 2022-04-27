@@ -129,7 +129,7 @@ public final class DistroManager implements Runnable {
 
   private static final Object sleepLock = new Object();
   private static volatile boolean includeUser;
-  private static volatile boolean runNow = false;
+  private static volatile boolean runNow;
 
   @Override
   public void run() {
@@ -924,7 +924,7 @@ public final class DistroManager implements Runnable {
                 if (pos != -1) {
                   String fname = filename.substring(pos + 1);
                   if (
-                      fname.equals("wrapper")
+                      "wrapper".equals(fname)
                           && fileMode == 04750
                           && ufStat.getUid() == PosixFile.ROOT_UID
                           && thisServer.getLinuxServerGroup(LinuxId.valueOf(ufStat.getGid())).getLinuxGroup().getName().equals(Group.MAIL)

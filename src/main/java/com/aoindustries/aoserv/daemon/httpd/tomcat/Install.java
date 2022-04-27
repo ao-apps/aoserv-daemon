@@ -210,7 +210,7 @@ public abstract class Install {
       super(
           path,
           mode,
-          (optSlash, apacheTomcatDir, installDir) -> {
+          (String optSlash, String apacheTomcatDir, PosixFile installDir) -> {
             ByteArrayOutputStream bout = new ByteArrayOutputStream();
             try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
               out.print("#!/bin/sh\n"

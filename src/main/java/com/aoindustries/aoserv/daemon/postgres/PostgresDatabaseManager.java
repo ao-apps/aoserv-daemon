@@ -413,7 +413,7 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
   }
 
   private static PostgresDatabaseManager postgresDatabaseManager;
-  private static boolean cronStarted = false;
+  private static boolean cronStarted;
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() throws IOException, SQLException {

@@ -123,7 +123,7 @@ public final class ShadowFile {
      * in which case the default values are used and the password is set to {@link User#NO_PASSWORD_CONFIG_VALUE}
      * (disabled).
      */
-    public Entry(String line) throws ValidationException {
+    private Entry(String line) throws ValidationException {
       List<String> values = Strings.split(line, ':');
       int len = values.size();
       if (len < 1) {
