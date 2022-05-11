@@ -24,14 +24,14 @@
 package com.aoindustries.aoserv.daemon.httpd;
 
 import com.aoapps.io.posix.PosixFile;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.web.HttpdServer;
 import com.aoindustries.aoserv.client.web.Site;
 import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.HttpdSharedTomcatManager;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
@@ -101,7 +101,7 @@ public final class HttpdManager extends BuilderThread {
           HttpdServerManager.reloadConfigs(serversNeedingReloaded);
 
           // Remove any Apache Tomcat packages that are installed and no longer needed
-          if (AOServDaemonConfiguration.isPackageManagerUninstallEnabled()) {
+          if (AoservDaemonConfiguration.isPackageManagerUninstallEnabled()) {
             for (PackageManager.PackageName name : PackageManager.PackageName.values()) {
               if (
                   name.getRpmName().startsWith(PackageManager.APACHE_TOMCAT_PREFIX)
@@ -127,7 +127,7 @@ public final class HttpdManager extends BuilderThread {
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() throws IOException, SQLException {
-    Server thisServer = AOServDaemon.getThisServer();
+    Server thisServer = AoservDaemon.getThisServer();
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
 
@@ -138,7 +138,7 @@ public final class HttpdManager extends BuilderThread {
               && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
               && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
               // Check config after OS check so config entry not needed
-              && AOServDaemonConfiguration.isManagerEnabled(HttpdManager.class)
+              && AoservDaemonConfiguration.isManagerEnabled(HttpdManager.class)
               && httpdManager == null
       ) {
         System.out.print("Starting HttpdManager: ");
@@ -147,7 +147,7 @@ public final class HttpdManager extends BuilderThread {
             osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                 || osvId == OperatingSystemVersion.CENTOS_7_X86_64
         ) {
-          AOServConnector connector = AOServDaemon.getConnector();
+          AoservConnector connector = AoservDaemon.getConnector();
           httpdManager = new HttpdManager();
           connector.getWeb().getHttpdBind().addTableListener(httpdManager, 0);
           connector.getWeb().getHttpdServer().addTableListener(httpdManager, 0);

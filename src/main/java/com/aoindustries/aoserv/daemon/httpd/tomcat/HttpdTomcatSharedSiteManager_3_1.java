@@ -26,7 +26,7 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
 import com.aoapps.encoding.ChainWriter;
 import com.aoapps.io.posix.PosixFile;
 import com.aoapps.net.InetAddress;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.net.Bind;
 import com.aoindustries.aoserv.client.web.tomcat.Context;
@@ -34,7 +34,7 @@ import com.aoindustries.aoserv.client.web.tomcat.JkProtocol;
 import com.aoindustries.aoserv.client.web.tomcat.SharedTomcatSite;
 import com.aoindustries.aoserv.client.web.tomcat.Version;
 import com.aoindustries.aoserv.client.web.tomcat.Worker;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -60,7 +60,7 @@ class HttpdTomcatSharedSiteManager_3_1 extends HttpdTomcatSharedSiteManager_3_X<
   protected byte[] buildServerXml(PosixFile siteDirectory, String autoWarning) throws IOException, SQLException {
     final String siteName = httpdSite.getName();
     final String siteDir = siteDirectory.getPath();
-    AOServConnector conn = AOServDaemon.getConnector();
+    AoservConnector conn = AoservDaemon.getConnector();
     final Version htv = tomcatSite.getHttpdTomcatVersion();
     final HttpdOperatingSystemConfiguration httpdConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
     final PosixPath wwwgroupDirectory = httpdConfig.getHttpdSharedTomcatsDirectory();
@@ -84,7 +84,9 @@ class HttpdTomcatSharedSiteManager_3_1 extends HttpdTomcatSharedSiteManager_3_X<
           + "    <Logger name=\"JASPER_LOG\"\n"
           + "            path=\"").textInXmlAttribute(siteDir).print("/var/log/jasper.log\"\n"
           + "            verbosityLevel = \"INFORMATION\" />\n"
-          + "    <ContextManager debug=\"0\" home=\"").textInXmlAttribute(siteDir).print("\" workDir=\"").textInXmlAttribute(wwwgroupDirectory).print('/').textInXmlAttribute(shrSite.getHttpdSharedTomcat().getName()).print("/work/").textInXmlAttribute(siteName).print("\" >\n"
+          + "    <ContextManager debug=\"0\" home=\"").textInXmlAttribute(siteDir).print("\" workDir=\"")
+          .textInXmlAttribute(wwwgroupDirectory).print('/').textInXmlAttribute(shrSite.getHttpdSharedTomcat().getName())
+          .print("/work/").textInXmlAttribute(siteName).print("\" >\n"
           + "        <ContextInterceptor className=\"org.apache.tomcat.context.DefaultCMSetter\" />\n"
           + "        <ContextInterceptor className=\"org.apache.tomcat.context.WorkDirInterceptor\" />\n"
           + "        <ContextInterceptor className=\"org.apache.tomcat.context.WebXmlReader\" />\n"
@@ -96,7 +98,7 @@ class HttpdTomcatSharedSiteManager_3_1 extends HttpdTomcatSharedSiteManager_3_X<
       );
       for (Worker worker : tomcatSite.getHttpdWorkers()) {
         Bind netBind = worker.getBind();
-        String protocol = worker.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol();
+        String protocol = worker.getHttpdJkProtocol(conn).getProtocol(conn).getProtocol();
 
         out.print("        <Connector className=\"org.apache.tomcat.service.PoolTcpConnector\">\n"
             + "            <Parameter name=\"handler\" value=\"");
@@ -122,7 +124,9 @@ class HttpdTomcatSharedSiteManager_3_1 extends HttpdTomcatSharedSiteManager_3_X<
         );
       }
       for (Context htc : tomcatSite.getHttpdTomcatContexts()) {
-        out.print("    <Context path=\"").textInXmlAttribute(htc.getPath()).print("\" docBase=\"").textInXmlAttribute(htc.getDocBase()).print("\" debug=\"").textInXmlAttribute(htc.getDebugLevel()).print("\" reloadable=\"").textInXmlAttribute(htc.isReloadable()).print("\" />\n");
+        out.print("    <Context path=\"").textInXmlAttribute(htc.getPath()).print("\" docBase=\"")
+            .textInXmlAttribute(htc.getDocBase()).print("\" debug=\"").textInXmlAttribute(htc.getDebugLevel())
+            .print("\" reloadable=\"").textInXmlAttribute(htc.isReloadable()).print("\" />\n");
       }
       out.print("  </ContextManager>\n"
           + "</Server>\n");

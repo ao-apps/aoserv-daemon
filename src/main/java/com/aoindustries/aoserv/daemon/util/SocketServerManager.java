@@ -42,7 +42,9 @@ public abstract class SocketServerManager {
 
   private static final Logger logger = Logger.getLogger(SocketServerManager.class.getName());
 
-  /** All of the servers that are currently running */
+  /**
+   * All of the servers that are currently running.
+   */
   private final List<SocketServerThread> socketServers = new ArrayList<>();
 
   protected SocketServerManager() {
@@ -99,10 +101,10 @@ public abstract class SocketServerManager {
       }
 
       for (Bind nb : nbs) {
-        InetAddress nbIP = nb.getIpAddress().getInetAddress();
+        InetAddress nbIp = nb.getIpAddress().getInetAddress();
         if (
-            !nbIP.isLoopback()
-                && !nbIP.isUnspecified()
+            !nbIp.isLoopback()
+                && !nbIp.isUnspecified()
         ) {
           int nbPort = nb.getPort().getPort();
 
@@ -110,7 +112,7 @@ public abstract class SocketServerManager {
           boolean found = false;
           for (int d = 0; d < existing.size(); d++) {
             SocketServerThread socketServer = existing.get(d);
-            if (socketServer.runMore && socketServer.ipAddress.equals(nbIP) && socketServer.port == nbPort) {
+            if (socketServer.runMore && socketServer.ipAddress.equals(nbIp) && socketServer.port == nbPort) {
               existing.remove(d);
               found = true;
               break;
@@ -122,11 +124,11 @@ public abstract class SocketServerManager {
               System.out.print("Starting ");
               System.out.print(getServiceName());
               System.out.print(" on ");
-              System.out.print(nbIP.toBracketedString());
+              System.out.print(nbIp.toBracketedString());
               System.out.print(':');
               System.out.print(nbPort);
               System.out.print(": ");
-              SocketServerThread newServer = createSocketServerThread(nbIP, nbPort);
+              SocketServerThread newServer = createSocketServerThread(nbIp, nbPort);
               socketServers.add(newServer);
               newServer.start();
               System.out.println("Done");

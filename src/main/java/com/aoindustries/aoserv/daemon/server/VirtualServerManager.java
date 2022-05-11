@@ -29,8 +29,8 @@ import com.aoapps.lang.ProcessResult;
 import com.aoapps.lang.Strings;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.infrastructure.VirtualServer;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
+import com.aoindustries.aoserv.daemon.client.AoservDaemonProtocol;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -71,7 +71,7 @@ public final class VirtualServerManager {
    * Gets the xm/xl command used for this server.
    */
   public static String getXmCommand() throws IOException, SQLException {
-    OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
+    OperatingSystemVersion osv = AoservDaemon.getThisServer().getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
     if (
         osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
@@ -98,14 +98,14 @@ public final class VirtualServerManager {
     private final String onReboot;
 
     private XmList(String serverName) throws ParseException, IOException, SQLException {
-      OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
+      OperatingSystemVersion osv = AoservDaemon.getThisServer().getHost().getOperatingSystemVersion();
       int osvId = osv.getPkey();
       if (
           osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
               || osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
       ) {
         XmListNode rootNode = XmListNode.parseResult(
-            AOServDaemon.execAndCapture(
+            AoservDaemon.execAndCapture(
                 "/usr/sbin/xm",
                 "list",
                 "-l",
@@ -149,7 +149,7 @@ public final class VirtualServerManager {
           // https://stackoverflow.com/questions/21014407/json-array-in-hashmap-using-google-gson
         }.getType();
         List<Map<String, Object>> rootList = new Gson().fromJson(
-            AOServDaemon.execAndCapture(
+            AoservDaemon.execAndCapture(
                 "/sbin/xl",
                 "list",
                 "--long",
@@ -169,18 +169,18 @@ public final class VirtualServerManager {
         @SuppressWarnings("unchecked")
         Map<String, Object> configNode = (Map<String, Object>) domainNode.get("config");
         @SuppressWarnings("unchecked")
-        Map<String, Object> cInfoNode = (Map<String, Object>) configNode.get("c_info");
-        uuid = (String) cInfoNode.get("uuid");
+        Map<String, Object> cinfoNode = (Map<String, Object>) configNode.get("c_info");
+        uuid = (String) cinfoNode.get("uuid");
         @SuppressWarnings("unchecked")
-        Map<String, Object> bInfoNode = (Map<String, Object>) configNode.get("b_info");
-        vcpus = ((Double) bInfoNode.get("max_vcpus")).intValue();
+        Map<String, Object> binfoNode = (Map<String, Object>) configNode.get("b_info");
+        vcpus = ((Double) binfoNode.get("max_vcpus")).intValue();
         @SuppressWarnings("unchecked")
-        Map<String, Object> schedParamsNode = (Map<String, Object>) bInfoNode.get("sched_params");
+        Map<String, Object> schedParamsNode = (Map<String, Object>) binfoNode.get("sched_params");
         cpuWeight = (Double) schedParamsNode.get("weight");
-        memory = ((Double) bInfoNode.get("target_memkb")).longValue();
-        shadowMemory = ((Double) bInfoNode.get("shadow_memkb")).longValue();
-        maxmem = ((Double) bInfoNode.get("max_memkb")).longValue();
-        name = (String) cInfoNode.get("name");
+        memory = ((Double) binfoNode.get("target_memkb")).longValue();
+        shadowMemory = ((Double) binfoNode.get("shadow_memkb")).longValue();
+        maxmem = ((Double) binfoNode.get("max_memkb")).longValue();
+        name = (String) cinfoNode.get("name");
         onReboot = (String) configNode.get("on_reboot");
       } else {
         throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
@@ -339,7 +339,7 @@ public final class VirtualServerManager {
 
           // Find its port from lsof given its PID
           PackageManager.installPackage(PackageManager.PackageName.LSOF);
-          String lsof = AOServDaemon.execAndCapture(
+          String lsof = AoservDaemon.execAndCapture(
               "/usr/sbin/lsof",
               "-n", // Numeric IP addresses
               "-P", // Numeric port numbers
@@ -417,8 +417,8 @@ public final class VirtualServerManager {
                 });
                 inThread.start();
                 //try {
-                  // Tell it DONE OK
-                  socketOut.write(AOServDaemonProtocol.NEXT);
+                // Tell it DONE OK
+                socketOut.write(AoservDaemonProtocol.NEXT);
                 // vncIn -> socketOut in this thread
                 byte[] buff = new byte[4096];
                 int ret;
@@ -427,16 +427,16 @@ public final class VirtualServerManager {
                   socketOut.flush();
                 }
                 //} finally {
-                  //try {
-                  //    // Let the in thread complete its work before closing streams
-                  //    inThread.join();
-                  //} catch (InterruptedException err) {
-                  //    // Restore the interrupted status
-                  //    Thread.currentThread().interrupt();
-                  //    InterruptedIOException ioErr = new InterruptedIOException();
-                  //    ioErr.initCause(err);
-                  //    throw ioErr;
-                  //}
+                //  try {
+                //      // Let the in thread complete its work before closing streams
+                //      inThread.join();
+                //  } catch (InterruptedException err) {
+                //      // Restore the interrupted status
+                //      Thread.currentThread().interrupt();
+                //      InterruptedIOException ioErr = new InterruptedIOException();
+                //      ioErr.initCause(err);
+                //      throw ioErr;
+                //  }
                 //}
               } finally {
                 try {
@@ -656,12 +656,12 @@ public final class VirtualServerManager {
       throw new ParseException("Unexpected state length: " + state, 0);
     }
     int flags = 0;
-    char r = state.charAt(0);
-    char b = state.charAt(1);
-    char p = state.charAt(2);
-    char s = state.charAt(3);
-    char c = state.charAt(4);
-    char d = state.charAt(5);
+    final char r = state.charAt(0);
+    final char b = state.charAt(1);
+    final char p = state.charAt(2);
+    final char s = state.charAt(3);
+    final char c = state.charAt(4);
+    final char d = state.charAt(5);
     if (r == 'r') {
       flags |= VirtualServer.RUNNING;
     } else if (r != '-') {
@@ -698,7 +698,7 @@ public final class VirtualServerManager {
   public static int getVirtualServerStatus(String virtualServer) throws IOException, SQLException {
     try {
       List<String> lines = Strings.splitLines(
-          AOServDaemon.execAndCapture(
+          AoservDaemon.execAndCapture(
               getXmCommand(),
               "list",
               virtualServer
@@ -736,7 +736,7 @@ public final class VirtualServerManager {
   public static long verifyVirtualDisk(String virtualServer, String device) throws IOException {
     synchronized (drbdVerifyStateLock) {
       return Long.parseLong(
-          AOServDaemon.execAndCapture(
+          AoservDaemon.execAndCapture(
               "/opt/aoserv-daemon/bin/drbd-verify",
               virtualServer + "-" + device
           ).trim()
@@ -746,7 +746,7 @@ public final class VirtualServerManager {
 
   public static void updateVirtualDiskLastVerified(String virtualServer, String device, long lastVerified) throws IOException {
     synchronized (drbdVerifyStateLock) {
-      AOServDaemon.exec(
+      AoservDaemon.exec(
           "/opt/aoserv-daemon/bin/set-drbd-last-verified",
           virtualServer + "-" + device,
           Long.toString(lastVerified)

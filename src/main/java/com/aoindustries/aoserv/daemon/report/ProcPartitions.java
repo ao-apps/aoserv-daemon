@@ -26,33 +26,29 @@ package com.aoindustries.aoserv.daemon.report;
 import com.aoapps.lang.EmptyArrays;
 
 /**
- * Encapsulates the output of the /proc/partitions file
+ * Encapsulates the output of the <code>/proc/partitions</code> file.
  *
  * @author  AO Industries, Inc.
  */
 public final class ProcPartitions {
 
-  public final int[] device_majors;
-  public final int[] device_minors;
-  public final long[]
-      blocks,
-      rios,
-      rmerges,
-      rsect,
-      ruse,
-      wios,
-      wmerge,
-      wsect,
-      wuse
-  ;
+  public final int[] deviceMajors;
+  public final int[] deviceMinors;
+  public final long[] blocks;
+  public final long[] rios;
+  public final long[] rmerges;
+  public final long[] rsect;
+  public final long[] ruse;
+  public final long[] wios;
+  public final long[] wmerge;
+  public final long[] wsect;
+  public final long[] wuse;
   public final int[] runnings;
-  public final long[]
-      uses,
-      aveq
-  ;
+  public final long[] uses;
+  public final long[] aveq;
 
   public ProcPartitions() {
-    device_majors = device_minors = runnings = EmptyArrays.EMPTY_INT_ARRAY;
+    deviceMajors = deviceMinors = runnings = EmptyArrays.EMPTY_INT_ARRAY;
     blocks = rios = rmerges = rsect = ruse = wios = wmerge = wsect = wuse = uses = aveq = EmptyArrays.EMPTY_LONG_ARRAY;
   }
 }

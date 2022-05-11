@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+aoserv-daemon - Server management daemon for the AOServ Platform.
+Copyright (C) 2022  AO Industries, Inc.
+    support@aoindustries.com
+    7262 Bull Pen Cir
+    Mobile, AL 36695
+
+This file is part of aoserv-daemon.
+
+aoserv-daemon is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+aoserv-daemon is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
+-->
+<!DOCTYPE suppressions PUBLIC
+  "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+  "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+
+<suppressions>
+
+  <!-- TODO: Complete Javadocs -->
+  <suppress checks="(MissingJavadocMethod|MissingJavadocType|SummaryJavadoc)" />
+
+  <!-- Intentionally matching the names used by xinetd -->
+  <suppress
+    checks="(MemberName|ParameterName)"
+    files="[/\\]com[/\\]aoindustries[/\\]aoserv[/\\]daemon[/\\]net[/\\]xinetd[/\\]Service\.java$"
+  />
+  <suppress
+    checks="LocalVariableName"
+    files="[/\\]com[/\\]aoindustries[/\\]aoserv[/\\]daemon[/\\]net[/\\]xinetd[/\\]XinetdManager\.java$"
+  />
+
+  <!-- Will not rename managers to avoid changing config file format -->
+  <suppress
+    checks="AbbreviationAsWordInName"
+    files="[/\\]com[/\\]aoindustries[/\\]aoserv[/\\]daemon[/\\]dns[/\\]DNSManager\.java$"
+    message="'DNSManager'"
+  />
+  <suppress
+    checks="AbbreviationAsWordInName"
+    files="[/\\]com[/\\]aoindustries[/\\]aoserv[/\\]daemon[/\\]email[/\\]SendmailCFManager\.java$"
+    message="'SendmailCFManager'"
+  />
+  <suppress
+    checks="AbbreviationAsWordInName"
+    files="[/\\]com[/\\]aoindustries[/\\]aoserv[/\\]daemon[/\\]ftp[/\\]FTPManager\.java$"
+    message="'FTPManager'"
+  />
+  <suppress
+    checks="AbbreviationAsWordInName"
+    files="[/\\]com[/\\]aoindustries[/\\]aoserv[/\\]daemon[/\\]httpd[/\\]AWStatsManager\.java$"
+    message="'AWStatsManager'"
+  />
+  <suppress
+    checks="AbbreviationAsWordInName"
+    files="[/\\]com[/\\]aoindustries[/\\]aoserv[/\\]daemon[/\\]httpd[/\\]jboss[/\\]HttpdJBossManager\.java$"
+    message="'HttpdJBossManager'"
+  />
+  <suppress
+    checks="AbbreviationAsWordInName"
+    files="[/\\]com[/\\]aoindustries[/\\]aoserv[/\\]daemon[/\\]httpd[/\\]jboss[/\\]HttpdJBossManager_[0-9]+_(X|[0-9]+)(_(X|[0-9]+))?\.java$"
+    message="'HttpdJBossManager_[0-9]+_(X|[0-9]+)(_(X|[0-9]+))?'"
+  />
+  <suppress
+    checks="AbbreviationAsWordInName"
+    files="[/\\]com[/\\]aoindustries[/\\]aoserv[/\\]daemon[/\\]httpd[/\\]jboss[/\\]HttpdJBossSiteManager\.java$"
+    message="'HttpdJBossSiteManager'"
+  />
+  <suppress
+    checks="AbbreviationAsWordInName"
+    files="[/\\]com[/\\]aoindustries[/\\]aoserv[/\\]daemon[/\\]httpd[/\\]jboss[/\\]HttpdJBossSiteManager_[0-9]+_(X|[0-9]+)(_(X|[0-9]+))?\.java$"
+    message="'HttpdJBossSiteManager_[0-9]+_(X|[0-9]+)(_(X|[0-9]+))?'"
+  />
+  <suppress
+    checks="AbbreviationAsWordInName"
+    files="[/\\]com[/\\]aoindustries[/\\]aoserv[/\\]daemon[/\\]mysql[/\\]MySQLCreditCardScanner\.java$"
+    message="'MySQLCreditCardScanner'"
+  />
+  <suppress
+    checks="AbbreviationAsWordInName"
+    files="[/\\]com[/\\]aoindustries[/\\]aoserv[/\\]daemon[/\\]mysql[/\\]MySQLDatabaseManager\.java$"
+    message="'MySQLDatabaseManager'"
+  />
+  <suppress
+    checks="AbbreviationAsWordInName"
+    files="[/\\]com[/\\]aoindustries[/\\]aoserv[/\\]daemon[/\\]mysql[/\\]MySQLDBUserManager\.java$"
+    message="'MySQLDBUserManager'"
+  />
+  <suppress
+    checks="AbbreviationAsWordInName"
+    files="[/\\]com[/\\]aoindustries[/\\]aoserv[/\\]daemon[/\\]mysql[/\\]MySQLHostManager\.java$"
+    message="'MySQLHostManager'"
+  />
+  <suppress
+    checks="AbbreviationAsWordInName"
+    files="[/\\]com[/\\]aoindustries[/\\]aoserv[/\\]daemon[/\\]mysql[/\\]MySQLServerManager\.java$"
+    message="'MySQLServerManager'"
+  />
+  <suppress
+    checks="AbbreviationAsWordInName"
+    files="[/\\]com[/\\]aoindustries[/\\]aoserv[/\\]daemon[/\\]mysql[/\\]MySQLUserManager\.java$"
+    message="'MySQLUserManager'"
+  />
+
+  <!-- Will keep the JBoss/Tomcat version-based class names -->
+  <suppress
+    checks="TypeName"
+    files="[/\\](HttpdJBossSiteManager|HttpdSharedTomcatManager|HttpdTomcatSharedSiteManager|HttpdTomcatStdSiteManager|TomcatCommon)_[0-9]+_(X|[0-9]+)(_(X|[0-9]+))?\.java$"
+  />
+
+  <!-- We use spaces to align method calls vertically -->
+  <suppress
+    checks="MethodParamPad"
+    files="[/\\]com[/\\]aoindustries[/\\]aoserv[/\\]daemon[/\\]httpd[/\\]tomcat[/\\].*\.java$"
+  />
+
+  <!-- Will not split declaration to avoid duplicating Javadoc comment -->
+  <suppress
+    checks="MultipleVariableDeclarations"
+    files="[/\\]com[/\\]aoindustries[/\\]aoserv[/\\]daemon[/\\]distro[/\\]DistroGenerator\.java$"
+  />
+  <suppress
+    checks="MultipleVariableDeclarations"
+    files="[/\\]com[/\\]aoindustries[/\\]aoserv[/\\]daemon[/\\]email[/\\]EmailAddressManager\.java$"
+  />
+  <suppress
+    checks="MultipleVariableDeclarations"
+    files="[/\\]com[/\\]aoindustries[/\\]aoserv[/\\]daemon[/\\]email[/\\]ImapManager\.java$"
+  />
+  <suppress
+    checks="MultipleVariableDeclarations"
+    files="[/\\]com[/\\]aoindustries[/\\]aoserv[/\\]daemon[/\\]posix[/\\]linux[/\\]PackageManager\.java$"
+  />
+
+  <!-- Will not reorder overloads -->
+  <suppress
+    checks="OverloadMethodsDeclarationOrder"
+    files="[/\\]com[/\\]aoindustries[/\\]aoserv[/\\]daemon[/\\]AoservDaemon\.java$"
+  />
+  <suppress
+    checks="OverloadMethodsDeclarationOrder"
+    files="[/\\]com[/\\]aoindustries[/\\]aoserv[/\\]daemon[/\\]failover[/\\]FailoverFileReplicationManager\.java$"
+  />
+
+</suppressions>

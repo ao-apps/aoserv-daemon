@@ -31,8 +31,8 @@ import com.aoapps.net.Port;
 import com.aoindustries.aoserv.client.account.Account;
 import com.aoindustries.aoserv.client.mysql.Database;
 import com.aoindustries.aoserv.client.mysql.Server;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
@@ -48,8 +48,9 @@ import java.util.logging.Logger;
 
 /**
  * Controls the MySQL databases.
- *
+ * <p>
  * TODO: Move to NOC.
+ * </p>
  *
  * @author  AO Industries, Inc.
  */
@@ -65,7 +66,7 @@ public final class MySQLCreditCardScanner implements CronJob {
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() {
-    if (AOServDaemonConfiguration.isManagerEnabled(MySQLCreditCardScanner.class) && mySQLCreditCardScanner == null) {
+    if (AoservDaemonConfiguration.isManagerEnabled(MySQLCreditCardScanner.class) && mySQLCreditCardScanner == null) {
       synchronized (System.out) {
         if (mySQLCreditCardScanner == null) {
           System.out.print("Starting MySQLCreditCardScanner: ");
@@ -92,7 +93,7 @@ public final class MySQLCreditCardScanner implements CronJob {
    */
   @Override
   public void run(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
-    scanMySQLForCards();
+    scanMysqlForCards();
   }
 
   @Override
@@ -101,30 +102,30 @@ public final class MySQLCreditCardScanner implements CronJob {
   }
 
   public static void main(String[] args) {
-    scanMySQLForCards();
+    scanMysqlForCards();
   }
 
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
-  private static void scanMySQLForCards() {
+  private static void scanMysqlForCards() {
     try {
-      com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+      com.aoindustries.aoserv.client.linux.Server thisServer = AoservDaemon.getThisServer();
 
       Map<Account, StringBuilder> reports = new HashMap<>();
 
-      List<Server> mysqlServers = thisServer.getMySQLServers();
+      List<Server> mysqlServers = thisServer.getMysqlServers();
       for (Server mysqlServer : mysqlServers) {
         Server.Name serverName = mysqlServer.getName();
         Port port = mysqlServer.getBind().getPort();
-        List<Database> mysqlDatabases = mysqlServer.getMySQLDatabases();
+        List<Database> mysqlDatabases = mysqlServer.getMysqlDatabases();
         for (Database database : mysqlDatabases) {
           Database.Name name = database.getName();
 
           // Get connection to the database
-          Class.forName(AOServDaemonConfiguration.getMySqlDriver());
+          Class.forName(AoservDaemonConfiguration.getMySqlDriver());
           try (Connection conn = DriverManager.getConnection(
               MySQLDatabaseManager.getJdbcUrl(port, name),
-              AOServDaemonConfiguration.getMySqlUser(serverName),
-              AOServDaemonConfiguration.getMySqlPassword(serverName)
+              AoservDaemonConfiguration.getMySqlUser(serverName),
+              AoservDaemonConfiguration.getMySqlPassword(serverName)
           )) {
             try {
               Account account = database.getPackage().getAccount();
@@ -134,7 +135,7 @@ public final class MySQLCreditCardScanner implements CronJob {
               }
               scanForCards(thisServer, mysqlServer, database, conn, name.toString(), report);
             } catch (SQLException e) {
-              conn.abort(AOServDaemon.executorService);
+              conn.abort(AoservDaemon.executorService);
               throw e;
             }
           }
@@ -144,7 +145,7 @@ public final class MySQLCreditCardScanner implements CronJob {
         StringBuilder report = reports.get(account);
         if (report != null && report.length() > 0) {
           /* TODO
-          AOServDaemon.getConnector().getCurrentAdministrator().addTicket(
+          AoservDaemon.getConnector().getCurrentAdministrator().addTicket(
             account,
             TicketType.TODO_SECURITY,
             report.toString(),
@@ -165,7 +166,14 @@ public final class MySQLCreditCardScanner implements CronJob {
     }
   }
 
-  public static void scanForCards(com.aoindustries.aoserv.client.linux.Server thisServer, Server mysqlServer, Database database, Connection conn, String catalog, StringBuilder report) throws SQLException {
+  public static void scanForCards(
+      com.aoindustries.aoserv.client.linux.Server thisServer,
+      Server mysqlServer,
+      Database database,
+      Connection conn,
+      String catalog,
+      StringBuilder report
+  ) throws SQLException {
     DatabaseMetaData metaData = conn.getMetaData();
     String[] tableTypes = new String[]{"TABLE"};
     try (ResultSet tables = metaData.getTables(catalog, null, null, tableTypes)) {
@@ -212,22 +220,22 @@ public final class MySQLCreditCardScanner implements CronJob {
           // Find total number of rows
           long rowCount;
           long ccCount;
-          String currentSQL = null;
+          String currentSql = null;
           try (Statement stmt = conn.createStatement()) {
-            try (ResultSet results = stmt.executeQuery(currentSQL = "SELECT COUNT(*) FROM `" + table + "`")) {
+            try (ResultSet results = stmt.executeQuery(currentSql = "SELECT COUNT(*) FROM `" + table + "`")) {
               if (!results.next()) {
                 throw new SQLException("No results returned!");
               }
               rowCount = results.getLong(1);
             }
-            try (ResultSet cardnumbers = stmt.executeQuery(currentSQL = buffer.toString())) {
+            try (ResultSet cardnumbers = stmt.executeQuery(currentSql = buffer.toString())) {
               if (!cardnumbers.next()) {
                 throw new SQLException("No results returned!");
               }
               ccCount = cardnumbers.getLong(1);
             }
           } catch (Error | RuntimeException | SQLException e) {
-            ErrorPrinter.addSQL(e, currentSQL);
+            ErrorPrinter.addSql(e, currentSql);
             throw e;
           }
           if (ccCount > 50 && (ccCount * 2) >= rowCount) {

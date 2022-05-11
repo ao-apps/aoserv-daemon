@@ -23,16 +23,6 @@
 
 package com.aoindustries.aoserv.daemon.distro;
 
-import com.aoapps.encoding.TextInPsqlEncoder;
-import com.aoapps.hodgepodge.io.ByteCountInputStream;
-import com.aoapps.io.posix.PosixFile;
-import com.aoapps.io.posix.Stat;
-import com.aoapps.lang.EmptyArrays;
-import com.aoapps.lang.Strings;
-import com.aoapps.lang.SysExits;
-import com.aoapps.lang.Throwables;
-import com.aoapps.lang.exception.WrappedException;
-import com.aoapps.lang.io.IoUtils;
 import static com.aoindustries.aoserv.client.distribution.Architecture.I686_AND_X86_64;
 import static com.aoindustries.aoserv.client.distribution.Architecture.X86_64;
 import static com.aoindustries.aoserv.client.distribution.OperatingSystem.CENTOS;
@@ -44,8 +34,19 @@ import static com.aoindustries.aoserv.client.distribution.OperatingSystemVersion
 import static com.aoindustries.aoserv.client.distribution.OperatingSystemVersion.VERSION_5_DOM0;
 import static com.aoindustries.aoserv.client.distribution.OperatingSystemVersion.VERSION_7;
 import static com.aoindustries.aoserv.client.distribution.OperatingSystemVersion.VERSION_7_DOM0;
+
+import com.aoapps.encoding.TextInPsqlEncoder;
+import com.aoapps.hodgepodge.io.ByteCountInputStream;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
+import com.aoapps.lang.EmptyArrays;
+import com.aoapps.lang.Strings;
+import com.aoapps.lang.SysExits;
+import com.aoapps.lang.Throwables;
+import com.aoapps.lang.exception.WrappedException;
+import com.aoapps.lang.io.IoUtils;
 import com.aoindustries.aoserv.client.distribution.management.DistroFileType;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -185,19 +186,19 @@ public final class DistroGenerator {
     this(DEFAULT_ROOT);
   }
 
-  private class OSFilename implements Comparable<OSFilename> {
+  private class OsFilename implements Comparable<OsFilename> {
 
     /**
-     * The OperatingSystemVersion ID, or {@code -1} when not in a template directory
+     * The OperatingSystemVersion ID, or {@code -1} when not in a template directory.
      */
     private final int osv;
 
     /**
-     * The path within the template directory, or {@code null} when not in a template directory
+     * The path within the template directory, or {@code null} when not in a template directory.
      */
     private final String filename;
 
-    private OSFilename(int osv, String filename) {
+    private OsFilename(int osv, String filename) {
       this.osv = osv;
       this.filename = filename;
     }
@@ -205,7 +206,7 @@ public final class DistroGenerator {
     /**
      * Parses the path within the distro directory.
      */
-    private OSFilename(String path) {
+    private OsFilename(String path) {
       // Skip leading '/'
       if (path.length() > 0 && path.charAt(0) == '/') {
         path = path.substring(1);
@@ -266,18 +267,17 @@ public final class DistroGenerator {
 
     @Override
     public boolean equals(Object obj) {
-      if (!(obj instanceof OSFilename)) {
+      if (!(obj instanceof OsFilename)) {
         return false;
       }
-      OSFilename other = (OSFilename) obj;
+      OsFilename other = (OsFilename) obj;
       return
           osv == other.osv
-              && Objects.equals(filename, other.filename)
-      ;
+              && Objects.equals(filename, other.filename);
     }
 
     @Override
-    public int compareTo(OSFilename o) {
+    public int compareTo(OsFilename o) {
       int diff = Integer.compare(osv, o.osv);
       if (diff != 0) {
         return diff;
@@ -296,35 +296,40 @@ public final class DistroGenerator {
       }
     }
 
-    public String getOSName() {
+    public String getOsName() {
       switch (osv) {
-        case CENTOS_5_I686_AND_X86_64 :
-        case CENTOS_5_DOM0_X86_64 :
-        case CENTOS_7_X86_64 :
-        case CENTOS_7_DOM0_X86_64 :
+        case CENTOS_5_I686_AND_X86_64:
+        case CENTOS_5_DOM0_X86_64:
+        case CENTOS_7_X86_64:
+        case CENTOS_7_DOM0_X86_64:
           return CENTOS;
         default:
           throw new RuntimeException("Unsupported operating_system_version: " + osv);
       }
     }
 
-    public String getOSVersion() {
+    public String getOsVersion() {
       switch (osv) {
-        case CENTOS_5_I686_AND_X86_64 : return VERSION_5;
-        case CENTOS_5_DOM0_X86_64 :     return VERSION_5_DOM0;
-        case CENTOS_7_X86_64 :          return VERSION_7;
-        case CENTOS_7_DOM0_X86_64 :     return VERSION_7_DOM0;
-        default: throw new RuntimeException("Unsupported operating_system_version: " + osv);
+        case CENTOS_5_I686_AND_X86_64:
+          return VERSION_5;
+        case CENTOS_5_DOM0_X86_64:
+          return VERSION_5_DOM0;
+        case CENTOS_7_X86_64:
+          return VERSION_7;
+        case CENTOS_7_DOM0_X86_64:
+          return VERSION_7_DOM0;
+        default:
+          throw new RuntimeException("Unsupported operating_system_version: " + osv);
       }
     }
 
-    public String getOSArchitecture() {
+    public String getOsArchitecture() {
       switch (osv) {
-        case CENTOS_5_I686_AND_X86_64 :
+        case CENTOS_5_I686_AND_X86_64:
           return I686_AND_X86_64;
-        case CENTOS_5_DOM0_X86_64 :
-        case CENTOS_7_X86_64 :
-        case CENTOS_7_DOM0_X86_64 :
+        case CENTOS_5_DOM0_X86_64:
+        case CENTOS_7_X86_64:
+        case CENTOS_7_DOM0_X86_64:
           return X86_64;
         default:
           throw new RuntimeException("Unexpected value for osv: " + osv);
@@ -332,7 +337,7 @@ public final class DistroGenerator {
     }
 
     public String getFullPath() {
-      return root + '/' + getOSName() + '/' + getOSVersion() + '/' + getOSArchitecture() + filename;
+      return root + '/' + getOsName() + '/' + getOsVersion() + '/' + getOsArchitecture() + filename;
     }
   }
 
@@ -342,22 +347,22 @@ public final class DistroGenerator {
    */
   private String getOperatingSystemPath(int osv) {
     switch (osv) {
-      case CENTOS_5_I686_AND_X86_64 :
+      case CENTOS_5_I686_AND_X86_64:
         return root + '/' + CENTOS + '/' + VERSION_5      + '/' + I686_AND_X86_64;
-      case CENTOS_5_DOM0_X86_64 :
+      case CENTOS_5_DOM0_X86_64:
         return root + '/' + CENTOS + '/' + VERSION_5_DOM0 + '/' + X86_64;
-      case CENTOS_7_X86_64 :
+      case CENTOS_7_X86_64:
         return root + '/' + CENTOS + '/' + VERSION_7      + '/' + X86_64;
-      case CENTOS_7_DOM0_X86_64 :
+      case CENTOS_7_DOM0_X86_64:
         return root + '/' + CENTOS + '/' + VERSION_7_DOM0 + '/' + X86_64;
-      default :
+      default:
         throw new RuntimeException("Unexpected value for osv: " + osv);
     }
   }
 
   private final Map<Integer, Map<Integer, String>> usernames = new HashMap<>();
 
-  private String getUsername(OSFilename osFilename, int fileUID) throws IOException {
+  private String getUsername(OsFilename osFilename, int fileUid) throws IOException {
     Integer osv = osFilename.osv;
     synchronized (usernames) {
       Map<Integer, String> realNames = usernames.get(osv);
@@ -368,7 +373,7 @@ public final class DistroGenerator {
                 new BufferedInputStream(
                     new FileInputStream(
                         new PosixFile(
-                            root + '/' + osFilename.getOSName() + '/' + osFilename.getOSVersion() + '/' + osFilename.getOSArchitecture() + "/etc/passwd"
+                            root + '/' + osFilename.getOsName() + '/' + osFilename.getOsVersion() + '/' + osFilename.getOsArchitecture() + "/etc/passwd"
                         ).getFile()
                     )
                 )
@@ -378,17 +383,17 @@ public final class DistroGenerator {
           while ((line = in.readLine()) != null) {
             List<String> fields = Strings.split(line, ':');
             String username = fields.get(0);
-            Integer userID = Integer.parseInt(fields.get(2));
-            if (!realNames.containsKey(userID)) {
-              realNames.put(userID, username);
+            Integer userId = Integer.parseInt(fields.get(2));
+            if (!realNames.containsKey(userId)) {
+              realNames.put(userId, username);
             }
           }
         }
         usernames.put(osv, realNames);
       }
-      String username = realNames.get(fileUID);
+      String username = realNames.get(fileUid);
       if (username == null) {
-        throw new IOException("Unable to find username: " + fileUID + " for file " + osFilename);
+        throw new IOException("Unable to find username: " + fileUid + " for file " + osFilename);
       }
       return username;
     }
@@ -396,7 +401,7 @@ public final class DistroGenerator {
 
   private final Map<Integer, Map<Integer, String>> groupnames = new HashMap<>();
 
-  private String getGroupname(OSFilename osFilename, int fileGID) throws IOException {
+  private String getGroupname(OsFilename osFilename, int fileGid) throws IOException {
     Integer i = osFilename.osv;
     synchronized (groupnames) {
       Map<Integer, String> realGroups = groupnames.get(i);
@@ -407,7 +412,7 @@ public final class DistroGenerator {
                 new BufferedInputStream(
                     new FileInputStream(
                         new PosixFile(
-                            root + '/' + osFilename.getOSName() + '/' + osFilename.getOSVersion() + '/' + osFilename.getOSArchitecture() + "/etc/group"
+                            root + '/' + osFilename.getOsName() + '/' + osFilename.getOsVersion() + '/' + osFilename.getOsArchitecture() + "/etc/group"
                         ).getFile()
                     )
                 )
@@ -417,17 +422,17 @@ public final class DistroGenerator {
           while ((line = in.readLine()) != null) {
             List<String> fields = Strings.split(line, ':');
             String groupname = fields.get(0);
-            Integer groupID = Integer.parseInt(fields.get(2));
-            if (!realGroups.containsKey(groupID)) {
-              realGroups.put(groupID, groupname);
+            Integer groupId = Integer.parseInt(fields.get(2));
+            if (!realGroups.containsKey(groupId)) {
+              realGroups.put(groupId, groupname);
             }
           }
         }
         groupnames.put(i, realGroups);
       }
-      String groupname = realGroups.get(fileGID);
+      String groupname = realGroups.get(fileGid);
       if (groupname == null) {
-        throw new IOException("Unable to find group name " + fileGID + " for file " + osFilename);
+        throw new IOException("Unable to find group name " + fileGid + " for file " + osFilename);
       }
       return groupname;
     }
@@ -443,14 +448,13 @@ public final class DistroGenerator {
     /**
      * Track which filenames exist and have been seen.
      */
-    private final Map<OSFilename, Boolean>
+    private final Map<OsFilename, Boolean>
         configs = new HashMap<>(),
         nevers = new HashMap<>(),
         noRecurses = new HashMap<>(),
         optionals = new HashMap<>(),
         prelinks = new HashMap<>(),
-        users = new HashMap<>()
-    ;
+        users = new HashMap<>();
 
     private final Object nextFilenameLock = new Object();
 
@@ -475,11 +479,11 @@ public final class DistroGenerator {
      * Lines containing a path are not trimmed.
      * </p>
      */
-    private void readFileLists(ConfigFile configFile, Map<OSFilename, Boolean> map, int ... osvs) throws IOException {
+    private void readFileLists(ConfigFile configFile, Map<OsFilename, Boolean> map, int ... osvs) throws IOException {
       for (int osv : osvs) {
         String path = getOperatingSystemPath(osv) + configFile.fileExtension;
         try (
-          BufferedReader in = new BufferedReader(
+            BufferedReader in = new BufferedReader(
                 new InputStreamReader(
                     new FileInputStream(path)
                 )
@@ -489,7 +493,7 @@ public final class DistroGenerator {
           while ((filename = in.readLine()) != null) {
             String trimmed = filename.trim();
             if (trimmed.length() > 0 && trimmed.charAt(0) != '#') {
-              OSFilename osFilename = new OSFilename(osv, filename);
+              OsFilename osFilename = new OsFilename(osv, filename);
               if (map.put(osFilename, Boolean.FALSE) != null) {
                 throw new AssertionError("Duplicate filename in " + path + ": " + filename);
               }
@@ -557,7 +561,7 @@ public final class DistroGenerator {
       );
     }
 
-    private OSFilename getNextFilename() throws IOException {
+    private OsFilename getNextFilename() throws IOException {
       synchronized (nextFilenameLock) {
         // Loop until end or found within a template directory
         while (true) {
@@ -610,7 +614,7 @@ public final class DistroGenerator {
           currentIndexes.push(currentIndex);
 
           // Recurse for directories
-          OSFilename osFilename = new OSFilename(filename);
+          OsFilename osFilename = new OsFilename(filename);
           try {
             PosixFile unixFile = new PosixFile(root + filename);
             long statMode = unixFile.getStat().getRawMode();
@@ -652,8 +656,8 @@ public final class DistroGenerator {
      * Also flags the path as seen.
      */
     private boolean containsFile(
-        Map<OSFilename, Boolean> osVersions,
-        OSFilename osFilename
+        Map<OsFilename, Boolean> osVersions,
+        OsFilename osFilename
     ) {
       synchronized (osVersions) {
         Boolean seen = osVersions.get(osFilename);
@@ -669,27 +673,27 @@ public final class DistroGenerator {
       }
     }
 
-    private boolean isConfig(OSFilename osFilename) {
+    private boolean isConfig(OsFilename osFilename) {
       return containsFile(configs, osFilename);
     }
 
-    private boolean isNever(OSFilename osFilename) {
+    private boolean isNever(OsFilename osFilename) {
       return containsFile(nevers, osFilename);
     }
 
-    private boolean isNoRecurse(OSFilename osFilename) {
+    private boolean isNoRecurse(OsFilename osFilename) {
       return containsFile(noRecurses, osFilename);
     }
 
-    private boolean isOptional(OSFilename osFilename) {
+    private boolean isOptional(OsFilename osFilename) {
       return containsFile(optionals, osFilename);
     }
 
-    private boolean isPrelink(OSFilename osFilename) {
+    private boolean isPrelink(OsFilename osFilename) {
       return containsFile(prelinks, osFilename);
     }
 
-    private boolean isUser(OSFilename osFilename) {
+    private boolean isUser(OsFilename osFilename) {
       return containsFile(users, osFilename);
     }
 
@@ -711,8 +715,8 @@ public final class DistroGenerator {
 
     // First do a quick scan for nevers
     Set<String> foundNevers = new LinkedHashSet<>();
-    for (Map.Entry<OSFilename, Boolean> entry : runState.nevers.entrySet()) {
-      OSFilename osFilename = entry.getKey();
+    for (Map.Entry<OsFilename, Boolean> entry : runState.nevers.entrySet()) {
+      OsFilename osFilename = entry.getKey();
       String path = osFilename.getFullPath();
       PosixFile uf = new PosixFile(path);
       if (uf.getStat().exists()) {
@@ -826,7 +830,7 @@ public final class DistroGenerator {
       try {
         MessageDigest digest = MessageDigestUtils.getSha256();
         while (!Thread.currentThread().isInterrupted()) {
-          OSFilename osFilename = runState.getNextFilename();
+          OsFilename osFilename = runState.getNextFilename();
           if (osFilename == null) {
             break;
           }
@@ -840,8 +844,7 @@ public final class DistroGenerator {
               : runState.isConfig(osFilename) ? DistroFileType.CONFIG
               : runState.isNoRecurse(osFilename) ? DistroFileType.NO_RECURSE
               : runState.isPrelink(osFilename) ? DistroFileType.PRELINK
-              : DistroFileType.SYSTEM
-          ;
+              : DistroFileType.SYSTEM;
 
           // Decide if the size should be stored
           PosixFile file = new PosixFile(fullPath);
@@ -901,9 +904,9 @@ public final class DistroGenerator {
                     .append(IoUtils.bufferToLong(sha256, 16)).append("::int8, ")
                     .append(IoUtils.bufferToLong(sha256, 24)).append("::int8");
               } else if (type.equals(DistroFileType.PRELINK)) {
-                String chroot = root + '/' + osFilename.getOSName() + '/' + osFilename.getOSVersion() + '/' + osFilename.getOSArchitecture();
+                String chroot = root + '/' + osFilename.getOsName() + '/' + osFilename.getOsVersion() + '/' + osFilename.getOsArchitecture();
                 // Need to do SHA-256 digest in Java since prelink command doesn't support it directly
-                AOServDaemon.execRun(
+                AoservDaemon.execRun(
                     stdout -> {
                       byte[] sha256;
                       long fileLen;
@@ -991,17 +994,17 @@ public final class DistroGenerator {
     throw new RuntimeException("Unsupported operating system: name=" + name + ", version=" + version + ", architecture=" + architecture);
   }
 
-  private void reportMissingTemplateFiles(ConfigFile configFile, Map<OSFilename, Boolean> map, PrintWriter err) {
+  private void reportMissingTemplateFiles(ConfigFile configFile, Map<OsFilename, Boolean> map, PrintWriter err) {
     // Filter all not seen
-    SortedSet<OSFilename> notSeen = new TreeSet<>();
-    for (Map.Entry<OSFilename, Boolean> entry : map.entrySet()) {
+    SortedSet<OsFilename> notSeen = new TreeSet<>();
+    for (Map.Entry<OsFilename, Boolean> entry : map.entrySet()) {
       if (!entry.getValue()) {
         notSeen.add(entry.getKey());
       }
     }
     if (!notSeen.isEmpty()) {
       int lastOsv = Integer.MIN_VALUE;
-      for (OSFilename osFilename : notSeen) {
+      for (OsFilename osFilename : notSeen) {
         int osv = osFilename.osv;
         if (osv != lastOsv) {
           lastOsv = osv;

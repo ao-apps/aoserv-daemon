@@ -25,11 +25,11 @@ package com.aoindustries.aoserv.daemon.random;
 
 import com.aoapps.io.posix.linux.DevRandom;
 import com.aoapps.lang.util.BufferManager;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.Server;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -69,7 +69,7 @@ public final class RandomEntropyManager implements Runnable {
   public static final long MAX_DESIRED_DELAY = 15L * 1000;
 
   /**
-   * The minimum interval between calls to {@code getMasterEntropyNeeded()}
+   * The minimum interval between calls to {@code getMasterEntropyNeeded()}.
    */
   public static final long GET_MASTER_ENTROPY_NEEDED_INTERVAL = 5L * 60 * 1000;
 
@@ -141,8 +141,8 @@ public final class RandomEntropyManager implements Runnable {
   public void run() {
     while (!Thread.currentThread().isInterrupted()) {
       try {
-        AOServConnector conn = AOServDaemon.getConnector();
-        Server thisServer = AOServDaemon.getThisServer();
+        AoservConnector conn = AoservDaemon.getConnector();
+        Server thisServer = AoservDaemon.getThisServer();
         OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
         int osvId = osv.getPkey();
 
@@ -203,8 +203,8 @@ public final class RandomEntropyManager implements Runnable {
                   PackageManager.PackageName.HAVEGED,
                   () -> {
                     try {
-                      AOServDaemon.exec("/usr/bin/systemctl", "enable", "haveged.service");
-                      AOServDaemon.exec("/usr/bin/systemctl", "start",  "haveged.service");
+                      AoservDaemon.exec("/usr/bin/systemctl", "enable", "haveged.service");
+                      AoservDaemon.exec("/usr/bin/systemctl", "start",  "haveged.service");
                     } catch (IOException e) {
                       throw new UncheckedIOException(e);
                     }
@@ -243,7 +243,7 @@ public final class RandomEntropyManager implements Runnable {
                 if (provideBytes > BufferManager.BUFFER_SIZE) {
                   provideBytes = BufferManager.BUFFER_SIZE;
                 }
-                if (AOServDaemon.DEBUG) {
+                if (AoservDaemon.DEBUG) {
                   System.err.println("DEBUG: RandomEntropyManager: Providing " + provideBytes + " bytes (" + (provideBytes * 8) + " bits) of entropy to master server");
                 }
                 byte[] buff = BufferManager.getBytes();
@@ -284,7 +284,7 @@ public final class RandomEntropyManager implements Runnable {
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() throws IOException, SQLException {
-    Server thisServer = AOServDaemon.getThisServer();
+    Server thisServer = AoservDaemon.getThisServer();
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
 
@@ -293,7 +293,7 @@ public final class RandomEntropyManager implements Runnable {
           // Nothing is done for these operating systems
           // All operating systems currently sharing entropy
           // Check config after OS check so config entry not needed
-          AOServDaemonConfiguration.isManagerEnabled(RandomEntropyManager.class)
+          AoservDaemonConfiguration.isManagerEnabled(RandomEntropyManager.class)
               && thread == null
       ) {
         System.out.print("Starting RandomEntropyManager: ");
@@ -306,7 +306,7 @@ public final class RandomEntropyManager implements Runnable {
                 || osvId == OperatingSystemVersion.CENTOS_7_X86_64
         ) {
           // Avoid random manager when in failover mode
-          if (AOServDaemon.getThisServer().getFailoverServer() == null) {
+          if (AoservDaemon.getThisServer().getFailoverServer() == null) {
             thread = new Thread(new RandomEntropyManager());
             thread.start();
             System.out.println("Done");

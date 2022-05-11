@@ -28,7 +28,7 @@ import com.aoapps.lang.util.ErrorPrinter;
 import com.aoapps.lang.validation.ValidationException;
 import com.aoindustries.aoserv.client.linux.LinuxId;
 import com.aoindustries.aoserv.client.linux.Server;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -38,7 +38,7 @@ import java.io.InputStreamReader;
 import java.sql.SQLException;
 
 /**
- * Encapsulates the output of the /proc/<I>PID</I>/status files.
+ * Encapsulates the output of the <code>/proc/<var>PID</var>/status</code> files.
  *
  * @author  AO Industries, Inc.
  */
@@ -46,40 +46,36 @@ public final class ProcStates {
 
   private static final File proc = new File("/proc");
 
-  public final int
-      total_sleep,
-      user_sleep,
-      total_run,
-      user_run,
-      total_zombie,
-      user_zombie,
-      total_trace,
-      user_trace,
-      total_uninterruptible,
-      user_uninterruptible,
-      total_unknown,
-      user_unknown
-  ;
+  public final int totalSleep;
+  public final int userSleep;
+  public final int totalRun;
+  public final int userRun;
+  public final int totalZombie;
+  public final int userZombie;
+  public final int totalTrace;
+  public final int userTrace;
+  public final int totalUninterruptible;
+  public final int userUninterruptible;
+  public final int totalUnknown;
+  public final int userUnknown;
 
   public ProcStates() throws IOException, SQLException {
-    int
-        _total_sleep = 0,
-        _user_sleep = 0,
-        _total_run = 0,
-        _user_run = 0,
-        _total_zombie = 0,
-        _user_zombie = 0,
-        _total_trace = 0,
-        _user_trace = 0,
-        _total_uninterruptible = 0,
-        _user_uninterruptible = 0,
-        _total_unknown = 0,
-        _user_unknown = 0
-    ;
+    int totalSleepTmp = 0;
+    int userSleepTmp = 0;
+    int totalRunTmp = 0;
+    int userRunTmp = 0;
+    int totalZombieTmp = 0;
+    int userZombieTmp = 0;
+    int totalTraceTmp = 0;
+    int userTraceTmp = 0;
+    int totalUninterruptibleTmp = 0;
+    int userUninterruptibleTmp = 0;
+    int totalUnknownTmp = 0;
+    int userUnknownTmp = 0;
 
-    Server thisServer = AOServDaemon.getThisServer();
+    Server thisServer = AoservDaemon.getThisServer();
     boolean isOuterServer = thisServer.getFailoverServer() == null;
-    int uid_min = thisServer.getUidMin().getId();
+    int uidMin = thisServer.getUidMin().getId();
 
     // Parse for the values
     String[] list = proc.list();
@@ -106,44 +102,44 @@ public final class ProcStates {
               }
               if (isOuterServer) {
                 if (state == null) {
-                  _total_unknown++;
+                  totalUnknownTmp++;
                 } else {
                   ch = state.charAt(0);
                   if (ch == 'S') {
-                    _total_sleep++;
+                    totalSleepTmp++;
                   } else if (ch == 'R') {
-                    _total_run++;
+                    totalRunTmp++;
                   } else if (ch == 'Z') {
-                    _total_zombie++;
+                    totalZombieTmp++;
                   } else if (ch == 'T') {
-                    _total_trace++;
+                    totalTraceTmp++;
                   } else if (ch == 'D') {
-                    _total_uninterruptible++;
+                    totalUninterruptibleTmp++;
                   } else {
-                    _total_unknown++;
+                    totalUnknownTmp++;
                   }
                 }
               }
               if (
-                  uid >= uid_min
+                  uid >= uidMin
                       && thisServer.getLinuxServerAccount(LinuxId.valueOf(uid)) != null
               ) {
                 if (state == null) {
-                  _user_unknown++;
+                  userUnknownTmp++;
                 } else {
                   ch = state.charAt(0);
                   if (ch == 'S') {
-                    _user_sleep++;
+                    userSleepTmp++;
                   } else if (ch == 'R') {
-                    _user_run++;
+                    userRunTmp++;
                   } else if (ch == 'Z') {
-                    _user_zombie++;
+                    userZombieTmp++;
                   } else if (ch == 'T') {
-                    _user_trace++;
+                    userTraceTmp++;
                   } else if (ch == 'D') {
-                    _user_uninterruptible++;
+                    userUninterruptibleTmp++;
                   } else {
-                    _user_unknown++;
+                    userUnknownTmp++;
                   }
                 }
               }
@@ -158,18 +154,18 @@ public final class ProcStates {
     }
 
     // Copy into instance
-    this.total_sleep = _total_sleep;
-    this.user_sleep = _user_sleep;
-    this.total_run = _total_run;
-    this.user_run = _user_run;
-    this.total_zombie = _total_zombie;
-    this.user_zombie = _user_zombie;
-    this.total_trace = _total_trace;
-    this.user_trace = _user_trace;
-    this.total_uninterruptible = _total_uninterruptible;
-    this.user_uninterruptible = _user_uninterruptible;
-    this.total_unknown = _total_unknown;
-    this.user_unknown = _user_unknown;
+    this.totalSleep = totalSleepTmp;
+    this.userSleep = userSleepTmp;
+    this.totalRun = totalRunTmp;
+    this.userRun = userRunTmp;
+    this.totalZombie = totalZombieTmp;
+    this.userZombie = userZombieTmp;
+    this.totalTrace = totalTraceTmp;
+    this.userTrace = userTraceTmp;
+    this.totalUninterruptible = totalUninterruptibleTmp;
+    this.userUninterruptible = userUninterruptibleTmp;
+    this.totalUnknown = totalUnknownTmp;
+    this.userUnknown = userUnknownTmp;
   }
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
@@ -190,18 +186,17 @@ public final class ProcStates {
   public String toString() {
     return
         getClass().getName()
-            + "?total_sleep=" + total_sleep
-            + "&user_sleep=" + user_sleep
-            + "&total_run=" + total_run
-            + "&user_run=" + user_run
-            + "&total_zombie=" + total_zombie
-            + "&user_zombie=" + user_zombie
-            + "&total_trace=" + total_trace
-            + "&user_trace=" + user_trace
-            + "&total_uninterruptible=" + total_uninterruptible
-            + "&user_uninterruptible=" + user_uninterruptible
-            + "&total_unknown=" + total_unknown
-            + "&user_unknown=" + user_unknown
-    ;
+            + "?totalSleep=" + totalSleep
+            + "&userSleep=" + userSleep
+            + "&totalRun=" + totalRun
+            + "&userRun=" + userRun
+            + "&totalZombie=" + totalZombie
+            + "&userZombie=" + userZombie
+            + "&totalTrace=" + totalTrace
+            + "&userTrace=" + userTrace
+            + "&totalUninterruptible=" + totalUninterruptible
+            + "&userUninterruptible=" + userUninterruptible
+            + "&totalUnknown=" + totalUnknown
+            + "&userUnknown=" + userUnknown;
   }
 }

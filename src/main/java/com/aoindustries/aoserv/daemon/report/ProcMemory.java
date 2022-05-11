@@ -25,7 +25,7 @@ package com.aoindustries.aoserv.daemon.report;
 
 import com.aoapps.lang.Strings;
 import com.aoapps.lang.util.ErrorPrinter;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -33,49 +33,45 @@ import java.io.InputStreamReader;
 import java.sql.SQLException;
 
 /**
- * Encapsulates the output of the /proc/meminfo file.
+ * Encapsulates the output of the <code>/proc/meminfo</code> file.
  *
  * @author  AO Industries, Inc.
  */
 public final class ProcMemory {
 
-  public final int
-      mem_total,
-      mem_free,
-      mem_shared,
-      buffers,
-      cached,
-      swap_cached,
-      active,
-      inact_dirty,
-      inact_clean,
-      inact_target,
-      high_total,
-      high_free,
-      low_total,
-      low_free
-  ;
+  public final int memTotal;
+  public final int memFree;
+  public final int memShared;
+  public final int buffers;
+  public final int cached;
+  public final int swapCached;
+  public final int active;
+  public final int inactDirty;
+  public final int inactClean;
+  public final int inactTarget;
+  public final int highTotal;
+  public final int highFree;
+  public final int lowTotal;
+  public final int lowFree;
 
   public ProcMemory() throws IOException, SQLException {
-    int
-        _mem_total = 0,
-        _mem_free = 0,
-        _mem_shared = 0,
-        _buffers = 0,
-        _cached = 0,
-        _swap_cached = 0,
-        _active = 0,
-        _inact_dirty = 0,
-        _inact_clean = 0,
-        _inact_target = 0,
-        _high_total = 0,
-        _high_free = 0,
-        _low_total = 0,
-        _low_free = 0
-    ;
+    int memTotalTmp = 0;
+    int memFreeTmp = 0;
+    int memSharedTmp = 0;
+    int buffersTmp = 0;
+    int cachedTmp = 0;
+    int swapCachedTmp = 0;
+    int activeTmp = 0;
+    int inactDirtyTmp = 0;
+    int inactCleanTmp = 0;
+    int inactTargetTmp = 0;
+    int highTotalTmp = 0;
+    int highFreeTmp = 0;
+    int lowTotalTmp = 0;
+    int lowFreeTmp = 0;
 
     // Only the outer-most server tracks memory use
-    if (AOServDaemon.getThisServer().getFailoverServer() == null) {
+    if (AoservDaemon.getThisServer().getFailoverServer() == null) {
       // Parse for the values
       try (BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream("/proc/meminfo")))) {
         String line;
@@ -83,53 +79,53 @@ public final class ProcMemory {
           String[] words = Strings.split(line);
           String label = words[0];
           if ("MemTotal:".equals(label)) {
-            _mem_total = Integer.parseInt(words[1]);
+            memTotalTmp = Integer.parseInt(words[1]);
           } else if ("MemFree:".equals(label)) {
-            _mem_free = Integer.parseInt(words[1]);
+            memFreeTmp = Integer.parseInt(words[1]);
           } else if ("MemShared:".equals(label)) {
-            _mem_shared = Integer.parseInt(words[1]);
+            memSharedTmp = Integer.parseInt(words[1]);
           } else if ("Buffers:".equals(label)) {
-            _buffers = Integer.parseInt(words[1]);
+            buffersTmp = Integer.parseInt(words[1]);
           } else if ("Cached:".equals(label)) {
-            _cached = Integer.parseInt(words[1]);
+            cachedTmp = Integer.parseInt(words[1]);
           } else if ("SwapCached:".equals(label)) {
-            _swap_cached = Integer.parseInt(words[1]);
+            swapCachedTmp = Integer.parseInt(words[1]);
           } else if ("Active:".equals(label)) {
-            _active = Integer.parseInt(words[1]);
+            activeTmp = Integer.parseInt(words[1]);
           } else if ("Inact_dirty:".equals(label)) {
-            _inact_dirty = Integer.parseInt(words[1]);
+            inactDirtyTmp = Integer.parseInt(words[1]);
           } else if ("Inact_clean:".equals(label)) {
-            _inact_clean = Integer.parseInt(words[1]);
+            inactCleanTmp = Integer.parseInt(words[1]);
           } else if ("Inact_target:".equals(label)) {
-            _inact_target = Integer.parseInt(words[1]);
+            inactTargetTmp = Integer.parseInt(words[1]);
           } else if ("HighTotal:".equals(label)) {
-            _high_total = Integer.parseInt(words[1]);
+            highTotalTmp = Integer.parseInt(words[1]);
           } else if ("HighFree:".equals(label)) {
-            _high_free = Integer.parseInt(words[1]);
+            highFreeTmp = Integer.parseInt(words[1]);
           } else if ("LowTotal:".equals(label)) {
-            _low_total = Integer.parseInt(words[1]);
+            lowTotalTmp = Integer.parseInt(words[1]);
           } else if ("LowFree:".equals(label)) {
-            _low_free = Integer.parseInt(words[1]);
+            lowFreeTmp = Integer.parseInt(words[1]);
           }
         }
       }
     }
 
     // Copy into instance
-    this.mem_total = _mem_total;
-    this.mem_free = _mem_free;
-    this.mem_shared = _mem_shared;
-    this.buffers = _buffers;
-    this.cached = _cached;
-    this.swap_cached = _swap_cached;
-    this.active = _active;
-    this.inact_dirty = _inact_dirty;
-    this.inact_clean = _inact_clean;
-    this.inact_target = _inact_target;
-    this.high_total = _high_total;
-    this.high_free = _high_free;
-    this.low_total = _low_total;
-    this.low_free = _low_free;
+    this.memTotal = memTotalTmp;
+    this.memFree = memFreeTmp;
+    this.memShared = memSharedTmp;
+    this.buffers = buffersTmp;
+    this.cached = cachedTmp;
+    this.swapCached = swapCachedTmp;
+    this.active = activeTmp;
+    this.inactDirty = inactDirtyTmp;
+    this.inactClean = inactCleanTmp;
+    this.inactTarget = inactTargetTmp;
+    this.highTotal = highTotalTmp;
+    this.highFree = highFreeTmp;
+    this.lowTotal = lowTotalTmp;
+    this.lowFree = lowFreeTmp;
   }
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
@@ -150,20 +146,19 @@ public final class ProcMemory {
   public String toString() {
     return
         getClass().getName()
-            + "?mem_total=" + mem_total
-            + "&mem_free=" + mem_free
-            + "&mem_shared=" + mem_shared
+            + "?memTotal=" + memTotal
+            + "&memFree=" + memFree
+            + "&memShared=" + memShared
             + "&buffers=" + buffers
             + "&cached=" + cached
-            + "&swap_cached=" + swap_cached
+            + "&swapCached=" + swapCached
             + "&active=" + active
-            + "&inact_dirty=" + inact_dirty
-            + "&inact_clean=" + inact_clean
-            + "&inact_target=" + inact_target
-            + "&high_total=" + high_total
-            + "&high_free=" + high_free
-            + "&low_total=" + low_total
-            + "&low_free=" + low_free
-    ;
+            + "&inactDirty=" + inactDirty
+            + "&inactClean=" + inactClean
+            + "&inactTarget=" + inactTarget
+            + "&highTotal=" + highTotal
+            + "&highFree=" + highFree
+            + "&lowTotal=" + lowTotal
+            + "&lowFree=" + lowFree;
   }
 }

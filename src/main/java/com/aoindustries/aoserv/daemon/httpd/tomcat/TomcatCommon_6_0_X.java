@@ -26,7 +26,7 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
 import com.aoapps.encoding.ChainWriter;
 import com.aoapps.io.posix.PosixFile;
 import com.aoindustries.aoserv.client.web.tomcat.ContextDataSource;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.UpgradeSymlink;
@@ -107,7 +107,7 @@ final class TomcatCommon_6_0_X extends TomcatCommon {
       if ("6.0.37".equals(rpmVersion)) {
         // Nothing to do
       } else if ("6.0.45".equals(rpmVersion)) {
-        UpgradeSymlink[] upgradeSymlinks_6_0_45 = {
+        UpgradeSymlink[] upgradeSymlinks = {
             new UpgradeSymlink(
                 "lib/ecj-4.2.2.jar",
                 "../" + optSlash + "apache-tomcat-6.0/lib/ecj-4.2.2.jar",
@@ -127,14 +127,14 @@ final class TomcatCommon_6_0_X extends TomcatCommon {
                 "../" + optSlash + "apache-tomcat-6.0/lib/postgresql-9.4.1208.jre6.jar"
             )
         };
-        for (UpgradeSymlink upgradeSymlink : upgradeSymlinks_6_0_45) {
+        for (UpgradeSymlink upgradeSymlink : upgradeSymlinks) {
           if (upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
         }
         if (osConfig == OperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) {
           // Switch from Java 1.7 to Java 1.* now that compatible with Java 1.8
-          String results = AOServDaemon.execAndCapture(
+          String results = AoservDaemon.execAndCapture(
               new String[]{
                   osConfig.getReplaceCommand().toString(),
                   "/opt/jdk1.7-i686/setenv.sh",
@@ -148,7 +148,7 @@ final class TomcatCommon_6_0_X extends TomcatCommon {
           }
         }
       } else if ("6.0.53".equals(rpmVersion)) {
-        UpgradeSymlink[] upgradeSymlinks_6_0_53 = {
+        UpgradeSymlink[] upgradeSymlinks = {
             // mysql-connector-java-5.1.38-bin.jar -> mysql-connector-java-5.1.42-bin.jar
             // mysql-connector-java-5.1.41-bin.jar -> mysql-connector-java-5.1.42-bin.jar
             new UpgradeSymlink(
@@ -184,7 +184,7 @@ final class TomcatCommon_6_0_X extends TomcatCommon {
                 "../" + optSlash + "apache-tomcat-6.0/lib/postgresql-42.1.1.jre6.jar"
             )
         };
-        for (UpgradeSymlink upgradeSymlink : upgradeSymlinks_6_0_53) {
+        for (UpgradeSymlink upgradeSymlink : upgradeSymlinks) {
           if (upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }

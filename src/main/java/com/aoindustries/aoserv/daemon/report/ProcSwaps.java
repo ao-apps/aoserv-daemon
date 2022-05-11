@@ -26,20 +26,18 @@ package com.aoindustries.aoserv.daemon.report;
 import com.aoapps.lang.EmptyArrays;
 
 /**
- * Encapsulates the output of the /proc/swaps file
+ * Encapsulates the output of the <code>/proc/swaps</code> file.
  *
  * @author  AO Industries, Inc.
  */
 public final class ProcSwaps {
 
-  public final int[]
-      device_majors,
-      device_minors,
-      totals,
-      useds
-  ;
+  public final int[] deviceMajors;
+  public final int[] deviceMinors;
+  public final int[] totals;
+  public final int[] useds;
 
   public ProcSwaps() {
-    device_majors = device_minors = totals = useds = EmptyArrays.EMPTY_INT_ARRAY;
+    deviceMajors = deviceMinors = totals = useds = EmptyArrays.EMPTY_INT_ARRAY;
   }
 }

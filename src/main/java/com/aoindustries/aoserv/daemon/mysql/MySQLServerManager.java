@@ -25,14 +25,14 @@ package com.aoindustries.aoserv.daemon.mysql;
 
 import com.aoapps.net.Port;
 import com.aoapps.sql.pool.AOConnectionPool;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.mysql.Database;
 import com.aoindustries.aoserv.client.mysql.Server;
 import com.aoindustries.aoserv.client.net.AppProtocol;
 import com.aoindustries.aoserv.client.net.Bind;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.server.ServerManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
@@ -75,7 +75,7 @@ public final class MySQLServerManager extends BuilderThread {
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
   protected boolean doRebuild() {
     try {
-      com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+      com.aoindustries.aoserv.client.linux.Server thisServer = AoservDaemon.getThisServer();
       OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
       int osvId = osv.getPkey();
       if (
@@ -87,7 +87,7 @@ public final class MySQLServerManager extends BuilderThread {
 
       synchronized (rebuildLock) {
         Set<Port> mysqlPorts = new HashSet<>();
-        for (Server mysqlServer : thisServer.getMySQLServers()) {
+        for (Server mysqlServer : thisServer.getMysqlServers()) {
           mysqlPorts.add(mysqlServer.getBind().getPort());
           // TODO: Add and initialize any missing /var/lib/mysql/name
           // TODO: Add/update any /etc/rc.d/init.d/mysql-name
@@ -102,10 +102,10 @@ public final class MySQLServerManager extends BuilderThread {
 
         // Set mysql_port_t SELinux ports.
         switch (osvId) {
-          case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
+          case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64:
             // SELinux left in Permissive state, not configured here
             break;
-          case OperatingSystemVersion.CENTOS_7_X86_64 : {
+          case OperatingSystemVersion.CENTOS_7_X86_64: {
             // Install /usr/bin/semanage if missing
             PackageManager.installPackage(PackageManager.PackageName.POLICYCOREUTILS_PYTHON);
             // Reconfigure SELinux ports
@@ -114,7 +114,7 @@ public final class MySQLServerManager extends BuilderThread {
             }
             break;
           }
-          default :
+          default:
             throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
         }
 
@@ -136,11 +136,11 @@ public final class MySQLServerManager extends BuilderThread {
       Integer i = ms.getPkey();
       AOConnectionPool pool = pools.get(i);
       if (pool == null) {
-        Database md = ms.getMySQLDatabase(Database.MYSQL);
+        Database md = ms.getMysqlDatabase(Database.MYSQL);
         if (md == null) {
           throw new SQLException("Unable to find Database: " + Database.MYSQL + " on " + ms.toString());
         }
-        Port port = md.getMySQLServer().getBind().getPort();
+        Port port = md.getMysqlServer().getBind().getPort();
         Server.Name serverName = ms.getName();
         String jdbcUrl;
         if (port == Server.DEFAULT_PORT) {
@@ -149,12 +149,12 @@ public final class MySQLServerManager extends BuilderThread {
           jdbcUrl = "jdbc:mysql://127.0.0.1:" + port.getPort() + "/" + URLEncoder.encode(md.getName().toString(), StandardCharsets.UTF_8.name()) + "?useSSL=false"; // Java 10: No .name()
         }
         pool = new AOConnectionPool(
-            AOServDaemonConfiguration.getMySqlDriver(),
+            AoservDaemonConfiguration.getMySqlDriver(),
             jdbcUrl,
-            AOServDaemonConfiguration.getMySqlUser(serverName),
-            AOServDaemonConfiguration.getMySqlPassword(serverName),
-            AOServDaemonConfiguration.getMySqlConnections(serverName),
-            AOServDaemonConfiguration.getMySqlMaxConnectionAge(serverName),
+            AoservDaemonConfiguration.getMySqlUser(serverName),
+            AoservDaemonConfiguration.getMySqlPassword(serverName),
+            AoservDaemonConfiguration.getMySqlConnections(serverName),
+            AoservDaemonConfiguration.getMySqlMaxConnectionAge(serverName),
             logger
         );
         pools.put(i, pool);
@@ -167,7 +167,7 @@ public final class MySQLServerManager extends BuilderThread {
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() throws IOException, SQLException {
-    com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+    com.aoindustries.aoserv.client.linux.Server thisServer = AoservDaemon.getThisServer();
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
 
@@ -178,7 +178,7 @@ public final class MySQLServerManager extends BuilderThread {
               && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
               && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
               // Check config after OS check so config entry not needed
-              && AOServDaemonConfiguration.isManagerEnabled(MySQLServerManager.class)
+              && AoservDaemonConfiguration.isManagerEnabled(MySQLServerManager.class)
               && mysqlServerManager == null
       ) {
         System.out.print("Starting MySQLServerManager: ");
@@ -187,7 +187,7 @@ public final class MySQLServerManager extends BuilderThread {
             osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                 || osvId == OperatingSystemVersion.CENTOS_7_X86_64
         ) {
-          AOServConnector conn = AOServDaemon.getConnector();
+          AoservConnector conn = AoservDaemon.getConnector();
           mysqlServerManager = new MySQLServerManager();
           conn.getMysql().getServer().addTableListener(mysqlServerManager, 0);
           System.out.println("Done");
@@ -209,22 +209,22 @@ public final class MySQLServerManager extends BuilderThread {
     return "Rebuild MySQL Servers";
   }
 
-  public static void restartMySQL(Server ms) throws IOException, SQLException {
+  public static void restartMysql(Server ms) throws IOException, SQLException {
     ServerManager.controlProcess("mysql-" + ms.getName(), "restart");
   }
 
-  public static void startMySQL(Server ms) throws IOException, SQLException {
+  public static void startMysql(Server ms) throws IOException, SQLException {
     ServerManager.controlProcess("mysql-" + ms.getName(), "start");
   }
 
-  public static void stopMySQL(Server ms) throws IOException, SQLException {
+  public static void stopMysql(Server ms) throws IOException, SQLException {
     ServerManager.controlProcess("mysql-" + ms.getName(), "stop");
   }
 
   private static final Object flushLock = new Object();
 
   static void flushPrivileges(Server mysqlServer) throws IOException, SQLException {
-    OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
+    OperatingSystemVersion osv = AoservDaemon.getThisServer().getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
 
     synchronized (flushLock) {
@@ -234,15 +234,15 @@ public final class MySQLServerManager extends BuilderThread {
       synchronized (flushLock) {
         try (Connection conn = getPool().getConnection()) {
           try {
-            String currentSQL = null;
+            String currentSql = null;
             try (Statement stmt = conn.createStatement()) {
-              stmt.executeUpdate(currentSQL = "flush privileges");
+              stmt.executeUpdate(currentSql = "flush privileges");
             } catch (Error | RuntimeException | SQLException e) {
-              ErrorPrinter.addSQL(e, currentSQL);
+              ErrorPrinter.addSql(e, currentSql);
               throw e;
             }
           } catch (SQLException e) {
-            conn.abort(AOServDaemon.executorService);
+            conn.abort(AoservDaemon.executorService);
             throw e;
           }
         }
@@ -258,15 +258,15 @@ public final class MySQLServerManager extends BuilderThread {
       }
 
       Server.Name serverName = mysqlServer.getName();
-      AOServDaemon.exec(
+      AoservDaemon.exec(
           path,
           "-h",
           "127.0.0.1",
           "-P",
           Integer.toString(mysqlServer.getBind().getPort().getPort()),
           "-u",
-          AOServDaemonConfiguration.getMySqlUser(serverName),
-          "--password=" + AOServDaemonConfiguration.getMySqlPassword(serverName), // TODO: use --login-path
+          AoservDaemonConfiguration.getMySqlUser(serverName),
+          "--password=" + AoservDaemonConfiguration.getMySqlPassword(serverName), // TODO: use --login-path
           "reload"
       );
     }

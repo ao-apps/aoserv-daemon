@@ -40,17 +40,18 @@ import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 
 /**
- * The <code>AOServServer</code> accepts connections from an <code>SimpleAOClient</code>.
+ * The <code>AoservDaemonServer</code> accepts connections from an <code>SimpleAoservClient</code>.
  * Once the connection is accepted and authenticated, the server carries out all actions requested
  * by the client.
  * <p>
  * This server is completely threaded to handle multiple, simultaneous clients.
  * </p>
+ *
  * @author  AO Industries, Inc.
  */
-public final class AOServDaemonServer extends Thread {
+public final class AoservDaemonServer extends Thread {
 
-  private static final Logger logger = Logger.getLogger(AOServDaemonServer.class.getName());
+  private static final Logger logger = Logger.getLogger(AoservDaemonServer.class.getName());
 
   /**
    * The address that this server will bind to.
@@ -70,8 +71,8 @@ public final class AOServDaemonServer extends Thread {
   /**
    * Creates a new, running <code>AOServServer</code>.
    */
-  public AOServDaemonServer(com.aoapps.net.InetAddress serverBind, int serverPort, String protocol) {
-    super(AOServDaemonServer.class.getName() + "?address=" + serverBind + "&port=" + serverPort + "&protocol=" + protocol);
+  public AoservDaemonServer(com.aoapps.net.InetAddress serverBind, int serverPort, String protocol) {
+    super(AoservDaemonServer.class.getName() + "?address=" + serverBind + "&port=" + serverPort + "&protocol=" + protocol);
     this.serverBind = serverBind;
     this.serverPort = serverPort;
     this.protocol = protocol;
@@ -139,19 +140,20 @@ public final class AOServDaemonServer extends Thread {
           System.out.println(')');
         }
         switch (protocol) {
-          case AppProtocol.AOSERV_DAEMON:
+          case AppProtocol.AOSERV_DAEMON: {
             try (ServerSocket SS = new ServerSocket(serverPort, 50, serverBind.isUnspecified() ? null : address)) {
               while (!Thread.currentThread().isInterrupted()) {
                 Socket socket = SS.accept();
                 socket.setKeepAlive(true);
                 socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
                 //socket.setTcpNoDelay(true);
-                AOServDaemonServerThread thread = new AOServDaemonServerThread(this, socket);
+                AoservDaemonServerThread thread = new AoservDaemonServerThread(this, socket);
                 thread.start();
               }
             }
             break;
-          case AppProtocol.AOSERV_DAEMON_SSL:
+          }
+          case AppProtocol.AOSERV_DAEMON_SSL: {
             SSLServerSocketFactory factory = (SSLServerSocketFactory) SSLServerSocketFactory.getDefault();
             SSLServerSocket ss = (SSLServerSocket) factory.createServerSocket(serverPort, 50, address);
             try {
@@ -161,7 +163,7 @@ public final class AOServDaemonServer extends Thread {
                   socket.setKeepAlive(true);
                   socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
                   //socket.setTcpNoDelay(true);
-                  AOServDaemonServerThread thread = new AOServDaemonServerThread(this, socket);
+                  AoservDaemonServerThread thread = new AoservDaemonServerThread(this, socket);
                   thread.start();
                 } catch (ThreadDeath td) {
                   throw td;
@@ -173,6 +175,7 @@ public final class AOServDaemonServer extends Thread {
               ss.close();
             }
             break;
+          }
           default:
             throw new IllegalArgumentException("Unsupported protocol: " + protocol);
         }

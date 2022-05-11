@@ -25,14 +25,14 @@ package com.aoindustries.aoserv.daemon.postgres;
 
 import com.aoapps.lang.util.ErrorPrinter;
 import com.aoapps.lang.validation.ValidationException;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.postgresql.Server;
 import com.aoindustries.aoserv.client.postgresql.User;
 import com.aoindustries.aoserv.client.postgresql.UserServer;
 import com.aoindustries.aoserv.client.postgresql.Version;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import java.io.IOException;
 import java.sql.Connection;
@@ -169,7 +169,7 @@ public final class PostgresUserManager extends BuilderThread {
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
   protected boolean doRebuild() {
     try {
-      com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+      com.aoindustries.aoserv.client.linux.Server thisServer = AoservDaemon.getThisServer();
       OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
       int osvId = osv.getPkey();
       if (
@@ -179,7 +179,7 @@ public final class PostgresUserManager extends BuilderThread {
         throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
       }
 
-      AOServConnector connector = AOServDaemon.getConnector();
+      AoservConnector connector = AoservDaemon.getConnector();
       synchronized (rebuildLock) {
         for (Server ps : thisServer.getPostgresServers()) {
           // Get the list of all users that should exist
@@ -196,10 +196,10 @@ public final class PostgresUserManager extends BuilderThread {
               try {
                 // Get the list of all existing users
                 Set<User.Name> existing = new HashSet<>();
-                String currentSQL = null;
+                String currentSql = null;
                 try (Statement stmt = conn.createStatement()) {
                   try (
-                    ResultSet results = stmt.executeQuery(currentSQL =
+                      ResultSet results = stmt.executeQuery(currentSql =
                           supportsRoles
                               ? "SELECT rolname FROM pg_authid"
                               : "SELECT usename FROM pg_user"
@@ -221,7 +221,7 @@ public final class PostgresUserManager extends BuilderThread {
                     }
                   }
                 } catch (Error | RuntimeException | SQLException e) {
-                  ErrorPrinter.addSQL(e, currentSQL);
+                  ErrorPrinter.addSql(e, currentSql);
                   throw e;
                 }
 
@@ -248,11 +248,11 @@ public final class PostgresUserManager extends BuilderThread {
                       if (logger.isLoggable(Level.FINE)) {
                         logger.fine("Dropping user: " + username);
                       }
-                      currentSQL = null;
+                      currentSql = null;
                       try (Statement stmt = conn.createStatement()) {
-                        stmt.executeUpdate(currentSQL = "DROP USER \"" + username + '"');
+                        stmt.executeUpdate(currentSql = "DROP USER \"" + username + '"');
                       } catch (Error | RuntimeException | SQLException e) {
-                        ErrorPrinter.addSQL(e, currentSQL);
+                        ErrorPrinter.addSql(e, currentSql);
                         throw e;
                       }
                     }
@@ -291,10 +291,10 @@ public final class PostgresUserManager extends BuilderThread {
                       //)
                       //.append(User.NO_PASSWORD_DB_VALUE)
                       //.append("' ")
-                      if (pu.canCreateDB()) {
+                      if (pu.canCreatedb()) {
                         sql.append(" CREATEDB");
                       }
-                      if (pu.canCatUPD()) {
+                      if (pu.canCatupd()) {
                         sql.append(
                             supportsRoles
                                 ? " CREATEROLE"
@@ -304,11 +304,11 @@ public final class PostgresUserManager extends BuilderThread {
                       if (supportsRoles) {
                         sql.append(" LOGIN");
                       }
-                      currentSQL = null;
+                      currentSql = null;
                       try (Statement stmt = conn.createStatement()) {
-                        stmt.executeUpdate(currentSQL = sql.toString());
+                        stmt.executeUpdate(currentSql = sql.toString());
                       } catch (Error | RuntimeException | SQLException e) {
-                        ErrorPrinter.addSQL(e, currentSQL);
+                        ErrorPrinter.addSql(e, currentSql);
                         throw e;
                       }
                     }
@@ -333,7 +333,7 @@ public final class PostgresUserManager extends BuilderThread {
                               }
                             }
                           } catch (Error | RuntimeException | SQLException e) {
-                            ErrorPrinter.addSQL(e, pstmt);
+                            ErrorPrinter.addSql(e, pstmt);
                             throw e;
                           }
                         }
@@ -343,11 +343,11 @@ public final class PostgresUserManager extends BuilderThread {
                             if (logger.isLoggable(Level.FINE)) {
                               logger.fine("Adding login role: " + username);
                             }
-                            currentSQL = null;
+                            currentSql = null;
                             try (Statement stmt = conn.createStatement()) {
-                              stmt.executeUpdate(currentSQL = "ALTER ROLE \"" + username + "\" LOGIN");
+                              stmt.executeUpdate(currentSql = "ALTER ROLE \"" + username + "\" LOGIN");
                             } catch (Error | RuntimeException | SQLException e) {
-                              ErrorPrinter.addSQL(e, currentSQL);
+                              ErrorPrinter.addSql(e, currentSql);
                               throw e;
                             }
                           }
@@ -357,11 +357,11 @@ public final class PostgresUserManager extends BuilderThread {
                             if (logger.isLoggable(Level.FINE)) {
                               logger.fine("Removing login role: " + username);
                             }
-                            currentSQL = null;
+                            currentSql = null;
                             try (Statement stmt = conn.createStatement()) {
-                              stmt.executeUpdate(currentSQL = "ALTER ROLE \"" + username + "\" NOLOGIN");
+                              stmt.executeUpdate(currentSql = "ALTER ROLE \"" + username + "\" NOLOGIN");
                             } catch (Error | RuntimeException | SQLException e) {
-                              ErrorPrinter.addSQL(e, currentSQL);
+                              ErrorPrinter.addSql(e, currentSql);
                               throw e;
                             }
                           }
@@ -372,7 +372,7 @@ public final class PostgresUserManager extends BuilderThread {
                   disableEnableDone = true;
                 }
               } catch (SQLException e) {
-                conn.abort(AOServDaemon.executorService);
+                conn.abort(AoservDaemon.executorService);
                 throw e;
               }
             }
@@ -414,11 +414,11 @@ public final class PostgresUserManager extends BuilderThread {
       throw new SQLException("Refusing to get the password for a special user: " + psu);
     }
     Server ps = psu.getPostgresServer();
-    String version = ps.getVersion().getTechnologyVersion(AOServDaemon.getConnector()).getVersion();
+    String version = ps.getVersion().getTechnologyVersion(AoservDaemon.getConnector()).getVersion();
     boolean supportsRoles = supportsRoles(version);
     try (Connection conn = PostgresServerManager.getPool(ps).getConnection(true)) {
       try (
-        PreparedStatement pstmt = conn.prepareStatement(
+          PreparedStatement pstmt = conn.prepareStatement(
               supportsRoles
                   ? "SELECT rolpassword FROM pg_authid WHERE rolname=?"
                   : "SELECT passwd FROM pg_shadow WHERE usename=?"
@@ -434,11 +434,11 @@ public final class PostgresUserManager extends BuilderThread {
             }
           }
         } catch (Error | RuntimeException | SQLException e) {
-          ErrorPrinter.addSQL(e, pstmt);
+          ErrorPrinter.addSql(e, pstmt);
           throw e;
         }
       } catch (SQLException e) {
-        conn.abort(AOServDaemon.executorService);
+        conn.abort(AoservDaemon.executorService);
         throw e;
       }
     }
@@ -449,7 +449,7 @@ public final class PostgresUserManager extends BuilderThread {
       throw new SQLException("Refusing to set the password for a special user: " + psu);
     }
     // Get the connection to work through
-    AOServConnector aoservConn = AOServDaemon.getConnector();
+    AoservConnector aoservConn = AoservDaemon.getConnector();
     Server ps = psu.getPostgresServer();
     String version = ps.getVersion().getTechnologyVersion(aoservConn).getVersion();
     boolean supportsRoles = supportsRoles(version);
@@ -458,9 +458,9 @@ public final class PostgresUserManager extends BuilderThread {
       try {
         if (supportsRoles) {
           // TODO: Find a way to use PreparedStatement here for PostgreSQL 8.1+
-          String currentSQL = null;
+          String currentSql = null;
           try (Statement stmt = conn.createStatement()) {
-            stmt.executeUpdate(currentSQL =
+            stmt.executeUpdate(currentSql =
                 "ALTER ROLE \"" + username + "\" WITH "
                     + (Objects.equals(password, User.NO_PASSWORD) || forceUnencrypted ? "UNENCRYPTED " : "")
                     + "PASSWORD '"
@@ -472,12 +472,12 @@ public final class PostgresUserManager extends BuilderThread {
                         : checkPasswordChars(password)
                 ) + '\'');
           } catch (Error | RuntimeException | SQLException e) {
-            ErrorPrinter.addSQL(e, currentSQL);
+            ErrorPrinter.addSql(e, currentSql);
             throw e;
           }
         } else {
           try (
-            PreparedStatement pstmt = conn.prepareStatement(
+              PreparedStatement pstmt = conn.prepareStatement(
                   "ALTER USER \"" + username + "\" WITH "
                       + (
                       // PostgreSQL 7.1 does not support encrypted passwords
@@ -500,13 +500,13 @@ public final class PostgresUserManager extends BuilderThread {
               );
               pstmt.executeUpdate();
             } catch (Error | RuntimeException | SQLException e) {
-              ErrorPrinter.addSQL(e, pstmt);
+              ErrorPrinter.addSql(e, pstmt);
               throw e;
             }
           }
         }
       } catch (SQLException e) {
-        conn.abort(AOServDaemon.executorService);
+        conn.abort(AoservDaemon.executorService);
         throw e;
       }
     }
@@ -515,7 +515,7 @@ public final class PostgresUserManager extends BuilderThread {
   /**
    * Makes sure a password is safe for direct concatenation for PostgreSQL 8.1.
    *
-   * Throw SQLException if not acceptable
+   * @throws SQLException if not acceptable
    */
   private static String checkPasswordChars(String password) throws SQLException {
     if (password == null) {
@@ -570,7 +570,7 @@ public final class PostgresUserManager extends BuilderThread {
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() throws IOException, SQLException {
-    com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+    com.aoindustries.aoserv.client.linux.Server thisServer = AoservDaemon.getThisServer();
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
 
@@ -581,7 +581,7 @@ public final class PostgresUserManager extends BuilderThread {
               && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
               && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
               // Check config after OS check so config entry not needed
-              && AOServDaemonConfiguration.isManagerEnabled(PostgresUserManager.class)
+              && AoservDaemonConfiguration.isManagerEnabled(PostgresUserManager.class)
               && postgresUserManager == null
       ) {
         System.out.print("Starting PostgresUserManager: ");
@@ -590,7 +590,7 @@ public final class PostgresUserManager extends BuilderThread {
             osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                 || osvId == OperatingSystemVersion.CENTOS_7_X86_64
         ) {
-          AOServConnector conn = AOServDaemon.getConnector();
+          AoservConnector conn = AoservDaemon.getConnector();
           postgresUserManager = new PostgresUserManager();
           conn.getPostgresql().getUserServer().addTableListener(postgresUserManager, 0);
           System.out.println("Done");

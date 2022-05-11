@@ -26,11 +26,11 @@ package com.aoindustries.aoserv.daemon.timezone;
 import com.aoapps.encoding.ChainWriter;
 import com.aoapps.io.posix.PosixFile;
 import com.aoapps.io.posix.Stat;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.Server;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -59,7 +59,7 @@ public final class TimeZoneManager extends BuilderThread {
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() throws IOException, SQLException {
-    Server thisServer = AOServDaemon.getThisServer();
+    Server thisServer = AoservDaemon.getThisServer();
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
 
@@ -70,7 +70,7 @@ public final class TimeZoneManager extends BuilderThread {
               && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
               && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
               // Check config after OS check so config entry not needed
-              && AOServDaemonConfiguration.isManagerEnabled(TimeZoneManager.class)
+              && AoservDaemonConfiguration.isManagerEnabled(TimeZoneManager.class)
               && timeZoneManager == null
       ) {
         System.out.print("Starting TimeZoneManager: ");
@@ -79,7 +79,7 @@ public final class TimeZoneManager extends BuilderThread {
             osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                 || osvId == OperatingSystemVersion.CENTOS_7_X86_64
         ) {
-          AOServConnector conn = AOServDaemon.getConnector();
+          AoservConnector conn = AoservDaemon.getConnector();
           timeZoneManager = new TimeZoneManager();
           conn.getLinux().getServer().addTableListener(timeZoneManager, 0);
           conn.getLinux().getTimeZone().addTableListener(timeZoneManager, 0);
@@ -96,7 +96,7 @@ public final class TimeZoneManager extends BuilderThread {
   @Override
   protected boolean doRebuild() {
     try {
-      Server thisServer = AOServDaemon.getThisServer();
+      Server thisServer = AoservDaemon.getThisServer();
       OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
       int osvId = osv.getPkey();
       String timeZone = thisServer.getTimeZone().getName();
@@ -144,7 +144,7 @@ public final class TimeZoneManager extends BuilderThread {
             // Write to temp file
             PosixFile newClockConfig = new PosixFile("/etc/sysconfig/clock.new");
             try (
-              OutputStream newClockOut = newClockConfig.getSecureOutputStream(
+                OutputStream newClockOut = newClockConfig.getSecureOutputStream(
                     PosixFile.ROOT_UID,
                     PosixFile.ROOT_GID,
                     0755,
@@ -170,7 +170,7 @@ public final class TimeZoneManager extends BuilderThread {
             if (logger.isLoggable(Level.INFO)) {
               logger.info("Setting time zone: " + timeZone);
             }
-            AOServDaemon.exec(
+            AoservDaemon.exec(
                 "/usr/bin/timedatectl",
                 "set-timezone",
                 timeZone

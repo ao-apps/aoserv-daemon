@@ -28,7 +28,7 @@ import com.aoapps.hodgepodge.io.stream.StreamableOutput;
 import com.aoapps.io.posix.PosixFile;
 import com.aoapps.lang.util.BufferManager;
 import com.aoapps.net.InetAddress;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.Group;
 import com.aoindustries.aoserv.client.linux.GroupServer;
@@ -42,10 +42,10 @@ import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.client.web.Site;
 import com.aoindustries.aoserv.client.web.VirtualHost;
 import com.aoindustries.aoserv.client.web.VirtualHostName;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
-import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
+import com.aoindustries.aoserv.daemon.client.AoservDaemonProtocol;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
@@ -93,10 +93,10 @@ public final class AWStatsManager extends BuilderThread {
       final PackageManager.PackageName awstatsPackageName = osConfig.getAwstatsPackageName();
 
       // Resolve the UID and GID before obtaining the lock
-      Server thisServer = AOServDaemon.getThisServer();
+      Server thisServer = AoservDaemon.getThisServer();
       Host thisHost = thisServer.getHost();
-      int uid_min = thisServer.getUidMin().getId();
-      int gid_min = thisServer.getGidMin().getId();
+      int uidMin = thisServer.getUidMin().getId();
+      int gidMin = thisServer.getGidMin().getId();
 
       synchronized (rebuildLock) {
         Set<PosixFile> restorecon = new LinkedHashSet<>();
@@ -105,20 +105,20 @@ public final class AWStatsManager extends BuilderThread {
           List<File> deleteFileList = new ArrayList<>();
           // Get the list of all files and directories under /etc/awstats
           Set<String> existingConfigFiles = new HashSet<>();
-          {
-            String[] list = configDirectory.list();
-            if (list != null) {
-              existingConfigFiles.addAll(Arrays.asList(list));
+            {
+              String[] list = configDirectory.list();
+              if (list != null) {
+                existingConfigFiles.addAll(Arrays.asList(list));
+              }
             }
-          }
           // Get the list of all files and directories under /var/opt/awstats[-6]/hosts
           Set<String> existingHostDirectories = new HashSet<>();
-          {
-            String[] list = hostsDirectory.list();
-            if (list != null) {
-              existingHostDirectories.addAll(Arrays.asList(list));
+            {
+              String[] list = hostsDirectory.list();
+              if (list != null) {
+                existingHostDirectories.addAll(Arrays.asList(list));
+              }
             }
-          }
           final List<Site> sites = thisServer.getHttpdSites();
           if (!sites.isEmpty()) {
             // Install awstats[_6] package when first needed
@@ -126,22 +126,22 @@ public final class AWStatsManager extends BuilderThread {
               PackageManager.installPackage(awstatsPackageName);
             }
             // User and group required
-            final int awstatsUID;
-            {
-              UserServer awstatsLSA = thisServer.getLinuxServerAccount(User.AWSTATS);
-              if (awstatsLSA == null) {
-                throw new SQLException("Unable to find UserServer: " + User.AWSTATS);
+            final int awstatsUid;
+              {
+                UserServer awstatsUserServer = thisServer.getLinuxServerAccount(User.AWSTATS);
+                if (awstatsUserServer == null) {
+                  throw new SQLException("Unable to find UserServer: " + User.AWSTATS);
+                }
+                awstatsUid = awstatsUserServer.getUid().getId();
               }
-              awstatsUID = awstatsLSA.getUid().getId();
-            }
-            final int awstatsGID;
-            {
-              GroupServer awstatsLSG = thisServer.getLinuxServerGroup(Group.AWSTATS);
-              if (awstatsLSG == null) {
-                throw new SQLException("Unable to find GroupServer: " + Group.AWSTATS);
+            final int awstatsGid;
+              {
+                GroupServer awstatsGroupServer = thisServer.getLinuxServerGroup(Group.AWSTATS);
+                if (awstatsGroupServer == null) {
+                  throw new SQLException("Unable to find GroupServer: " + Group.AWSTATS);
+                }
+                awstatsGid = awstatsGroupServer.getGid().getId();
               }
-              awstatsGID = awstatsLSG.getGid().getId();
-            }
             // Some more values used within the loop
             final File awstatsVarDirectory = new File(osConfig.getAwstatsVarDirectory().toString());
             final File binDirectory        = new File(osConfig.getAwstatsBinDirectory().toString());
@@ -160,10 +160,10 @@ public final class AWStatsManager extends BuilderThread {
               existingHostDirectories.remove(siteName);
 
               // Resolve the primary URL
-              VirtualHostName primaryHttpdSiteURL = site.getPrimaryHttpdSiteURL();
-              String primaryURL = (primaryHttpdSiteURL == null) ? siteName : primaryHttpdSiteURL.getHostname().toString();
+              VirtualHostName primaryVirtualHostName = site.getPrimaryVirtualHostName();
+              String primaryUrl = (primaryVirtualHostName == null) ? siteName : primaryVirtualHostName.getHostname().toString();
               usedHostnames.clear();
-              usedHostnames.add(primaryURL);
+              usedHostnames.add(primaryUrl);
 
               // Verify the /etc/awstats config file
               byte[] newFileContent;
@@ -179,13 +179,13 @@ public final class AWStatsManager extends BuilderThread {
                       + "LogType=W\n"
                       + "LogFormat=1\n"
                       + "LogSeparator=\" \"\n"
-                      + "SiteDomain=\"").print(primaryHttpdSiteURL).print("\"\n"
+                      + "SiteDomain=\"").print(primaryVirtualHostName).print("\"\n"
                       + "HostAliases=\"");
                   // For each bind, show both the hostnames and the IP addresses
                   int count = 0;
                   for (VirtualHost bind : binds) {
                     // Add the hostnames
-                    for (VirtualHostName url : bind.getHttpdSiteURLs()) {
+                    for (VirtualHostName url : bind.getVirtualHostNames()) {
                       String hostname = url.getHostname().toString();
                       if (usedHostnames.add(hostname)) {
                         if (count > 0) {
@@ -213,7 +213,7 @@ public final class AWStatsManager extends BuilderThread {
                     }
                   }
                   if (count == 0) {
-                    out.print(primaryHttpdSiteURL);
+                    out.print(primaryVirtualHostName);
                   }
                   out.print("\"\n"
                       + "DNSLookup=2\n"
@@ -238,17 +238,17 @@ public final class AWStatsManager extends BuilderThread {
                       + "KeepBackupOfHistoricFiles=1\n"
                       + "DefaultFile=\"index.html\"\n"
                       + "SkipHosts=\"");
-                  Set<String> finishedIPs = new HashSet<>();
-                  for (IpAddress ip : thisHost.getIPAddresses()) {
+                  Set<String> finishedIps = new HashSet<>();
+                  for (IpAddress ip : thisHost.getIpAddresses()) {
                     InetAddress ia = ip.getInetAddress();
                     if (!ia.isUnspecified()) {
                       String addr = ia.toString();
-                      if (!finishedIPs.contains(addr)) {
-                        if (!finishedIPs.isEmpty()) {
+                      if (!finishedIps.contains(addr)) {
+                        if (!finishedIps.isEmpty()) {
                           out.print(' ');
                         }
                         out.print(addr);
-                        finishedIPs.add(addr);
+                        finishedIps.add(addr);
                       }
                     }
                   }
@@ -406,13 +406,13 @@ public final class AWStatsManager extends BuilderThread {
                       + "# Per-site settings:"
                       + "#\n"
                       + "LogFile=\"").print(hostsDirectory).print('/').print(siteName).print("/logview.sh |\"\n"
-                      + "SiteDomain=\"").print(primaryHttpdSiteURL).print("\"\n"
+                      + "SiteDomain=\"").print(primaryVirtualHostName).print("\"\n"
                       + "HostAliases=\"");
                   // For each bind, show both the hostnames and the IP addresses
                   int count = 0;
                   for (VirtualHost bind : binds) {
                     // Add the hostnames
-                    for (VirtualHostName url : bind.getHttpdSiteURLs()) {
+                    for (VirtualHostName url : bind.getVirtualHostNames()) {
                       String hostname = url.getHostname().toString();
                       if (usedHostnames.add(hostname)) {
                         if (count > 0) {
@@ -440,23 +440,23 @@ public final class AWStatsManager extends BuilderThread {
                     }
                   }
                   if (count == 0) {
-                    out.print(primaryHttpdSiteURL);
+                    out.print(primaryVirtualHostName);
                   }
                   out.print("\"\n"
                       + "DirData=\"").print(hostsDirectory).print('/').print(siteName).print("/data\"\n"
                       + "DNSLastUpdateCacheFile=\"").print(hostsDirectory).print('/').print(siteName).print("/dnscachelastupdate.txt\"\n"
                       + "SkipHosts=\"");
-                  Set<String> finishedIPs = new HashSet<>();
-                  for (IpAddress ip : thisHost.getIPAddresses()) {
+                  Set<String> finishedIps = new HashSet<>();
+                  for (IpAddress ip : thisHost.getIpAddresses()) {
                     InetAddress ia = ip.getInetAddress();
                     if (!ia.isUnspecified()) {
                       String addr = ia.toString();
-                      if (!finishedIPs.contains(addr)) {
-                        if (!finishedIPs.isEmpty()) {
+                      if (!finishedIps.contains(addr)) {
+                        if (!finishedIps.isEmpty()) {
                           out.print(' ');
                         }
                         out.print(addr);
-                        finishedIPs.add(addr);
+                        finishedIps.add(addr);
                       }
                     }
                   }
@@ -485,22 +485,22 @@ public final class AWStatsManager extends BuilderThread {
                   newFileContent,
                   0640,
                   PosixFile.ROOT_UID,
-                  awstatsGID,
+                  awstatsGid,
                   null,
                   restorecon
               );
 
               // Make sure /var/opt/awstats[-6]/hosts/<site_name> directory exists and has the proper permissions
               PosixFile hostDirectory = new PosixFile(hostsDirectory, siteName);
-              DaemonFileUtils.mkdir(hostDirectory, 0750, PosixFile.ROOT_UID, awstatsGID);
+              DaemonFileUtils.mkdir(hostDirectory, 0750, PosixFile.ROOT_UID, awstatsGid);
 
               // Make sure /var/opt/awstats[-6]/hosts/<site_name>/data directory exists and has the proper permissions
               PosixFile dataDirectory = new PosixFile(hostDirectory, "data", false);
-              DaemonFileUtils.mkdir(dataDirectory, 0750, awstatsUID, awstatsGID);
+              DaemonFileUtils.mkdir(dataDirectory, 0750, awstatsUid, awstatsGid);
 
               // dnscachelastupdate.txt
               PosixFile dnscachelastupdate = new PosixFile(hostDirectory, "dnscachelastupdate.txt", false);
-              DaemonFileUtils.createEmptyFile(dnscachelastupdate, 0640, awstatsUID, awstatsGID);
+              DaemonFileUtils.createEmptyFile(dnscachelastupdate, 0640, awstatsUid, awstatsGid);
 
               // logview.sh
               bout.reset();
@@ -510,12 +510,12 @@ public final class AWStatsManager extends BuilderThread {
                   out.print(binDirectory).print("/tools/logresolvemerge.pl");
                   usedLogs.clear();
                   for (VirtualHost bind : binds) {
-                    PosixPath access_log = bind.getAccessLog();
-                    if (usedLogs.add(access_log)) {
+                    PosixPath accessLog = bind.getAccessLog();
+                    if (usedLogs.add(accessLog)) {
                       out.print(
                           " \\\n"
-                              + "  '").print(access_log).print(".1.gz' \\\n"
-                          + "  '").print(access_log).print('\'');
+                              + "  '").print(accessLog).print(".1.gz' \\\n"
+                          + "  '").print(accessLog).print('\'');
                     }
                   }
                   if (usedLogs.isEmpty()) {
@@ -530,13 +530,13 @@ public final class AWStatsManager extends BuilderThread {
                   out.print(binDirectory).print("/tools/logresolvemerge.pl");
                   usedLogs.clear();
                   for (VirtualHost bind : binds) {
-                    PosixPath access_log = bind.getAccessLog();
-                    if (usedLogs.add(access_log)) {
+                    PosixPath accessLog = bind.getAccessLog();
+                    if (usedLogs.add(accessLog)) {
                       // Note: /etc/logrotate.d/httpd-sites contains "delaycompress" so ".1" instead of ".1.gz"
                       out.print(
                           " \\\n"
-                              + "  '").print(access_log).print(".1' \\\n"
-                          + "  '").print(access_log).print('\'');
+                              + "  '").print(accessLog).print(".1' \\\n"
+                          + "  '").print(accessLog).print('\'');
                     }
                   }
                   if (usedLogs.isEmpty()) {
@@ -559,7 +559,7 @@ public final class AWStatsManager extends BuilderThread {
                   newFileContent,
                   0750,
                   PosixFile.ROOT_UID,
-                  awstatsGID,
+                  awstatsGid,
                   null,
                   restorecon
               );
@@ -648,7 +648,7 @@ public final class AWStatsManager extends BuilderThread {
                   newFileContent,
                   0750,
                   PosixFile.ROOT_UID,
-                  awstatsGID,
+                  awstatsGid,
                   null,
                   restorecon
               );
@@ -677,7 +677,7 @@ public final class AWStatsManager extends BuilderThread {
                   newFileContent,
                   0750,
                   PosixFile.ROOT_UID,
-                  awstatsGID,
+                  awstatsGid,
                   null,
                   restorecon
               );
@@ -715,7 +715,7 @@ public final class AWStatsManager extends BuilderThread {
           if (
               awstatsPackageName != null
                   && sites.isEmpty()
-                  && AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
+                  && AoservDaemonConfiguration.isPackageManagerUninstallEnabled()
           ) {
             PackageManager.removePackage(awstatsPackageName);
           }
@@ -734,7 +734,7 @@ public final class AWStatsManager extends BuilderThread {
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() throws IOException, SQLException {
-    Server thisServer = AOServDaemon.getThisServer();
+    Server thisServer = AoservDaemon.getThisServer();
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
 
@@ -745,7 +745,7 @@ public final class AWStatsManager extends BuilderThread {
               && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
               && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
               // Check config after OS check so config entry not needed
-              && AOServDaemonConfiguration.isManagerEnabled(AWStatsManager.class)
+              && AoservDaemonConfiguration.isManagerEnabled(AWStatsManager.class)
               && awstatsManager == null
       ) {
         System.out.print("Starting AWStatsManager: ");
@@ -754,7 +754,7 @@ public final class AWStatsManager extends BuilderThread {
             osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                 || osvId == OperatingSystemVersion.CENTOS_7_X86_64
         ) {
-          AOServConnector conn = AOServDaemon.getConnector();
+          AoservConnector conn = AoservDaemon.getConnector();
           awstatsManager = new AWStatsManager();
           conn.getWeb().getSite().addTableListener(awstatsManager, 0);
           conn.getWeb().getVirtualHost().addTableListener(awstatsManager, 0);
@@ -780,9 +780,9 @@ public final class AWStatsManager extends BuilderThread {
   }
 
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
-  public static void getAWStatsFile(String siteName, String path, String queryString, StreamableOutput out) throws IOException, SQLException {
+  public static void getAwstatsFile(String siteName, String path, String queryString, StreamableOutput out) throws IOException, SQLException {
     HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
-    OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
+    OperatingSystemVersion osv = AoservDaemon.getThisServer().getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
     if (
         osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
@@ -797,28 +797,27 @@ public final class AWStatsManager extends BuilderThread {
       if (
           // Protect for use in '...' below:
           queryString.indexOf('\'') == -1
-              && queryString.indexOf(0) == -1
-              && (
+          && queryString.indexOf(0) == -1
+          && (
               // May not contain zero terminator
               queryString.isEmpty()
                   || "framename=mainright".equals(queryString)
                   || "framename=mainleft".equals(queryString)
                   || queryString.matches("^framename=mainright&output=\\w*$")
-                  || queryString.matches(
-                  "^"
+                  || queryString.matches("^"
                       + "(databasebreak=(day|hour|month)&)?" // AWStats 7.8 added "databasebreak="
                       + "month=\\d*&year=\\d*"
                       + "(&day=\\d*)*"                      // AWStats 7.8 added "day=", but with multiple day parameters
-            + "(&output=\\w*)?"                   // Sometimes "output=" is here
+                      + "(&output=\\w*)?"                   // Sometimes "output=" is here
                       + "&config=" + escapedSiteName
                       + "&framename=\\w*"
                       + "(&output=\\w*)?"                   // Sometimes "output=" is last
                       + "$"
-              )
+                  )
                   || queryString.matches("^hostfilter=(\\w|\\.)*&hostfilterex=(\\w|\\.)*&output=\\w*&config=" + escapedSiteName + "(&year=\\d*&month=\\d*)?&framename=\\w*$")
                   || queryString.matches("^urlfilter=(\\w|\\.)*&urlfilterex=(\\w|\\.)*&output=\\w*&config=" + escapedSiteName + "(&year=\\d*&month=\\d*)?&framename=\\w*$")
           // TODO: refererpagesfilter=sadf+&refererpagesfilterex=asd+f&output=refererpages&config=boxer.aoapps.com&year=2020&month=03&framename=mainright
-        )
+          )
       ) {
         String runascgi;
         if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
@@ -828,7 +827,7 @@ public final class AWStatsManager extends BuilderThread {
         } else {
           throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
         }
-        AOServDaemon.execRun(
+        AoservDaemon.execRun(
             stdout -> {
               try (BufferedReader in = new BufferedReader(new InputStreamReader(stdout))) {
                 // Skip the headers
@@ -849,7 +848,7 @@ public final class AWStatsManager extends BuilderThread {
                         buff[c] = (byte) chars[c];
                       }
 
-                      out.write(AOServDaemonProtocol.NEXT);
+                      out.write(AoservDaemonProtocol.NEXT);
                       out.writeShort(ret);
                       out.write(buff, 0, ret);
                     }
@@ -884,7 +883,7 @@ public final class AWStatsManager extends BuilderThread {
           try {
             int ret;
             while ((ret = in.read(buff, 0, BufferManager.BUFFER_SIZE)) != -1) {
-              out.write(AOServDaemonProtocol.NEXT);
+              out.write(AoservDaemonProtocol.NEXT);
               out.writeShort(ret);
               out.write(buff, 0, ret);
             }

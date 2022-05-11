@@ -149,12 +149,12 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
     boolean needsRestart = false;
     OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
     if (osConfig == OperatingSystemConfiguration.CENTOS_7_X86_64) {
-      PackageManager.RPM rpm = PackageManager.getInstalledPackage(PackageManager.PackageName.APACHE_TOMCAT_9_0);
+      PackageManager.Rpm rpm = PackageManager.getInstalledPackage(PackageManager.PackageName.APACHE_TOMCAT_9_0);
       Version version = new Version(rpm.getVersion(), rpm.getRelease());
       String suffix = osConfig.getPackageReleaseSuffix();
       // Downgrade support
       if (version.compareTo("9.0.62-3" + suffix) < 0) {
-        UpgradeSymlink[] downgradeSymlinks_9_0_62_3 = {
+        UpgradeSymlink[] downgradeSymlinks = {
             // mysql-connector-java-8.0.29.jar -> mysql-connector-java-8.0.28.jar
             new UpgradeSymlink(
                 "lib/mysql-connector-java-8.0.29.jar",
@@ -169,14 +169,14 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
                 "../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.28.jar"
             ),
         };
-        for (UpgradeSymlink symlink : downgradeSymlinks_9_0_62_3) {
+        for (UpgradeSymlink symlink : downgradeSymlinks) {
           if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
         }
       }
       if (version.compareTo("9.0.62-2" + suffix) < 0) {
-        UpgradeSymlink[] downgradeSymlinks_9_0_62_2 = {
+        UpgradeSymlink[] downgradeSymlinks = {
             // postgresql-42.3.4.jar -> postgresql-42.3.3.jar
             new UpgradeSymlink(
                 "lib/postgresql-42.3.4.jar",
@@ -191,7 +191,7 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
                 "../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.3.3.jar"
             ),
         };
-        for (UpgradeSymlink symlink : downgradeSymlinks_9_0_62_2) {
+        for (UpgradeSymlink symlink : downgradeSymlinks) {
           if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
@@ -204,7 +204,7 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
         // 9.0.60-1 has same files as 9.0.59-1
       }
       if (version.compareTo("9.0.59-1" + suffix) < 0) {
-        UpgradeSymlink[] downgradeSymlinks_9_0_59_1 = {
+        UpgradeSymlink[] downgradeSymlinks = {
             // postgresql-42.3.3.jar -> postgresql-42.3.1.jar
             new UpgradeSymlink(
                 "lib/postgresql-42.3.3.jar",
@@ -219,7 +219,7 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
                 "../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.3.1.jar"
             ),
         };
-        for (UpgradeSymlink symlink : downgradeSymlinks_9_0_59_1) {
+        for (UpgradeSymlink symlink : downgradeSymlinks) {
           if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
@@ -229,7 +229,7 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
         // 9.0.58-1 has same files as 9.0.56-2
       }
       if (version.compareTo("9.0.56-2" + suffix) < 0) {
-        UpgradeSymlink[] downgradeSymlinks_9_0_56_2 = {
+        UpgradeSymlink[] downgradeSymlinks = {
             // mysql-connector-java-8.0.28.jar -> mysql-connector-java-8.0.27.jar
             new UpgradeSymlink(
                 "lib/mysql-connector-java-8.0.28.jar",
@@ -244,7 +244,7 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
                 "../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.27.jar"
             ),
         };
-        for (UpgradeSymlink symlink : downgradeSymlinks_9_0_56_2) {
+        for (UpgradeSymlink symlink : downgradeSymlinks) {
           if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
@@ -254,7 +254,7 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
         // 9.0.56-1 has same files as 9.0.55-1
       }
       if (version.compareTo("9.0.55-1" + suffix) < 0) {
-        UpgradeSymlink[] downgradeSymlinks_9_0_55_1 = {
+        UpgradeSymlink[] downgradeSymlinks = {
             // postgresql-42.3.1.jar -> postgresql-42.3.0.jar
             new UpgradeSymlink(
                 "lib/postgresql-42.3.1.jar",
@@ -269,14 +269,14 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
                 "../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.3.0.jar"
             ),
         };
-        for (UpgradeSymlink symlink : downgradeSymlinks_9_0_55_1) {
+        for (UpgradeSymlink symlink : downgradeSymlinks) {
           if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
         }
       }
       if (version.compareTo("9.0.54-2" + suffix) < 0) {
-        UpgradeSymlink[] downgradeSymlinks_9_0_54_2 = {
+        UpgradeSymlink[] downgradeSymlinks = {
             // mysql-connector-java-8.0.27.jar -> mysql-connector-java-8.0.26.jar
             new UpgradeSymlink(
                 "lib/mysql-connector-java-8.0.27.jar",
@@ -304,7 +304,7 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
                 "../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.2.24.jar"
             ),
         };
-        for (UpgradeSymlink symlink : downgradeSymlinks_9_0_54_2) {
+        for (UpgradeSymlink symlink : downgradeSymlinks) {
           if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
@@ -314,7 +314,7 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
         // 9.0.54-1 has same files as 9.0.53-2
       }
       if (version.compareTo("9.0.53-2" + suffix) < 0) {
-        UpgradeSymlink[] downgradeSymlinks_9_0_53_2 = {
+        UpgradeSymlink[] downgradeSymlinks = {
             // postgresql-42.2.24.jar -> postgresql-42.2.23.jar
             new UpgradeSymlink(
                 "lib/postgresql-42.2.24.jar",
@@ -329,7 +329,7 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
                 "../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.2.23.jar"
             ),
         };
-        for (UpgradeSymlink symlink : downgradeSymlinks_9_0_53_2) {
+        for (UpgradeSymlink symlink : downgradeSymlinks) {
           if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
@@ -342,7 +342,7 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
         // 9.0.52-1 has same files as 9.0.50-1
       }
       if (version.compareTo("9.0.50-1" + suffix) < 0) {
-        UpgradeSymlink[] downgradeSymlinks_9_0_50_1 = {
+        UpgradeSymlink[] downgradeSymlinks = {
             // ecj-4.20.jar -> ecj-4.18.jar
             new UpgradeSymlink(
                 "lib/ecj-4.20.jar",
@@ -377,14 +377,14 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
                 "../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.2.22.jar"
             ),
         };
-        for (UpgradeSymlink symlink : downgradeSymlinks_9_0_50_1) {
+        for (UpgradeSymlink symlink : downgradeSymlinks) {
           if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
         }
       }
       if (version.compareTo("9.0.48-1" + suffix) < 0) {
-        UpgradeSymlink[] downgradeSymlinks_9_0_48_1 = {
+        UpgradeSymlink[] downgradeSymlinks = {
             // postgresql-42.2.22.jar -> postgresql-42.2.20.jar
             new UpgradeSymlink(
                 "lib/postgresql-42.2.22.jar",
@@ -399,7 +399,7 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
                 "../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.2.20.jar"
             ),
         };
-        for (UpgradeSymlink symlink : downgradeSymlinks_9_0_48_1) {
+        for (UpgradeSymlink symlink : downgradeSymlinks) {
           if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
@@ -410,7 +410,7 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
       }
       // Upgrade support
       if (version.compareTo("9.0.46-1" + suffix) >= 0) {
-        UpgradeSymlink[] upgradeSymlinks_9_0_46_1 = {
+        UpgradeSymlink[] upgradeSymlinks = {
             // mysql-connector-java-8.0.24.jar -> mysql-connector-java-8.0.25.jar
             new UpgradeSymlink(
                 "lib/mysql-connector-java-8.0.24.jar",
@@ -425,14 +425,14 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
                 "../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.25.jar"
             ),
         };
-        for (UpgradeSymlink symlink : upgradeSymlinks_9_0_46_1) {
+        for (UpgradeSymlink symlink : upgradeSymlinks) {
           if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
         }
       }
       if (version.compareTo("9.0.48-1" + suffix) >= 0) {
-        UpgradeSymlink[] upgradeSymlinks_9_0_48_1 = {
+        UpgradeSymlink[] upgradeSymlinks = {
             // postgresql-42.2.20.jar -> postgresql-42.2.22.jar
             new UpgradeSymlink(
                 "lib/postgresql-42.2.20.jar",
@@ -447,14 +447,14 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
                 "../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.2.22.jar"
             ),
         };
-        for (UpgradeSymlink symlink : upgradeSymlinks_9_0_48_1) {
+        for (UpgradeSymlink symlink : upgradeSymlinks) {
           if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
         }
       }
       if (version.compareTo("9.0.50-1" + suffix) >= 0) {
-        UpgradeSymlink[] upgradeSymlinks_9_0_50_1 = {
+        UpgradeSymlink[] upgradeSymlinks = {
             // ecj-4.18.jar -> ecj-4.20.jar
             new UpgradeSymlink(
                 "lib/ecj-4.18.jar",
@@ -489,7 +489,7 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
                 "../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.2.23.jar"
             ),
         };
-        for (UpgradeSymlink symlink : upgradeSymlinks_9_0_50_1) {
+        for (UpgradeSymlink symlink : upgradeSymlinks) {
           if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
@@ -502,7 +502,7 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
         // 9.0.53-1 has same files as 9.0.52-1
       }
       if (version.compareTo("9.0.53-2" + suffix) >= 0) {
-        UpgradeSymlink[] upgradeSymlinks_9_0_53_2 = {
+        UpgradeSymlink[] upgradeSymlinks = {
             // postgresql-42.2.23.jar -> postgresql-42.2.24.jar
             new UpgradeSymlink(
                 "lib/postgresql-42.2.23.jar",
@@ -517,7 +517,7 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
                 "../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.2.24.jar"
             ),
         };
-        for (UpgradeSymlink symlink : upgradeSymlinks_9_0_53_2) {
+        for (UpgradeSymlink symlink : upgradeSymlinks) {
           if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
@@ -527,7 +527,7 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
         // 9.0.54-1 has same files as 9.0.53-2
       }
       if (version.compareTo("9.0.54-2" + suffix) >= 0) {
-        UpgradeSymlink[] upgradeSymlinks_9_0_54_2 = {
+        UpgradeSymlink[] upgradeSymlinks = {
             // mysql-connector-java-8.0.26.jar -> mysql-connector-java-8.0.27.jar
             new UpgradeSymlink(
                 "lib/mysql-connector-java-8.0.26.jar",
@@ -555,14 +555,14 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
                 "../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.3.0.jar"
             ),
         };
-        for (UpgradeSymlink symlink : upgradeSymlinks_9_0_54_2) {
+        for (UpgradeSymlink symlink : upgradeSymlinks) {
           if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
         }
       }
       if (version.compareTo("9.0.55-1" + suffix) >= 0) {
-        UpgradeSymlink[] upgradeSymlinks_9_0_55_1 = {
+        UpgradeSymlink[] upgradeSymlinks = {
             // postgresql-42.3.0.jar -> postgresql-42.3.1.jar
             new UpgradeSymlink(
                 "lib/postgresql-42.3.0.jar",
@@ -577,7 +577,7 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
                 "../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.3.1.jar"
             ),
         };
-        for (UpgradeSymlink symlink : upgradeSymlinks_9_0_55_1) {
+        for (UpgradeSymlink symlink : upgradeSymlinks) {
           if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
@@ -587,7 +587,7 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
         // 9.0.56-1 has same files as 9.0.55-1
       }
       if (version.compareTo("9.0.56-2" + suffix) >= 0) {
-        UpgradeSymlink[] upgradeSymlinks_9_0_56_2 = {
+        UpgradeSymlink[] upgradeSymlinks = {
             // mysql-connector-java-8.0.27.jar -> mysql-connector-java-8.0.28.jar
             new UpgradeSymlink(
                 "lib/mysql-connector-java-8.0.27.jar",
@@ -602,7 +602,7 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
                 "../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.28.jar"
             ),
         };
-        for (UpgradeSymlink symlink : upgradeSymlinks_9_0_56_2) {
+        for (UpgradeSymlink symlink : upgradeSymlinks) {
           if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
@@ -612,7 +612,7 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
         // 9.0.58-1 has same files as 9.0.56-2
       }
       if (version.compareTo("9.0.59-1" + suffix) >= 0) {
-        UpgradeSymlink[] upgradeSymlinks_9_0_59_1 = {
+        UpgradeSymlink[] upgradeSymlinks = {
             // postgresql-42.3.1.jar -> postgresql-42.3.3.jar
             new UpgradeSymlink(
                 "lib/postgresql-42.3.1.jar",
@@ -627,7 +627,7 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
                 "../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.3.3.jar"
             ),
         };
-        for (UpgradeSymlink symlink : upgradeSymlinks_9_0_59_1) {
+        for (UpgradeSymlink symlink : upgradeSymlinks) {
           if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
@@ -640,7 +640,7 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
         // 9.0.62-1 has same files as 9.0.60-1
       }
       if (version.compareTo("9.0.62-2" + suffix) >= 0) {
-        UpgradeSymlink[] upgradeSymlinks_9_0_62_2 = {
+        UpgradeSymlink[] upgradeSymlinks = {
             // postgresql-42.3.3.jar -> postgresql-42.3.4.jar
             new UpgradeSymlink(
                 "lib/postgresql-42.3.3.jar",
@@ -655,14 +655,14 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
                 "../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.3.4.jar"
             ),
         };
-        for (UpgradeSymlink symlink : upgradeSymlinks_9_0_62_2) {
+        for (UpgradeSymlink symlink : upgradeSymlinks) {
           if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
         }
       }
       if (version.compareTo("9.0.62-3" + suffix) >= 0) {
-        UpgradeSymlink[] upgradeSymlinks_9_0_62_3 = {
+        UpgradeSymlink[] upgradeSymlinks = {
             // mysql-connector-java-8.0.28.jar -> mysql-connector-java-8.0.29.jar
             new UpgradeSymlink(
                 "lib/mysql-connector-java-8.0.28.jar",
@@ -677,7 +677,7 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
                 "../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.29.jar"
             ),
         };
-        for (UpgradeSymlink symlink : upgradeSymlinks_9_0_62_3) {
+        for (UpgradeSymlink symlink : upgradeSymlinks) {
           if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }

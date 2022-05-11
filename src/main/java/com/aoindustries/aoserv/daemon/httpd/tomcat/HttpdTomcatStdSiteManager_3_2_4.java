@@ -26,14 +26,14 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
 import com.aoapps.encoding.ChainWriter;
 import com.aoapps.io.posix.PosixFile;
 import com.aoapps.net.InetAddress;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.net.Bind;
 import com.aoindustries.aoserv.client.web.tomcat.Context;
 import com.aoindustries.aoserv.client.web.tomcat.JkProtocol;
 import com.aoindustries.aoserv.client.web.tomcat.PrivateTomcatSite;
 import com.aoindustries.aoserv.client.web.tomcat.Version;
 import com.aoindustries.aoserv.client.web.tomcat.Worker;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -57,7 +57,7 @@ class HttpdTomcatStdSiteManager_3_2_4 extends HttpdTomcatStdSiteManager_3_X<Tomc
   @Override
   protected byte[] buildServerXml(PosixFile siteDirectory, String autoWarning) throws IOException, SQLException {
     final String siteDir = siteDirectory.getPath();
-    AOServConnector conn = AOServDaemon.getConnector();
+    AoservConnector conn = AoservDaemon.getConnector();
     final Version htv = tomcatSite.getHttpdTomcatVersion();
 
     // Build to RAM first
@@ -73,7 +73,8 @@ class HttpdTomcatStdSiteManager_3_2_4 extends HttpdTomcatStdSiteManager_3_X<Tomc
           + "  <Logger name=\"servlet_log\" path=\"").textInXmlAttribute(siteDir).print("/var/log/servlet.log\" />\n"
           + "  <Logger name=\"JASPER_LOG\" path=\"").textInXmlAttribute(siteDir).print("/var/log/jasper.log\" verbosityLevel = \"INFORMATION\" />\n"
           + "\n"
-          + "  <ContextManager debug=\"0\" home=\"").textInXmlAttribute(siteDir).print("\" workDir=\"").textInXmlAttribute(siteDir).print("/work\" showDebugInfo=\"true\" >\n"
+          + "  <ContextManager debug=\"0\" home=\"").textInXmlAttribute(siteDir).print("\" workDir=\"")
+          .textInXmlAttribute(siteDir).print("/work\" showDebugInfo=\"true\" >\n"
           + "    <ContextInterceptor className=\"org.apache.tomcat.context.WebXmlReader\" />\n"
           + "    <ContextInterceptor className=\"org.apache.tomcat.context.LoaderInterceptor\" />\n"
           + "    <ContextInterceptor className=\"org.apache.tomcat.context.DefaultCMSetter\" />\n"
@@ -89,7 +90,7 @@ class HttpdTomcatStdSiteManager_3_2_4 extends HttpdTomcatStdSiteManager_3_X<Tomc
 
       for (Worker worker : tomcatSite.getHttpdWorkers()) {
         Bind netBind = worker.getBind();
-        String protocol = worker.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol();
+        String protocol = worker.getHttpdJkProtocol(conn).getProtocol(conn).getProtocol();
 
         out.print("    <Connector className=\"org.apache.tomcat.service.PoolTcpConnector\">\n"
             + "      <Parameter name=\"handler\" value=\"");
@@ -113,7 +114,9 @@ class HttpdTomcatStdSiteManager_3_2_4 extends HttpdTomcatStdSiteManager_3_X<Tomc
         );
       }
       for (Context htc : tomcatSite.getHttpdTomcatContexts()) {
-        out.print("    <Context path=\"").textInXmlAttribute(htc.getPath()).print("\" docBase=\"").textInXmlAttribute(htc.getDocBase()).print("\" debug=\"").textInXmlAttribute(htc.getDebugLevel()).print("\" reloadable=\"").textInXmlAttribute(htc.isReloadable()).print("\" />\n");
+        out.print("    <Context path=\"").textInXmlAttribute(htc.getPath()).print("\" docBase=\"")
+            .textInXmlAttribute(htc.getDocBase()).print("\" debug=\"").textInXmlAttribute(htc.getDebugLevel())
+            .print("\" reloadable=\"").textInXmlAttribute(htc.isReloadable()).print("\" />\n");
       }
       out.print("  </ContextManager>\n"
           + "</Server>\n");

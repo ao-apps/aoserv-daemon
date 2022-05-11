@@ -27,7 +27,7 @@ import com.aoapps.encoding.ChainWriter;
 import com.aoapps.io.posix.PosixFile;
 import com.aoapps.net.Port;
 import com.aoapps.net.Protocol;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.Group;
 import com.aoindustries.aoserv.client.linux.GroupServer;
@@ -38,8 +38,8 @@ import com.aoindustries.aoserv.client.net.AppProtocol;
 import com.aoindustries.aoserv.client.net.Bind;
 import com.aoindustries.aoserv.client.net.TcpRedirect;
 import com.aoindustries.aoserv.client.scm.CvsRepository;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.email.ImapManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import java.io.ByteArrayOutputStream;
@@ -80,8 +80,8 @@ public final class XinetdManager extends BuilderThread {
   @Override
   protected boolean doRebuild() {
     try {
-      AOServConnector connector = AOServDaemon.getConnector();
-      Server linuxServer = AOServDaemon.getThisServer();
+      AoservConnector connector = AoservDaemon.getConnector();
+      Server linuxServer = AoservDaemon.getThisServer();
       OperatingSystemVersion osv = linuxServer.getHost().getOperatingSystemVersion();
       int osvId = osv.getPkey();
       if (osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
@@ -112,7 +112,7 @@ public final class XinetdManager extends BuilderThread {
                   null,
                   "wuimap",
                   Protocol.TCP,
-                  linuxServer.getPrimaryIPAddress(),
+                  linuxServer.getPrimaryIpAddress(),
                   Port.valueOf(8143, Protocol.TCP),
                   false,
                   rootUser,
@@ -202,7 +202,7 @@ public final class XinetdManager extends BuilderThread {
                 );
               } else */
               switch (protocol) {
-                case AppProtocol.CVSPSERVER:
+                case AppProtocol.CVSPSERVER: {
                   List<CvsRepository> repos = linuxServer.getCvsRepositories();
                   if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                     StringBuilder server_args = new StringBuilder();
@@ -238,7 +238,8 @@ public final class XinetdManager extends BuilderThread {
                     throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
                   }
                   break;
-                case AppProtocol.FTP:
+                }
+                case AppProtocol.FTP: {
                   if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                     service = new Service(
                         portMatches ? null : UNLISTED,
@@ -267,7 +268,8 @@ public final class XinetdManager extends BuilderThread {
                     throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
                   }
                   break;
-                case AppProtocol.NTALK:
+                }
+                case AppProtocol.NTALK: {
                   if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                     service = new Service(
                         portMatches ? null : UNLISTED,
@@ -296,7 +298,8 @@ public final class XinetdManager extends BuilderThread {
                     throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
                   }
                   break;
-                case AppProtocol.TALK:
+                }
+                case AppProtocol.TALK: {
                   if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                     service = new Service(
                         portMatches ? null : UNLISTED,
@@ -325,7 +328,8 @@ public final class XinetdManager extends BuilderThread {
                     throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
                   }
                   break;
-                case AppProtocol.TELNET:
+                }
+                case AppProtocol.TELNET: {
                   if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                     service = new Service(
                         portMatches ? null : UNLISTED,
@@ -354,6 +358,7 @@ public final class XinetdManager extends BuilderThread {
                     throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
                   }
                   break;
+                }
                 default:
                   throw new RuntimeException("Unexpected protocol: " + protocol);
               }
@@ -402,17 +407,17 @@ public final class XinetdManager extends BuilderThread {
           byte[] newBytes = bout.toByteArray();
 
           // Move into place if different than existing
-          PosixFile existingUF = new PosixFile(xinetdDirectory, filename);
+          PosixFile existingPosixFile = new PosixFile(xinetdDirectory, filename);
           if (
-              !existingUF.getStat().exists()
-                  || !existingUF.contentEquals(newBytes)
+              !existingPosixFile.getStat().exists()
+                  || !existingPosixFile.contentEquals(newBytes)
           ) {
-            PosixFile newUF = new PosixFile(xinetdDirectory, filename + ".new");
-            try (OutputStream newOut = new FileOutputStream(newUF.getFile())) {
-              newUF.setMode(0600);
+            PosixFile newPosixFile = new PosixFile(xinetdDirectory, filename + ".new");
+            try (OutputStream newOut = new FileOutputStream(newPosixFile.getFile())) {
+              newPosixFile.setMode(0600);
               newOut.write(newBytes);
             }
-            newUF.renameTo(existingUF);
+            newPosixFile.renameTo(existingPosixFile);
             needsReloaded = true;
           }
         }
@@ -434,10 +439,10 @@ public final class XinetdManager extends BuilderThread {
           // Turn off xinetd completely if not already off
           if (rcFile.getStat().exists()) {
             // Stop service
-            AOServDaemon.exec("/etc/rc.d/init.d/xinetd", "stop");
+            AoservDaemon.exec("/etc/rc.d/init.d/xinetd", "stop");
             // Disable with chkconfig
             if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-              AOServDaemon.exec("/sbin/chkconfig", "xinetd", "off");
+              AoservDaemon.exec("/sbin/chkconfig", "xinetd", "off");
             } else {
               throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
             }
@@ -447,30 +452,30 @@ public final class XinetdManager extends BuilderThread {
           if (!rcFile.getStat().exists()) {
             // Enable with chkconfig
             if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-              AOServDaemon.exec("/sbin/chkconfig", "xinetd", "on");
+              AoservDaemon.exec("/sbin/chkconfig", "xinetd", "on");
             } else {
               throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
             }
             // Start service
-            AOServDaemon.exec("/etc/rc.d/init.d/xinetd", "start");
+            AoservDaemon.exec("/etc/rc.d/init.d/xinetd", "start");
           } else {
             // Reload xinetd if modified
             if (needsReloaded) {
               // Try reload config first
-              /* reload has several limitations documented in the man page for xinetd.conf, will always stop/start instead
-              try {
-                AOServDaemon.exec(
-                  new String[] {
-                    "/etc/rc.d/init.d/xinetd",
-                    "reload"
-                  }
-                );
-              } catch (IOException err) {
-                logger.log(Level.SEVERE, null, err);*/
+              // reload has several limitations documented in the man page for xinetd.conf, will always stop/start instead
+              //try {
+              //  AoservDaemon.exec(
+              //    new String[] {
+              //      "/etc/rc.d/init.d/xinetd",
+              //      "reload"
+              //    }
+              //  );
+              //} catch (IOException err) {
+              //  logger.log(Level.SEVERE, null, err);
 
-                // Try more forceful stop/start
-                try {
-                AOServDaemon.exec(
+              // Try more forceful stop/start
+              try {
+                AoservDaemon.exec(
                     "/etc/rc.d/init.d/xinetd",
                     "stop"
                 );
@@ -484,7 +489,7 @@ public final class XinetdManager extends BuilderThread {
                 // Restore the interrupted status
                 Thread.currentThread().interrupt();
               }
-              AOServDaemon.exec(
+              AoservDaemon.exec(
                   "/etc/rc.d/init.d/xinetd",
                   "start"
               );
@@ -504,7 +509,7 @@ public final class XinetdManager extends BuilderThread {
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() throws IOException, SQLException {
-    Server thisServer = AOServDaemon.getThisServer();
+    Server thisServer = AoservDaemon.getThisServer();
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
 
@@ -515,13 +520,13 @@ public final class XinetdManager extends BuilderThread {
               && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
               && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
               // Check config after OS check so config entry not needed
-              && AOServDaemonConfiguration.isManagerEnabled(XinetdManager.class)
+              && AoservDaemonConfiguration.isManagerEnabled(XinetdManager.class)
               && xinetdManager == null
       ) {
         System.out.print("Starting XinetdManager: ");
         // Must be a supported operating system
         if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-          AOServConnector conn = AOServDaemon.getConnector();
+          AoservConnector conn = AoservDaemon.getConnector();
           xinetdManager = new XinetdManager();
           conn.getScm().getCvsRepository().addTableListener(xinetdManager, 0);
           conn.getNet().getBind().addTableListener(xinetdManager, 0);

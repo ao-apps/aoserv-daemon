@@ -25,11 +25,11 @@ package com.aoindustries.aoserv.daemon.email;
 
 import com.aoapps.encoding.ChainWriter;
 import com.aoapps.io.posix.PosixFile;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.Server;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
@@ -67,7 +67,7 @@ public final class SaslauthdManager extends BuilderThread {
   @Override
   protected boolean doRebuild() {
     try {
-      Server thisServer = AOServDaemon.getThisServer();
+      Server thisServer = AoservDaemon.getThisServer();
       OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
       int osvId = osv.getPkey();
       if (osvId != OperatingSystemVersion.CENTOS_7_X86_64) {
@@ -121,21 +121,21 @@ public final class SaslauthdManager extends BuilderThread {
             ) {
               // Enable when sendmail or cyrus-imapd expected to be running
               logger.fine("Enabling " + SERVICE);
-              AOServDaemon.exec(SYSTEMCTL, "enable", SERVICE);
+              AoservDaemon.exec(SYSTEMCTL, "enable", SERVICE);
               // Reload/start when changed
               if (changed) {
                 logger.fine("Reloading or restarting " + SERVICE);
-                AOServDaemon.exec(SYSTEMCTL, "reload-or-restart", SERVICE);
+                AoservDaemon.exec(SYSTEMCTL, "reload-or-restart", SERVICE);
               } else {
                 logger.fine("Starting " + SERVICE);
-                AOServDaemon.exec(SYSTEMCTL, "start", SERVICE);
+                AoservDaemon.exec(SYSTEMCTL, "start", SERVICE);
               }
             } else {
               // Disable when sendmail not expected to be running
               logger.fine("Stopping " + SERVICE);
-              AOServDaemon.exec(SYSTEMCTL, "stop", SERVICE);
+              AoservDaemon.exec(SYSTEMCTL, "stop", SERVICE);
               logger.fine("Disabling " + SERVICE);
-              AOServDaemon.exec(SYSTEMCTL, "disable", SERVICE);
+              AoservDaemon.exec(SYSTEMCTL, "disable", SERVICE);
             }
           } finally {
             DaemonFileUtils.restorecon(restorecon);
@@ -160,7 +160,7 @@ public final class SaslauthdManager extends BuilderThread {
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() throws IOException, SQLException {
-    Server thisServer = AOServDaemon.getThisServer();
+    Server thisServer = AoservDaemon.getThisServer();
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
 
@@ -171,13 +171,13 @@ public final class SaslauthdManager extends BuilderThread {
               && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
               && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
               // Check config after OS check so config entry not needed
-              && AOServDaemonConfiguration.isManagerEnabled(SaslauthdManager.class)
+              && AoservDaemonConfiguration.isManagerEnabled(SaslauthdManager.class)
               && saslauthdManager == null
       ) {
         System.out.print("Starting SaslauthdManager: ");
         // Must be a supported operating system
         if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-          AOServConnector conn = AOServDaemon.getConnector();
+          AoservConnector conn = AoservDaemon.getConnector();
           saslauthdManager = new SaslauthdManager();
           conn.getLinux().getUserServer().addTableListener(saslauthdManager, 0);
           conn.getNet().getBind().addTableListener(saslauthdManager, 0);

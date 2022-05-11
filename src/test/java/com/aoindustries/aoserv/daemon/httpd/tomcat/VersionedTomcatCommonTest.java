@@ -23,9 +23,10 @@
 
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
-import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+
+import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import org.junit.Test;
 
 public class VersionedTomcatCommonTest {

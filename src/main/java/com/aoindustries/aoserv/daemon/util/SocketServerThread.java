@@ -49,7 +49,7 @@ public abstract class SocketServerThread extends Thread {
     this.port = port;
   }
 
-  public InetAddress getIPAddress() {
+  public InetAddress getIpAddress() {
     return ipAddress;
   }
 

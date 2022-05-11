@@ -29,7 +29,7 @@ import com.aoapps.io.posix.Stat;
 import com.aoapps.lang.Strings;
 import com.aoapps.lang.io.IoUtils;
 import com.aoapps.lang.io.NullOutputStream;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.email.SmtpRelay;
 import com.aoindustries.aoserv.client.email.SmtpRelayType;
@@ -37,8 +37,8 @@ import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.net.Device;
 import com.aoindustries.aoserv.client.net.Host;
 import com.aoindustries.aoserv.client.net.IpAddress;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
@@ -65,22 +65,20 @@ public final class SmtpRelayManager extends BuilderThread implements Runnable {
   private static final int REFRESH_PERIOD = 15 * 60 * 1000;
 
   /**
-   * sendmail configs
+   * sendmail configs.
    */
   private static final String ACCESS_FILENAME = "/etc/mail/access";
 
-  private static final PosixFile
-      ACCESS = new PosixFile(ACCESS_FILENAME),
-      ACCESS_DB = new PosixFile(ACCESS_FILENAME + ".db"),
-      NEW_ACCESS_DB = new PosixFile("/etc/mail/newaccess.db");
+  private static final PosixFile ACCESS = new PosixFile(ACCESS_FILENAME);
+  private static final PosixFile ACCESS_DB = new PosixFile(ACCESS_FILENAME + ".db");
+  private static final PosixFile NEW_ACCESS_DB = new PosixFile("/etc/mail/newaccess.db");
 
-  /**
-   * qmail configs
-   */
-  /*private static final String
-    qmailFile="/etc/tcp.smtp",
-    newQmailFile="/etc/tcp.smtp.new"
-  ;*/
+  ///**
+  // * qmail configs.
+  // */
+  //private static final String
+  //  qmailFile = "/etc/tcp.smtp",
+  //  newQmailFile = "/etc/tcp.smtp.new";
 
   private static SmtpRelayManager smtpRelayManager;
 
@@ -90,8 +88,8 @@ public final class SmtpRelayManager extends BuilderThread implements Runnable {
   @SuppressWarnings({"UseSpecificCatch", "BroadCatchBlock", "TooBroadCatch"})
   protected boolean doRebuild() {
     try {
-      AOServConnector connector = AOServDaemon.getConnector();
-      Server thisServer = AOServDaemon.getThisServer();
+      AoservConnector connector = AoservDaemon.getConnector();
+      Server thisServer = AoservDaemon.getThisServer();
       Host thisHost = thisServer.getHost();
       OperatingSystemVersion osv = thisHost.getOperatingSystemVersion();
       int osvId = osv.getPkey();
@@ -141,7 +139,7 @@ public final class SmtpRelayManager extends BuilderThread implements Runnable {
 
               // Allow all of the local IP addresses
               for (Device nd : thisHost.getNetDevices()) {
-                for (IpAddress ia : nd.getIPAddresses()) {
+                for (IpAddress ia : nd.getIpAddresses()) {
                   String ip = ia.getInetAddress().toString();
                   if (!usedHosts.contains(ip)) {
                     writeAccessLine(out, ip, allowRelay/*, isQmail*/);
@@ -246,39 +244,38 @@ public final class SmtpRelayManager extends BuilderThread implements Runnable {
     /*}*/
   }
 
-  /**
-   * Gets the number of dots in the String, returning a maximum of 3 even if there are more
-   */
-  /*
-  private static int getDotCount(String s) {
-    int count = 0;
-    int len = s.length();
-    for (int c = 0; c < len; c++) {
-      if (s.charAt(c) == '.') {
-        count++;
-        if (count >= 3) {
-          break;
-        }
-      }
-    }
-    return count;
-  }*/
+  ///**
+  // * Gets the number of dots in the String, returning a maximum of 3 even if there are more
+  // */
+  //private static int getDotCount(String s) {
+  //  int count = 0;
+  //  int len = s.length();
+  //  for (int c = 0; c < len; c++) {
+  //    if (s.charAt(c) == '.') {
+  //      count++;
+  //      if (count >= 3) {
+  //        break;
+  //      }
+  //    }
+  //  }
+  //  return count;
+  //}
 
-  /*private static final String[] qmailctlCdbCommand={
-    "/var/qmail/bin/qmailctl",
-    "cdb"
-  };*/
+  //private static final String[] qmailctlCdbCommand={
+  //  "/var/qmail/bin/qmailctl",
+  //  "cdb"
+  //};
 
   private static void makeAccessMap(byte[] accessBytes, Set<PosixFile> restorecon) throws IOException, SQLException {
-    /*if (AOServDaemon.getThisAOServer().isQmail()) {
+    /*if (AoservDaemon.getThisAOServer().isQmail()) {
       command = qmailctlCdbCommand;
     } else {*/
-    OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
+    OperatingSystemVersion osv = AoservDaemon.getThisServer().getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
     if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
       // Make sure /usr/sbin/makemap is installed as required by make_sendmail_access_map
       // access file only built when sendmail installed now: PackageManager.installPackage(PackageManager.PackageName.SENDMAIL);
-      AOServDaemon.execRun(
+      AoservDaemon.execRun(
           stdin -> stdin.write(accessBytes),
           stdout -> IoUtils.copy(stdout, NullOutputStream.getInstance()), // Do nothing with the output
           "/usr/sbin/makemap",
@@ -288,7 +285,7 @@ public final class SmtpRelayManager extends BuilderThread implements Runnable {
       NEW_ACCESS_DB.renameTo(ACCESS_DB);
       restorecon.add(ACCESS_DB);
     } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-      AOServDaemon.exec("/etc/mail/make", "access.db");
+      AoservDaemon.exec("/etc/mail/make", "access.db");
       restorecon.add(ACCESS_DB);
     } else {
       throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
@@ -316,7 +313,7 @@ public final class SmtpRelayManager extends BuilderThread implements Runnable {
         }
         long time = System.currentTimeMillis();
         boolean needRebuild = false;
-        for (SmtpRelay relay : AOServDaemon.getThisServer().getEmailSmtpRelays()) {
+        for (SmtpRelay relay : AoservDaemon.getThisServer().getEmailSmtpRelays()) {
           Timestamp expiration = relay.getExpiration();
           if (
               expiration != null
@@ -348,7 +345,7 @@ public final class SmtpRelayManager extends BuilderThread implements Runnable {
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() throws IOException, SQLException {
-    Server thisServer = AOServDaemon.getThisServer();
+    Server thisServer = AoservDaemon.getThisServer();
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
 
@@ -359,7 +356,7 @@ public final class SmtpRelayManager extends BuilderThread implements Runnable {
               && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
               && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
               // Check config after OS check so config entry not needed
-              && AOServDaemonConfiguration.isManagerEnabled(SmtpRelayManager.class)
+              && AoservDaemonConfiguration.isManagerEnabled(SmtpRelayManager.class)
               && smtpRelayManager == null
       ) {
         System.out.print("Starting SmtpRelayManager: ");
@@ -368,7 +365,7 @@ public final class SmtpRelayManager extends BuilderThread implements Runnable {
             osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                 || osvId == OperatingSystemVersion.CENTOS_7_X86_64
         ) {
-          AOServConnector conn = AOServDaemon.getConnector();
+          AoservConnector conn = AoservDaemon.getConnector();
           smtpRelayManager = new SmtpRelayManager();
           conn.getEmail().getSmtpRelay().addTableListener(smtpRelayManager, 0);
           conn.getNet().getIpAddress().addTableListener(smtpRelayManager, 0);

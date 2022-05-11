@@ -25,7 +25,7 @@ package com.aoindustries.aoserv.daemon.monitor;
 
 import com.aoapps.lang.io.FileUtils;
 import com.aoindustries.aoserv.client.net.IpAddress;
-import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.net.NullRouteManager;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import java.io.BufferedInputStream;
@@ -62,8 +62,8 @@ public final class NetworkMonitor {
   private static final Map<String, NetworkMonitor> outMonitors = new LinkedHashMap<>();
 
   public static void start() {
-    if (AOServDaemonConfiguration.isManagerEnabled(NetworkMonitor.class)) {
-      for (AOServDaemonConfiguration.NetworkMonitorConfiguration config : AOServDaemonConfiguration.getNetworkMonitors().values()) {
+    if (AoservDaemonConfiguration.isManagerEnabled(NetworkMonitor.class)) {
+      for (AoservDaemonConfiguration.NetworkMonitorConfiguration config : AoservDaemonConfiguration.getNetworkMonitors().values()) {
         final String networkName = config.getName();
         synchronized (System.out) {
           if (!inMonitors.containsKey(networkName)) {
@@ -108,8 +108,8 @@ public final class NetworkMonitor {
   private final String device;
   private final String direction;
   private final List<String> networkRanges;
-  private final AOServDaemonConfiguration.NetworkMonitorConfiguration.NetworkDirection networkDirection;
-  private final AOServDaemonConfiguration.NetworkMonitorConfiguration.CountDirection countDirection;
+  private final AoservDaemonConfiguration.NetworkMonitorConfiguration.NetworkDirection networkDirection;
+  private final AoservDaemonConfiguration.NetworkMonitorConfiguration.CountDirection countDirection;
   private final Long nullRouteFifoErrorRate;
   private final Long nullRouteFifoErrorRateMinPps;
   private final Long nullRoutePacketRate;
@@ -121,8 +121,8 @@ public final class NetworkMonitor {
       String device,
       String direction,
       List<String> networkRanges,
-      AOServDaemonConfiguration.NetworkMonitorConfiguration.NetworkDirection networkDirection,
-      AOServDaemonConfiguration.NetworkMonitorConfiguration.CountDirection countDirection,
+      AoservDaemonConfiguration.NetworkMonitorConfiguration.NetworkDirection networkDirection,
+      AoservDaemonConfiguration.NetworkMonitorConfiguration.CountDirection countDirection,
       Long nullRouteFifoErrorRate,
       Long nullRouteFifoErrorRateMinPps,
       Long nullRoutePacketRate,
@@ -252,13 +252,13 @@ public final class NetworkMonitor {
     }
   }
 
-  static class IPv4Network extends Network {
+  static class Ipv4Network extends Network {
     final int address;
     final byte prefix;
     final ProtocolCounts totalCounts;
     final ProtocolCounts[] ips;
 
-    IPv4Network(
+    Ipv4Network(
         int address,
         byte prefix,
         ProtocolCounts totalCounts,
@@ -341,7 +341,7 @@ public final class NetworkMonitor {
       if (nullRouteFifoErrorRate != null) {
         fifoErrorsFile = new File(
             "/sys/class/net/" + device + "/statistics/"
-                + (networkDirection == AOServDaemonConfiguration.NetworkMonitorConfiguration.NetworkDirection.in ? "rx_fifo_errors" : "tx_fifo_errors")
+                + (networkDirection == AoservDaemonConfiguration.NetworkMonitorConfiguration.NetworkDirection.in ? "rx_fifo_errors" : "tx_fifo_errors")
         );
       } else {
         fifoErrorsFile = null;
@@ -443,7 +443,7 @@ public final class NetworkMonitor {
                         for (int ipIndex = 0; ipIndex < numIps; ipIndex++) {
                           ips[ipIndex] = readProtocolCounts(in);
                         }
-                        networks[netIndex] = new IPv4Network(address, prefix, totalCounts, ips);
+                        networks[netIndex] = new Ipv4Network(address, prefix, totalCounts, ips);
                       } else {
                         throw new IOException("Unexpected ipVersion: " + ipVersion);
                       }
@@ -501,8 +501,8 @@ public final class NetworkMonitor {
                             int nullingIp = 0;
                             long highestPacketCount = Long.MIN_VALUE;
                             for (Network network : networks) {
-                              if (network instanceof IPv4Network) {
-                                IPv4Network ipv4Network = (IPv4Network) network;
+                              if (network instanceof Ipv4Network) {
+                                Ipv4Network ipv4Network = (Ipv4Network) network;
                                 ProtocolCounts[] ips = ipv4Network.ips;
                                 for (int ipIndex = 0, len = ips.length; ipIndex < len; ipIndex++) {
                                   long packetCount = ips[ipIndex].getPackets();
@@ -530,7 +530,7 @@ public final class NetworkMonitor {
                                 out.print(" FIFO errors per second >= ");
                                 out.print(nullRouteFifoErrorRate);
                                 out.print(" pps: Found highest IP ");
-                                out.print(IpAddress.getIPAddressForInt(nullingIp));
+                                out.print(IpAddress.getIpAddressForInt(nullingIp));
                                 out.print(" @ ");
                                 out.print(getPacketRate(highestPacketCount, timeSpanMicros));
                                 out.println(" pps");
@@ -544,7 +544,7 @@ public final class NetworkMonitor {
                                 out.print(" FIFO errors per second >= ");
                                 out.print(nullRouteFifoErrorRate);
                                 out.print(" pps: Found highest IP ");
-                                out.print(IpAddress.getIPAddressForInt(nullingIp));
+                                out.print(IpAddress.getIpAddressForInt(nullingIp));
                                 out.print(" @ ");
                                 out.print(getPacketRate(highestPacketCount, timeSpanMicros));
                                 out.println(" pps");
@@ -564,8 +564,8 @@ public final class NetworkMonitor {
                           int nullingIp = 0;
                           long highestPacketCount = Long.MIN_VALUE;
                           for (Network network : networks) {
-                            if (network instanceof IPv4Network) {
-                              IPv4Network ipv4Network = (IPv4Network) network;
+                            if (network instanceof Ipv4Network) {
+                              Ipv4Network ipv4Network = (Ipv4Network) network;
                               ProtocolCounts[] ips = ipv4Network.ips;
                               for (int ipIndex = 0, len = ips.length; ipIndex < len; ipIndex++) {
                                 long packetCount = ips[ipIndex].getPackets();
@@ -589,7 +589,7 @@ public final class NetworkMonitor {
                             out.print(" pps >= ");
                             out.print(nullRoutePacketRate);
                             out.print(" pps: Found highest IP ");
-                            out.print(IpAddress.getIPAddressForInt(nullingIp));
+                            out.print(IpAddress.getIpAddressForInt(nullingIp));
                             out.print(" @ ");
                             out.print(getPacketRate(highestPacketCount, timeSpanMicros));
                             out.println(" pps");
@@ -606,8 +606,8 @@ public final class NetworkMonitor {
                           int nullingIp = 0;
                           long highestByteCount = Long.MIN_VALUE;
                           for (Network network : networks) {
-                            if (network instanceof IPv4Network) {
-                              IPv4Network ipv4Network = (IPv4Network) network;
+                            if (network instanceof Ipv4Network) {
+                              Ipv4Network ipv4Network = (Ipv4Network) network;
                               ProtocolCounts[] ips = ipv4Network.ips;
                               for (int ipIndex = 0, len = ips.length; ipIndex < len; ipIndex++) {
                                 long byteCount = ips[ipIndex].getBytes();
@@ -631,7 +631,7 @@ public final class NetworkMonitor {
                             out.print(" bps >= ");
                             out.print(nullRouteBitRate);
                             out.print(" bps: Found highest IP ");
-                            out.print(IpAddress.getIPAddressForInt(nullingIp));
+                            out.print(IpAddress.getIpAddressForInt(nullingIp));
                             out.print(" @ ");
                             out.print(getBitRate(highestByteCount, timeSpanMicros));
                             out.println(" bps");

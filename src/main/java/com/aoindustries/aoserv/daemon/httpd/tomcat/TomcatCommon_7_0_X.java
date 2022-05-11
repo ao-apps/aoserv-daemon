@@ -26,7 +26,7 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
 import com.aoapps.encoding.ChainWriter;
 import com.aoapps.io.posix.PosixFile;
 import com.aoindustries.aoserv.client.web.tomcat.ContextDataSource;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.UpgradeSymlink;
@@ -107,7 +107,7 @@ final class TomcatCommon_7_0_X extends TomcatCommon {
       if ("7.0.42".equals(rpmVersion)) {
         // Nothing to do
       } else if ("7.0.68".equals(rpmVersion)) {
-        UpgradeSymlink[] upgradeSymlinks_7_0_68 = {
+        UpgradeSymlink[] upgradeSymlinks = {
             new UpgradeSymlink(
                 "lib/ecj-4.2.2.jar",
                 "../" + optSlash + "apache-tomcat-7.0/lib/ecj-4.2.2.jar",
@@ -137,14 +137,14 @@ final class TomcatCommon_7_0_X extends TomcatCommon {
                 "../" + optSlash + "apache-tomcat-7.0/lib/websocket-api.jar"
             )
         };
-        for (UpgradeSymlink upgradeSymlink : upgradeSymlinks_7_0_68) {
+        for (UpgradeSymlink upgradeSymlink : upgradeSymlinks) {
           if (upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
         }
         if (osConfig == OperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) {
           // Switch from Java 1.7 to Java 1.* now that compatible with Java 1.8
-          String results = AOServDaemon.execAndCapture(
+          String results = AoservDaemon.execAndCapture(
               new String[]{
                   osConfig.getReplaceCommand().toString(),
                   "/opt/jdk1.7-i686/setenv.sh",
@@ -164,7 +164,7 @@ final class TomcatCommon_7_0_X extends TomcatCommon {
               || "7.0.81".equals(rpmVersion)
               || "7.0.82".equals(rpmVersion)
       ) {
-        UpgradeSymlink[] upgradeSymlinks_7_0_77 = {
+        UpgradeSymlink[] upgradeSymlinks = {
             // mysql-connector-java-5.1.38-bin.jar -> mysql-connector-java-5.1.45-bin.jar
             // mysql-connector-java-5.1.41-bin.jar -> mysql-connector-java-5.1.45-bin.jar
             // mysql-connector-java-5.1.42-bin.jar -> mysql-connector-java-5.1.45-bin.jar
@@ -230,7 +230,7 @@ final class TomcatCommon_7_0_X extends TomcatCommon {
                 "../" + optSlash + "apache-tomcat-7.0/lib/postgresql-42.2.0.jre6.jar"
             )
         };
-        for (UpgradeSymlink upgradeSymlink : upgradeSymlinks_7_0_77) {
+        for (UpgradeSymlink upgradeSymlink : upgradeSymlinks) {
           if (upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
@@ -241,7 +241,7 @@ final class TomcatCommon_7_0_X extends TomcatCommon {
               || "7.0.86".equals(rpmVersion)
               || "7.0.88".equals(rpmVersion)
       ) {
-        UpgradeSymlink[] upgradeSymlinks_7_0_84 = {
+        UpgradeSymlink[] upgradeSymlinks = {
             // mysql-connector-java-5.1.45-bin.jar -> mysql-connector-java-5.1.46-bin.jar
             new UpgradeSymlink(
                 "lib/mysql-connector-java-5.1.45-bin.jar",
@@ -267,13 +267,13 @@ final class TomcatCommon_7_0_X extends TomcatCommon {
                 "../" + optSlash + "apache-tomcat-7.0/lib/postgresql-42.2.2.jre6.jar"
             )
         };
-        for (UpgradeSymlink upgradeSymlink : upgradeSymlinks_7_0_84) {
+        for (UpgradeSymlink upgradeSymlink : upgradeSymlinks) {
           if (upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
         }
       } else if ("7.0.90".equals(rpmVersion)) {
-        UpgradeSymlink[] upgradeSymlinks_7_0_90 = {
+        UpgradeSymlink[] upgradeSymlinks = {
             // mysql-connector-java-5.1.46-bin.jar -> mysql-connector-java-5.1.47-bin.jar
             new UpgradeSymlink(
                 "lib/mysql-connector-java-5.1.46-bin.jar",
@@ -299,7 +299,7 @@ final class TomcatCommon_7_0_X extends TomcatCommon {
                 "../" + optSlash + "apache-tomcat-7.0/lib/postgresql-42.2.5.jre6.jar"
             )
         };
-        for (UpgradeSymlink upgradeSymlink : upgradeSymlinks_7_0_90) {
+        for (UpgradeSymlink upgradeSymlink : upgradeSymlinks) {
           if (upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
@@ -310,7 +310,7 @@ final class TomcatCommon_7_0_X extends TomcatCommon {
               || "7.0.93".equals(rpmVersion)
               || "7.0.94".equals(rpmVersion)
       ) {
-        UpgradeSymlink[] upgradeSymlinks_7_0_91 = {
+        UpgradeSymlink[] upgradeSymlinks = {
             new UpgradeSymlink(
                 "lib/tomcat-i18n-ru.jar",
                 null,
@@ -330,13 +330,13 @@ final class TomcatCommon_7_0_X extends TomcatCommon {
                 "../" + optSlash + "apache-tomcat-7.0/lib/postgresql-42.2.6.jre6.jar"
             )
         };
-        for (UpgradeSymlink upgradeSymlink : upgradeSymlinks_7_0_91) {
+        for (UpgradeSymlink upgradeSymlink : upgradeSymlinks) {
           if (upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
         }
       } else if ("7.0.96".equals(rpmVersion)) {
-        UpgradeSymlink[] upgradeSymlinks_7_0_96 = {
+        UpgradeSymlink[] upgradeSymlinks = {
             // mysql-connector-java-5.1.47-bin.jar -> mysql-connector-java-5.1.48-bin.jar
             new UpgradeSymlink(
                 "lib/mysql-connector-java-5.1.47-bin.jar",
@@ -377,13 +377,13 @@ final class TomcatCommon_7_0_X extends TomcatCommon {
                 "../" + optSlash + "apache-tomcat-7.0/lib/postgresql-42.2.9.jre6.jar"
             ),
         };
-        for (UpgradeSymlink upgradeSymlink : upgradeSymlinks_7_0_96) {
+        for (UpgradeSymlink upgradeSymlink : upgradeSymlinks) {
           if (upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
         }
       } else if ("7.0.99".equals(rpmVersion)) {
-        UpgradeSymlink[] upgradeSymlinks_7_0_99 = {
+        UpgradeSymlink[] upgradeSymlinks = {
             // New conf/tomcat-users.xsd
             new UpgradeSymlink(
                 "conf/tomcat-users.xsd",
@@ -433,7 +433,7 @@ final class TomcatCommon_7_0_X extends TomcatCommon {
                 "../" + optSlash + "apache-tomcat-7.0/lib/postgresql-42.2.10.jre6.jar"
             ),
         };
-        for (UpgradeSymlink upgradeSymlink : upgradeSymlinks_7_0_99) {
+        for (UpgradeSymlink upgradeSymlink : upgradeSymlinks) {
           if (upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
@@ -443,7 +443,7 @@ final class TomcatCommon_7_0_X extends TomcatCommon {
               || "7.0.103".equals(rpmVersion)
               || "7.0.104".equals(rpmVersion)
       ) {
-        UpgradeSymlink[] upgradeSymlinks_7_0_100 = {
+        UpgradeSymlink[] upgradeSymlinks = {
             // postgresql-42.2.10.jre6.jar -> postgresql-42.2.11.jre6.jar
             new UpgradeSymlink(
                 "lib/postgresql-42.2.10.jre6.jar",
@@ -497,13 +497,13 @@ final class TomcatCommon_7_0_X extends TomcatCommon {
                 "../" + optSlash + "apache-tomcat-7.0/lib/postgresql-42.2.13.jre6.jar"
             ),
         };
-        for (UpgradeSymlink upgradeSymlink : upgradeSymlinks_7_0_100) {
+        for (UpgradeSymlink upgradeSymlink : upgradeSymlinks) {
           if (upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
         }
       } else if ("7.0.105".equals(rpmVersion)) {
-        UpgradeSymlink[] upgradeSymlinks_7_0_105 = {
+        UpgradeSymlink[] upgradeSymlinks = {
             // postgresql-42.2.13.jre6.jar -> postgresql-42.2.14.jre6.jar
             new UpgradeSymlink(
                 "lib/postgresql-42.2.13.jre6.jar",
@@ -531,7 +531,7 @@ final class TomcatCommon_7_0_X extends TomcatCommon {
                 "../" + optSlash + "apache-tomcat-7.0/lib/postgresql-42.2.16.jre6.jar"
             ),
         };
-        for (UpgradeSymlink upgradeSymlink : upgradeSymlinks_7_0_105) {
+        for (UpgradeSymlink upgradeSymlink : upgradeSymlinks) {
           if (upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
@@ -540,7 +540,7 @@ final class TomcatCommon_7_0_X extends TomcatCommon {
           "7.0.106".equals(rpmVersion)
               || "7.0.107".equals(rpmVersion)
       ) {
-        UpgradeSymlink[] upgradeSymlinks_7_0_106 = {
+        UpgradeSymlink[] upgradeSymlinks = {
             // postgresql-42.2.16.jre6.jar -> postgresql-42.2.17.jre6.jar
             new UpgradeSymlink(
                 "lib/postgresql-42.2.16.jre6.jar",
@@ -568,7 +568,7 @@ final class TomcatCommon_7_0_X extends TomcatCommon {
                 "../" + optSlash + "apache-tomcat-7.0/lib/postgresql-42.2.18.jre6.jar"
             ),
         };
-        for (UpgradeSymlink upgradeSymlink : upgradeSymlinks_7_0_106) {
+        for (UpgradeSymlink upgradeSymlink : upgradeSymlinks) {
           if (upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }
@@ -576,7 +576,7 @@ final class TomcatCommon_7_0_X extends TomcatCommon {
       } else if (
           "7.0.108".equals(rpmVersion)
       ) {
-        UpgradeSymlink[] upgradeSymlinks_7_0_108 = {
+        UpgradeSymlink[] upgradeSymlinks = {
             // postgresql-42.2.18.jre6.jar -> postgresql-42.2.19.jre6.jar
             new UpgradeSymlink(
                 "lib/postgresql-42.2.18.jre6.jar",
@@ -591,7 +591,7 @@ final class TomcatCommon_7_0_X extends TomcatCommon {
                 "../" + optSlash + "apache-tomcat-7.0/lib/postgresql-42.2.19.jre6.jar"
             ),
         };
-        for (UpgradeSymlink upgradeSymlink : upgradeSymlinks_7_0_108) {
+        for (UpgradeSymlink upgradeSymlink : upgradeSymlinks) {
           if (upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
             needsRestart = true;
           }

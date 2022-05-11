@@ -29,7 +29,7 @@ import com.aoapps.lang.Strings;
 import com.aoapps.lang.exception.ConfigurationException;
 import com.aoapps.lang.util.PropertiesUtils;
 import com.aoapps.security.HashedKey;
-import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
+import com.aoindustries.aoserv.daemon.client.AoservDaemonProtocol;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.Collections;
@@ -42,10 +42,10 @@ import java.util.Properties;
  *
  * @author  AO Industries, Inc.
  */
-public final class AOServDaemonConfiguration {
+public final class AoservDaemonConfiguration {
 
   /** Make no instances. */
-  private AOServDaemonConfiguration() {
+  private AoservDaemonConfiguration() {
     throw new AssertionError();
   }
 
@@ -60,10 +60,10 @@ public final class AOServDaemonConfiguration {
     try {
       String propName = "aoserv.daemon." + name;
       String value;
-      synchronized (AOServDaemonConfiguration.class) {
+      synchronized (AoservDaemonConfiguration.class) {
         if (props == null) {
           props = PropertiesUtils.loadFromResource(
-              AOServDaemonConfiguration.class,
+              AoservDaemonConfiguration.class,
               "/com/aoindustries/aoserv/daemon/aoserv-daemon.properties"
           );
         }
@@ -128,11 +128,11 @@ public final class AOServDaemonConfiguration {
     return daemonKey;
   }
 
-  public static String getSSLKeystorePassword() throws ConfigurationException {
+  public static String getSslKeystorePassword() throws ConfigurationException {
     return getProperty("ssl.keystore.password", "[KEYSTORE_PASSWORD]");
   }
 
-  public static String getSSLKeystorePath() throws ConfigurationException {
+  public static String getSslKeystorePath() throws ConfigurationException {
     return getProperty("ssl.keystore.path", null);
   }
 
@@ -153,11 +153,11 @@ public final class AOServDaemonConfiguration {
   }
 
   public static long getPostgresMaxConnectionAge(com.aoindustries.aoserv.client.postgresql.Server.Name serverName) throws ConfigurationException {
-    String max_connection_age = getProperty("postgres." + serverName + ".max_connection_age", null);
-    if (max_connection_age == null || max_connection_age.isEmpty()) {
-      max_connection_age = getProperty("postgres.max_connection_age", null);
+    String maxConnectionAge = getProperty("postgres." + serverName + ".max_connection_age", null);
+    if (maxConnectionAge == null || maxConnectionAge.isEmpty()) {
+      maxConnectionAge = getProperty("postgres.max_connection_age", null);
     }
-    return max_connection_age == null || max_connection_age.isEmpty() ? AOPool.DEFAULT_MAX_CONNECTION_AGE : Long.parseLong(max_connection_age);
+    return maxConnectionAge == null || maxConnectionAge.isEmpty() ? AOPool.DEFAULT_MAX_CONNECTION_AGE : Long.parseLong(maxConnectionAge);
   }
 
   public static String getMySqlDriver() throws ConfigurationException {
@@ -166,7 +166,7 @@ public final class AOServDaemonConfiguration {
 
   public static String getMySqlUser(com.aoindustries.aoserv.client.mysql.Server.Name serverName) throws ConfigurationException {
     // Assertion here, only to hint to update code when support of protocol 1.83.0 is removed
-    assert true : "serverName is only null for protocol <= " + AOServDaemonProtocol.Version.VERSION_1_83_0;
+    assert true : "serverName is only null for protocol <= " + AoservDaemonProtocol.Version.VERSION_1_83_0;
     String user = (serverName == null) ? null : getProperty("mysql." + serverName + ".user", null);
     if (user == null || user.isEmpty()) {
       user = getProperty("mysql.user", null, true);
@@ -176,7 +176,7 @@ public final class AOServDaemonConfiguration {
 
   public static String getMySqlPassword(com.aoindustries.aoserv.client.mysql.Server.Name serverName) throws ConfigurationException {
     // Assertion here, only to hint to update code when support of protocol 1.83.0 is removed
-    assert true : "serverName is only null for protocol <= " + AOServDaemonProtocol.Version.VERSION_1_83_0;
+    assert true : "serverName is only null for protocol <= " + AoservDaemonProtocol.Version.VERSION_1_83_0;
     String password = (serverName == null) ? null : getProperty("mysql." + serverName + ".password", "[MYSQL_PASSWORD]");
     if (password == null || password.isEmpty()) {
       password = getProperty("mysql.password", "[MYSQL_PASSWORD]", true);
@@ -193,11 +193,11 @@ public final class AOServDaemonConfiguration {
   }
 
   public static long getMySqlMaxConnectionAge(com.aoindustries.aoserv.client.mysql.Server.Name serverName) throws ConfigurationException {
-    String max_connection_age = getProperty("mysql." + serverName + ".max_connection_age", null);
-    if (max_connection_age == null || max_connection_age.isEmpty()) {
-      max_connection_age = getProperty("mysql.max_connection_age", null);
+    String maxConnectionAge = getProperty("mysql." + serverName + ".max_connection_age", null);
+    if (maxConnectionAge == null || maxConnectionAge.isEmpty()) {
+      maxConnectionAge = getProperty("mysql.max_connection_age", null);
     }
-    return max_connection_age == null || max_connection_age.isEmpty() ? AOPool.DEFAULT_MAX_CONNECTION_AGE : Long.parseLong(max_connection_age);
+    return maxConnectionAge == null || maxConnectionAge.isEmpty() ? AOPool.DEFAULT_MAX_CONNECTION_AGE : Long.parseLong(maxConnectionAge);
   }
 
   public static String getCyrusPassword() throws ConfigurationException {

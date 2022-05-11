@@ -31,7 +31,7 @@ import com.aoapps.lang.validation.ValidationException;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.Group;
 import com.aoindustries.aoserv.client.linux.User;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -54,19 +54,17 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-public final class GShadowFile {
+public final class GshadowFile {
 
   /** Make no instances. */
-  private GShadowFile() {
+  private GshadowFile() {
     throw new AssertionError();
   }
 
-  private static final Logger logger = Logger.getLogger(GShadowFile.class.getName());
+  private static final Logger logger = Logger.getLogger(GshadowFile.class.getName());
 
-  private static final PosixFile
-      gshadowFile       = new PosixFile("/etc/gshadow"),
-      backupGShadowFile = new PosixFile("/etc/gshadow-")
-  ;
+  private static final PosixFile gshadowFile = new PosixFile("/etc/gshadow");
+  private static final PosixFile backupGShadowFile = new PosixFile("/etc/gshadow-");
 
   /**
    * Represents one line of the <code>/etc/gshadow</code> file on a POSIX server.
@@ -226,7 +224,7 @@ public final class GShadowFile {
     }
 
     /**
-     * The group name the entry is for
+     * The group name the entry is for.
      */
     public Group.Name getGroupName() {
       return groupName;
@@ -260,19 +258,19 @@ public final class GShadowFile {
   }
 
   /**
-   * Locks the gshadow file for updates
+   * Locks the gshadow file for updates.
    */
   public static final Object gshadowLock = new Object();
 
   /**
-   * Reads the full contents of /etc/gshadow
+   * Reads the full contents of <code>/etc/gshadow</code>.
    */
-  private static Map<Group.Name, Entry> readGShadowFile() throws IOException {
+  private static Map<Group.Name, Entry> readGshadowFile() throws IOException {
     assert Thread.holdsLock(gshadowLock);
     try {
       Map<Group.Name, Entry> gshadowEntries = new LinkedHashMap<>();
       try (
-        BufferedReader in = new BufferedReader(
+          BufferedReader in = new BufferedReader(
               new InputStreamReader(
                   new FileInputStream(gshadowFile.getFile())
               )
@@ -292,7 +290,7 @@ public final class GShadowFile {
     }
   }
 
-  private static byte[] createGShadowFile(Iterable<Entry> gshadowEntries) {
+  private static byte[] createGshadowFile(Iterable<Entry> gshadowEntries) {
     try {
       ByteArrayOutputStream bout = new ByteArrayOutputStream();
       try (ChainWriter out = new ChainWriter(bout)) {
@@ -315,25 +313,25 @@ public final class GShadowFile {
   }
 
   /**
-   * Must hold {@link #gshadowLock}
+   * Must hold {@link #gshadowLock}.
    */
-  public static void writeGShadowFile(byte[] newContents, Set<PosixFile> restorecon) throws SQLException, IOException {
+  public static void writeGshadowFile(byte[] newContents, Set<PosixFile> restorecon) throws SQLException, IOException {
     assert Thread.holdsLock(gshadowLock);
     // Determine permissions
     long mode;
-    {
-      OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
-      int osvId = osv.getPkey();
-      if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-        // Set to 0400
-        mode = 0400;
-      } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-        // Set to 0000
-        mode = 0000;
-      } else {
-        throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+      {
+        OperatingSystemVersion osv = AoservDaemon.getThisServer().getHost().getOperatingSystemVersion();
+        int osvId = osv.getPkey();
+        if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+          // Set to 0400
+          mode = 0400;
+        } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+          // Set to 0000
+          mode = 0000;
+        } else {
+          throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+        }
       }
-    }
     DaemonFileUtils.atomicWrite(
         gshadowFile,
         newContents,
@@ -347,15 +345,16 @@ public final class GShadowFile {
 
   /**
    * Builds a new version of the gshadow file with necessary adjustments made.
-   *
-   * Must hold {@link #gshadowLock}
+   * <p>
+   * Must hold {@link #gshadowLock}.
+   * </p>
    */
-  public static byte[] buildGShadowFile(Map<Group.Name, Set<User.Name>> groups) throws IOException {
+  public static byte[] buildGshadowFile(Map<Group.Name, Set<User.Name>> groups) throws IOException {
     assert Thread.holdsLock(gshadowLock);
     if (!groups.containsKey(Group.ROOT)) {
       throw new IllegalArgumentException(Group.ROOT + " group not found");
     }
-    Map<Group.Name, Entry> gshadowEntries = readGShadowFile();
+    Map<Group.Name, Entry> gshadowEntries = readGshadowFile();
     // Remove any groups that no longer exist and verify group members
     Iterator<Map.Entry<Group.Name, Entry>> entryIter = gshadowEntries.entrySet().iterator();
     while (entryIter.hasNext()) {
@@ -405,6 +404,6 @@ public final class GShadowFile {
         );
       }
     }
-    return createGShadowFile(gshadowEntries.values());
+    return createGshadowFile(gshadowEntries.values());
   }
 }

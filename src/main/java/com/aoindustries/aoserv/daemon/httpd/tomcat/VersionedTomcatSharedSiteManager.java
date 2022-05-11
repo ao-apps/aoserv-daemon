@@ -28,7 +28,7 @@ import com.aoapps.lang.io.IoUtils;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.web.tomcat.Context;
 import com.aoindustries.aoserv.client.web.tomcat.SharedTomcatSite;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -42,14 +42,14 @@ import java.util.Set;
  *
  * @author  AO Industries, Inc.
  */
-abstract class VersionedTomcatSharedSiteManager<TC extends VersionedTomcatCommon> extends HttpdTomcatSharedSiteManager<TC> {
+abstract class VersionedTomcatSharedSiteManager<T extends VersionedTomcatCommon> extends HttpdTomcatSharedSiteManager<T> {
 
   VersionedTomcatSharedSiteManager(SharedTomcatSite tomcatSharedSite) throws SQLException, IOException {
     super(tomcatSharedSite);
   }
 
   /**
-   * TODO: Support upgrades in-place
+   * TODO: Support upgrades in-place.
    */
   @Override
   protected void buildSiteDirectoryContents(String optSlash, PosixFile siteDirectory, boolean isUpgrade) throws IOException, SQLException {
@@ -63,7 +63,7 @@ abstract class VersionedTomcatSharedSiteManager<TC extends VersionedTomcatCommon
     final int uid = httpdSite.getLinuxServerAccount().getUid().getId();
     final int gid = httpdSite.getLinuxServerGroup().getGid().getId();
 
-    final TC tomcatCommon = getTomcatCommon();
+    final T tomcatCommon = getTomcatCommon();
     final String apacheTomcatDir = tomcatCommon.getApacheTomcatDir();
 
     /*
@@ -79,18 +79,18 @@ abstract class VersionedTomcatSharedSiteManager<TC extends VersionedTomcatCommon
     DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/classes", 0770, uid, gid);
     DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/lib", 0770, uid, gid);
 
-    Server thisServer = AOServDaemon.getThisServer();
-    int uid_min = thisServer.getUidMin().getId();
-    int gid_min = thisServer.getGidMin().getId();
+    Server thisServer = AoservDaemon.getThisServer();
+    int uidMin = thisServer.getUidMin().getId();
+    int gidMin = thisServer.getGidMin().getId();
 
     /*
      * Write the ROOT/WEB-INF/web.xml file.
      */
     // TODO: Do no create these on upgrade:
-    String webXML = siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/web.xml";
+    String webXml = siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/web.xml";
     try (
-      InputStream in = new FileInputStream("/opt/" + apacheTomcatDir + "/webapps/ROOT/WEB-INF/web.xml");
-      OutputStream out = new PosixFile(webXML).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+        InputStream in = new FileInputStream("/opt/" + apacheTomcatDir + "/webapps/ROOT/WEB-INF/web.xml");
+        OutputStream out = new PosixFile(webXml).getSecureOutputStream(uid, gid, 0660, false, uidMin, gidMin)
         ) {
       IoUtils.copy(in, out);
     }

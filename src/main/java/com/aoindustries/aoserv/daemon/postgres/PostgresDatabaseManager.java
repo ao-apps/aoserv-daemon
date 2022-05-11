@@ -33,17 +33,17 @@ import com.aoapps.lang.util.ErrorPrinter;
 import com.aoapps.lang.validation.ValidationException;
 import com.aoapps.tempfiles.TempFile;
 import com.aoapps.tempfiles.TempFileContext;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.postgresql.Database;
 import com.aoindustries.aoserv.client.postgresql.Server;
 import com.aoindustries.aoserv.client.postgresql.User;
 import com.aoindustries.aoserv.client.postgresql.UserServer;
 import com.aoindustries.aoserv.client.postgresql.Version;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
-import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
+import com.aoindustries.aoserv.daemon.client.AoservDaemonProtocol;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import java.io.File;
@@ -86,8 +86,8 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
   protected boolean doRebuild() {
     try {
-      AOServConnector connector = AOServDaemon.getConnector();
-      com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+      AoservConnector connector = AoservDaemon.getConnector();
+      com.aoindustries.aoserv.client.linux.Server thisServer = AoservDaemon.getThisServer();
       OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
       int osvId = osv.getPkey();
       if (
@@ -113,9 +113,9 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
               try {
                 // Get the list of all existing databases
                 Set<Database.Name> existing = new HashSet<>();
-                String currentSQL = null;
+                String currentSql = null;
                 try (Statement stmt = conn.createStatement()) {
-                  try (ResultSet results = stmt.executeQuery(currentSQL = "SELECT datname FROM pg_database")) {
+                  try (ResultSet results = stmt.executeQuery(currentSql = "SELECT datname FROM pg_database")) {
                     try {
                       while (results.next()) {
                         Database.Name datname = Database.Name.valueOf(results.getString(1));
@@ -128,7 +128,7 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
                     }
                   }
                 } catch (Error | RuntimeException | SQLException e) {
-                  ErrorPrinter.addSQL(e, currentSQL);
+                  ErrorPrinter.addSql(e, currentSql);
                   throw e;
                 }
 
@@ -143,17 +143,17 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
                           new SQLException("Refusing to create special database: " + name + " on " + ps.getName())
                       );
                     } else {
-                      UserServer datdba = database.getDatDBA();
+                      UserServer datdba = database.getDatdba();
                       if (
                           version.startsWith(Version.VERSION_7_1 + '.')
                               || version.startsWith(Version.VERSION_7_2 + '.')
                       ) {
                         // Create the database
-                        currentSQL = null;
+                        currentSql = null;
                         try (Statement stmt = conn.createStatement()) {
-                          stmt.executeUpdate(currentSQL = "CREATE DATABASE \"" + name + "\" WITH TEMPLATE = template0 ENCODING = '" + database.getPostgresEncoding().getEncoding() + '\'');
+                          stmt.executeUpdate(currentSql = "CREATE DATABASE \"" + name + "\" WITH TEMPLATE = template0 ENCODING = '" + database.getPostgresEncoding().getEncoding() + '\'');
                         } catch (Error | RuntimeException | SQLException e) {
-                          ErrorPrinter.addSQL(e, currentSQL);
+                          ErrorPrinter.addSql(e, currentSql);
                           throw e;
                         }
                         // Set the owner
@@ -163,7 +163,7 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
                             pstmt.setString(2, name.toString());
                             pstmt.executeUpdate();
                           } catch (Error | RuntimeException | SQLException e) {
-                            ErrorPrinter.addSQL(e, pstmt);
+                            ErrorPrinter.addSql(e, pstmt);
                             throw e;
                           }
                         }
@@ -190,11 +190,13 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
                               || version.startsWith(Version.VERSION_14 + '.')
                               || version.startsWith(Version.VERSION_14 + 'R')
                       ) {
-                        currentSQL = null;
+                        currentSql = null;
                         try (Statement stmt = conn.createStatement()) {
-                          stmt.executeUpdate(currentSQL = "CREATE DATABASE \"" + name + "\" WITH OWNER = \"" + datdba.getPostgresUser_username() + "\" TEMPLATE = template0 ENCODING = '" + database.getPostgresEncoding().getEncoding() + '\'');
+                          stmt.executeUpdate(currentSql = "CREATE DATABASE \"" + name + "\" WITH OWNER = \""
+                              + datdba.getPostgresUser_username() + "\" TEMPLATE = template0 ENCODING = '"
+                              + database.getPostgresEncoding().getEncoding() + '\'');
                         } catch (Error | RuntimeException | SQLException e) {
-                          ErrorPrinter.addSQL(e, currentSQL);
+                          ErrorPrinter.addSql(e, currentSql);
                           throw e;
                         }
                       } else {
@@ -231,7 +233,7 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
                             version.startsWith("7.")
                                 || version.startsWith("8.")
                         ) {
-                          AOServDaemon.suexec(
+                          AoservDaemon.suexec(
                               com.aoindustries.aoserv.client.linux.User.POSTGRES,
                               WORKING_DIRECTORY,
                               createlang + " -p " + port + " plpgsql " + name,
@@ -246,20 +248,20 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
                                 || version.startsWith(Version.VERSION_8_1 + '.')
                         // Not supported as of 8.3 - it has built-in full text indexing
                         ) {
-                          AOServDaemon.suexec(
+                          AoservDaemon.suexec(
                               com.aoindustries.aoserv.client.linux.User.POSTGRES,
                               WORKING_DIRECTORY,
                               psql + " -p " + port + " -c \"create function fti() returns opaque as '" + lib + "/mfti.so' language 'c';\" " + name,
                               0);
                         }
                         if (database.getEnablePostgis()) {
-                          AOServDaemon.suexec(
+                          AoservDaemon.suexec(
                               com.aoindustries.aoserv.client.linux.User.POSTGRES,
                               WORKING_DIRECTORY,
                               psql + " -p " + port + " " + name + " -f " + share + "/lwpostgis.sql",
                               0
                           );
-                          AOServDaemon.suexec(
+                          AoservDaemon.suexec(
                               com.aoindustries.aoserv.client.linux.User.POSTGRES,
                               WORKING_DIRECTORY,
                               psql + " -p " + port + " " + name + " -f " + share + "/spatial_ref_sys.sql",
@@ -269,11 +271,11 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
                       } catch (IOException err) {
                         try {
                           // Drop the new database if not fully configured
-                          currentSQL = null;
+                          currentSql = null;
                           try (Statement stmt = conn.createStatement()) {
-                            stmt.executeUpdate(currentSQL = "DROP DATABASE \"" + name + '"');
+                            stmt.executeUpdate(currentSql = "DROP DATABASE \"" + name + '"');
                           } catch (Error | RuntimeException | SQLException e) {
-                            ErrorPrinter.addSQL(e, currentSQL);
+                            ErrorPrinter.addSql(e, currentSql);
                             throw e;
                           }
                         } catch (SQLException err2) {
@@ -304,17 +306,17 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
                         true
                     );
                     // Now drop
-                    currentSQL = null;
+                    currentSql = null;
                     try (Statement stmt = conn.createStatement()) {
-                      stmt.executeUpdate(currentSQL = "DROP DATABASE \"" + dbName + '"');
+                      stmt.executeUpdate(currentSql = "DROP DATABASE \"" + dbName + '"');
                     } catch (Error | RuntimeException | SQLException e) {
-                      ErrorPrinter.addSQL(e, currentSQL);
+                      ErrorPrinter.addSql(e, currentSql);
                       throw e;
                     }
                   }
                 }
               } catch (SQLException e) {
-                conn.abort(AOServDaemon.executorService);
+                conn.abort(AoservDaemon.executorService);
                 throw e;
               }
             }
@@ -332,13 +334,13 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
 
   public static void dumpDatabase(
       Database pd,
-      AOServDaemonProtocol.Version protocolVersion,
+      AoservDaemonProtocol.Version protocolVersion,
       StreamableOutput masterOut,
       boolean gzip
   ) throws IOException, SQLException {
     try (
-      TempFileContext tempFileContext = new TempFileContext();
-      TempFile tempFile = tempFileContext.createTempFile("dump_postgres_database_", gzip ? ".sql.gz" : ".sql")
+        TempFileContext tempFileContext = new TempFileContext();
+        TempFile tempFile = tempFileContext.createTempFile("dump_postgres_database_", gzip ? ".sql.gz" : ".sql")
         ) {
       dumpDatabase(
           pd.getPostgresServer(),
@@ -347,7 +349,7 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
           gzip
       );
       long dumpSize = new PosixFile(tempFile.getFile()).getStat().getSize();
-      if (protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0) >= 0) {
+      if (protocolVersion.compareTo(AoservDaemonProtocol.Version.VERSION_1_80_0) >= 0) {
         masterOut.writeLong(dumpSize);
       }
       long bytesRead = 0;
@@ -360,7 +362,7 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
             if (bytesRead > dumpSize) {
               throw new IOException("Too many bytes read: " + bytesRead + " > " + dumpSize);
             }
-            masterOut.writeByte(AOServDaemonProtocol.NEXT);
+            masterOut.writeByte(AoservDaemonProtocol.NEXT);
             masterOut.writeShort(ret);
             masterOut.write(buff, 0, ret);
           }
@@ -381,18 +383,18 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
       boolean gzip
   ) throws IOException, SQLException {
     String commandPath;
-    {
-      OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
-      int osvId = osv.getPkey();
-      if (
-          osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-              || osvId == OperatingSystemVersion.CENTOS_7_X86_64
-      ) {
-        commandPath = "/opt/aoserv-daemon/bin/dump_postgres_database";
-      } else {
-        throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+      {
+        OperatingSystemVersion osv = AoservDaemon.getThisServer().getHost().getOperatingSystemVersion();
+        int osvId = osv.getPkey();
+        if (
+            osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+        ) {
+          commandPath = "/opt/aoserv-daemon/bin/dump_postgres_database";
+        } else {
+          throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+        }
       }
-    }
     // Make sure perl is installed as required by dump_postgres_database
     PackageManager.installPackage(PackageManager.PackageName.PERL);
     if (gzip) {
@@ -406,9 +408,9 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
         output.getPath(),
         Boolean.toString(gzip)
     };
-    AOServDaemon.exec(WORKING_DIRECTORY, command);
+    AoservDaemon.exec(WORKING_DIRECTORY, command);
     if (output.length() == 0) {
-      throw new SQLException("Empty dump file: " + output + "\nCommand: " + AOServDaemon.getCommandString(command));
+      throw new SQLException("Empty dump file: " + output + "\nCommand: " + AoservDaemon.getCommandString(command));
     }
   }
 
@@ -417,7 +419,7 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() throws IOException, SQLException {
-    com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+    com.aoindustries.aoserv.client.linux.Server thisServer = AoservDaemon.getThisServer();
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
 
@@ -428,7 +430,7 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
               && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
               && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
               // Check config after OS check so config entry not needed
-              && AOServDaemonConfiguration.isManagerEnabled(PostgresDatabaseManager.class)
+              && AoservDaemonConfiguration.isManagerEnabled(PostgresDatabaseManager.class)
               && (
               postgresDatabaseManager == null
                   || !cronStarted
@@ -441,7 +443,7 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
                 || osvId == OperatingSystemVersion.CENTOS_7_X86_64
         ) {
           if (postgresDatabaseManager == null) {
-            AOServConnector conn = AOServDaemon.getConnector();
+            AoservConnector conn = AoservDaemon.getConnector();
             postgresDatabaseManager = new PostgresDatabaseManager();
             conn.getPostgresql().getDatabase().addTableListener(postgresDatabaseManager, 0);
           }
@@ -475,8 +477,7 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
   private static final Schedule schedule = (int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) ->
       minute == 5
           && hour == 1
-          && dayOfWeek == Calendar.SUNDAY
-  ;
+          && dayOfWeek == Calendar.SUNDAY;
 
   @Override
   public Schedule getSchedule() {
@@ -496,22 +497,20 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
   public void run(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
     try {
-      AOServConnector aoservConn = AOServDaemon.getConnector();
+      AoservConnector aoservConn = AoservDaemon.getConnector();
       //DatabaseTable postgresDatabaseTable = aoservConn.getPostgresql().getDatabase();
       // Only REINDEX on the first Sunday of the month
       boolean isReindexTime = dayOfMonth <= 7;
       List<String> tableNames = new ArrayList<>();
       List<String> schemas = new ArrayList<>();
-      for (Server postgresServer : AOServDaemon.getThisServer().getPostgresServers()) {
+      for (Server postgresServer : AoservDaemon.getThisServer().getPostgresServers()) {
         Server.Name serverName = postgresServer.getName();
         String postgresServerVersion = postgresServer.getVersion().getTechnologyVersion(aoservConn).getVersion();
         boolean postgresServerHasSchemas =
             !postgresServerVersion.startsWith(Version.VERSION_7_1 + '.')
-                && !postgresServerVersion.startsWith(Version.VERSION_7_2 + '.')
-        ;
+                && !postgresServerVersion.startsWith(Version.VERSION_7_2 + '.');
         boolean postgresServerHasVacuumFull =
-            !postgresServerVersion.startsWith(Version.VERSION_7_1 + '.')
-        ;
+            !postgresServerVersion.startsWith(Version.VERSION_7_1 + '.');
         for (Database postgresDatabase : postgresServer.getPostgresDatabases()) {
           if (
               !postgresDatabase.isTemplate()
@@ -527,14 +526,14 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
               conn = DriverManager.getConnection(
                   postgresDatabase.getJdbcUrl(true),
                   User.POSTGRES.toString(),
-                  AOServDaemonConfiguration.getPostgresPassword(serverName)
+                  AoservDaemonConfiguration.getPostgresPassword(serverName)
               );
               conn.setAutoCommit(true);
             }
             try {
               try {
                 try (
-                  PreparedStatement pstmt = conn.prepareStatement(
+                    PreparedStatement pstmt = conn.prepareStatement(
                         postgresServerHasSchemas
                             ? "SELECT tablename, schemaname FROM pg_tables WHERE tableowner != ?"
                             : "SELECT tablename FROM pg_tables WHERE tableowner != ?"
@@ -555,7 +554,7 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
                       }
                     }
                   } catch (Error | RuntimeException | SQLException e) {
-                    ErrorPrinter.addSQL(e, pstmt);
+                    ErrorPrinter.addSql(e, pstmt);
                     throw e;
                   }
                 }
@@ -572,9 +571,9 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
                         )
                     ) {
                       // VACUUM the table
-                      String currentSQL = null;
+                      String currentSql = null;
                       try (Statement stmt = conn.createStatement()) {
-                        stmt.executeUpdate(currentSQL =
+                        stmt.executeUpdate(currentSql =
                             postgresServerHasVacuumFull
                                 ? (
                                 postgresServerHasSchemas
@@ -588,25 +587,29 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
                         );
                         if (isReindexTime) {
                           // REINDEX the table
-                          stmt.executeUpdate(currentSQL =
+                          stmt.executeUpdate(currentSql =
                               postgresServerHasSchemas
                                   ? ("REINDEX TABLE \"" + schema + "\".\"" + tableName + '"')
                                   : ("REINDEX TABLE \"" + tableName + '"')
                           );
                         }
                       } catch (Error | RuntimeException | SQLException e) {
-                        ErrorPrinter.addSQL(e, currentSQL);
+                        ErrorPrinter.addSql(e, currentSql);
                         throw e;
                       }
                     } else {
-                      logger.log(Level.WARNING, "schema=" + schema, new SQLWarning("Warning: not calling VACUUM or REINDEX because schema name does not pass the database name checks.  This is to make sure specially-crafted schema names cannot be used to execute arbitrary SQL with administrative privileges."));
+                      logger.log(Level.WARNING, "schema=" + schema, new SQLWarning(
+                          "Warning: not calling VACUUM or REINDEX because schema name does not pass the database name checks.  "
+                              + "This is to make sure specially-crafted schema names cannot be used to execute arbitrary SQL with administrative privileges."));
                     }
                   } else {
-                    logger.log(Level.WARNING, "tableName=" + tableName, new SQLWarning("Warning: not calling VACUUM or REINDEX because table name does not pass the database name checks.  This is to make sure specially-crafted table names cannot be used to execute arbitrary SQL with administrative privileges."));
+                    logger.log(Level.WARNING, "tableName=" + tableName, new SQLWarning(
+                        "Warning: not calling VACUUM or REINDEX because table name does not pass the database name checks.  "
+                            + "This is to make sure specially-crafted table names cannot be used to execute arbitrary SQL with administrative privileges."));
                   }
                 }
               } catch (SQLException e) {
-                conn.abort(AOServDaemon.executorService);
+                conn.abort(AoservDaemon.executorService);
                 throw e;
               }
             } finally {

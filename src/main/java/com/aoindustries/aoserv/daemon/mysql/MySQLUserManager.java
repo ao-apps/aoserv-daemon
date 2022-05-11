@@ -26,13 +26,13 @@ package com.aoindustries.aoserv.daemon.mysql;
 import com.aoapps.hodgepodge.util.Tuple2;
 import com.aoapps.lang.util.ErrorPrinter;
 import com.aoapps.lang.validation.ValidationException;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.mysql.Server;
 import com.aoindustries.aoserv.client.mysql.User;
 import com.aoindustries.aoserv.client.mysql.UserServer;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import java.io.IOException;
 import java.sql.Connection;
@@ -66,8 +66,8 @@ public final class MySQLUserManager extends BuilderThread {
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
   protected boolean doRebuild() {
     try {
-      //AOServConnector connector = AOServDaemon.getConnector();
-      com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+      //AoservConnector connector = AoservDaemon.getConnector();
+      com.aoindustries.aoserv.client.linux.Server thisServer = AoservDaemon.getThisServer();
       OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
       int osvId = osv.getPkey();
       if (
@@ -78,16 +78,16 @@ public final class MySQLUserManager extends BuilderThread {
       }
 
       synchronized (rebuildLock) {
-        for (Server mysqlServer : thisServer.getMySQLServers()) {
+        for (Server mysqlServer : thisServer.getMysqlServers()) {
           // Get the list of all users that should exist.  By getting the list and reusing it we have a snapshot of the configuration.
-          List<UserServer> users = mysqlServer.getMySQLServerUsers();
+          List<UserServer> users = mysqlServer.getMysqlServerUsers();
           if (users.isEmpty()) {
             logger.severe("No users; refusing to rebuild config: " + mysqlServer);
           } else {
             // Must have root user
             boolean foundRoot = false;
             for (UserServer user : users) {
-              if (user.getMySQLUser().getKey().equals(User.ROOT)) {
+              if (user.getMysqlUser().getKey().equals(User.ROOT)) {
                 foundRoot = true;
                 break;
               }
@@ -104,10 +104,10 @@ public final class MySQLUserManager extends BuilderThread {
                 try {
                   // Get the list of all existing users
                   Set<Tuple2<String, User.Name>> existing = new HashSet<>();
-                  String currentSQL = null;
+                  String currentSql = null;
                   try (
-                    Statement stmt = conn.createStatement();
-                    ResultSet results = stmt.executeQuery(currentSQL = "SELECT host, user FROM user")
+                      Statement stmt = conn.createStatement();
+                      ResultSet results = stmt.executeQuery(currentSql = "SELECT host, user FROM user")
                       ) {
                     try {
                       while (results.next()) {
@@ -123,14 +123,14 @@ public final class MySQLUserManager extends BuilderThread {
                       throw new SQLException(e);
                     }
                   } catch (Error | RuntimeException | SQLException e) {
-                    ErrorPrinter.addSQL(e, currentSQL);
+                    ErrorPrinter.addSql(e, currentSql);
                     throw e;
                   }
 
                   // Update existing users to proper values
-                  String updateSQL;
+                  String updateSql;
                   if (version.startsWith(Server.VERSION_4_0_PREFIX)) {
-                    updateSQL = "UPDATE user SET\n"
+                    updateSql = "UPDATE user SET\n"
                         + "  Select_priv=?,\n"
                         + "  Insert_priv=?,\n"
                         + "  Update_priv=?,\n"
@@ -185,7 +185,7 @@ public final class MySQLUserManager extends BuilderThread {
                         + "    OR max_connections != ?\n"
                         + "  )";
                   } else if (version.startsWith(Server.VERSION_4_1_PREFIX)) {
-                    updateSQL = "UPDATE user SET\n"
+                    updateSql = "UPDATE user SET\n"
                         + "  Select_priv=?,\n"
                         + "  Insert_priv=?,\n"
                         + "  Update_priv=?,\n"
@@ -240,7 +240,7 @@ public final class MySQLUserManager extends BuilderThread {
                         + "    OR max_connections != ?\n"
                         + "  )";
                   } else if (version.startsWith(Server.VERSION_5_0_PREFIX)) {
-                    updateSQL = "UPDATE user SET\n"
+                    updateSql = "UPDATE user SET\n"
                         + "  Select_priv=?,\n"
                         + "  Insert_priv=?,\n"
                         + "  Update_priv=?,\n"
@@ -310,7 +310,7 @@ public final class MySQLUserManager extends BuilderThread {
                       version.startsWith(Server.VERSION_5_1_PREFIX)
                           || version.startsWith(Server.VERSION_5_6_PREFIX)
                   ) {
-                    updateSQL = "UPDATE user SET\n"
+                    updateSql = "UPDATE user SET\n"
                         + "  Select_priv=?,\n"
                         + "  Insert_priv=?,\n"
                         + "  Update_priv=?,\n"
@@ -381,7 +381,7 @@ public final class MySQLUserManager extends BuilderThread {
                         + "    OR max_user_connections != ?\n"
                         + "  )";
                   } else if (version.startsWith(Server.VERSION_5_7_PREFIX)) {
-                    updateSQL = "UPDATE user SET\n"
+                    updateSql = "UPDATE user SET\n"
                         + "  Select_priv=?,\n"
                         + "  Insert_priv=?,\n"
                         + "  Update_priv=?,\n"
@@ -457,10 +457,10 @@ public final class MySQLUserManager extends BuilderThread {
                     throw new SQLException("Unsupported MySQL version: " + version);
                   }
 
-                  currentSQL = null;
-                  try (PreparedStatement pstmt = conn.prepareStatement(currentSQL = updateSQL)) {
+                  currentSql = null;
+                  try (PreparedStatement pstmt = conn.prepareStatement(currentSql = updateSql)) {
                     for (UserServer msu : users) {
-                      User mu = msu.getMySQLUser();
+                      User mu = msu.getMysqlUser();
                       String host = msu.getHost();
                       if (host == null) {
                         host = "";
@@ -484,7 +484,7 @@ public final class MySQLUserManager extends BuilderThread {
                         pstmt.setString(pos++, mu.canReference() ? "Y" : "N");
                         pstmt.setString(pos++, mu.canIndex() ? "Y" : "N");
                         pstmt.setString(pos++, mu.canAlter() ? "Y" : "N");
-                        pstmt.setString(pos++, mu.canShowDB() ? "Y" : "N");
+                        pstmt.setString(pos++, mu.canShowDb() ? "Y" : "N");
                         pstmt.setString(pos++, mu.isSuper() ? "Y" : "N");
                         pstmt.setString(pos++, mu.canCreateTempTable() ? "Y" : "N");
                         pstmt.setString(pos++, mu.canLockTables() ? "Y" : "N");
@@ -525,8 +525,7 @@ public final class MySQLUserManager extends BuilderThread {
                         boolean locked =
                             username.equals(User.MYSQL_SESSION)
                                 || username.equals(User.MYSQL_SYS)
-                                || msu.isDisabled()
-                        ;
+                                || msu.isDisabled();
                         if (version.startsWith(Server.VERSION_5_7_PREFIX)) {
                           pstmt.setString(pos++, locked ? "Y" : "N");
                         }
@@ -547,7 +546,7 @@ public final class MySQLUserManager extends BuilderThread {
                         pstmt.setString(pos++, mu.canReference() ? "Y" : "N");
                         pstmt.setString(pos++, mu.canIndex() ? "Y" : "N");
                         pstmt.setString(pos++, mu.canAlter() ? "Y" : "N");
-                        pstmt.setString(pos++, mu.canShowDB() ? "Y" : "N");
+                        pstmt.setString(pos++, mu.canShowDb() ? "Y" : "N");
                         pstmt.setString(pos++, mu.isSuper() ? "Y" : "N");
                         pstmt.setString(pos++, mu.canCreateTempTable() ? "Y" : "N");
                         pstmt.setString(pos++, mu.canLockTables() ? "Y" : "N");
@@ -595,32 +594,39 @@ public final class MySQLUserManager extends BuilderThread {
                       }
                     }
                   } catch (Error | RuntimeException | SQLException e) {
-                    ErrorPrinter.addSQL(e, currentSQL);
+                    ErrorPrinter.addSql(e, currentSql);
                     throw e;
                   }
 
                   // Add the users that do not exist and should
-                  String insertSQL;
+                  String insertSql;
                   if (version.startsWith(Server.VERSION_4_0_PREFIX)) {
-                    insertSQL = "INSERT INTO user VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?)";
+                    insertSql = "INSERT INTO user VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "',?,?,?,?,?,?,?,?,?,?,?"
+                        + ",?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?)";
                   } else if (version.startsWith(Server.VERSION_4_1_PREFIX)) {
-                    insertSQL = "INSERT INTO user VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?)";
+                    insertSql = "INSERT INTO user VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "',?,?,?,?,?,?,?,?,?,?,"
+                        + "?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?)";
                   } else if (version.startsWith(Server.VERSION_5_0_PREFIX)) {
-                    insertSQL = "INSERT INTO user VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?,?)";
+                    insertSql = "INSERT INTO user VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "',?,?,?,?,?,?,?,?,?,?,"
+                        + "?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?,?)";
                   } else if (version.startsWith(Server.VERSION_5_1_PREFIX)) {
-                    insertSQL = "INSERT INTO user VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?,?)";
+                    insertSql = "INSERT INTO user VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "',?,?,?,?,?,?,?,?,?,?,"
+                        + "?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?,?)";
                   } else if (version.startsWith(Server.VERSION_5_6_PREFIX)) {
-                    insertSQL = "INSERT INTO user VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'N','','','','',?,?,?,?,'',NULL,'N')";
+                    insertSql = "INSERT INTO user VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "',?,?,?,?,?,?,?,?,?,?,"
+                        + "?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'N','','','','',?,?,?,?,'',NULL,'N')";
                   } else if (version.startsWith(Server.VERSION_5_7_PREFIX)) {
-                    insertSQL = "INSERT INTO user VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'N','','','','',?,?,?,?,'mysql_native_password','" + User.NO_PASSWORD_DB_VALUE + "','N',NOW(),NULL,?)";
+                    insertSql = "INSERT INTO user VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,"
+                        + "'N','','','','',?,?,?,?,'mysql_native_password','" + User.NO_PASSWORD_DB_VALUE + "','N',"
+                        + "NOW(),NULL,?)";
                   } else {
                     throw new SQLException("Unsupported MySQL version: " + version);
                   }
 
-                  currentSQL = null;
-                  try (PreparedStatement pstmt = conn.prepareStatement(currentSQL = insertSQL)) {
+                  currentSql = null;
+                  try (PreparedStatement pstmt = conn.prepareStatement(currentSql = insertSql)) {
                     for (UserServer msu : users) {
-                      User mu = msu.getMySQLUser();
+                      User mu = msu.getMysqlUser();
                       String host = msu.getHost();
                       if (host == null) {
                         host = "";
@@ -653,7 +659,7 @@ public final class MySQLUserManager extends BuilderThread {
                           pstmt.setString(pos++, mu.canReference() ? "Y" : "N");
                           pstmt.setString(pos++, mu.canIndex() ? "Y" : "N");
                           pstmt.setString(pos++, mu.canAlter() ? "Y" : "N");
-                          pstmt.setString(pos++, mu.canShowDB() ? "Y" : "N");
+                          pstmt.setString(pos++, mu.canShowDb() ? "Y" : "N");
                           pstmt.setString(pos++, mu.isSuper() ? "Y" : "N");
                           pstmt.setString(pos++, mu.canCreateTempTable() ? "Y" : "N");
                           pstmt.setString(pos++, mu.canLockTables() ? "Y" : "N");
@@ -702,14 +708,14 @@ public final class MySQLUserManager extends BuilderThread {
                       }
                     }
                   } catch (Error | RuntimeException | SQLException e) {
-                    ErrorPrinter.addSQL(e, currentSQL);
+                    ErrorPrinter.addSql(e, currentSql);
                     throw e;
                   }
 
                   // Remove the extra users
                   if (!existing.isEmpty()) {
-                    currentSQL = null;
-                    try (PreparedStatement pstmt = conn.prepareStatement(currentSQL = "DELETE FROM user WHERE host=? AND user=?")) {
+                    currentSql = null;
+                    try (PreparedStatement pstmt = conn.prepareStatement(currentSql = "DELETE FROM user WHERE host=? AND user=?")) {
                       for (Tuple2<String, User.Name> key : existing) {
                         // Remove the extra host entry
                         String host = key.getElement1();
@@ -728,12 +734,12 @@ public final class MySQLUserManager extends BuilderThread {
                         }
                       }
                     } catch (Error | RuntimeException | SQLException e) {
-                      ErrorPrinter.addSQL(e, currentSQL);
+                      ErrorPrinter.addSql(e, currentSql);
                       throw e;
                     }
                   }
                 } catch (SQLException e) {
-                  conn.abort(AOServDaemon.executorService);
+                  conn.abort(AoservDaemon.executorService);
                   throw e;
                 }
               }
@@ -752,13 +758,13 @@ public final class MySQLUserManager extends BuilderThread {
                     String prePassword = msu.getPredisablePassword();
                     if (!msu.isDisabled()) {
                       if (prePassword != null) {
-                        setEncryptedPassword(mysqlServer, msu.getMySQLUser().getKey(), prePassword);
+                        setEncryptedPassword(mysqlServer, msu.getMysqlUser().getKey(), prePassword);
                         modified = true;
                         msu.setPredisablePassword(null);
                       }
                     } else {
                       if (prePassword == null) {
-                        User.Name username = msu.getMySQLUser().getKey();
+                        User.Name username = msu.getMysqlUser().getKey();
                         msu.setPredisablePassword(getEncryptedPassword(mysqlServer, username));
                         setEncryptedPassword(mysqlServer, username, User.NO_PASSWORD);
                         modified = true;
@@ -822,12 +828,12 @@ public final class MySQLUserManager extends BuilderThread {
               }
             }
           } catch (Error | RuntimeException | SQLException e) {
-            ErrorPrinter.addSQL(e, sql);
+            ErrorPrinter.addSql(e, sql);
             throw e;
           }
         }
       } catch (SQLException e) {
-        conn.abort(AOServDaemon.executorService);
+        conn.abort(AoservDaemon.executorService);
         throw e;
       }
     }
@@ -864,7 +870,7 @@ public final class MySQLUserManager extends BuilderThread {
             pstmt.setString(1, username.toString());
             pstmt.executeUpdate();
           } catch (Error | RuntimeException | SQLException e) {
-            ErrorPrinter.addSQL(e, sql);
+            ErrorPrinter.addSql(e, sql);
             throw e;
           }
         } else {
@@ -888,12 +894,12 @@ public final class MySQLUserManager extends BuilderThread {
             pstmt.setString(2, username.toString());
             pstmt.executeUpdate();
           } catch (Error | RuntimeException | SQLException e) {
-            ErrorPrinter.addSQL(e, sql);
+            ErrorPrinter.addSql(e, sql);
             throw e;
           }
         }
       } catch (SQLException e) {
-        conn.abort(AOServDaemon.executorService);
+        conn.abort(AoservDaemon.executorService);
         throw e;
       }
     }
@@ -931,7 +937,7 @@ public final class MySQLUserManager extends BuilderThread {
             pstmt.setString(1, username.toString());
             pstmt.executeUpdate();
           } catch (Error | RuntimeException | SQLException e) {
-            ErrorPrinter.addSQL(e, sql);
+            ErrorPrinter.addSql(e, sql);
             throw e;
           }
         } else {
@@ -955,12 +961,12 @@ public final class MySQLUserManager extends BuilderThread {
             pstmt.setString(2, username.toString());
             pstmt.executeUpdate();
           } catch (Error | RuntimeException | SQLException e) {
-            ErrorPrinter.addSQL(e, sql);
+            ErrorPrinter.addSql(e, sql);
             throw e;
           }
         }
       } catch (SQLException e) {
-        conn.abort(AOServDaemon.executorService);
+        conn.abort(AoservDaemon.executorService);
         throw e;
       }
     }
@@ -971,7 +977,7 @@ public final class MySQLUserManager extends BuilderThread {
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() throws IOException, SQLException {
-    com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+    com.aoindustries.aoserv.client.linux.Server thisServer = AoservDaemon.getThisServer();
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
 
@@ -982,7 +988,7 @@ public final class MySQLUserManager extends BuilderThread {
               && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
               && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
               // Check config after OS check so config entry not needed
-              && AOServDaemonConfiguration.isManagerEnabled(MySQLUserManager.class)
+              && AoservDaemonConfiguration.isManagerEnabled(MySQLUserManager.class)
               && mysqlUserManager == null
       ) {
         System.out.print("Starting MySQLUserManager: ");
@@ -991,7 +997,7 @@ public final class MySQLUserManager extends BuilderThread {
             osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                 || osvId == OperatingSystemVersion.CENTOS_7_X86_64
         ) {
-          AOServConnector conn = AOServDaemon.getConnector();
+          AoservConnector conn = AoservDaemon.getConnector();
           mysqlUserManager = new MySQLUserManager();
           conn.getMysql().getUserServer().addTableListener(mysqlUserManager, 0);
           System.out.println("Done");

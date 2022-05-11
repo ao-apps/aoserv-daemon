@@ -28,7 +28,7 @@ import com.aoapps.io.posix.PosixFile;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.web.tomcat.Context;
 import com.aoindustries.aoserv.client.web.tomcat.SharedTomcatSite;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -70,18 +70,18 @@ class HttpdTomcatSharedSiteManager_8_0_X extends HttpdTomcatSharedSiteManager<To
     DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/classes", 0770, uid, gid);
     DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/lib", 0770, uid, gid);
 
-    Server thisServer = AOServDaemon.getThisServer();
-    int uid_min = thisServer.getUidMin().getId();
-    int gid_min = thisServer.getGidMin().getId();
+    Server thisServer = AoservDaemon.getThisServer();
+    int uidMin = thisServer.getUidMin().getId();
+    int gidMin = thisServer.getGidMin().getId();
 
     /*
      * Write the ROOT/WEB-INF/web.xml file.
      */
-    String webXML = siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/web.xml";
+    String webXml = siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/web.xml";
     try (
-      ChainWriter out = new ChainWriter(
+        ChainWriter out = new ChainWriter(
             new BufferedOutputStream(
-                new PosixFile(webXML).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
+                new PosixFile(webXml).getSecureOutputStream(uid, gid, 0664, false, uidMin, gidMin)
             )
         )
         ) {

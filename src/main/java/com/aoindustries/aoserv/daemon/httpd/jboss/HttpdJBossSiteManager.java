@@ -25,12 +25,12 @@ package com.aoindustries.aoserv.daemon.httpd.jboss;
 
 import com.aoapps.io.posix.PosixFile;
 import com.aoapps.lang.validation.ValidationException;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.client.web.jboss.Site;
 import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.HttpdTomcatSiteManager;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.TomcatCommon;
@@ -44,14 +44,14 @@ import java.util.Set;
  *
  * @author  AO Industries, Inc.
  */
-public abstract class HttpdJBossSiteManager<TC extends TomcatCommon> extends HttpdTomcatSiteManager<TC> {
+public abstract class HttpdJBossSiteManager<T extends TomcatCommon> extends HttpdTomcatSiteManager<T> {
 
   /**
    * Gets the specific manager for one type of web site.
    */
   public static HttpdJBossSiteManager<? extends TomcatCommon> getInstance(Site jbossSite) throws IOException, SQLException {
-    AOServConnector connector = AOServDaemon.getConnector();
-    String jbossVersion = jbossSite.getHttpdJBossVersion().getTechnologyVersion(connector).getVersion();
+    AoservConnector connector = AoservDaemon.getConnector();
+    String jbossVersion = jbossSite.getHttpdJbossVersion().getTechnologyVersion(connector).getVersion();
     if ("2.2.2".equals(jbossVersion)) {
       return new HttpdJBossSiteManager_2_2_2(jbossSite);
     }

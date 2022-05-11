@@ -45,7 +45,9 @@ public class LinuxProcess extends PosixProcess {
 
   private static final File proc = new File("/proc");
 
-  /** The <code>/proc/<i>pid</i></code> file is cached once created */
+  /**
+   * The <code>/proc/<i>pid</i></code> file is cached once created.
+   */
   private File processProc;
 
   /**

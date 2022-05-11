@@ -26,32 +26,32 @@ package com.aoindustries.aoserv.daemon.report;
 import com.aoapps.lang.Strings;
 import com.aoapps.lang.util.ErrorPrinter;
 import com.aoindustries.aoserv.client.net.IpAddress;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
 /**
- * Encapsulates the output of the /usr/bin/mysqladmin command.
+ * Encapsulates the output of the <code>/usr/bin/mysqladmin</code> command.
  *
  * @author  AO Industries, Inc.
  */
-public final class MySQLAdmin extends DBReportData {
+public final class MysqlAdmin extends DbReportData {
 
   public final int questions;
-  public final int slow_queries;
+  public final int slowQueries;
   public final int opens;
-  public final int flush_tables;
-  public final int open_tables;
-  public final float queries_per_second;
+  public final int flushTables;
+  public final int openTables;
+  public final float queriesPerSecond;
 
-  public MySQLAdmin() throws IOException {
-    // TODO: Do once per MySQLServer instance
+  public MysqlAdmin() throws IOException {
+    // TODO: Do once per MysqlServer instance
     // TODO: Implement in NOC
-    String user = "TODO"; // AOServDaemonConfiguration.getMySqlUser();
-    String password = "TODO"; // AOServDaemonConfiguration.getMySqlPassword();
+    String user = "TODO"; // AoservDaemonConfiguration.getMySqlUser();
+    String password = "TODO"; // AoservDaemonConfiguration.getMySqlPassword();
     if (user != null && user.length() > 0 && password != null && password.length() > 0) {
-      String line = AOServDaemon.execCall(
+      String line = AoservDaemon.execCall(
           stdout -> {
             try (BufferedReader lineIn = new BufferedReader(new InputStreamReader(stdout))) {
               return lineIn.readLine();
@@ -69,21 +69,21 @@ public final class MySQLAdmin extends DBReportData {
       String[] words = Strings.split(line);
       numUsers = Integer.parseInt(words[3]);
       questions = Integer.parseInt(words[5]);
-      slow_queries = Integer.parseInt(words[8]);
+      slowQueries = Integer.parseInt(words[8]);
       opens = Integer.parseInt(words[10]);
-      flush_tables = Integer.parseInt(words[13]);
-      open_tables = Integer.parseInt(words[16]);
-      queries_per_second = Float.parseFloat(words[21]);
+      flushTables = Integer.parseInt(words[13]);
+      openTables = Integer.parseInt(words[16]);
+      queriesPerSecond = Float.parseFloat(words[21]);
     } else {
-      numUsers = questions = slow_queries = opens = flush_tables = open_tables = 0;
-      queries_per_second = 0;
+      numUsers = questions = slowQueries = opens = flushTables = openTables = 0;
+      queriesPerSecond = 0;
     }
   }
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void main(String[] args) {
     try {
-      System.err.println(new MySQLAdmin());
+      System.err.println(new MysqlAdmin());
       System.exit(0);
     } catch (IOException err) {
       ErrorPrinter.printStackTraces(err, System.err);
@@ -96,11 +96,10 @@ public final class MySQLAdmin extends DBReportData {
     return
         super.toString()
             + "&questions=" + questions
-            + "&slow_queries=" + slow_queries
+            + "&slowAueries=" + slowQueries
             + "&opens=" + opens
-            + "&flush_tables=" + flush_tables
-            + "&open_tables=" + open_tables
-            + "&queries_per_second=" + queries_per_second
-    ;
+            + "&flushTables=" + flushTables
+            + "&openTables=" + openTables
+            + "&queriesPerSecond=" + queriesPerSecond;
   }
 }

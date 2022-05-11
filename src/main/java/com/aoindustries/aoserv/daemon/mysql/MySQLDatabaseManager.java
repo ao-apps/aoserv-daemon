@@ -34,16 +34,16 @@ import com.aoapps.lang.validation.ValidationException;
 import com.aoapps.net.Port;
 import com.aoapps.tempfiles.TempFile;
 import com.aoapps.tempfiles.TempFileContext;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.mysql.Database;
 import com.aoindustries.aoserv.client.mysql.Server;
-import com.aoindustries.aoserv.client.mysql.Table_Name;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.client.mysql.TableName;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
-import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
+import com.aoindustries.aoserv.daemon.client.AoservDaemonProtocol;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import java.io.File;
@@ -95,8 +95,8 @@ public final class MySQLDatabaseManager extends BuilderThread {
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
   protected boolean doRebuild() {
     try {
-      //AOServConnector connector=AOServDaemon.getConnector();
-      com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+      //AoservConnector connector=AoservDaemon.getConnector();
+      com.aoindustries.aoserv.client.linux.Server thisServer = AoservDaemon.getThisServer();
       OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
       int osvId = osv.getPkey();
       if (
@@ -107,8 +107,8 @@ public final class MySQLDatabaseManager extends BuilderThread {
       }
 
       synchronized (rebuildLock) {
-        for (Server mysqlServer : thisServer.getMySQLServers()) {
-          List<Database> databases = mysqlServer.getMySQLDatabases();
+        for (Server mysqlServer : thisServer.getMysqlServers()) {
+          List<Database> databases = mysqlServer.getMysqlDatabases();
           if (databases.isEmpty()) {
             logger.severe("No databases; refusing to rebuild config: " + mysqlServer);
           } else {
@@ -157,9 +157,9 @@ public final class MySQLDatabaseManager extends BuilderThread {
                 try {
                   // Get the list of all existing databases
                   Set<Database.Name> existing = new HashSet<>();
-                  String currentSQL = null;
+                  String currentSql = null;
                   try (Statement stmt = conn.createStatement()) {
-                    try (ResultSet results = stmt.executeQuery(currentSQL = "SHOW DATABASES")) {
+                    try (ResultSet results = stmt.executeQuery(currentSql = "SHOW DATABASES")) {
                       while (results.next()) {
                         try {
                           Database.Name name = Database.Name.valueOf(results.getString(1));
@@ -184,7 +184,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
                           );
                         } else {
                           // Create the database
-                          stmt.executeUpdate(currentSQL = "CREATE DATABASE `" + name + '`');
+                          stmt.executeUpdate(currentSql = "CREATE DATABASE `" + name + '`');
                           modified = true;
                         }
                       }
@@ -213,16 +213,16 @@ public final class MySQLDatabaseManager extends BuilderThread {
                             true
                         );
                         // Now drop
-                        stmt.executeUpdate(currentSQL = "DROP DATABASE `" + dbName + '`');
+                        stmt.executeUpdate(currentSql = "DROP DATABASE `" + dbName + '`');
                         modified = true;
                       }
                     }
                   } catch (Error | RuntimeException | SQLException e) {
-                    ErrorPrinter.addSQL(e, currentSQL);
+                    ErrorPrinter.addSql(e, currentSql);
                     throw e;
                   }
                 } catch (SQLException e) {
-                  conn.abort(AOServDaemon.executorService);
+                  conn.abort(AoservDaemon.executorService);
                   throw e;
                 }
               }
@@ -244,22 +244,22 @@ public final class MySQLDatabaseManager extends BuilderThread {
 
   public static void dumpDatabase(
       Database md,
-      AOServDaemonProtocol.Version protocolVersion,
+      AoservDaemonProtocol.Version protocolVersion,
       StreamableOutput masterOut,
       boolean gzip
   ) throws IOException, SQLException {
     try (
-      TempFileContext tempFileContext = new TempFileContext();
-      TempFile tempFile = tempFileContext.createTempFile("dump_mysql_database_", gzip ? ".sql.gz" : ".sql")
+        TempFileContext tempFileContext = new TempFileContext();
+        TempFile tempFile = tempFileContext.createTempFile("dump_mysql_database_", gzip ? ".sql.gz" : ".sql")
         ) {
       dumpDatabase(
-          md.getMySQLServer(),
+          md.getMysqlServer(),
           md.getName(),
           tempFile.getFile(),
           gzip
       );
       long dumpSize = new PosixFile(tempFile.getFile()).getStat().getSize();
-      if (protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0) >= 0) {
+      if (protocolVersion.compareTo(AoservDaemonProtocol.Version.VERSION_1_80_0) >= 0) {
         masterOut.writeLong(dumpSize);
       }
       long bytesRead = 0;
@@ -272,7 +272,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
             if (bytesRead > dumpSize) {
               throw new IOException("Too many bytes read: " + bytesRead + " > " + dumpSize);
             }
-            masterOut.writeByte(AOServDaemonProtocol.NEXT);
+            masterOut.writeByte(AoservDaemonProtocol.NEXT);
             masterOut.writeShort(ret);
             masterOut.write(buff, 0, ret);
           }
@@ -293,18 +293,18 @@ public final class MySQLDatabaseManager extends BuilderThread {
       boolean gzip
   ) throws IOException, SQLException {
     String commandPath;
-    {
-      OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
-      int osvId = osv.getPkey();
-      if (
-          osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-              || osvId == OperatingSystemVersion.CENTOS_7_X86_64
-      ) {
-        commandPath = "/opt/aoserv-daemon/bin/dump_mysql_database";
-      } else {
-        throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+      {
+        OperatingSystemVersion osv = AoservDaemon.getThisServer().getHost().getOperatingSystemVersion();
+        int osvId = osv.getPkey();
+        if (
+            osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+        ) {
+          commandPath = "/opt/aoserv-daemon/bin/dump_mysql_database";
+        } else {
+          throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+        }
       }
-    }
     // Make sure perl is installed as required by dump_mysql_database
     PackageManager.installPackage(PackageManager.PackageName.PERL);
     if (gzip) {
@@ -319,9 +319,9 @@ public final class MySQLDatabaseManager extends BuilderThread {
         output.getPath(),
         Boolean.toString(gzip)
     };
-    AOServDaemon.exec(WORKING_DIRECTORY, command);
+    AoservDaemon.exec(WORKING_DIRECTORY, command);
     if (output.length() == 0) {
-      throw new SQLException("Empty dump file: " + output + "\nCommand: " + AOServDaemon.getCommandString(command));
+      throw new SQLException("Empty dump file: " + output + "\nCommand: " + AoservDaemon.getCommandString(command));
     }
   }
 
@@ -329,7 +329,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() throws IOException, SQLException {
-    com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+    com.aoindustries.aoserv.client.linux.Server thisServer = AoservDaemon.getThisServer();
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
 
@@ -340,7 +340,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
               && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
               && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
               // Check config after OS check so config entry not needed
-              && AOServDaemonConfiguration.isManagerEnabled(MySQLDatabaseManager.class)
+              && AoservDaemonConfiguration.isManagerEnabled(MySQLDatabaseManager.class)
               && mysqlDatabaseManager == null
       ) {
         System.out.print("Starting MySQLDatabaseManager: ");
@@ -349,7 +349,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
             osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                 || osvId == OperatingSystemVersion.CENTOS_7_X86_64
         ) {
-          AOServConnector conn = AOServDaemon.getConnector();
+          AoservConnector conn = AoservDaemon.getConnector();
           mysqlDatabaseManager = new MySQLDatabaseManager();
           conn.getMysql().getDatabase().addTableListener(mysqlDatabaseManager, 0);
           System.out.println("Done");
@@ -373,31 +373,31 @@ public final class MySQLDatabaseManager extends BuilderThread {
 
   public static void getMasterStatus(int mysqlServer, StreamableOutput out) throws IOException, SQLException {
     // Use the existing pools
-    Server ms = AOServDaemon.getConnector().getMysql().getServer().get(mysqlServer);
+    Server ms = AoservDaemon.getConnector().getMysql().getServer().get(mysqlServer);
     if (ms == null) {
       throw new SQLException("Unable to find Server: " + mysqlServer);
     }
 
     try (Connection conn = MySQLServerManager.getPool(ms).getConnection(true)) {
       try {
-        String currentSQL = null;
+        String currentSql = null;
         try (
-          Statement stmt = conn.createStatement();
-          ResultSet results = stmt.executeQuery(currentSQL = "SHOW MASTER STATUS")
+            Statement stmt = conn.createStatement();
+            ResultSet results = stmt.executeQuery(currentSql = "SHOW MASTER STATUS")
             ) {
           if (results.next()) {
-            out.write(AOServDaemonProtocol.NEXT);
+            out.write(AoservDaemonProtocol.NEXT);
             out.writeNullUTF(results.getString("File"));
             out.writeNullUTF(results.getString("Position"));
           } else {
-            out.write(AOServDaemonProtocol.DONE);
+            out.write(AoservDaemonProtocol.DONE);
           }
         } catch (Error | RuntimeException | SQLException e) {
-          ErrorPrinter.addSQL(e, currentSQL);
+          ErrorPrinter.addSql(e, currentSql);
           throw e;
         }
       } catch (SQLException e) {
-        conn.abort(AOServDaemon.executorService);
+        conn.abort(AoservDaemon.executorService);
         throw e;
       }
     }
@@ -418,14 +418,15 @@ public final class MySQLDatabaseManager extends BuilderThread {
   /**
    * Gets a connection to the MySQL server, this handles both master and slave scenarios.
    */
-  public static Connection getMySQLConnection(PosixPath failoverRoot, int nestedOperatingSystemVersion, Server.Name serverName, Port port) throws IOException, SQLException {
+  public static Connection getMysqlConnection(PosixPath failoverRoot, int nestedOperatingSystemVersion, Server.Name serverName, Port port) throws IOException, SQLException {
     if (port.getProtocol() != com.aoapps.net.Protocol.TCP) {
       throw new IllegalArgumentException("Only TCP supported: " + port);
     }
-    String user, password;
+    String user;
+    String password;
     if (failoverRoot == null) {
-      user = AOServDaemonConfiguration.getMySqlUser(serverName);
-      password = AOServDaemonConfiguration.getMySqlPassword(serverName);
+      user = AoservDaemonConfiguration.getMySqlUser(serverName);
+      password = AoservDaemonConfiguration.getMySqlPassword(serverName);
     } else {
       // Load the properties from the failover image
       File file = new File(failoverRoot + "/etc/opt/aoserv-daemon/com/aoindustries/aoserv/daemon/aoserv-daemon.properties");
@@ -433,11 +434,11 @@ public final class MySQLDatabaseManager extends BuilderThread {
         throw new IOException("Properties file doesn't exist: " + file.getPath());
       }
 
-      // TODO: Might be worth making AOServDaemonConfiguration more reusable, than duplicating so much here:
+      // TODO: Might be worth making AoservDaemonConfiguration more reusable, than duplicating so much here:
       Properties nestedProps = PropertiesUtils.loadFromFile(file);
       if (serverName == null) {
         // Assertion here, only to hint to update code when support of protocol 1.83.0 is removed
-        assert true : "serverName is only null for protocol <= " + AOServDaemonProtocol.Version.VERSION_1_83_0;
+        assert true : "serverName is only null for protocol <= " + AoservDaemonProtocol.Version.VERSION_1_83_0;
         user = password = null;
       } else {
         user = nestedProps.getProperty("aoserv.daemon.mysql." + serverName + ".user");
@@ -459,7 +460,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
 
     // For simplicity, doesn't use connection pools
     try {
-      Class.forName(AOServDaemonConfiguration.getMySqlDriver());
+      Class.forName(AoservDaemonConfiguration.getMySqlDriver());
     } catch (ClassNotFoundException err) {
       throw new SQLException(err);
     }
@@ -477,15 +478,15 @@ public final class MySQLDatabaseManager extends BuilderThread {
   }
 
   public static void getSlaveStatus(PosixPath failoverRoot, int nestedOperatingSystemVersion, Server.Name serverName, Port port, StreamableOutput out) throws IOException, SQLException {
-    try (Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, serverName, port)) {
+    try (Connection conn = getMysqlConnection(failoverRoot, nestedOperatingSystemVersion, serverName, port)) {
       try {
-        String currentSQL = null;
+        String currentSql = null;
         try (
-          Statement stmt = conn.createStatement();
-          ResultSet results = stmt.executeQuery(currentSQL = "SHOW SLAVE STATUS")
+            Statement stmt = conn.createStatement();
+            ResultSet results = stmt.executeQuery(currentSql = "SHOW SLAVE STATUS")
             ) {
           if (results.next()) {
-            out.write(AOServDaemonProtocol.NEXT);
+            out.write(AoservDaemonProtocol.NEXT);
             out.writeNullUTF(results.getString("Slave_IO_State"));
             out.writeNullUTF(results.getString("Master_Log_File"));
             out.writeNullUTF(results.getString("Read_Master_Log_Pos"));
@@ -501,14 +502,14 @@ public final class MySQLDatabaseManager extends BuilderThread {
             out.writeNullUTF(results.getString("Relay_Log_Space"));
             out.writeNullUTF(results.getString("Seconds_Behind_Master"));
           } else {
-            out.write(AOServDaemonProtocol.DONE);
+            out.write(AoservDaemonProtocol.DONE);
           }
         } catch (Error | RuntimeException | SQLException e) {
-          ErrorPrinter.addSQL(e, currentSQL);
+          ErrorPrinter.addSql(e, currentSql);
           throw e;
         }
       } catch (SQLException e) {
-        conn.abort(AOServDaemon.executorService);
+        conn.abort(AoservDaemon.executorService);
         throw e;
       }
     }
@@ -553,14 +554,20 @@ public final class MySQLDatabaseManager extends BuilderThread {
               && port == other.port
               // .equals fields
               && Objects.equals(failoverRoot, other.failoverRoot)
-              && databaseName.equals(other.databaseName)
-      ;
+              && databaseName.equals(other.databaseName);
     }
   }
 
   private static final KeyedConcurrencyReducer<TableStatusConcurrencyKey, List<Database.TableStatus>> tableStatusLimiter = new KeyedConcurrencyReducer<>();
 
-  public static void getTableStatus(PosixPath failoverRoot, int nestedOperatingSystemVersion, Server.Name serverName, Port port, Database.Name databaseName, StreamableOutput out) throws IOException, SQLException {
+  public static void getTableStatus(
+      PosixPath failoverRoot,
+      int nestedOperatingSystemVersion,
+      Server.Name serverName,
+      Port port,
+      Database.Name databaseName,
+      StreamableOutput out
+  ) throws IOException, SQLException {
     List<Database.TableStatus> tableStatuses;
     try {
       tableStatuses = tableStatusLimiter.executeSerialized(
@@ -571,22 +578,22 @@ public final class MySQLDatabaseManager extends BuilderThread {
           ),
           () -> {
             List<Database.TableStatus> statuses = new ArrayList<>();
-            try (Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, serverName, port)) {
+            try (Connection conn = getMysqlConnection(failoverRoot, nestedOperatingSystemVersion, serverName, port)) {
               try {
-                String currentSQL = null;
+                String currentSql = null;
                 try (Statement stmt = conn.createStatement()) {
-                  boolean isMySQL40;
-                  try (ResultSet results = stmt.executeQuery(currentSQL = "SELECT VERSION()")) {
+                  boolean isMysql40;
+                  try (ResultSet results = stmt.executeQuery(currentSql = "SELECT VERSION()")) {
                     if (!results.next()) {
                       throw new SQLException("No row returned");
                     }
-                    isMySQL40 = results.getString(1).startsWith(Server.VERSION_4_0_PREFIX);
+                    isMysql40 = results.getString(1).startsWith(Server.VERSION_4_0_PREFIX);
                   }
-                  try (ResultSet results = stmt.executeQuery(currentSQL = "SHOW TABLE STATUS FROM `" + databaseName + '`')) {
+                  try (ResultSet results = stmt.executeQuery(currentSql = "SHOW TABLE STATUS FROM `" + databaseName + '`')) {
                     while (results.next()) {
-                      String engine = results.getString(isMySQL40 ? "Type" : "Engine");
+                      String engine = results.getString(isMysql40 ? "Type" : "Engine");
                       Integer version;
-                      if (isMySQL40) {
+                      if (isMysql40) {
                         version = null;
                       } else {
                         version = results.getInt("Version");
@@ -624,7 +631,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
                         autoIncrement = null;
                       }
                       String collation;
-                      if (isMySQL40) {
+                      if (isMysql40) {
                         collation = null;
                       } else {
                         collation = results.getString("Collation");
@@ -632,7 +639,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
                       try {
                         statuses.add(
                             new Database.TableStatus(
-                                Table_Name.valueOf(results.getString("Name")),
+                                TableName.valueOf(results.getString("Name")),
                                 engine == null ? null : Database.Engine.valueOf(engine),
                                 version,
                                 rowFormat == null ? null : Database.TableStatus.RowFormat.valueOf(rowFormat),
@@ -644,10 +651,10 @@ public final class MySQLDatabaseManager extends BuilderThread {
                                 dataFree,
                                 autoIncrement,
                                 results.getString("Create_time"),
-                                isMySQL40 ? null : results.getString("Update_time"),
+                                isMysql40 ? null : results.getString("Update_time"),
                                 results.getString("Check_time"),
                                 collation == null ? null : Database.TableStatus.Collation.valueOf(collation),
-                                isMySQL40 ? null : results.getString("Checksum"),
+                                isMysql40 ? null : results.getString("Checksum"),
                                 results.getString("Create_options"),
                                 results.getString("Comment")
                             )
@@ -660,11 +667,11 @@ public final class MySQLDatabaseManager extends BuilderThread {
                     }
                   }
                 } catch (Error | RuntimeException | SQLException e) {
-                  ErrorPrinter.addSQL(e, currentSQL);
+                  ErrorPrinter.addSql(e, currentSql);
                   throw e;
                 }
               } catch (SQLException e) {
-                conn.abort(AOServDaemon.executorService);
+                conn.abort(AoservDaemon.executorService);
                 throw e;
               }
             }
@@ -681,7 +688,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
       ExecutionExceptions.wrapAndThrow(e, SQLException.class, SQLException::new);
       throw new SQLException(e);
     }
-    out.write(AOServDaemonProtocol.NEXT);
+    out.write(AoservDaemonProtocol.NEXT);
     int size = tableStatuses.size();
     out.writeCompressedInt(size);
     for (int c = 0; c < size; c++) {
@@ -712,14 +719,14 @@ public final class MySQLDatabaseManager extends BuilderThread {
     private final PosixPath failoverRoot;
     private final Port port;
     private final Database.Name databaseName;
-    private final Table_Name tableName;
+    private final TableName tableName;
     private final int hash;
 
     private CheckTableConcurrencyKey(
         PosixPath failoverRoot,
         Port port,
         Database.Name databaseName,
-        Table_Name tableName
+        TableName tableName
     ) {
       this.failoverRoot = failoverRoot;
       this.port = port;
@@ -751,8 +758,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
               // .equals fields
               && Objects.equals(failoverRoot, other.failoverRoot)
               && databaseName.equals(other.databaseName)
-              && tableName.equals(other.tableName)
-      ;
+              && tableName.equals(other.tableName);
     }
   }
 
@@ -767,12 +773,12 @@ public final class MySQLDatabaseManager extends BuilderThread {
       Server.Name serverName,
       Port port,
       Database.Name databaseName,
-      List<Table_Name> tableNames,
+      List<TableName> tableNames,
       StreamableOutput out
   ) throws IOException, SQLException {
-    Future<List<Database.CheckTableResult>> future = AOServDaemon.executorService.submit(() -> {
+    Future<List<Database.CheckTableResult>> future = AoservDaemon.executorService.submit(() -> {
       List<Database.CheckTableResult> allTableResults = new ArrayList<>();
-      for (final Table_Name tableName : tableNames) {
+      for (final TableName tableName : tableNames) {
         if (!Database.isSafeName(tableName.toString())) {
           allTableResults.add(
               new Database.CheckTableResult(
@@ -796,12 +802,12 @@ public final class MySQLDatabaseManager extends BuilderThread {
                     () -> {
                       final String dbNamePrefix = databaseName.toString() + '.';
                       final long startTime = System.currentTimeMillis();
-                      try (Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, serverName, port)) {
+                      try (Connection conn = getMysqlConnection(failoverRoot, nestedOperatingSystemVersion, serverName, port)) {
                         try {
-                          String currentSQL = null;
+                          String currentSql = null;
                           try (
-                        Statement stmt = conn.createStatement();
-                        ResultSet results = stmt.executeQuery(currentSQL = "CHECK TABLE `" + databaseName + "`.`" + tableName + "` FAST QUICK")
+                              Statement stmt = conn.createStatement();
+                              ResultSet results = stmt.executeQuery(currentSql = "CHECK TABLE `" + databaseName + "`.`" + tableName + "` FAST QUICK")
                               ) {
                             long duration = System.currentTimeMillis() - startTime;
                             if (duration < 0) {
@@ -818,7 +824,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
                                 final String msgType = results.getString("Msg_type");
                                 tableResults.add(
                                     new Database.CheckTableResult(
-                                        Table_Name.valueOf(table),
+                                        TableName.valueOf(table),
                                         duration,
                                         msgType == null ? null : Database.CheckTableResult.MsgType.valueOf(msgType),
                                         results.getString("Msg_text")
@@ -832,11 +838,11 @@ public final class MySQLDatabaseManager extends BuilderThread {
                             }
                             return tableResults;
                           } catch (Error | RuntimeException | SQLException e) {
-                            ErrorPrinter.addSQL(e, currentSQL);
+                            ErrorPrinter.addSql(e, currentSql);
                             throw e;
                           }
                         } catch (SQLException e) {
-                          conn.abort(AOServDaemon.executorService);
+                          conn.abort(AoservDaemon.executorService);
                           throw e;
                         }
                       }
@@ -859,7 +865,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
     });
     try {
       List<Database.CheckTableResult> allTableResults = future.get(60, TimeUnit.SECONDS);
-      out.write(AOServDaemonProtocol.NEXT);
+      out.write(AoservDaemonProtocol.NEXT);
       int size = allTableResults.size();
       out.writeCompressedInt(size);
       for (int c = 0; c < size; c++) {

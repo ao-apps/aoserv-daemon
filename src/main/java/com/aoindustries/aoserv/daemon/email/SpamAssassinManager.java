@@ -36,7 +36,7 @@ import com.aoapps.net.InetAddress;
 import com.aoapps.net.Port;
 import com.aoapps.tempfiles.TempFile;
 import com.aoapps.tempfiles.TempFileContext;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.email.SpamAssassinMode;
 import com.aoindustries.aoserv.client.linux.Group;
@@ -49,8 +49,8 @@ import com.aoindustries.aoserv.client.net.AppProtocol;
 import com.aoindustries.aoserv.client.net.Bind;
 import com.aoindustries.aoserv.client.net.Host;
 import com.aoindustries.aoserv.client.net.IpAddress;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.server.ServerManager;
@@ -168,10 +168,8 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
 
   private static SpamAssassinManager spamAssassinManager;
 
-  private static final PosixFile
-      configPosixFile = new PosixFile("/etc/sysconfig/spamassassin"),
-      localCfPosixFile = new PosixFile("/etc/mail/spamassassin/local.cf")
-  ;
+  private static final PosixFile configPosixFile = new PosixFile("/etc/sysconfig/spamassassin");
+  private static final PosixFile localCfPosixFile = new PosixFile("/etc/mail/spamassassin/local.cf");
 
   private static final File subsysLockFile = new File("/var/lock/subsys/spamassassin");
 
@@ -232,7 +230,7 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() throws IOException, SQLException {
-    Server thisServer = AOServDaemon.getThisServer();
+    Server thisServer = AoservDaemon.getThisServer();
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
 
@@ -243,7 +241,7 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
               && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
               && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
               // Check config after OS check so config entry not needed
-              && AOServDaemonConfiguration.isManagerEnabled(SpamAssassinManager.class)
+              && AoservDaemonConfiguration.isManagerEnabled(SpamAssassinManager.class)
               && spamAssassinManager == null
       ) {
         System.out.print("Starting SpamAssassinManager: ");
@@ -252,7 +250,7 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
             osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                 || osvId == OperatingSystemVersion.CENTOS_7_X86_64
         ) {
-          AOServConnector conn = AOServDaemon.getConnector();
+          AoservConnector conn = AoservDaemon.getConnector();
           spamAssassinManager = new SpamAssassinManager();
           conn.getLinux().getUserServer().addTableListener(spamAssassinManager, 0);
           conn.getNet().getIpAddress().addTableListener(spamAssassinManager, 0);
@@ -303,19 +301,19 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
     try {
       // Only process incoming messages when the incoming directory exists
       if (incomingDirectory.getStat().exists()) {
-        Server thisServer = AOServDaemon.getThisServer();
+        Server thisServer = AoservDaemon.getThisServer();
         int mailGid;
-        {
-          GroupServer mail = thisServer.getLinuxServerGroup(Group.MAIL);
-          if (mail == null) {
-            throw new SQLException("Unable to find GroupServer: " + User.MAIL + " on " + thisServer);
+          {
+            GroupServer mail = thisServer.getLinuxServerGroup(Group.MAIL);
+            if (mail == null) {
+              throw new SQLException("Unable to find GroupServer: " + User.MAIL + " on " + thisServer);
+            }
+            mailGid = mail.getGid().getId();
           }
-          mailGid = mail.getGid().getId();
-        }
 
         // Used on inner loop
         List<File> deleteFileList = new ArrayList<>();
-        StringBuilder tempSB = new StringBuilder();
+        StringBuilder tempSb = new StringBuilder();
         List<PosixFile> thisPass = new ArrayList<>(MAX_SALEARN_BATCH);
 
         while (!Thread.currentThread().isInterrupted()) {
@@ -353,21 +351,21 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
               logger.log(Level.WARNING, "incomingDirectoryFilename = " + incomingDirectoryFilename, new IOException("User home not in /home/, deleting"));
               deleteFileList.add(userDirectoryFile);
             } else {
-              // Check permissions and ownership
-              {
-                // Set permissions, should be 0770
-                Stat userDirectoryUfStat = userDirectoryUf.getStat();
-                if (userDirectoryUfStat.getMode() != 0770) {
-                  userDirectoryUf.setMode(0770);
-                  userDirectoryUfStat = userDirectoryUf.getStat();
+                // Check permissions and ownership
+                {
+                  // Set permissions, should be 0770
+                  Stat userDirectoryUfStat = userDirectoryUf.getStat();
+                  if (userDirectoryUfStat.getMode() != 0770) {
+                    userDirectoryUf.setMode(0770);
+                    userDirectoryUfStat = userDirectoryUf.getStat();
+                  }
+                  // Set ownership, should by username and group mail
+                  int lsaUid = lsa.getUid().getId();
+                  if (userDirectoryUfStat.getUid() != lsaUid || userDirectoryUfStat.getGid() != mailGid) {
+                    userDirectoryUf.chown(lsaUid, mailGid);
+                    // Stat not required since not used: userDirectoryUfStat = userDirectoryUf.getStat();
+                  }
                 }
-                // Set ownership, should by username and group mail
-                int lsaUid = lsa.getUid().getId();
-                if (userDirectoryUfStat.getUid() != lsaUid || userDirectoryUfStat.getGid() != mailGid) {
-                  userDirectoryUf.chown(lsaUid, mailGid);
-                  // Stat not required since not used: userDirectoryUfStat = userDirectoryUf.getStat();
-                }
-              }
               // Check each filename, searching if this lsa has the oldest timestamp (older or newer than one minute)
               String[] userDirectoryList = userDirectoryUf.list();
               if (userDirectoryList != null && userDirectoryList.length > 0) {
@@ -413,26 +411,31 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
                                 oldestTimestamp = timestamp;
                               }
                             } else {
-                              logger.log(Level.WARNING, "userDirectoryUf = " + userDirectoryUf.getPath() + ", userFilename = " + userFilename, new IOException("Invalid character in filename, deleting"));
+                              logger.log(Level.WARNING, "userDirectoryUf = " + userDirectoryUf.getPath() + ", userFilename = "
+                                  + userFilename, new IOException("Invalid character in filename, deleting"));
                               deleteFileList.add(userFile);
                             }
                           }
                         } catch (NumberFormatException err) {
                           IOException ioErr = new IOException("Unable to find parse timestamp in filename, deleting");
                           ioErr.initCause(err);
-                          logger.log(Level.WARNING, "userDirectoryUf = " + userDirectoryUf.getPath() + ", userFilename = " + userFilename, ioErr);
+                          logger.log(Level.WARNING, "userDirectoryUf = " + userDirectoryUf.getPath() + ", userFilename = "
+                              + userFilename, ioErr);
                           deleteFileList.add(userFile);
                         }
                       } else {
-                        logger.log(Level.WARNING, "userDirectoryUf = " + userDirectoryUf.getPath() + ", userFilename = " + userFilename, new IOException("Unable to find second underscore (_) in filename, deleting"));
+                        logger.log(Level.WARNING, "userDirectoryUf = " + userDirectoryUf.getPath() + ", userFilename = "
+                            + userFilename, new IOException("Unable to find second underscore (_) in filename, deleting"));
                         deleteFileList.add(userFile);
                       }
                     } else {
-                      logger.log(Level.WARNING, "userDirectoryUf = " + userDirectoryUf.getPath() + ", userFilename = " + userFilename, new IOException("Not a regular file, deleting"));
+                      logger.log(Level.WARNING, "userDirectoryUf = " + userDirectoryUf.getPath() + ", userFilename = "
+                          + userFilename, new IOException("Not a regular file, deleting"));
                       deleteFileList.add(userFile);
                     }
                   } else {
-                    logger.log(Level.WARNING, "userDirectoryUf = " + userDirectoryUf.getPath() + ", userFilename = " + userFilename, new IOException("Unexpected filename, should start with \"spam_\" or \"ham_\", deleting"));
+                    logger.log(Level.WARNING, "userDirectoryUf = " + userDirectoryUf.getPath() + ", userFilename = "
+                        + userFilename, new IOException("Unexpected filename, should start with \"spam_\" or \"ham_\", deleting"));
                     deleteFileList.add(userFile);
                   }
                 }
@@ -485,20 +488,20 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
             PackageManager.installPackage(PackageManager.PackageName.SPAMASSASSIN);
             // Call sa-learn for this pass
             User.Name username = oldestLsa.getLinuxAccount_username_id();
-            tempSB.setLength(0);
-            tempSB.append("/usr/bin/sa-learn");
+            tempSb.setLength(0);
+            tempSb.append("/usr/bin/sa-learn");
             boolean isNoSync = thisPass.size() >= SALEARN_NOSYNC_THRESHOLD;
             if (isNoSync) {
-              tempSB.append(" --no-sync");
+              tempSb.append(" --no-sync");
             }
-            tempSB.append(firstIsHam ? " --ham" : " --spam");
+            tempSb.append(firstIsHam ? " --ham" : " --spam");
             for (PosixFile uf : thisPass) {
-              tempSB.append(' ').append(uf.getPath());
+              tempSb.append(' ').append(uf.getPath());
             }
-            String command = tempSB.toString();
+            String command = tempSb.toString();
             //System.err.println("DEBUG: "+SpamAssassinManager.class.getName()+": processIncomingMessagesCentOs: username="+username+" and command=\""+command+"\"");
             try {
-              AOServDaemon.suexec(
+              AoservDaemon.suexec(
                   username,
                   new File(oldestLsa.getHome().toString()),
                   command,
@@ -508,7 +511,7 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
               if (isNoSync) {
                 String command2 = "/usr/bin/sa-learn --sync";
                 //System.err.println("DEBUG: "+SpamAssassinManager.class.getName()+": processIncomingMessagesCentOs: username="+username+" and command2=\""+command2+"\"");
-                AOServDaemon.suexec(
+                AoservDaemon.suexec(
                     username,
                     new File(oldestLsa.getHome().toString()),
                     command2,
@@ -537,12 +540,12 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
    * </p>
    */
   public static Bind getSpamdBind() throws IOException, SQLException {
-    AOServConnector conn = AOServDaemon.getConnector();
+    AoservConnector conn = AoservDaemon.getConnector();
     AppProtocol spamdProtocol = conn.getNet().getAppProtocol().get(AppProtocol.SPAMD);
     if (spamdProtocol == null) {
       throw new SQLException("Unable to find AppProtocol: " + AppProtocol.SPAMD);
     }
-    List<Bind> spamdBinds = AOServDaemon.getThisServer().getHost().getNetBinds(spamdProtocol);
+    List<Bind> spamdBinds = AoservDaemon.getThisServer().getHost().getNetBinds(spamdProtocol);
     if (spamdBinds.isEmpty()) {
       // Disabled
       return null;
@@ -560,7 +563,7 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
   protected boolean doRebuild() {
     try {
-      Server thisServer = AOServDaemon.getThisServer();
+      Server thisServer = AoservDaemon.getThisServer();
       Host thisHost = thisServer.getHost();
       OperatingSystemVersion osv = thisHost.getOperatingSystemVersion();
       int osvId = osv.getPkey();
@@ -676,7 +679,7 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
                   // Allow all IP addresses for this machine that are in the same family
                   ProtocolFamily spamdFamily = spamdInetAddress.getProtocolFamily();
                   Set<InetAddress> usedIps = new HashSet<>();
-                  for (IpAddress ip : thisHost.getIPAddresses()) {
+                  for (IpAddress ip : thisHost.getIpAddresses()) {
                     InetAddress addr = ip.getInetAddress();
                     if (
                         !addr.isUnspecified()
@@ -697,7 +700,7 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
                   /*
                   Server failoverServer = server.getFailoverServer();
                   if (failoverServer != null) {
-                    IpAddress foPrimaryIP = failoverServer.getPrimaryIPAddress();
+                    IpAddress foPrimaryIP = failoverServer.getPrimaryIpAddress();
                     if (foPrimaryIP == null) {
                       throw new SQLException("Unable to find Primary IP Address for failover server: " + failoverServer);
                     }
@@ -741,7 +744,7 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
               // Flag to restart below
               restartRequired[0] = true;
             }
-            /**
+            /*
              * Build the /etc/mail/spamassassin/local.cf file.
              */
             bout.reset();
@@ -866,21 +869,21 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
               if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                 // Stop service if running
                 if (subsysLockFile.exists()) {
-                  AOServDaemon.exec("/etc/rc.d/init.d/spamassassin", "stop");
+                  AoservDaemon.exec("/etc/rc.d/init.d/spamassassin", "stop");
                   if (subsysLockFile.exists()) {
                     throw new IOException(subsysLockFile.getPath() + " still exists after service stop");
                   }
                 }
                 // chkconfig off if needed
                 if (spamassassinRcFile.getStat().exists()) {
-                  AOServDaemon.exec("/sbin/chkconfig", "spamassassin", "off");
+                  AoservDaemon.exec("/sbin/chkconfig", "spamassassin", "off");
                   if (spamassassinRcFile.getStat().exists()) {
                     throw new IOException(spamassassinRcFile.getPath() + " still exists after chkconfig off");
                   }
                 }
               } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-                AOServDaemon.exec("/usr/bin/systemctl", "stop", "spamassassin.service");
-                AOServDaemon.exec("/usr/bin/systemctl", "disable", "spamassassin.service");
+                AoservDaemon.exec("/usr/bin/systemctl", "stop", "spamassassin.service");
+                AoservDaemon.exec("/usr/bin/systemctl", "disable", "spamassassin.service");
               } else {
                 throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
               }
@@ -889,28 +892,28 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
               if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                 // chkconfig on if needed
                 if (!spamassassinRcFile.getStat().exists()) {
-                  AOServDaemon.exec("/sbin/chkconfig", "spamassassin", "on");
+                  AoservDaemon.exec("/sbin/chkconfig", "spamassassin", "on");
                   if (!spamassassinRcFile.getStat().exists()) {
                     throw new IOException(spamassassinRcFile.getPath() + " still does not exist after chkconfig on");
                   }
                 }
                 // Start service if not running
                 if (!subsysLockFile.exists()) {
-                  AOServDaemon.exec("/etc/rc.d/init.d/spamassassin", "start");
+                  AoservDaemon.exec("/etc/rc.d/init.d/spamassassin", "start");
                   if (!subsysLockFile.exists()) {
                     throw new IOException(subsysLockFile.getPath() + " still does not exist after service start");
                   }
                 } else {
                   if (restartRequired[0]) {
-                    AOServDaemon.exec("/etc/rc.d/init.d/spamassassin", "restart");
+                    AoservDaemon.exec("/etc/rc.d/init.d/spamassassin", "restart");
                   }
                 }
               } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-                AOServDaemon.exec("/usr/bin/systemctl", "enable", "spamassassin.service");
+                AoservDaemon.exec("/usr/bin/systemctl", "enable", "spamassassin.service");
                 if (restartRequired[0]) {
-                  AOServDaemon.exec("/usr/bin/systemctl", "restart", "spamassassin.service");
+                  AoservDaemon.exec("/usr/bin/systemctl", "restart", "spamassassin.service");
                 } else {
-                  AOServDaemon.exec("/usr/bin/systemctl", "start", "spamassassin.service");
+                  AoservDaemon.exec("/usr/bin/systemctl", "start", "spamassassin.service");
                 }
                 // Install spamassassin-after-network-online package on CentOS 7 when needed
                 if (hasSpecificAddress) {
@@ -924,17 +927,17 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
             if (
                 !hasSpecificAddress
                     && osvId == OperatingSystemVersion.CENTOS_7_X86_64
-                    && AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
+                    && AoservDaemonConfiguration.isPackageManagerUninstallEnabled()
             ) {
               PackageManager.removePackage(PackageManager.PackageName.SPAMASSASSIN_AFTER_NETWORK_ONLINE);
             }
           }
 
-          /**
+          /*
            * Build the spamassassin files per account.
            */
-          int uid_min = thisServer.getUidMin().getId();
-          int gid_min = thisServer.getGidMin().getId();
+          int uidMin = thisServer.getUidMin().getId();
+          int gidMin = thisServer.getGidMin().getId();
           List<UserServer> lsas = thisServer.getLinuxServerAccounts();
           for (UserServer lsa : lsas) {
             // Only build spamassassin for accounts under /home/
@@ -965,26 +968,26 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
               PosixFile userPrefs = new PosixFile(spamAssassinDir, "user_prefs", false);
               // Build the new file in RAM
               byte[] newBytes;
-              {
-                bout.reset();
-                try (ChainWriter newOut = new ChainWriter(bout)) {
-                  newOut.print(
-                      "#\n"
-                          + "# Generated by ").print(SpamAssassinManager.class.getName()).print("\n"
-                      + "#\n"
-                      + "required_score ").print(lsa.getSpamAssassinRequiredScore()).print('\n');
-                  if (integrationMode.getName().equals(SpamAssassinMode.POP3)) {
-                    newOut.print("rewrite_header Subject *****SPAM*****\n");
+                {
+                  bout.reset();
+                  try (ChainWriter newOut = new ChainWriter(bout)) {
+                    newOut.print(
+                        "#\n"
+                            + "# Generated by ").print(SpamAssassinManager.class.getName()).print("\n"
+                        + "#\n"
+                        + "required_score ").print(lsa.getSpamAssassinRequiredScore()).print('\n');
+                    if (integrationMode.getName().equals(SpamAssassinMode.POP3)) {
+                      newOut.print("rewrite_header Subject *****SPAM*****\n");
+                    }
                   }
+                  newBytes = bout.toByteArray();
                 }
-                newBytes = bout.toByteArray();
-              }
 
               // Compare to existing
               if (!userPrefs.getStat().exists() || !userPrefs.contentEquals(newBytes)) {
                 // Replace when changed
                 PosixFile userPrefsNew = new PosixFile(spamAssassinDir, "user_prefs.new", false);
-                try (FileOutputStream out = userPrefsNew.getSecureOutputStream(lsa.getUid().getId(), lsa.getPrimaryLinuxServerGroup().getGid().getId(), 0600, true, uid_min, gid_min)) {
+                try (FileOutputStream out = userPrefsNew.getSecureOutputStream(lsa.getUid().getId(), lsa.getPrimaryLinuxServerGroup().getGid().getId(), 0600, true, uidMin, gidMin)) {
                   out.write(newBytes);
                 }
                 userPrefsNew.renameTo(userPrefs);
@@ -1029,8 +1032,7 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
 
     private static final Schedule schedule =
         (int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year)
-            -> minute == 5 && hour == 1
-    ;
+            -> minute == 5 && hour == 1;
 
     @Override
     public Schedule getSchedule() {
@@ -1046,9 +1048,9 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
       try {
         Set<PosixFile> restorecon = new LinkedHashSet<>();
         try {
-          Server thisServer = AOServDaemon.getThisServer();
-          int uid_min = thisServer.getUidMin().getId();
-          int gid_min = thisServer.getGidMin().getId();
+          Server thisServer = AoservDaemon.getThisServer();
+          int uidMin = thisServer.getUidMin().getId();
+          int gidMin = thisServer.getGidMin().getId();
           Queue<String> queuedLines = new LinkedList<>();
           for (UserServer lsa : thisServer.getLinuxServerAccounts()) {
             // Only clean razor for accounts under /home/
@@ -1075,11 +1077,11 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
                     int uid = lsa.getUid().getId();
                     int gid = lsa.getPrimaryLinuxServerGroup().getGid().getId();
                     try (
-                      TempFileContext tempFileContext = new TempFileContext(razorAgentLog.getFile().getParentFile());
-                      TempFile tempFile = tempFileContext.createTempFile(razorAgentLog.getFile().getName())
+                        TempFileContext tempFileContext = new TempFileContext(razorAgentLog.getFile().getParentFile());
+                        TempFile tempFile = tempFileContext.createTempFile(razorAgentLog.getFile().getName())
                         ) {
-                      PosixFile tempUF = new PosixFile(tempFile.getFile());
-                      try (PrintWriter out = new PrintWriter(new BufferedOutputStream(tempUF.getSecureOutputStream(uid, gid, 0644, true, uid_min, gid_min)))) {
+                      PosixFile tempPosixFile = new PosixFile(tempFile.getFile());
+                      try (PrintWriter out = new PrintWriter(new BufferedOutputStream(tempPosixFile.getSecureOutputStream(uid, gid, 0644, true, uidMin, gidMin)))) {
                         while (!queuedLines.isEmpty()) {
                           out.println(queuedLines.remove());
                         }

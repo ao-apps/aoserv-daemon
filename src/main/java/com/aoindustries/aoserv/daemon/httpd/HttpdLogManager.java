@@ -34,7 +34,7 @@ import com.aoindustries.aoserv.client.linux.UserServer;
 import com.aoindustries.aoserv.client.web.HttpdServer;
 import com.aoindustries.aoserv.client.web.Site;
 import com.aoindustries.aoserv.client.web.VirtualHost;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import java.io.ByteArrayOutputStream;
@@ -71,7 +71,7 @@ final class HttpdLogManager {
   private static final String SERVER_LOG_ROTATION_DIR_CENTOS_5 = HttpdServerManager.CONF_DIRECTORY + "/logrotate.servers";
 
   /**
-   * Logrotate file prefix used for HttpdServer
+   * Logrotate file prefix used for HttpdServer.
    */
   private static final String HTTPD_SERVER_PREFIX_OLD = "httpd";
 
@@ -88,9 +88,10 @@ final class HttpdLogManager {
   private static final Pattern HTTPD_NAME_REGEXP = Pattern.compile("^httpd@.+$");
 
   /**
-   * Responsible for control of all things in /logs and /etc/httpd/conf/logrotate.d
-   *
-   * Only called by the already synchronized <code>HttpdManager.doRebuild()</code> method.
+   * Responsible for control of all things in <code>/logs</code> and <code>/etc/httpd/conf/logrotate.d</code>.
+   * <p>
+   * Only called by the already synchronized {@link HttpdManager#doRebuild()} method.
+   * </p>
    */
   static void doRebuild(
       List<File> deleteFileList,
@@ -99,7 +100,7 @@ final class HttpdLogManager {
   ) throws IOException, SQLException {
     // Used below
     ByteArrayOutputStream bout = new ByteArrayOutputStream();
-    Server thisServer = AOServDaemon.getThisServer();
+    Server thisServer = AoservDaemon.getThisServer();
 
     // Rebuild /logs
     doRebuildLogs(thisServer, deleteFileList, serversNeedingReloaded);
@@ -112,7 +113,7 @@ final class HttpdLogManager {
   }
 
   /**
-   * Rebuilds the directories under /logs or /var/log/httpd-sites
+   * Rebuilds the directories under <code>/logs</code> or <code>/var/log/httpd-sites</code>.
    */
   private static void doRebuildLogs(
       Server thisServer,
@@ -120,65 +121,65 @@ final class HttpdLogManager {
       Set<HttpdServer> serversNeedingReloaded
   ) throws IOException, SQLException {
     // Values used below
-    final int logfileUID;
-    {
-      final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
-      final UserServer awstatsLSA = thisServer.getLinuxServerAccount(User.AWSTATS);
-      // awstats user is required when RPM is installed
-      PackageManager.PackageName awstatsPackageName = osConfig.getAwstatsPackageName();
-      if (
-          awstatsPackageName != null
-              && PackageManager.getInstalledPackage(awstatsPackageName) != null
-              && awstatsLSA == null
-      ) {
-        throw new SQLException("Unable to find UserServer: " + User.AWSTATS);
+    final int logfileUid;
+      {
+        final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
+        final UserServer awstatsUserServer = thisServer.getLinuxServerAccount(User.AWSTATS);
+        // awstats user is required when RPM is installed
+        PackageManager.PackageName awstatsPackageName = osConfig.getAwstatsPackageName();
+        if (
+            awstatsPackageName != null
+                && PackageManager.getInstalledPackage(awstatsPackageName) != null
+                && awstatsUserServer == null
+        ) {
+          throw new SQLException("Unable to find UserServer: " + User.AWSTATS);
+        }
+        if (awstatsUserServer != null) {
+          // Allow access to AWStats user, if it exists
+          logfileUid = awstatsUserServer.getUid().getId();
+        } else {
+          // Allow access to root otherwise
+          logfileUid = PosixFile.ROOT_UID;
+        }
       }
-      if (awstatsLSA != null) {
-        // Allow access to AWStats user, if it exists
-        logfileUID = awstatsLSA.getUid().getId();
-      } else {
-        // Allow access to root otherwise
-        logfileUID = PosixFile.ROOT_UID;
-      }
-    }
 
     // The log directories that exist but are not used will be removed
     PosixPath logDir = thisServer.getHost().getOperatingSystemVersion().getHttpdSiteLogsDirectory();
     if (logDir != null) {
-      PosixFile logDirUF = new PosixFile(logDir.toString());
+      PosixFile logDirPosixFile = new PosixFile(logDir.toString());
       // Create the logs directory if missing
-      if (!logDirUF.getStat().exists()) {
-        logDirUF.mkdir(true, 0755, PosixFile.ROOT_UID, PosixFile.ROOT_GID);
+      if (!logDirPosixFile.getStat().exists()) {
+        logDirPosixFile.mkdir(true, 0755, PosixFile.ROOT_UID, PosixFile.ROOT_GID);
       }
 
       Set<String> logDirectories;
-      {
-        String[] list = logDirUF.list();
-        logDirectories = AoCollections.newHashSet(list.length);
-        for (String dirname : list) {
-          if (
-              !"lost+found".equals(dirname)
-                  && !"aquota.group".equals(dirname)
-                  && !"aquota.user".equals(dirname)
-          ) {
-            logDirectories.add(dirname);
+        {
+          String[] list = logDirPosixFile.list();
+          logDirectories = AoCollections.newHashSet(list.length);
+          for (String dirname : list) {
+            if (
+                !"lost+found".equals(dirname)
+                    && !"aquota.group".equals(dirname)
+                    && !"aquota.user".equals(dirname)
+            ) {
+              logDirectories.add(dirname);
+            }
           }
         }
-      }
 
       for (Site httpdSite : thisServer.getHttpdSites()) {
-        int lsgGID = httpdSite.getLinuxServerGroup().getGid().getId();
+        int lsgGid = httpdSite.getLinuxServerGroup().getGid().getId();
 
         // Create the /logs/<site_name> or /var/log/httpd-sites/<site_name> directory
         String siteName = httpdSite.getName();
-        PosixFile logDirectory = new PosixFile(logDirUF, siteName, true);
+        PosixFile logDirectory = new PosixFile(logDirPosixFile, siteName, true);
         Stat logStat = logDirectory.getStat();
         if (!logStat.exists()) {
           logDirectory.mkdir();
           logStat = logDirectory.getStat();
         }
-        if (logStat.getUid() != logfileUID || logStat.getGid() != lsgGID) {
-          logDirectory.chown(logfileUID, lsgGID);
+        if (logStat.getUid() != logfileUid || logStat.getGid() != lsgGid) {
+          logDirectory.chown(logfileUid, lsgGid);
         }
         if (logStat.getMode() != 0750) {
           logDirectory.setMode(0750);
@@ -198,7 +199,7 @@ final class HttpdLogManager {
           if (!accessLogStat.exists()) {
             // Make sure the parent directory exists
             if (!accessLogParent.getStat().exists()) {
-              accessLogParent.mkdir(true, 0750, logfileUID, lsgGID);
+              accessLogParent.mkdir(true, 0750, logfileUid, lsgGid);
             }
             // Create the empty logfile
             new FileOutputStream(accessLogFile.getFile(), true).close();
@@ -213,8 +214,8 @@ final class HttpdLogManager {
           if (accessLogStat.getMode() != 0640) {
             accessLogFile.setMode(0640);
           }
-          if (accessLogStat.getUid() != logfileUID || accessLogStat.getGid() != lsgGID) {
-            accessLogFile.chown(logfileUID, lsgGID);
+          if (accessLogStat.getUid() != logfileUid || accessLogStat.getGid() != lsgGid) {
+            accessLogFile.chown(logfileUid, lsgGid);
           }
           // TODO: Verify ownership and permissions of rotated logs in same directory
 
@@ -226,7 +227,7 @@ final class HttpdLogManager {
           if (!errorLogStat.exists()) {
             // Make sure the parent directory exists
             if (!errorLogParent.getStat().exists()) {
-              errorLogParent.mkdir(true, 0750, logfileUID, lsgGID);
+              errorLogParent.mkdir(true, 0750, logfileUid, lsgGid);
             }
             // Create the empty logfile
             new FileOutputStream(errorLogFile.getFile(), true).close();
@@ -241,15 +242,15 @@ final class HttpdLogManager {
           if (errorLogStat.getMode() != 0640) {
             errorLogFile.setMode(0640);
           }
-          if (errorLogStat.getUid() != logfileUID || errorLogStat.getGid() != lsgGID) {
-            errorLogFile.chown(logfileUID, lsgGID);
+          if (errorLogStat.getUid() != logfileUid || errorLogStat.getGid() != lsgGid) {
+            errorLogFile.chown(logfileUid, lsgGid);
           }
           // TODO: Verify ownership and permissions of rotated logs in same directory
         }
       }
 
       for (String filename : logDirectories) {
-        File logFile = new File(logDirUF.getFile(), filename);
+        File logFile = new File(logDirPosixFile.getFile(), filename);
         if (logger.isLoggable(Level.INFO)) {
           logger.info("Scheduling for removal: " + logFile);
         }
@@ -271,19 +272,19 @@ final class HttpdLogManager {
     final String siteLogRotationDir;
     final String serverLogRotationDir;
     switch (osConfig) {
-      case CENTOS_5_I686_AND_X86_64 :
+      case CENTOS_5_I686_AND_X86_64:
         siteLogRotationDir = LOG_ROTATION_DIR_CENTOS_5;
         serverLogRotationDir = SERVER_LOG_ROTATION_DIR_CENTOS_5;
         break;
-      case CENTOS_7_X86_64 :
+      case CENTOS_7_X86_64:
         // Nothing done for CentOS 7, we now use wildcard patterns in static /etc/logrotate.d/httpd-(n|sites) files.
         return;
-      default :
+      default:
         throw new AssertionError("Unexpected value for osConfig: " + osConfig);
     }
 
-    int uid_min = thisServer.getUidMin().getId();
-    int gid_min = thisServer.getGidMin().getId();
+    int uidMin = thisServer.getUidMin().getId();
+    int gidMin = thisServer.getGidMin().getId();
 
     // Create directory if missing
     DaemonFileUtils.mkdir(siteLogRotationDir, 0700, PosixFile.ROOT_UID, PosixFile.ROOT_GID);
@@ -301,26 +302,26 @@ final class HttpdLogManager {
       byteOut.reset();
       boolean wroteOne = false;
       for (VirtualHost bind : site.getHttpdSiteBinds()) {
-        PosixPath access_log = bind.getAccessLog();
+        PosixPath accessLog = bind.getAccessLog();
         // Each unique path is only rotated once
-        if (completedPaths.add(access_log)) {
+        if (completedPaths.add(accessLog)) {
           // Add to the site log rotation
           if (wroteOne) {
             chainOut.print(' ');
           } else {
             wroteOne = true;
           }
-          chainOut.print(access_log);
+          chainOut.print(accessLog);
         }
-        PosixPath error_log = bind.getErrorLog();
-        if (completedPaths.add(error_log)) {
+        PosixPath errorLog = bind.getErrorLog();
+        if (completedPaths.add(errorLog)) {
           // Add to the site log rotation
           if (wroteOne) {
             chainOut.print(' ');
           } else {
             wroteOne = true;
           }
-          chainOut.print(error_log);
+          chainOut.print(errorLog);
         }
       }
       // Do not write empty files, finish the file
@@ -437,7 +438,7 @@ final class HttpdLogManager {
   }
 
   /**
-   * Rebuilds the /var/log/httpd# or /var/log/httpd[@&lt;name&gt;] directories
+   * Rebuilds the <code>/var/log/httpd#</code> or <code>/var/log/httpd[@&lt;name&gt;]</code> directories.
    */
   private static void doRebuildVarLogHttpd(
       Server thisServer,
@@ -487,9 +488,9 @@ final class HttpdLogManager {
         String escapedName = hs.getSystemdEscapedName();
         String dirname = escapedName == null ? "httpd" : ("httpd@" + escapedName);
         keepFilenames.add(dirname);
-        PosixFile varLogDirUF = new PosixFile(varLogDir, dirname, true);
-        if (DaemonFileUtils.mkdir(varLogDirUF, 0700, PosixFile.ROOT_UID, PosixFile.ROOT_GID)) {
-          restorecon.add(varLogDirUF);
+        PosixFile varLogDirPosixFile = new PosixFile(varLogDir, dirname, true);
+        if (DaemonFileUtils.mkdir(varLogDirPosixFile, 0700, PosixFile.ROOT_UID, PosixFile.ROOT_GID)) {
+          restorecon.add(varLogDirPosixFile);
         }
       }
 

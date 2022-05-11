@@ -31,7 +31,7 @@ import com.aoapps.lang.math.SafeMath;
 import com.aoapps.lang.validation.ValidationException;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.User;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -62,10 +62,8 @@ public final class ShadowFile {
 
   private static final Logger logger = Logger.getLogger(ShadowFile.class.getName());
 
-  private static final PosixFile
-      shadowFile       = new PosixFile("/etc/shadow"),
-      backupShadowFile = new PosixFile("/etc/shadow-")
-  ;
+  private static final PosixFile shadowFile = new PosixFile("/etc/shadow");
+  private static final PosixFile backupShadowFile = new PosixFile("/etc/shadow-");
 
   /**
    * Represents one line of the <code>/etc/shadow</code> file on a POSIX server.
@@ -213,7 +211,7 @@ public final class ShadowFile {
     }
 
     /**
-     * Constructs a new shadow file entry for the given user and encrypted password.
+     * Creates a new shadow file entry for the given user and encrypted password.
      */
     public Entry(User.Name username, String password, Integer newChangedDate) {
       this(
@@ -230,7 +228,7 @@ public final class ShadowFile {
     }
 
     /**
-     * Constructs a new shadow file entry for the given user.
+     * Creates a new shadow file entry for the given user.
      */
     public Entry(User.Name username) {
       this(username, User.NO_PASSWORD_CONFIG_VALUE, null);
@@ -278,8 +276,7 @@ public final class ShadowFile {
           .append(password)
           .append(':')
           .append(Integer.toString(changedDate))
-          .append(':')
-      ;
+          .append(':');
       if (minPasswordAge != null) {
         out.append(minPasswordAge.toString());
       }
@@ -307,14 +304,14 @@ public final class ShadowFile {
     }
 
     /**
-     * The username the entry is for
+     * The username the entry is for.
      */
     public User.Name getUsername() {
       return username;
     }
 
     /**
-     * The encrypted password
+     * The encrypted password.
      */
     public String getPassword() {
       return password;
@@ -346,7 +343,7 @@ public final class ShadowFile {
     }
 
     /**
-     * The days since Jan 1, 1970 password was last changed
+     * The days since Jan 1, 1970 password was last changed.
      */
     public int getChangedDate() {
       return changedDate;
@@ -402,17 +399,18 @@ public final class ShadowFile {
   }
 
   /**
-   * Locks the shadow file for updates
+   * Locks the shadow file for updates.
    */
   public static final Object shadowLock = new Object();
 
   /**
    * Gets the encrypted password for one user on the system include the {@link Entry#getChangedDate() changeDate}, if known.
-   *
+   * <p>
    * If there is no entry for the user in the shadow file, returns <code>({@link User#NO_PASSWORD_CONFIG_VALUE}, null)</code>.
+   * </p>
    */
   public static Tuple2<String, Integer> getEncryptedPassword(User.Name username) throws IOException, SQLException {
-    OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
+    OperatingSystemVersion osv = AoservDaemon.getThisServer().getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
     if (
         osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
@@ -424,7 +422,7 @@ public final class ShadowFile {
     synchronized (shadowLock) {
       try {
         try (
-          BufferedReader in = new BufferedReader(
+            BufferedReader in = new BufferedReader(
                 new InputStreamReader(
                     new FileInputStream(shadowFile.getFile())
                 )
@@ -446,14 +444,14 @@ public final class ShadowFile {
   }
 
   /**
-   * Reads the full contents of /etc/shadow
+   * Reads the full contents of <code>/etc/shadow</code>.
    */
   private static Map<User.Name, Entry> readShadowFile() throws IOException {
     assert Thread.holdsLock(shadowLock);
     try {
       Map<User.Name, Entry> shadowEntries = new LinkedHashMap<>();
       try (
-        BufferedReader in = new BufferedReader(
+          BufferedReader in = new BufferedReader(
               new InputStreamReader(
                   new FileInputStream(shadowFile.getFile())
               )
@@ -496,25 +494,25 @@ public final class ShadowFile {
   }
 
   /**
-   * Must hold {@link #shadowLock}
+   * Must hold {@link #shadowLock}.
    */
   public static void writeShadowFile(byte[] newContents, Set<PosixFile> restorecon) throws SQLException, IOException {
     assert Thread.holdsLock(shadowLock);
     // Determine permissions
     long mode;
-    {
-      OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
-      int osvId = osv.getPkey();
-      if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-        // Set to 0400
-        mode = 0400;
-      } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-        // Set to 0000
-        mode = 0000;
-      } else {
-        throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+      {
+        OperatingSystemVersion osv = AoservDaemon.getThisServer().getHost().getOperatingSystemVersion();
+        int osvId = osv.getPkey();
+        if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+          // Set to 0400
+          mode = 0400;
+        } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+          // Set to 0000
+          mode = 0000;
+        } else {
+          throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+        }
       }
-    }
     DaemonFileUtils.atomicWrite(
         shadowFile,
         newContents,
@@ -528,8 +526,9 @@ public final class ShadowFile {
 
   /**
    * Builds a new version of the shadow file with necessary adjustments made.
-   *
-   * Must hold {@link #shadowLock}
+   * <p>
+   * Must hold {@link #shadowLock}.
+   * </p>
    */
   public static byte[] buildShadowFile(Set<User.Name> usernames) throws IOException {
     assert Thread.holdsLock(shadowLock);
@@ -610,7 +609,7 @@ public final class ShadowFile {
         username,
         plaintext == null || plaintext.isEmpty()
             ? User.NO_PASSWORD_CONFIG_VALUE
-            : PosixFile.crypt(plaintext, cryptAlgorithm, AOServDaemon.getSecureRandom()),
+            : PosixFile.crypt(plaintext, cryptAlgorithm, AoservDaemon.getSecureRandom()),
         updateChangedDate ? Entry.getCurrentDate() : null
     );
   }

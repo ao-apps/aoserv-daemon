@@ -26,7 +26,7 @@ package com.aoindustries.aoserv.daemon.util;
 import com.aoapps.hodgepodge.logging.ProcessTimer;
 import com.aoapps.hodgepodge.table.Table;
 import com.aoapps.hodgepodge.table.TableListener;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import java.util.SortedSet;
 import java.util.logging.Level;
@@ -41,14 +41,10 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
 
   private static final Logger logger = Logger.getLogger(BuilderThread.class.getName());
 
-  public static final long
-      DEFAULT_PROCESS_TIMER_MAXIMUM_TIME = 5L * 60 * 1000,
-      DEFAULT_PROCESS_TIMER_REMINDER_INTERVAL = 15L * 60 * 1000
-  ;
-  public static final int
-      DEFAULT_MINIMUM_DELAY = 5 * 1000,
-      DEFAULT_MAXIMUM_DELAY = 35 * 1000
-  ;
+  public static final long DEFAULT_PROCESS_TIMER_MAXIMUM_TIME = 5L * 60 * 1000;
+  public static final long DEFAULT_PROCESS_TIMER_REMINDER_INTERVAL = 15L * 60 * 1000;
+  public static final int DEFAULT_MINIMUM_DELAY = 5 * 1000;
+  public static final int DEFAULT_MAXIMUM_DELAY = 35 * 1000;
 
   private volatile Thread rebuildThread;
   private long lastUpdated;
@@ -66,12 +62,12 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
   }
 
   @Override
-  public void packageListUpdated(SortedSet<PackageManager.RPM> allRpms) {
+  public void packageListUpdated(SortedSet<PackageManager.Rpm> allRpms) {
     delayAndRebuild();
   }
 
   /**
-   * Will wait a random amount of time and then call doRebuild()
+   * Will wait a random amount of time and then call {@link #doRebuild()}.
    */
   private void delayAndRebuild() {
     synchronized (this) {
@@ -103,7 +99,7 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
                 }
                 try {
                   try (
-                    ProcessTimer timer = new ProcessTimer(
+                      ProcessTimer timer = new ProcessTimer(
                           logger,
                           BuilderThread.this.getClass().getName(),
                           "delayAndRebuild",
@@ -113,7 +109,7 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
                           getProcessTimerReminderInterval()
                       )
                       ) {
-                    AOServDaemon.executorService.submit(timer);
+                    AoservDaemon.executorService.submit(timer);
                     long buildStart = System.currentTimeMillis();
                     while (!doRebuild() && !Thread.currentThread().isInterrupted()) {
                       try {
@@ -220,7 +216,7 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
     if (deviation == 0) {
       return min;
     }
-    return min + AOServDaemon.getFastRandom().nextInt(deviation);
+    return min + AoservDaemon.getFastRandom().nextInt(deviation);
   }
 
   /**

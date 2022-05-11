@@ -28,15 +28,15 @@ import com.aoapps.encoding.ChainWriter;
 import com.aoapps.io.posix.PosixFile;
 import com.aoapps.lang.Strings;
 import com.aoapps.net.InetAddress;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.net.AppProtocol;
 import com.aoindustries.aoserv.client.net.Bind;
 import com.aoindustries.aoserv.client.net.FirewallZone;
 import com.aoindustries.aoserv.client.net.Host;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.email.ImapManager;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
@@ -193,7 +193,7 @@ public final class Fail2banManager extends BuilderThread {
   @SuppressWarnings({"BroadCatchBlock", "TooBroadCatch", "UseSpecificCatch"})
   protected boolean doRebuild() {
     try {
-      Server thisServer = AOServDaemon.getThisServer();
+      Server thisServer = AoservDaemon.getThisServer();
       Host thisHost = thisServer.getHost();
       OperatingSystemVersion osv = thisHost.getOperatingSystemVersion();
       int osvId = osv.getPkey();
@@ -283,11 +283,11 @@ public final class Fail2banManager extends BuilderThread {
                 if (filterPackage != null) {
                   allFilterPackages.add(filterPackage);
                 }
-                PosixFile jailUF = new PosixFile(JAIL_D, jail.getJaildFilename(), true);
+                PosixFile jailPosixFile = new PosixFile(JAIL_D, jail.getJaildFilename(), true);
                 SortedSet<Integer> ports = jailPorts.get(jail);
                 if (ports == null) {
-                  if (jailUF.getStat().exists()) {
-                    jailUF.delete();
+                  if (jailPosixFile.getStat().exists()) {
+                    jailPosixFile.delete();
                     updated[0] = true;
                   }
                 } else {
@@ -321,7 +321,7 @@ public final class Fail2banManager extends BuilderThread {
                   }
                   if (
                       DaemonFileUtils.atomicWrite(
-                          jailUF,
+                          jailPosixFile,
                           bout.toByteArray(),
                           0644,
                           PosixFile.ROOT_UID,
@@ -336,15 +336,15 @@ public final class Fail2banManager extends BuilderThread {
                 // Remove any old file that was at *.conf and now moved to *.local
                 String removeOldJaildFilename = jail.getRemoveOldJaildFilename();
                 if (removeOldJaildFilename != null) {
-                  PosixFile oldJailUF = new PosixFile(JAIL_D, removeOldJaildFilename, true);
-                  if (oldJailUF.getStat().exists()) {
-                    oldJailUF.delete();
+                  PosixFile oldJailPosixFile = new PosixFile(JAIL_D, removeOldJaildFilename, true);
+                  if (oldJailPosixFile.getStat().exists()) {
+                    oldJailPosixFile.delete();
                     updated[0] = true;
                   }
                 }
               }
               // Remove any filter packages that are no longer required
-              if (AOServDaemonConfiguration.isPackageManagerUninstallEnabled()) {
+              if (AoservDaemonConfiguration.isPackageManagerUninstallEnabled()) {
                 for (PackageManager.PackageName filterPackage : allFilterPackages) {
                   if (!requiredPackages.contains(filterPackage)) {
                     if (PackageManager.removePackage(filterPackage)) {
@@ -366,19 +366,19 @@ public final class Fail2banManager extends BuilderThread {
             if (jailPorts.isEmpty()) {
               if (fail2banInstalled) {
                 // Installed but not needed: stop and disable
-                AOServDaemon.exec("/usr/bin/systemctl", "stop", "fail2ban.service");
-                AOServDaemon.exec("/usr/bin/systemctl", "disable", "fail2ban.service");
+                AoservDaemon.exec("/usr/bin/systemctl", "stop", "fail2ban.service");
+                AoservDaemon.exec("/usr/bin/systemctl", "disable", "fail2ban.service");
               }
             } else {
               assert fail2banInstalled;
               // Enable if needed
-              AOServDaemon.exec("/usr/bin/systemctl", "enable", "fail2ban.service");
+              AoservDaemon.exec("/usr/bin/systemctl", "enable", "fail2ban.service");
               if (updated[0]) {
                 // Restart if configuration updated
-                AOServDaemon.exec("/usr/bin/systemctl", "restart", "fail2ban.service");
+                AoservDaemon.exec("/usr/bin/systemctl", "restart", "fail2ban.service");
               } else {
                 // Start if not running
-                AOServDaemon.exec("/usr/bin/systemctl", "start", "fail2ban.service");
+                AoservDaemon.exec("/usr/bin/systemctl", "start", "fail2ban.service");
               }
             }
           } else {
@@ -399,7 +399,7 @@ public final class Fail2banManager extends BuilderThread {
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() throws IOException, SQLException {
-    Server thisServer = AOServDaemon.getThisServer();
+    Server thisServer = AoservDaemon.getThisServer();
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
     synchronized (System.out) {
@@ -409,13 +409,13 @@ public final class Fail2banManager extends BuilderThread {
               && osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
               && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
               // Check config after OS check so config entry not needed
-              && AOServDaemonConfiguration.isManagerEnabled(Fail2banManager.class)
+              && AoservDaemonConfiguration.isManagerEnabled(Fail2banManager.class)
               && fail2banManager == null
       ) {
         System.out.print("Starting Fail2banManager: ");
         // Must be a supported operating system
         if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-          AOServConnector conn = AOServDaemon.getConnector();
+          AoservConnector conn = AoservDaemon.getConnector();
           fail2banManager = new Fail2banManager();
           conn.getNet().getFirewallZone().addTableListener(fail2banManager, 0);
           conn.getNet().getBind().addTableListener(fail2banManager, 0);

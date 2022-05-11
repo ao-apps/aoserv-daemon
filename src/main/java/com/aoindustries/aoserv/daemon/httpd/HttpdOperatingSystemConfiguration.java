@@ -27,7 +27,7 @@ import com.aoapps.lang.exception.WrappedException;
 import com.aoapps.lang.validation.ValidationException;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.PosixPath;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import java.io.IOException;
@@ -40,72 +40,83 @@ import java.sql.SQLException;
  */
 public enum HttpdOperatingSystemConfiguration {
   CENTOS_5_I686_AND_X86_64 {
-  @Override
-  public OperatingSystemConfiguration getOperatingSystemConfiguration() {
-    return OperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64;
-  }
-  //public String getDefaultPhpPostgresMinorVersion() {
-  //    return "9.2";
-  //}
-  @Override
-  public PosixPath getPhpCgiPath(String minorVersion) {
-    try {
-      if (minorVersion.startsWith("4.")) {
-        return PosixPath.valueOf("/opt/php-4-i686/bin/php-cgi");
-      } else if (minorVersion.startsWith("5.")) {
-        return PosixPath.valueOf("/opt/php-" + minorVersion + "-i686/bin/php-cgi");
-      } else {
-        throw new AssertionError("Unexpected PHP version: " + minorVersion);
+    @Override
+    public OperatingSystemConfiguration getOperatingSystemConfiguration() {
+      return OperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64;
+    }
+
+    //public String getDefaultPhpPostgresMinorVersion() {
+    //    return "9.2";
+    //}
+
+    @Override
+    public PosixPath getPhpCgiPath(String minorVersion) {
+      try {
+        if (minorVersion.startsWith("4.")) {
+          return PosixPath.valueOf("/opt/php-4-i686/bin/php-cgi");
+        } else if (minorVersion.startsWith("5.")) {
+          return PosixPath.valueOf("/opt/php-" + minorVersion + "-i686/bin/php-cgi");
+        } else {
+          throw new AssertionError("Unexpected PHP version: " + minorVersion);
+        }
+      } catch (ValidationException e) {
+        throw new WrappedException(e);
       }
-    } catch (ValidationException e) {
-      throw new WrappedException(e);
     }
-  }
-  @Override
-  public PosixPath getHttpdSitesDirectory() {
-    return OperatingSystemVersion.getHttpdSitesDirectory(OperatingSystemVersion.CENTOS_5_I686_AND_X86_64);
-  }
-  @Override
-  public String getHttpdSitesOptSlash() {
-    return "../../opt/";
-  }
-  @Override
-  public PosixPath getHttpdSharedTomcatsDirectory() {
-    return OperatingSystemVersion.getHttpdSharedTomcatsDirectory(OperatingSystemVersion.CENTOS_5_I686_AND_X86_64);
-  }
-  @Override
-  public String getHttpdSharedTomcatsOptSlash() {
-    return "../../opt/";
-  }
-  @Override
-  public PackageManager.PackageName getAwstatsPackageName() {
-    return PackageManager.PackageName.AWSTATS_6;
-  }
-  @Override
-  public PosixPath getAwstatsVarDirectory() {
-    try {
-      return PosixPath.valueOf("/var/opt/awstats-6");
-    } catch (ValidationException e) {
-      throw new WrappedException(e);
+
+    @Override
+    public PosixPath getHttpdSitesDirectory() {
+      return OperatingSystemVersion.getHttpdSitesDirectory(OperatingSystemVersion.CENTOS_5_I686_AND_X86_64);
     }
-  }
-  @Override
-  public PosixPath getAwstatsBinDirectory() {
-    try {
-      return PosixPath.valueOf("/opt/awstats-6");
-    } catch (ValidationException e) {
-      throw new WrappedException(e);
+
+    @Override
+    public String getHttpdSitesOptSlash() {
+      return "../../opt/";
     }
-  }
-},
+
+    @Override
+    public PosixPath getHttpdSharedTomcatsDirectory() {
+      return OperatingSystemVersion.getHttpdSharedTomcatsDirectory(OperatingSystemVersion.CENTOS_5_I686_AND_X86_64);
+    }
+
+    @Override
+    public String getHttpdSharedTomcatsOptSlash() {
+      return "../../opt/";
+    }
+
+    @Override
+    public PackageManager.PackageName getAwstatsPackageName() {
+      return PackageManager.PackageName.AWSTATS_6;
+    }
+
+    @Override
+    public PosixPath getAwstatsVarDirectory() {
+      try {
+        return PosixPath.valueOf("/var/opt/awstats-6");
+      } catch (ValidationException e) {
+        throw new WrappedException(e);
+      }
+    }
+
+    @Override
+    public PosixPath getAwstatsBinDirectory() {
+      try {
+        return PosixPath.valueOf("/opt/awstats-6");
+      } catch (ValidationException e) {
+        throw new WrappedException(e);
+      }
+    }
+  },
   CENTOS_7_X86_64 {
     @Override
     public OperatingSystemConfiguration getOperatingSystemConfiguration() {
       return OperatingSystemConfiguration.CENTOS_7_X86_64;
     }
+
     //public String getDefaultPhpPostgresMinorVersion() {
     //    return "9.2";
     //}
+
     @Override
     public PosixPath getPhpCgiPath(String minorVersion) {
       try {
@@ -122,26 +133,32 @@ public enum HttpdOperatingSystemConfiguration {
         throw new WrappedException(e);
       }
     }
+
     @Override
     public PosixPath getHttpdSitesDirectory() {
       return OperatingSystemVersion.getHttpdSitesDirectory(OperatingSystemVersion.CENTOS_7_X86_64);
     }
+
     @Override
     public String getHttpdSitesOptSlash() {
       return "../../../opt/";
     }
+
     @Override
     public PosixPath getHttpdSharedTomcatsDirectory() {
       return OperatingSystemVersion.getHttpdSharedTomcatsDirectory(OperatingSystemVersion.CENTOS_7_X86_64);
     }
+
     @Override
     public String getHttpdSharedTomcatsOptSlash() {
       return "../../../../opt/";
     }
+
     @Override
     public PackageManager.PackageName getAwstatsPackageName() {
       return PackageManager.PackageName.AWSTATS;
     }
+
     @Override
     public PosixPath getAwstatsVarDirectory() {
       try {
@@ -150,6 +167,7 @@ public enum HttpdOperatingSystemConfiguration {
         throw new WrappedException(e);
       }
     }
+
     @Override
     public PosixPath getAwstatsBinDirectory() {
       try {
@@ -162,20 +180,20 @@ public enum HttpdOperatingSystemConfiguration {
 
   /**
    * Gets the operating system configuration for this server, as
-   * determined by the <code>AOServDaemon.getThisServer()</code>
+   * determined by the <code>AoservDaemon.getThisServer()</code>
    * method.
    *
-   * @see  AOServDaemon#getThisServer()
+   * @see  AoservDaemon#getThisServer()
    */
   public static HttpdOperatingSystemConfiguration getHttpOperatingSystemConfiguration() throws IOException, SQLException {
-    OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
+    OperatingSystemVersion osv = AoservDaemon.getThisServer().getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
     switch (osvId) {
-      case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
+      case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64:
         return CENTOS_5_I686_AND_X86_64;
       case OperatingSystemVersion.CENTOS_7_X86_64:
         return CENTOS_7_X86_64;
-      default :
+      default:
         throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
     }
   }
@@ -185,9 +203,9 @@ public enum HttpdOperatingSystemConfiguration {
    */
   public abstract OperatingSystemConfiguration getOperatingSystemConfiguration();
 
-  /**
-   * The version of PostgreSQL minor version used by the default PHP minor version.
-   */
+  ///**
+  // * The version of PostgreSQL minor version used by the default PHP minor version.
+  // */
   //public abstract String getDefaultPhpPostgresMinorVersion();
 
   /**
@@ -216,7 +234,7 @@ public enum HttpdOperatingSystemConfiguration {
   public abstract String getHttpdSharedTomcatsOptSlash();
 
   /**
-   * Gets the configuration directory used by AWStats
+   * Gets the configuration directory used by AWStats.
    */
   public PosixPath getAwstatsConfigDirectory() {
     try {

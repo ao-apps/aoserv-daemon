@@ -25,13 +25,13 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 import com.aoapps.encoding.ChainWriter;
 import com.aoapps.io.posix.PosixFile;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.web.tomcat.Context;
 import com.aoindustries.aoserv.client.web.tomcat.JkProtocol;
 import com.aoindustries.aoserv.client.web.tomcat.SharedTomcatSite;
 import com.aoindustries.aoserv.client.web.tomcat.Worker;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -45,7 +45,7 @@ import java.util.Set;
  *
  * @author  AO Industries, Inc.
  */
-abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> extends HttpdTomcatSharedSiteManager<TC> {
+abstract class HttpdTomcatSharedSiteManager_3_X<T extends TomcatCommon_3_X> extends HttpdTomcatSharedSiteManager<T> {
 
   HttpdTomcatSharedSiteManager_3_X(SharedTomcatSite tomcatSharedSite) throws SQLException, IOException {
     super(tomcatSharedSite);
@@ -57,12 +57,12 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
    */
   @Override
   protected Worker getHttpdWorker() throws IOException, SQLException {
-    AOServConnector conn = AOServDaemon.getConnector();
+    AoservConnector conn = AoservDaemon.getConnector();
     List<Worker> workers = tomcatSite.getHttpdWorkers();
 
     // Only ajp12 supported
     for (Worker hw : workers) {
-      if (hw.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol().equals(JkProtocol.AJP12)) {
+      if (hw.getHttpdJkProtocol(conn).getProtocol(conn).getProtocol().equals(JkProtocol.AJP12)) {
         return hw;
       }
     }
@@ -101,18 +101,18 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
     DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/conf", 0770, uid, gid);
     DaemonFileUtils.mkdir(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/lib", 0770, uid, gid);
 
-    Server thisServer = AOServDaemon.getThisServer();
-    int uid_min = thisServer.getUidMin().getId();
-    int gid_min = thisServer.getGidMin().getId();
+    Server thisServer = AoservDaemon.getThisServer();
+    int uidMin = thisServer.getUidMin().getId();
+    int gidMin = thisServer.getGidMin().getId();
 
     /*
      * Write the manifest.servlet file.
      */
     String confManifestServlet = siteDir + "/conf/manifest.servlet";
     try (
-      ChainWriter out = new ChainWriter(
+        ChainWriter out = new ChainWriter(
             new BufferedOutputStream(
-                new PosixFile(confManifestServlet).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+                new PosixFile(confManifestServlet).getSecureOutputStream(uid, gid, 0660, false, uidMin, gidMin)
             )
         )
         ) {
@@ -140,11 +140,11 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
     /*
      * Create the conf/server.dtd file.
      */
-    String confServerDTD = siteDir + "/conf/server.dtd";
+    String confServerDtd = siteDir + "/conf/server.dtd";
     try (
-      ChainWriter out = new ChainWriter(
+        ChainWriter out = new ChainWriter(
             new BufferedOutputStream(
-                new PosixFile(confServerDTD).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+                new PosixFile(confServerDtd).getSecureOutputStream(uid, gid, 0660, false, uidMin, gidMin)
             )
         )
         ) {
@@ -188,16 +188,16 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
     }
 
     // Create the test-tomcat.xml file.
-    tomcatCommon.createTestTomcatXml(siteDir + "/conf", uid, gid, 0660, uid_min, gid_min);
+    tomcatCommon.createTestTomcatXml(siteDir + "/conf", uid, gid, 0660, uidMin, gidMin);
 
     /*
      * Create the tomcat-users.xml file
      */
     String confTomcatUsers = siteDir + "/conf/tomcat-users.xml";
     try (
-      ChainWriter out = new ChainWriter(
+        ChainWriter out = new ChainWriter(
             new BufferedOutputStream(
-                new PosixFile(confTomcatUsers).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+                new PosixFile(confTomcatUsers).getSecureOutputStream(uid, gid, 0660, false, uidMin, gidMin)
             )
         )
         ) {
@@ -207,19 +207,19 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
     /*
      * Create the web.dtd file.
      */
-    tomcatCommon.createWebDtd(siteDir + "/conf", uid, gid, 0660, uid_min, gid_min);
+    tomcatCommon.createWebDtd(siteDir + "/conf", uid, gid, 0660, uidMin, gidMin);
 
     /*
      * Create the web.xml file.
      */
-    tomcatCommon.createWebXml(siteDir + "/conf", uid, gid, 0660, uid_min, gid_min);
+    tomcatCommon.createWebXml(siteDir + "/conf", uid, gid, 0660, uidMin, gidMin);
 
     /*
      * Create the empty log files.
      */
     for (String logFile : TomcatCommon_3_X.tomcatLogFiles) {
       String filename = siteDir + "/var/log/" + logFile;
-      new PosixFile(filename).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min).close();
+      new PosixFile(filename).getSecureOutputStream(uid, gid, 0660, false, uidMin, gidMin).close();
     }
 
     /*
@@ -227,14 +227,14 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
      */
     String manifestFile = siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/META-INF/MANIFEST.MF";
     try (
-      ChainWriter out = new ChainWriter(
+        ChainWriter out = new ChainWriter(
             new PosixFile(manifestFile).getSecureOutputStream(
                 uid,
                 gid,
                 0664,
                 false,
-                uid_min,
-                gid_min
+                uidMin,
+                gidMin
             )
         )
         ) {
@@ -245,7 +245,7 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
      * Write the cocoon.properties file.
      */
     String cocoonProps = siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/conf/cocoon.properties";
-    try (OutputStream fileOut = new BufferedOutputStream(new PosixFile(cocoonProps).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min))) {
+    try (OutputStream fileOut = new BufferedOutputStream(new PosixFile(cocoonProps).getSecureOutputStream(uid, gid, 0660, false, uidMin, gidMin))) {
       tomcatCommon.copyCocoonProperties1(fileOut);
       try (ChainWriter out = new ChainWriter(fileOut)) {
         out.print("processor.xsp.repository = ").print(siteDir).print("/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/cocoon\n");
@@ -257,11 +257,11 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
     /*
      * Write the ROOT/WEB-INF/web.xml file.
      */
-    String webXML = siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/web.xml";
+    String webXml = siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/web.xml";
     try (
-      ChainWriter out = new ChainWriter(
+        ChainWriter out = new ChainWriter(
             new BufferedOutputStream(
-                new PosixFile(webXML).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
+                new PosixFile(webXml).getSecureOutputStream(uid, gid, 0664, false, uidMin, gidMin)
             )
         )
         ) {
@@ -312,16 +312,16 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
       String autoWarning = getAutoWarningXml();
       String autoWarningOld = getAutoWarningXmlOld();
 
-      Server thisServer = AOServDaemon.getThisServer();
-      int uid_min = thisServer.getUidMin().getId();
-      int gid_min = thisServer.getGidMin().getId();
+      Server thisServer = AoservDaemon.getThisServer();
+      int uidMin = thisServer.getUidMin().getId();
+      int gidMin = thisServer.getGidMin().getId();
 
-      PosixFile confServerXML = new PosixFile(conf, "server.xml", false);
-      if (!httpdSite.isManual() || !confServerXML.getStat().exists()) {
+      PosixFile confServerXml = new PosixFile(conf, "server.xml", false);
+      if (!httpdSite.isManual() || !confServerXml.getStat().exists()) {
         // Only write to the actual file when missing or changed
         if (
             DaemonFileUtils.atomicWrite(
-                confServerXML,
+                confServerXml,
                 buildServerXml(siteDirectory, autoWarning),
                 0660,
                 httpdSite.getLinuxServerAccount().getUid().getId(),
@@ -336,16 +336,16 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
       } else {
         try {
           DaemonFileUtils.stripFilePrefix(
-              confServerXML,
+              confServerXml,
               autoWarningOld,
-              uid_min,
-              gid_min
+              uidMin,
+              gidMin
           );
           DaemonFileUtils.stripFilePrefix(
-              confServerXML,
+              confServerXml,
               autoWarning,
-              uid_min,
-              gid_min
+              uidMin,
+              gidMin
           );
         } catch (IOException err) {
           // Errors OK because this is done in manual mode and they might have symbolic linked stuff

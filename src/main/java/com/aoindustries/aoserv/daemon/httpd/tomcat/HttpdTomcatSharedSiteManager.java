@@ -25,7 +25,7 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 import com.aoapps.io.posix.PosixFile;
 import com.aoapps.lang.validation.ValidationException;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.client.web.Site;
@@ -33,7 +33,7 @@ import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
 import com.aoindustries.aoserv.client.web.tomcat.SharedTomcatSite;
 import com.aoindustries.aoserv.client.web.tomcat.Version;
 import com.aoindustries.aoserv.client.web.tomcat.Worker;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import java.io.File;
 import java.io.IOException;
@@ -45,13 +45,13 @@ import java.util.Set;
  *
  * @author  AO Industries, Inc.
  */
-abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends HttpdTomcatSiteManager<TC> {
+abstract class HttpdTomcatSharedSiteManager<T extends TomcatCommon> extends HttpdTomcatSiteManager<T> {
 
   /**
    * Gets the specific manager for one type of web site.
    */
   static HttpdTomcatSharedSiteManager<? extends TomcatCommon> getInstance(SharedTomcatSite shrSite) throws IOException, SQLException {
-    AOServConnector connector = AOServDaemon.getConnector();
+    AoservConnector connector = AoservDaemon.getConnector();
 
     Version htv = shrSite.getHttpdTomcatSite().getHttpdTomcatVersion();
     if (htv.isTomcat3_1(connector)) {

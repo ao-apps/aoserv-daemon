@@ -24,7 +24,7 @@
 package com.aoindustries.aoserv.daemon.report;
 
 import com.aoapps.lang.util.ErrorPrinter;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import java.io.BufferedReader;
 import java.io.EOFException;
 import java.io.IOException;
@@ -32,7 +32,7 @@ import java.io.InputStreamReader;
 import java.sql.SQLException;
 
 /**
- * Encapsulates the output of the /usr/bin/uptime command.
+ * Encapsulates the output of the <code>/usr/bin/uptime</code> command.
  *
  * @author  AO Industries, Inc.
  */
@@ -44,7 +44,7 @@ public final class Uptime {
   public final float load;
 
   public Uptime() throws IOException, SQLException {
-    String line = AOServDaemon.execCall(
+    String line = AoservDaemon.execCall(
         stdout -> {
           try (BufferedReader in = new BufferedReader(new InputStreamReader(stdout))) {
             return in.readLine();
@@ -77,7 +77,7 @@ public final class Uptime {
     numUsers = Integer.parseInt(line.substring(pos, pos2));
 
     // Only the top-level server keeps track of load
-    if (AOServDaemon.getThisServer().getFailoverServer() == null) {
+    if (AoservDaemon.getThisServer().getFailoverServer() == null) {
       // Find the next colon
       pos = line.indexOf(':', pos2 + 1) + 1;
 
@@ -114,7 +114,6 @@ public final class Uptime {
     return
         getClass().getName()
             + "?numUsers=" + numUsers
-            + "&load=" + load
-    ;
+            + "&load=" + load;
   }
 }

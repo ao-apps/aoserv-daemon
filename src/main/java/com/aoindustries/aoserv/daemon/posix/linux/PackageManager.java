@@ -26,8 +26,8 @@ package com.aoindustries.aoserv.daemon.posix.linux;
 import com.aoapps.concurrent.ConcurrentListenerManager;
 import com.aoapps.hodgepodge.io.DirectoryMetaSnapshot;
 import com.aoapps.lang.Strings;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -333,8 +333,7 @@ public final class PackageManager {
    */
   private static final String
       RPM_EXE_PATH = "/bin/rpm", // TODO: /usr/bin/rpm once all CentOS 7
-      YUM_EXE_PATH = "/usr/bin/yum"
-  ;
+      YUM_EXE_PATH = "/usr/bin/yum";
 
   /**
    * The directory containing the RPM files.  Used to detect possible changes
@@ -503,7 +502,7 @@ public final class PackageManager {
     x86_64
   }
 
-  public static class RPM implements Comparable<RPM> {
+  public static class Rpm implements Comparable<Rpm> {
 
     private final String name;
     private final Integer epoch;
@@ -511,7 +510,7 @@ public final class PackageManager {
     private final Version release;
     private final Architecture architecture;
 
-    private RPM(
+    private Rpm(
         String name,
         Integer epoch,
         Version version,
@@ -558,21 +557,20 @@ public final class PackageManager {
 
     @Override
     public boolean equals(Object obj) {
-      if (!(obj instanceof RPM)) {
+      if (!(obj instanceof Rpm)) {
         return false;
       }
-      RPM other = (RPM) obj;
+      Rpm other = (Rpm) obj;
       return
           name.equals(other.name)
               && Objects.equals(epoch, other.epoch)
               && version.equals(other.version)
               && release.equals(other.release)
-              && Objects.equals(architecture, other.architecture)
-      ;
+              && Objects.equals(architecture, other.architecture);
     }
 
     @Override
-    public int compareTo(RPM other) {
+    public int compareTo(Rpm other) {
       int diff = name.compareTo(other.name);
       if (diff != 0) {
         return diff;
@@ -626,7 +624,7 @@ public final class PackageManager {
      * Removes this package.
      */
     public void remove() throws IOException {
-      if (!AOServDaemonConfiguration.isPackageManagerUninstallEnabled()) {
+      if (!AoservDaemonConfiguration.isPackageManagerUninstallEnabled()) {
         throw new IllegalStateException("Package uninstall is disabled in aoserv-daemon.properties");
       }
       String packageIdentifier = this.toStringWithoutEpoch();
@@ -634,7 +632,7 @@ public final class PackageManager {
         logger.info("Removing package: " + packageIdentifier);
       }
       synchronized (packagesLock) {
-        AOServDaemon.exec(
+        AoservDaemon.exec(
             RPM_EXE_PATH,
             "-e",
             packageIdentifier
@@ -645,7 +643,7 @@ public final class PackageManager {
 
   private static final Object packagesLock = new Object();
   private static DirectoryMetaSnapshot lastSnapshot;
-  private static SortedSet<RPM> lastAllRpms;
+  private static SortedSet<Rpm> lastAllRpms;
 
   /**
    * Gets the set of all packages installed on the server.  Because
@@ -653,7 +651,7 @@ public final class PackageManager {
    * cached and only updated when a file in <code>/var/lib/rpm</code> has
    * been modified.
    */
-  public static SortedSet<RPM> getAllRpms() throws IOException {
+  public static SortedSet<Rpm> getAllRpms() throws IOException {
     synchronized (packagesLock) {
       DirectoryMetaSnapshot currentDirectorySnapshot = new DirectoryMetaSnapshot(VAR_LIB_RPM);
       if (logger.isLoggable(Level.FINER)) {
@@ -678,9 +676,9 @@ public final class PackageManager {
       }
       if (!currentDirectorySnapshot.equals(lastSnapshot)) {
         // Get all RPMs
-        SortedSet<RPM> newAllRpms = new TreeSet<>();
+        SortedSet<Rpm> newAllRpms = new TreeSet<>();
         List<String> lines = Strings.splitLines(
-            AOServDaemon.execAndCapture(
+            AoservDaemon.execAndCapture(
                 RPM_EXE_PATH,
                 "-q",
                 "-a",
@@ -695,7 +693,7 @@ public final class PackageManager {
           final String epoch = lines.get(i + 1);
           final String arch = lines.get(i + 4);
           newAllRpms.add(
-              new RPM(
+              new Rpm(
                   lines.get(i),
                   "(none)".equals(epoch) ? null : Integer.parseInt(epoch),
                   new Version(lines.get(i + 2)),
@@ -729,12 +727,12 @@ public final class PackageManager {
         lastSnapshot = currentDirectorySnapshot;
         // When list hasn't changed, use old list and do not call listeners
         if (!newAllRpms.equals(lastAllRpms)) {
-          SortedSet<RPM> unmodifiableAllRpms = Collections.unmodifiableSortedSet(newAllRpms);
+          SortedSet<Rpm> unmodifiableAllRpms = Collections.unmodifiableSortedSet(newAllRpms);
           lastAllRpms = unmodifiableAllRpms;
           if (logger.isLoggable(Level.FINE)) {
             StringBuilder message = new StringBuilder();
             message.append("Got all RPMs:");
-            for (RPM rpm : lastAllRpms) {
+            for (Rpm rpm : lastAllRpms) {
               message.append("\n    ");
               message.append(rpm);
             }
@@ -756,10 +754,10 @@ public final class PackageManager {
    * Gets the highest version of an installed package or <code>null</code> if
    * not installed.
    */
-  public static RPM getInstalledPackage(PackageName name) throws IOException {
+  public static Rpm getInstalledPackage(PackageName name) throws IOException {
     // Looking through all to find highest version
-    RPM highestVersionFound = null;
-    for (RPM rpm : getAllRpms()) {
+    Rpm highestVersionFound = null;
+    for (Rpm rpm : getAllRpms()) {
       if (rpm.getName().equals(name.rpmName)) {
         highestVersionFound = rpm;
       }
@@ -782,7 +780,7 @@ public final class PackageManager {
    *
    * @return  the highest version of RPM that is installed
    */
-  public static RPM installPackage(PackageName name) throws IOException {
+  public static Rpm installPackage(PackageName name) throws IOException {
     return installPackage(name, null);
   }
 
@@ -796,10 +794,10 @@ public final class PackageManager {
    *
    * @return  the highest version of RPM that is installed
    */
-  public static RPM installPackage(PackageName name, Runnable onInstall) throws IOException {
+  public static Rpm installPackage(PackageName name, Runnable onInstall) throws IOException {
     synchronized (packagesLock) {
       // Check if exists by looking through all to find highest version
-      RPM highestVersionFound = getInstalledPackage(name);
+      Rpm highestVersionFound = getInstalledPackage(name);
       if (highestVersionFound != null) {
         return highestVersionFound;
       }
@@ -807,7 +805,7 @@ public final class PackageManager {
       if (logger.isLoggable(Level.INFO)) {
         logger.info("Installing package: " + name.rpmName);
       }
-      AOServDaemon.exec(
+      AoservDaemon.exec(
           YUM_EXE_PATH,
           "-q",
           "-y",
@@ -818,7 +816,7 @@ public final class PackageManager {
         onInstall.run();
       }
       // Must exist now
-      for (RPM rpm : getAllRpms()) {
+      for (Rpm rpm : getAllRpms()) {
         if (rpm.getName().equals(name.rpmName)) {
           return rpm;
         }
@@ -862,15 +860,15 @@ public final class PackageManager {
    *
    * @return  {@code true} when a package was removed
    *
-   * @see RPM#remove() Call remove on a specific RPM when multiple version may be installed
+   * @see Rpm#remove() Call remove on a specific RPM when multiple version may be installed
    */
   public static boolean removePackage(PackageName name) throws IOException {
-    if (!AOServDaemonConfiguration.isPackageManagerUninstallEnabled()) {
+    if (!AoservDaemonConfiguration.isPackageManagerUninstallEnabled()) {
       throw new IllegalStateException("Package uninstall is disabled in aoserv-daemon.properties");
     }
     synchronized (packagesLock) {
-      List<RPM> matches = new ArrayList<>();
-      for (RPM rpm : getAllRpms()) {
+      List<Rpm> matches = new ArrayList<>();
+      for (Rpm rpm : getAllRpms()) {
         if (rpm.getName().equals(name.rpmName)) {
           matches.add(rpm);
         }
@@ -895,7 +893,7 @@ public final class PackageManager {
     /**
      * Called when the package list is updated or first loaded.
      */
-    void packageListUpdated(SortedSet<RPM> allRpms);
+    void packageListUpdated(SortedSet<Rpm> allRpms);
   }
 
   /**

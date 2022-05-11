@@ -64,7 +64,7 @@ final class MessageDigestUtils {
     }
   }
 
-  static String getHexChars(long sha256_0, long sha256_1, long sha256_2, long sha256_3) {
-    return MD5.getMD5String(sha256_0, sha256_1) + MD5.getMD5String(sha256_2, sha256_3);
+  static String getHexChars(long sha0, long sha1, long sha2, long sha3) {
+    return MD5.getMD5String(sha0, sha1) + MD5.getMD5String(sha2, sha3);
   }
 }

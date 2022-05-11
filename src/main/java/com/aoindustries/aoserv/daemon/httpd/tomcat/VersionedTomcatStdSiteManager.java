@@ -26,7 +26,7 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
 import com.aoapps.encoding.ChainWriter;
 import com.aoapps.io.posix.PosixFile;
 import com.aoapps.lang.io.IoUtils;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.aosh.Command;
 import com.aoindustries.aoserv.client.linux.UserServer;
 import com.aoindustries.aoserv.client.net.Bind;
@@ -37,7 +37,7 @@ import com.aoindustries.aoserv.client.web.tomcat.ContextParameter;
 import com.aoindustries.aoserv.client.web.tomcat.JkProtocol;
 import com.aoindustries.aoserv.client.web.tomcat.PrivateTomcatSite;
 import com.aoindustries.aoserv.client.web.tomcat.Worker;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.Copy;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.Generated;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.Mkdir;
@@ -57,14 +57,14 @@ import java.util.List;
  *
  * @author  AO Industries, Inc.
  */
-abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> extends HttpdTomcatStdSiteManager<TC> {
+abstract class VersionedTomcatStdSiteManager<T extends VersionedTomcatCommon> extends HttpdTomcatStdSiteManager<T> {
 
   VersionedTomcatStdSiteManager(PrivateTomcatSite tomcatStdSite) throws SQLException, IOException {
     super(tomcatStdSite);
   }
 
   /**
-   * TODO: Support upgrades in-place
+   * TODO: Support upgrades in-place.
    */
   @Override
   protected void buildSiteDirectoryContents(String optSlash, PosixFile siteDirectory, boolean isUpgrade) throws IOException, SQLException {
@@ -73,7 +73,7 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
     final int uid = lsa.getUid().getId();
     final int gid = httpdSite.getLinuxServerGroup().getGid().getId();
 
-    final TC tomcatCommon = getTomcatCommon();
+    final T tomcatCommon = getTomcatCommon();
     final String apacheTomcatDir = tomcatCommon.getApacheTomcatDir();
 
     final String backupSuffix = VersionedTomcatCommon.getBackupSuffix();
@@ -86,48 +86,48 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
       installFile.install(optSlash, apacheTomcatDir, siteDirectory, uid, gid, backupSuffix);
     }
 
-    // daemon/
-    {
-      // TODO: Is this link updated elsewhere, thus this not needed here?
-      PosixFile bin = new PosixFile(siteDirectory, "bin", false);
-      PosixFile tomcatUF = new PosixFile(bin, "tomcat", false);
-      PosixFile daemon = new PosixFile(siteDirectory, "daemon", false);
-      if (
-          !httpdSite.isDisabled()
-              && (
-              !httpdSite.isManual()
-                  // Script may not exist while in manual mode
-                  || tomcatUF.getStat().exists()
-          )
-      ) {
-        DaemonFileUtils.ln(
-            "../bin/tomcat",
-            new PosixFile(daemon, "tomcat", false), uid, gid
-        );
+      // daemon/
+      {
+        // TODO: Is this link updated elsewhere, thus this not needed here?
+        PosixFile bin = new PosixFile(siteDirectory, "bin", false);
+        PosixFile tomcat = new PosixFile(bin, "tomcat", false);
+        PosixFile daemon = new PosixFile(siteDirectory, "daemon", false);
+        if (
+            !httpdSite.isDisabled()
+                && (
+                !httpdSite.isManual()
+                    // Script may not exist while in manual mode
+                    || tomcat.getStat().exists()
+            )
+        ) {
+          DaemonFileUtils.ln(
+              "../bin/tomcat",
+              new PosixFile(daemon, "tomcat", false), uid, gid
+          );
+        }
       }
-    }
   }
 
   @Override
   protected byte[] buildServerXml(PosixFile siteDirectory, String autoWarning) throws IOException, SQLException {
-    final TC tomcatCommon = getTomcatCommon();
-    AOServConnector conn = AOServDaemon.getConnector();
+    final T tomcatCommon = getTomcatCommon();
+    AoservConnector conn = AoservDaemon.getConnector();
 
     // Build to RAM first
     ByteArrayOutputStream bout = new ByteArrayOutputStream();
     try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
       Worker hw;
-      {
-        List<Worker> hws = tomcatSite.getHttpdWorkers();
-        if (hws.size() != 1) {
-          throw new SQLException("Expected to only find one Worker for PrivateTomcatSite #" + httpdSite.getPkey() + ", found " + hws.size());
+        {
+          List<Worker> hws = tomcatSite.getHttpdWorkers();
+          if (hws.size() != 1) {
+            throw new SQLException("Expected to only find one Worker for PrivateTomcatSite #" + httpdSite.getPkey() + ", found " + hws.size());
+          }
+          hw = hws.get(0);
+          String hwProtocol = hw.getHttpdJkProtocol(conn).getProtocol(conn).getProtocol();
+          if (!hwProtocol.equals(JkProtocol.AJP13)) {
+            throw new SQLException("Worker #" + hw.getPkey() + " for PrivateTomcatSite #" + httpdSite.getPkey() + " must be AJP13 but it is " + hwProtocol);
+          }
         }
-        hw = hws.get(0);
-        String hwProtocol = hw.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol();
-        if (!hwProtocol.equals(JkProtocol.AJP13)) {
-          throw new SQLException("Worker #" + hw.getPkey() + " for PrivateTomcatSite #" + httpdSite.getPkey() + " must be AJP13 but it is " + hwProtocol);
-        }
-      }
       Bind shutdownPort = tomcatStdSite.getTomcat4ShutdownPort();
       if (shutdownPort == null) {
         throw new SQLException("Unable to find shutdown port for PrivateTomcatSite=" + tomcatStdSite);
@@ -197,7 +197,7 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
           + "      <Host\n"
           + "        name=\"localhost\"\n"
           + "        appBase=\"webapps\"\n"
-          + "        unpackWARs=\"").textInXmlAttribute(tomcatStdSite.getUnpackWARs()).print("\"\n"
+          + "        unpackWARs=\"").textInXmlAttribute(tomcatStdSite.getUnpackWars()).print("\"\n"
           + "        autoDeploy=\"").textInXmlAttribute(tomcatStdSite.getAutoDeploy()).print("\"\n"
           + "      >\n");
       for (Context htc : tomcatSite.getHttpdTomcatContexts()) {
@@ -390,19 +390,19 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
     installFiles.addAll(getTomcatCommon().getInstallFiles(optSlash, installDir, 0775)); // 0775 to allow Apache to read any passwd/group files in the conf/ directory
     installFiles.add(new Generated("bin/tomcat", 0700, VersionedTomcatStdSiteManager::generateTomcatScript));
     if (!isUpgrade) {
-      installFiles.add(new Mkdir    ("webapps", 0775));
-      installFiles.add(new Mkdir    ("webapps/" + Context.ROOT_DOC_BASE, 0775));
-      installFiles.add(new Mkdir    ("webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF", 0770));
-      installFiles.add(new Mkdir    ("webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/classes", 0770));
-      installFiles.add(new Mkdir    ("webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/lib", 0770));
-      installFiles.add(new Copy     ("webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/web.xml", 0660));
+      installFiles.add(new Mkdir("webapps", 0775));
+      installFiles.add(new Mkdir("webapps/" + Context.ROOT_DOC_BASE, 0775));
+      installFiles.add(new Mkdir("webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF", 0770));
+      installFiles.add(new Mkdir("webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/classes", 0770));
+      installFiles.add(new Mkdir("webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/lib", 0770));
+      installFiles.add(new Copy("webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/web.xml", 0660));
     }
     return installFiles;
   }
 
   @Override
   protected boolean upgradeSiteDirectoryContents(String optSlash, PosixFile siteDirectory) throws IOException, SQLException {
-    TC tomcatCommon = getTomcatCommon();
+    T tomcatCommon = getTomcatCommon();
     int uid = httpdSite.getLinuxServerAccount().getUid().getId();
     int gid = httpdSite.getLinuxServerGroup().getGid().getId();
     String apacheTomcatDir = tomcatCommon.getApacheTomcatDir();

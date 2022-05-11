@@ -25,7 +25,7 @@ package com.aoindustries.aoserv.daemon.report;
 
 import com.aoapps.lang.Strings;
 import com.aoapps.lang.util.ErrorPrinter;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -35,46 +35,38 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Encapsulates the output of the /proc/stat file.
+ * Encapsulates the output of the <code>/proc/stat</code> file.
  *
  * @author  AO Industries, Inc.
  */
 public final class ProcStat {
 
-  public final long[]
-      userCPUTimes,
-      niceCPUTimes,
-      sysCPUTimes
-  ;
+  public final long[] userCpuTimes;
+  public final long[] niceCpuTimes;
+  public final long[] sysCpuTimes;
 
-  public final long
-      pagesIn,
-      pagesOut
-  ;
+  public final long pagesIn;
+  public final long pagesOut;
 
-  public final long
-      swapsIn,
-      swapsOut
-  ;
+  public final long swapsIn;
+  public final long swapsOut;
 
-  public final long
-      contextSwitches,
-      processes
-  ;
+  public final long contextSwitches;
+  public final long processes;
 
   public ProcStat() throws IOException, SQLException {
-    List<Long> _userCPUTimes = new ArrayList<>();
-    List<Long> _niceCPUTimes = new ArrayList<>();
-    List<Long> _sysCPUTimes = new ArrayList<>();
-    long _pagesIn = 0;
-    long _pagesOut = 0;
-    long _swapsIn = 0;
-    long _swapsOut = 0;
-    long _contextSwitches = 0;
-    long _processes = 0;
+    List<Long> myUserCpuTimes = new ArrayList<>();
+    List<Long> myNiceCpuTimes = new ArrayList<>();
+    List<Long> mySysCpuTimes = new ArrayList<>();
+    long myPagesIn = 0;
+    long myPagesOut = 0;
+    long mySwapsIn = 0;
+    long mySwapsOut = 0;
+    long myContextSwitches = 0;
+    long myProcesses = 0;
 
     // Only the outer-most server tracks these stats
-    if (AOServDaemon.getThisServer().getFailoverServer() == null) {
+    if (AoservDaemon.getThisServer().getFailoverServer() == null) {
       // Parse for the values
       try (BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream("/proc/stat")))) {
         String line;
@@ -85,34 +77,34 @@ public final class ProcStat {
               label.length() > 3
                   && label.startsWith("cpu")
           ) {
-            _userCPUTimes.add(Long.valueOf(words[1]) * 10);
-            _niceCPUTimes.add(Long.valueOf(words[2]) * 10);
-            _sysCPUTimes.add(Long.valueOf(words[3]) * 10);
+            myUserCpuTimes.add(Long.valueOf(words[1]) * 10);
+            myNiceCpuTimes.add(Long.valueOf(words[2]) * 10);
+            mySysCpuTimes.add(Long.valueOf(words[3]) * 10);
           } else if ("page".equals(label)) {
-            _pagesIn = Long.parseLong(words[1]);
-            _pagesOut = Long.parseLong(words[2]);
+            myPagesIn = Long.parseLong(words[1]);
+            myPagesOut = Long.parseLong(words[2]);
           } else if ("swap".equals(label)) {
-            _swapsIn = Long.parseLong(words[1]);
-            _swapsOut = Long.parseLong(words[2]);
+            mySwapsIn = Long.parseLong(words[1]);
+            mySwapsOut = Long.parseLong(words[2]);
           } else if ("ctxt".equals(label)) {
-            _contextSwitches = Long.parseLong(words[1]);
+            myContextSwitches = Long.parseLong(words[1]);
           } else if ("processes".equals(label)) {
-            _processes = Long.parseLong(words[1]);
+            myProcesses = Long.parseLong(words[1]);
           }
         }
       }
     }
 
     // Copy into instance
-    this.userCPUTimes = getLongArray(_userCPUTimes);
-    this.niceCPUTimes = getLongArray(_niceCPUTimes);
-    this.sysCPUTimes = getLongArray(_sysCPUTimes);
-    this.pagesIn = _pagesIn;
-    this.pagesOut = _pagesOut;
-    this.swapsIn = _swapsIn;
-    this.swapsOut = _swapsOut;
-    this.contextSwitches = _contextSwitches;
-    this.processes = _processes;
+    this.userCpuTimes = getLongArray(myUserCpuTimes);
+    this.niceCpuTimes = getLongArray(myNiceCpuTimes);
+    this.sysCpuTimes = getLongArray(mySysCpuTimes);
+    this.pagesIn = myPagesIn;
+    this.pagesOut = myPagesOut;
+    this.swapsIn = mySwapsIn;
+    this.swapsOut = mySwapsOut;
+    this.contextSwitches = myContextSwitches;
+    this.processes = myProcesses;
   }
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
@@ -150,19 +142,18 @@ public final class ProcStat {
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append(getClass().getName());
-    for (int c = 0; c < userCPUTimes.length; c++) {
+    for (int c = 0; c < userCpuTimes.length; c++) {
       sb
           .append(c == 0 ? '?' : '&')
           .append("cpu")
           .append(c)
           .append("=(user=")
-          .append(userCPUTimes[c])
+          .append(userCpuTimes[c])
           .append(",nice=")
-          .append(niceCPUTimes[c])
+          .append(niceCpuTimes[c])
           .append(",sys=")
-          .append(sysCPUTimes[c])
-          .append(')')
-      ;
+          .append(sysCpuTimes[c])
+          .append(')');
     }
     sb.append("&pages=(in=").append(pagesIn).append(",out=").append(pagesOut).append(')');
     sb.append("&swaps=(in=").append(swapsIn).append(",out=").append(swapsOut).append(')');

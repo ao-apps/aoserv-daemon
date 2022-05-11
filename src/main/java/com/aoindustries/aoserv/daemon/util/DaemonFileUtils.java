@@ -30,7 +30,7 @@ import com.aoapps.lang.io.IoUtils;
 import com.aoapps.tempfiles.TempFile;
 import com.aoapps.tempfiles.TempFileContext;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -72,11 +72,12 @@ public final class DaemonFileUtils {
 
   /**
    * Copies a resource to the provided filename, will not overwrite any existing file.
-   *
+   * <p>
    * TODO: Copy to a temp file and rename into place.
+   * </p>
    */
-  public static void copyResource(Class<?> clazz, String resource, String filename, int uid, int gid, int mode, int uid_min, int gid_min) throws IOException {
-    try (OutputStream out = new PosixFile(filename).getSecureOutputStream(uid, gid, mode, false, uid_min, gid_min)) {
+  public static void copyResource(Class<?> clazz, String resource, String filename, int uid, int gid, int mode, int uidMin, int gidMin) throws IOException {
+    try (OutputStream out = new PosixFile(filename).getSecureOutputStream(uid, gid, mode, false, uidMin, gidMin)) {
       copyResource(clazz, resource, out);
     }
   }
@@ -324,12 +325,12 @@ public final class DaemonFileUtils {
    * file.  A new temp file is created and then renamed over the old.
    */
   @SuppressWarnings("try")
-  public static void stripFilePrefix(PosixFile uf, String prefix, int uid_min, int gid_min) throws IOException {
+  public static void stripFilePrefix(PosixFile uf, String prefix, int uidMin, int gidMin) throws IOException {
     // Remove the auto warning if the site has recently become manual
     int prefixLen = prefix.length();
     Stat ufStat = uf.getStat();
     if (ufStat.getSize() >= prefixLen) {
-      try (InputStream in = new BufferedInputStream(uf.getSecureInputStream(uid_min, gid_min))) {
+      try (InputStream in = new BufferedInputStream(uf.getSecureInputStream(uidMin, gidMin))) {
         StringBuilder sb = new StringBuilder(prefixLen);
         int ch;
         while (sb.length() < prefixLen && (ch = in.read()) != -1) {
@@ -337,8 +338,8 @@ public final class DaemonFileUtils {
         }
         if (sb.toString().equals(prefix)) {
           try (
-            TempFileContext tempFileContext = new TempFileContext(uf.getFile().getParent());
-            TempFile tempFile = tempFileContext.createTempFile(uf.getFile().getName())
+              TempFileContext tempFileContext = new TempFileContext(uf.getFile().getParent());
+              TempFile tempFile = tempFileContext.createTempFile(uf.getFile().getName())
               ) {
             try (OutputStream out = new BufferedOutputStream(
                 new PosixFile(tempFile.getFile()).getSecureOutputStream(
@@ -346,8 +347,8 @@ public final class DaemonFileUtils {
                     ufStat.getGid(),
                     ufStat.getMode(),
                     true,
-                    uid_min,
-                    gid_min
+                    uidMin,
+                    gidMin
                 )
             )) {
               IoUtils.copy(in, out);
@@ -525,15 +526,16 @@ public final class DaemonFileUtils {
   public static void restorecon(Set<PosixFile> restorecon) throws IOException, SQLException {
     int size = restorecon.size();
     if (size > 0) {
-      OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
+      OperatingSystemVersion osv = AoservDaemon.getThisServer().getHost().getOperatingSystemVersion();
       switch (osv.getPkey()) {
-        case OperatingSystemVersion.CENTOS_5_DOM0_I686 :
-        case OperatingSystemVersion.CENTOS_5_DOM0_X86_64 :
-        case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
+        case OperatingSystemVersion.CENTOS_5_DOM0_I686:
+        case OperatingSystemVersion.CENTOS_5_DOM0_X86_64:
+        case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64: {
           // Nothing to do
           break;
-        case OperatingSystemVersion.CENTOS_7_DOM0_X86_64 :
-        case OperatingSystemVersion.CENTOS_7_X86_64 :
+        }
+        case OperatingSystemVersion.CENTOS_7_DOM0_X86_64:
+        case OperatingSystemVersion.CENTOS_7_X86_64: {
           String restoreconCommand = "/usr/sbin/restorecon";
           if (PackageManager.getInstalledPackage(PackageManager.PackageName.POLICYCOREUTILS) == null) {
             if (logger.isLoggable(Level.WARNING)) {
@@ -551,12 +553,13 @@ public final class DaemonFileUtils {
               throw new ConcurrentModificationException();
             }
             if (logger.isLoggable(Level.INFO)) {
-              logger.info(AOServDaemon.getCommandString(command));
+              logger.info(AoservDaemon.getCommandString(command));
             }
-            AOServDaemon.exec(command);
+            AoservDaemon.exec(command);
           }
           break;
-        default :
+        }
+        default:
           throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
       }
     }

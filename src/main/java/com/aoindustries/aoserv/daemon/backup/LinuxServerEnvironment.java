@@ -28,7 +28,7 @@ import com.aoapps.hodgepodge.io.FilesystemIteratorRule;
 import com.aoapps.net.DomainName;
 import com.aoapps.net.InetAddress;
 import com.aoindustries.aoserv.backup.PosixFileEnvironment;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.backup.BackupPartition;
 import com.aoindustries.aoserv.client.backup.FileReplication;
 import com.aoindustries.aoserv.client.backup.MysqlReplication;
@@ -37,7 +37,7 @@ import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.net.Host;
 import com.aoindustries.aoserv.client.scm.CvsRepository;
 import com.aoindustries.aoserv.client.web.HttpdServer;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.email.ImapManager;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -50,35 +50,39 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * An <code>AOServerEnvironment</code> controls the backup system on
+ * An <code>LinuxServerEnvironment</code> controls the backup system on
  * an <code>Server</code>.
- *
+ * <p>
  * TODO: Save bandwidth by doing prelink -u --undo-output=(tmpfile) (do this to read the file instead of direct I/O).
  *       Can possibly use the distro data to know which ones are prelinked.
- *
+ * </p>
+ * <p>
  * TODO: Use LVM snapshots when is a domU - also do MySQL lock to get steady-state snapshot
- *
+ * </p>
+ * <p>
  * TODO: Should we use some tricky stuff to dump the databases straight out as we iterate?  (Backups only)
  * TODO: Or, just dump to disk and remove when completed?  (Backups only)
- *
+ * </p>
+ * <p>
  * TODO: Adhere to the d attribute?  man chattr
+ * </p>
  *
  * @see  Server
  *
  * @author  AO Industries, Inc.
  */
-public class AOServerEnvironment extends PosixFileEnvironment {
+public class LinuxServerEnvironment extends PosixFileEnvironment {
 
-  private static final Logger logger = Logger.getLogger(AOServerEnvironment.class.getName());
+  private static final Logger logger = Logger.getLogger(LinuxServerEnvironment.class.getName());
 
   @Override
-  public AOServConnector getConnector() throws IOException, SQLException {
-    return AOServDaemon.getConnector();
+  public AoservConnector getConnector() throws IOException, SQLException {
+    return AoservDaemon.getConnector();
   }
 
   @Override
   public Host getThisHost() throws IOException, SQLException {
-    return AOServDaemon.getThisServer().getHost();
+    return AoservDaemon.getThisServer().getHost();
   }
 
   @Override
@@ -86,13 +90,13 @@ public class AOServerEnvironment extends PosixFileEnvironment {
     super.preBackup(ffr);
     BackupManager.cleanVarOldaccounts();
 
-    // TODO: BackupManager.backupMySQLDatabases();
+    // TODO: BackupManager.backupMysqlDatabases();
 
     // TODO: BackupManager.backupPostgresDatabases();
   }
 
-  private final Map<FileReplication, List<com.aoindustries.aoserv.client.mysql.Server.Name>> replicatedMySQLServerses = new HashMap<>();
-  private final Map<FileReplication, List<String>> replicatedMySQLMinorVersionses = new HashMap<>();
+  private final Map<FileReplication, List<com.aoindustries.aoserv.client.mysql.Server.Name>> replicatedMysqlServerses = new HashMap<>();
+  private final Map<FileReplication, List<String>> replicatedMysqlMinorVersionses = new HashMap<>();
 
   @Override
   public void init(FileReplication ffr) throws IOException, SQLException {
@@ -101,27 +105,27 @@ public class AOServerEnvironment extends PosixFileEnvironment {
     short retention = ffr.getRetention().getDays();
     if (retention == 1) {
       Server toServer = ffr.getBackupPartition().getLinuxServer();
-      List<MysqlReplication> fmrs = ffr.getFailoverMySQLReplications();
-      List<com.aoindustries.aoserv.client.mysql.Server.Name> replicatedMySQLServers = new ArrayList<>(fmrs.size());
-      List<String> replicatedMySQLMinorVersions = new ArrayList<>(fmrs.size());
-      Logger _logger = getLogger();
-      boolean isDebug = _logger.isLoggable(Level.FINE);
+      List<MysqlReplication> fmrs = ffr.getFailoverMysqlReplications();
+      List<com.aoindustries.aoserv.client.mysql.Server.Name> replicatedMysqlServers = new ArrayList<>(fmrs.size());
+      List<String> replicatedMysqlMinorVersions = new ArrayList<>(fmrs.size());
+      Logger myLogger = getLogger();
+      boolean isDebug = myLogger.isLoggable(Level.FINE);
       for (MysqlReplication fmr : fmrs) {
-        com.aoindustries.aoserv.client.mysql.Server mysqlServer = fmr.getMySQLServer();
+        com.aoindustries.aoserv.client.mysql.Server mysqlServer = fmr.getMysqlServer();
         com.aoindustries.aoserv.client.mysql.Server.Name name = mysqlServer.getName();
         String minorVersion = mysqlServer.getMinorVersion();
-        replicatedMySQLServers.add(name);
-        replicatedMySQLMinorVersions.add(minorVersion);
+        replicatedMysqlServers.add(name);
+        replicatedMysqlMinorVersions.add(minorVersion);
         if (isDebug) {
-          _logger.logp(Level.FINE, getClass().getName(), "init", "runFailoverCopy to " + toServer + ", replicatedMySQLServer: " + name);
-          _logger.logp(Level.FINE, getClass().getName(), "init", "runFailoverCopy to " + toServer + ", replicatedMySQLMinorVersion: " + minorVersion);
+          myLogger.logp(Level.FINE, getClass().getName(), "init", "runFailoverCopy to " + toServer + ", replicatedMysqlServer: " + name);
+          myLogger.logp(Level.FINE, getClass().getName(), "init", "runFailoverCopy to " + toServer + ", replicatedMysqlMinorVersion: " + minorVersion);
         }
       }
-      synchronized (replicatedMySQLServerses) {
-        replicatedMySQLServerses.put(ffr, replicatedMySQLServers);
+      synchronized (replicatedMysqlServerses) {
+        replicatedMysqlServerses.put(ffr, replicatedMysqlServers);
       }
-      synchronized (replicatedMySQLMinorVersionses) {
-        replicatedMySQLMinorVersionses.put(ffr, replicatedMySQLMinorVersions);
+      synchronized (replicatedMysqlMinorVersionses) {
+        replicatedMysqlMinorVersionses.put(ffr, replicatedMysqlMinorVersions);
       }
     }
   }
@@ -131,11 +135,11 @@ public class AOServerEnvironment extends PosixFileEnvironment {
     try {
       short retention = ffr.getRetention().getDays();
       if (retention == 1) {
-        synchronized (replicatedMySQLServerses) {
-          replicatedMySQLServerses.remove(ffr);
+        synchronized (replicatedMysqlServerses) {
+          replicatedMysqlServerses.remove(ffr);
         }
-        synchronized (replicatedMySQLMinorVersionses) {
-          replicatedMySQLMinorVersionses.remove(ffr);
+        synchronized (replicatedMysqlMinorVersionses) {
+          replicatedMysqlMinorVersionses.remove(ffr);
         }
       }
     } finally {
@@ -145,12 +149,12 @@ public class AOServerEnvironment extends PosixFileEnvironment {
 
   @Override
   public int getFailoverBatchSize(FileReplication ffr) throws IOException, SQLException {
-    return AOServDaemon.getThisServer().getFailoverBatchSize();
+    return AoservDaemon.getThisServer().getFailoverBatchSize();
   }
 
   @Override
   protected Map<String, FilesystemIteratorRule> getFilesystemIteratorRules(FileReplication ffr) throws IOException, SQLException {
-    final Server thisServer = AOServDaemon.getThisServer();
+    final Server thisServer = AoservDaemon.getThisServer();
     final short retention = ffr.getRetention().getDays();
     final OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     final int osvId = osv.getPkey();
@@ -281,7 +285,7 @@ public class AOServerEnvironment extends PosixFileEnvironment {
     filesystemRules.put("/var/lib/mysql/.journal", FilesystemIteratorRule.SKIP);
     filesystemRules.put("/var/lib/mysql/lost+found", FilesystemIteratorRule.SKIP); // TODO: just iterate all mounts points and exclude lost+found instead?
     final DomainName hostname = thisServer.getHostname();
-    List<com.aoindustries.aoserv.client.mysql.Server> mysqlServers = thisServer.getMySQLServers();
+    List<com.aoindustries.aoserv.client.mysql.Server> mysqlServers = thisServer.getMysqlServers();
     for (com.aoindustries.aoserv.client.mysql.Server mysqlServer : mysqlServers)  {
       com.aoindustries.aoserv.client.mysql.Server.Name name = mysqlServer.getName();
       if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
@@ -301,12 +305,12 @@ public class AOServerEnvironment extends PosixFileEnvironment {
     }
     if (retention == 1) {
       // Failover-over mode
-      List<com.aoindustries.aoserv.client.mysql.Server.Name> replicatedMySQLServers;
-      synchronized (replicatedMySQLServerses) {
-        replicatedMySQLServers = replicatedMySQLServerses.get(ffr);
+      List<com.aoindustries.aoserv.client.mysql.Server.Name> replicatedMysqlServers;
+      synchronized (replicatedMysqlServerses) {
+        replicatedMysqlServers = replicatedMysqlServerses.get(ffr);
       }
       // Skip files for any MySQL Host that is being replicated through MySQL replication
-      for (com.aoindustries.aoserv.client.mysql.Server.Name name : replicatedMySQLServers) {
+      for (com.aoindustries.aoserv.client.mysql.Server.Name name : replicatedMysqlServers) {
         // Skip /var/lib/mysql/(name)
         filesystemRules.put("/var/lib/mysql/" + name, FilesystemIteratorRule.SKIP);
         // Skip /var/log/mysql-(name)/
@@ -455,9 +459,9 @@ public class AOServerEnvironment extends PosixFileEnvironment {
 
   @Override
   protected Map<String, FilesystemIteratorRule> getFilesystemIteratorPrefixRules(FileReplication ffr) throws IOException, SQLException {
-    final Server thisServer = AOServDaemon.getThisServer();
+    final Server thisServer = AoservDaemon.getThisServer();
     Map<String, FilesystemIteratorRule> filesystemPrefixRules = new HashMap<>();
-    for (com.aoindustries.aoserv.client.mysql.Server mysqlServer : thisServer.getMySQLServers()) {
+    for (com.aoindustries.aoserv.client.mysql.Server mysqlServer : thisServer.getMysqlServers()) {
       com.aoindustries.aoserv.client.mysql.Server.Name name = mysqlServer.getName();
       filesystemPrefixRules.put("/var/lib/mysql/" + name + "/mysql-bin.", FilesystemIteratorRule.SKIP);
       filesystemPrefixRules.put("/var/lib/mysql/" + name + "/relay-log.", FilesystemIteratorRule.SKIP);
@@ -466,40 +470,40 @@ public class AOServerEnvironment extends PosixFileEnvironment {
   }
 
   @Override
-  public InetAddress getDefaultSourceIPAddress() throws IOException, SQLException {
-    Server thisServer = AOServDaemon.getThisServer();
+  public InetAddress getDefaultSourceIpAddress() throws IOException, SQLException {
+    Server thisServer = AoservDaemon.getThisServer();
     // Next, it will use the daemon bind address
-    InetAddress sourceIPAddress = thisServer.getDaemonBind().getIpAddress().getInetAddress();
+    InetAddress sourceIpAddress = thisServer.getDaemonBind().getIpAddress().getInetAddress();
     // If daemon is binding to wildcard, then use source IP address of primary IP
-    if (sourceIPAddress.isUnspecified()) {
-      sourceIPAddress = thisServer.getPrimaryIPAddress().getInetAddress();
+    if (sourceIpAddress.isUnspecified()) {
+      sourceIpAddress = thisServer.getPrimaryIpAddress().getInetAddress();
     }
-    return sourceIPAddress;
+    return sourceIpAddress;
   }
 
   @Override
-  public List<com.aoindustries.aoserv.client.mysql.Server.Name> getReplicatedMySQLServers(FileReplication ffr) throws IOException, SQLException {
-    synchronized (replicatedMySQLServerses) {
-      return replicatedMySQLServerses.get(ffr);
+  public List<com.aoindustries.aoserv.client.mysql.Server.Name> getReplicatedMysqlServers(FileReplication ffr) throws IOException, SQLException {
+    synchronized (replicatedMysqlServerses) {
+      return replicatedMysqlServerses.get(ffr);
     }
   }
 
   @Override
-  public List<String> getReplicatedMySQLMinorVersions(FileReplication ffr) throws IOException, SQLException {
-    synchronized (replicatedMySQLMinorVersionses) {
-      return replicatedMySQLMinorVersionses.get(ffr);
+  public List<String> getReplicatedMysqlMinorVersions(FileReplication ffr) throws IOException, SQLException {
+    synchronized (replicatedMysqlMinorVersionses) {
+      return replicatedMysqlMinorVersionses.get(ffr);
     }
   }
 
   /**
    * {@inheritDoc}
    * <p>
-   * Uses the fast random source from {@link AOServDaemon#getFastRandom()}.
+   * Uses the fast random source from {@link AoservDaemon#getFastRandom()}.
    * </p>
    */
   @Override
   public Random getFastRandom() {
-    return AOServDaemon.getFastRandom();
+    return AoservDaemon.getFastRandom();
   }
 
   @Override

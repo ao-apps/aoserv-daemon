@@ -32,8 +32,8 @@ import com.aoapps.lang.function.ConsumerE;
 import com.aoapps.lang.function.FunctionE;
 import com.aoapps.lang.io.IoUtils;
 import com.aoapps.lang.io.NullOutputStream;
-import com.aoindustries.aoserv.client.AOServClientConfiguration;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservClientConfiguration;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.linux.Shell;
@@ -99,21 +99,21 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * The <code>AOServDaemon</code> starts all of the services that run inside the Java VM.
+ * The <code>AoservDaemon</code> starts all of the services that run inside the Java VM.
  * <p>
- * TODO: List AOServDaemon at http://www.firewalld.org/
+ * TODO: List AoservDaemon at http://www.firewalld.org/
  * </p>
  *
  * @author  AO Industries, Inc.
  */
-public final class AOServDaemon {
+public final class AoservDaemon {
 
   /** Make no instances. */
-  private AOServDaemon() {
+  private AoservDaemon() {
     throw new AssertionError();
   }
 
-  private static final Logger logger = Logger.getLogger(AOServDaemon.class.getName());
+  private static final Logger logger = Logger.getLogger(AoservDaemon.class.getName());
 
   public static final boolean DEBUG = false;
 
@@ -141,7 +141,7 @@ public final class AOServDaemon {
   /**
    * The default connection is used to the database, because it should be configured in the properties files.
    */
-  private static AOServConnector conn;
+  private static AoservConnector conn;
 
   /**
    * An unbounded executor for daemon-wide tasks.
@@ -181,18 +181,18 @@ public final class AOServDaemon {
     }
   }
 
-  public static AOServConnector getConnector() throws ConfigurationException {
-    synchronized (AOServDaemon.class) {
+  public static AoservConnector getConnector() throws ConfigurationException {
+    synchronized (AoservDaemon.class) {
       if (conn == null) {
         // Get the connector that will be used
-        conn = AOServConnector.getConnector();
+        conn = AoservConnector.getConnector();
       }
       return conn;
     }
   }
 
   public static Server getThisServer() throws IOException, SQLException {
-    String hostname = AOServDaemonConfiguration.getServerHostname();
+    String hostname = AoservDaemonConfiguration.getServerHostname();
     Host host = getConnector().getNet().getHost().get(hostname);
     if (host == null) {
       throw new SQLException("Unable to find Host: " + hostname);
@@ -205,7 +205,7 @@ public final class AOServDaemon {
   }
 
   /**
-   * Runs the <code>AOServDaemon</code> with the values
+   * Runs the <code>AoservDaemon</code> with the values
    * provided in <code>com/aoindustries/aoserv/daemon/aoserv-daemon.properties</code>.
    * This will typically be called by the init scripts of the dedicated machine.
    */
@@ -215,19 +215,19 @@ public final class AOServDaemon {
     while (!Thread.currentThread().isInterrupted() && !done) {
       try {
         // Configure the SSL
-        String trustStorePath = AOServClientConfiguration.getSslTruststorePath();
+        String trustStorePath = AoservClientConfiguration.getSslTruststorePath();
         if (trustStorePath != null && trustStorePath.length() > 0) {
           System.setProperty("javax.net.ssl.trustStore", trustStorePath);
         }
-        String trustStorePassword = AOServClientConfiguration.getSslTruststorePassword();
+        String trustStorePassword = AoservClientConfiguration.getSslTruststorePassword();
         if (trustStorePassword != null && trustStorePassword.length() > 0) {
           System.setProperty("javax.net.ssl.trustStorePassword", trustStorePassword);
         }
-        String keyStorePath = AOServDaemonConfiguration.getSSLKeystorePath();
+        String keyStorePath = AoservDaemonConfiguration.getSslKeystorePath();
         if (keyStorePath != null && keyStorePath.length() > 0) {
           System.setProperty("javax.net.ssl.keyStore", keyStorePath);
         }
-        String keyStorePassword = AOServDaemonConfiguration.getSSLKeystorePassword();
+        String keyStorePassword = AoservDaemonConfiguration.getSslKeystorePassword();
         if (keyStorePassword != null && keyStorePassword.length() > 0) {
           System.setProperty("javax.net.ssl.keyStorePassword", keyStorePassword);
         }
@@ -302,7 +302,7 @@ public final class AOServDaemon {
         // Start up the AOServDaemonServers
         Bind bind = getThisServer().getDaemonBind();
         if (bind != null) {
-          AOServDaemonServer server = new AOServDaemonServer(
+          AoservDaemonServer server = new AoservDaemonServer(
               bind.getIpAddress().getInetAddress(),
               bind.getPort().getPort(),
               bind.getAppProtocol().getProtocol()
@@ -370,7 +370,7 @@ public final class AOServDaemon {
       String... command
   ) throws IOException {
     if (DEBUG) {
-      System.out.print("DEBUG: AOServDaemon.execCall(): ");
+      System.out.print("DEBUG: AoservDaemon.execCall(): ");
       System.out.println(getCommandString(command));
     }
     Process process = new ProcessBuilder(command).directory(workingDirectory).start();
@@ -492,8 +492,8 @@ public final class AOServDaemon {
   ) throws IOException {
     execCall(
         stdin,
-        _stdout -> {
-          stdout.accept(_stdout);
+        myStdout -> {
+          stdout.accept(myStdout);
           return null;
         },
         workingDirectory,
@@ -542,7 +542,7 @@ public final class AOServDaemon {
       String... command
   ) throws IOException {
     if (DEBUG) {
-      System.out.print("DEBUG: AOServDaemon.execCall(): ");
+      System.out.print("DEBUG: AoservDaemon.execCall(): ");
       System.out.println(getCommandString(command));
     }
     Process process = new ProcessBuilder(command).directory(workingDirectory).start();
@@ -651,8 +651,8 @@ public final class AOServDaemon {
       String... command
   ) throws IOException {
     execCall(
-        _stdout -> {
-          stdout.accept(_stdout);
+        myStdout -> {
+          stdout.accept(myStdout);
           return null;
         },
         workingDirectory,

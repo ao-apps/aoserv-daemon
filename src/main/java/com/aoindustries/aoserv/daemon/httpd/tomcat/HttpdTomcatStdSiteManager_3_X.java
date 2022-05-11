@@ -26,14 +26,14 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
 import com.aoapps.encoding.ChainWriter;
 import com.aoapps.io.posix.PosixFile;
 import com.aoapps.net.DomainName;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.linux.UserServer;
 import com.aoindustries.aoserv.client.web.tomcat.Context;
 import com.aoindustries.aoserv.client.web.tomcat.JkProtocol;
 import com.aoindustries.aoserv.client.web.tomcat.PrivateTomcatSite;
 import com.aoindustries.aoserv.client.web.tomcat.Worker;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.posix.linux.LinuxAccountManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
@@ -48,23 +48,23 @@ import java.util.List;
  *
  * @author  AO Industries, Inc.
  */
-abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extends HttpdTomcatStdSiteManager<TC> {
+abstract class HttpdTomcatStdSiteManager_3_X<T extends TomcatCommon_3_X> extends HttpdTomcatStdSiteManager<T> {
 
   HttpdTomcatStdSiteManager_3_X(PrivateTomcatSite tomcatStdSite) throws SQLException, IOException {
     super(tomcatStdSite);
   }
 
   /**
-   * Only supports ajp12
+   * Only supports ajp12.
    */
   @Override
   protected Worker getHttpdWorker() throws IOException, SQLException {
-    AOServConnector conn = AOServDaemon.getConnector();
+    AoservConnector conn = AoservDaemon.getConnector();
     List<Worker> workers = tomcatSite.getHttpdWorkers();
 
     // Try ajp12 next
     for (Worker hw : workers) {
-      if (hw.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol().equals(JkProtocol.AJP12)) {
+      if (hw.getHttpdJkProtocol(conn).getProtocol(conn).getProtocol().equals(JkProtocol.AJP12)) {
         return hw;
       }
     }
@@ -86,9 +86,9 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
     final UserServer lsa = httpdSite.getLinuxServerAccount();
     final int uid = lsa.getUid().getId();
     final int gid = httpdSite.getLinuxServerGroup().getGid().getId();
-    final Server thisServer = AOServDaemon.getThisServer();
-    int uid_min = thisServer.getUidMin().getId();
-    int gid_min = thisServer.getGidMin().getId();
+    final Server thisServer = AoservDaemon.getThisServer();
+    int uidMin = thisServer.getUidMin().getId();
+    int gidMin = thisServer.getGidMin().getId();
     final DomainName hostname = thisServer.getHostname();
     //final Server postgresServer=thisServer.getPreferredPostgresServer();
     //final String postgresServerMinorVersion=postgresServer == null?null:postgresServer.getPostgresVersion().getMinorVersion();
@@ -121,9 +121,9 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
     final String profileFile = siteDir + "/bin/profile";
     LinuxAccountManager.setBashProfile(lsa, profileFile);
     try (
-      ChainWriter out = new ChainWriter(
+        ChainWriter out = new ChainWriter(
             new BufferedOutputStream(
-                new PosixFile(profileFile).getSecureOutputStream(uid, gid, 0750, false, uid_min, gid_min)
+                new PosixFile(profileFile).getSecureOutputStream(uid, gid, 0750, false, uidMin, gidMin)
             )
         )
         ) {
@@ -190,15 +190,15 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
      */
     String tomcatScript = siteDir + "/bin/tomcat";
     try (
-      ChainWriter out = new ChainWriter(
+        ChainWriter out = new ChainWriter(
             new BufferedOutputStream(
                 new PosixFile(tomcatScript).getSecureOutputStream(
                     uid,
                     gid,
                     0700,
                     false,
-                    uid_min,
-                    gid_min
+                    uidMin,
+                    gidMin
                 )
             )
         )
@@ -253,9 +253,9 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
     DaemonFileUtils.mkdir(siteDir + "/classes", 0770, uid, gid);
     String confManifestServlet = siteDir + "/conf/manifest.servlet";
     try (
-      ChainWriter out = new ChainWriter(
+        ChainWriter out = new ChainWriter(
             new BufferedOutputStream(
-                new PosixFile(confManifestServlet).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+                new PosixFile(confManifestServlet).getSecureOutputStream(uid, gid, 0660, false, uidMin, gidMin)
             )
         )
         ) {
@@ -278,11 +278,11 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
           + "Implementation-Version: \"2.1.1\"\n"
           + "Implementation-Vendor: \"Sun Microsystems, Inc.\"\n");
     }
-    String confServerDTD = siteDir + "/conf/server.dtd";
+    String confServerDtd = siteDir + "/conf/server.dtd";
     try (
-      ChainWriter out = new ChainWriter(
+        ChainWriter out = new ChainWriter(
             new BufferedOutputStream(
-                new PosixFile(confServerDTD).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+                new PosixFile(confServerDtd).getSecureOutputStream(uid, gid, 0660, false, uidMin, gidMin)
             )
         )
         ) {
@@ -323,31 +323,32 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
           + "    name CDATA #REQUIRED\n"
           + "    value CDATA \"\">\n");
     }
-    tomcatCommon.createTestTomcatXml(siteDir + "/conf", uid, gid, 0660, uid_min, gid_min);
+    tomcatCommon.createTestTomcatXml(siteDir + "/conf", uid, gid, 0660, uidMin, gidMin);
     try (
-      ChainWriter out = new ChainWriter(
+        ChainWriter out = new ChainWriter(
             new BufferedOutputStream(
-                new PosixFile(siteDir + "/conf/tomcat-users.xml").getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+                new PosixFile(siteDir + "/conf/tomcat-users.xml").getSecureOutputStream(uid, gid, 0660, false, uidMin, gidMin)
             )
         )
         ) {
       tomcatCommon.printTomcatUsers(out);
     }
-    tomcatCommon.createWebDtd(siteDir + "/conf", uid, gid, 0660, uid_min, gid_min);
-    tomcatCommon.createWebXml(siteDir + "/conf", uid, gid, 0660, uid_min, gid_min);
+    tomcatCommon.createWebDtd(siteDir + "/conf", uid, gid, 0660, uidMin, gidMin);
+    tomcatCommon.createWebXml(siteDir + "/conf", uid, gid, 0660, uidMin, gidMin);
     for (String tomcatLogFile : TomcatCommon_3_X.tomcatLogFiles) {
       String filename = siteDir + "/var/log/" + tomcatLogFile;
-      new PosixFile(filename).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min).close();
+      new PosixFile(filename).getSecureOutputStream(uid, gid, 0660, false, uidMin, gidMin).close();
     }
     final String manifestFile = siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/META-INF/MANIFEST.MF";
-    try (ChainWriter out = new ChainWriter(new PosixFile(manifestFile).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min))) {
+    try (ChainWriter out = new ChainWriter(new PosixFile(manifestFile).getSecureOutputStream(uid, gid, 0664, false, uidMin, gidMin))) {
       out.print("Manifest-Version: 1.0");
     }
 
     /*
      * Write the cocoon.properties file.
      */
-    try (OutputStream fileOut = new BufferedOutputStream(new PosixFile(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/conf/cocoon.properties").getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min))) {
+    try (OutputStream fileOut = new BufferedOutputStream(new PosixFile(siteDir + "/webapps/" + Context.ROOT_DOC_BASE
+        + "/WEB-INF/conf/cocoon.properties").getSecureOutputStream(uid, gid, 0660, false, uidMin, gidMin))) {
       tomcatCommon.copyCocoonProperties1(fileOut);
       try (ChainWriter out = new ChainWriter(fileOut)) {
         out.print("processor.xsp.repository = ").print(siteDir).print("/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/cocoon\n");
@@ -360,9 +361,9 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
      * Write the ROOT/WEB-INF/web.xml file.
      */
     try (
-      ChainWriter out = new ChainWriter(
+        ChainWriter out = new ChainWriter(
             new BufferedOutputStream(
-                new PosixFile(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/web.xml").getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
+                new PosixFile(siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/web.xml").getSecureOutputStream(uid, gid, 0664, false, uidMin, gidMin)
             )
         )
         ) {

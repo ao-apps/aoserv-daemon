@@ -26,7 +26,7 @@ package com.aoindustries.aoserv.daemon.iptables;
 import com.aoapps.collections.AoCollections;
 import com.aoapps.io.posix.PosixFile;
 import com.aoapps.lang.math.SafeMath;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.account.Administrator;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.Server;
@@ -34,8 +34,8 @@ import com.aoindustries.aoserv.client.master.User;
 import com.aoindustries.aoserv.client.net.reputation.Host;
 import com.aoindustries.aoserv.client.net.reputation.Network;
 import com.aoindustries.aoserv.client.net.reputation.Set;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import java.io.File;
@@ -93,7 +93,7 @@ public final class IpReputationManager extends BuilderThread {
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() throws IOException, SQLException {
-    Server thisServer = AOServDaemon.getThisServer();
+    Server thisServer = AoservDaemon.getThisServer();
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
 
@@ -103,7 +103,7 @@ public final class IpReputationManager extends BuilderThread {
           osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
               && osvId != OperatingSystemVersion.CENTOS_7_X86_64
               // Check config after OS check so config entry not needed
-              && AOServDaemonConfiguration.isManagerEnabled(IpReputationManager.class)
+              && AoservDaemonConfiguration.isManagerEnabled(IpReputationManager.class)
               && ipReputationManager == null
       ) {
         System.out.print("Starting IpReputationManager: ");
@@ -113,7 +113,7 @@ public final class IpReputationManager extends BuilderThread {
             osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
                 || osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
         ) {
-          AOServConnector conn = AOServDaemon.getConnector();
+          AoservConnector conn = AoservDaemon.getConnector();
           Administrator administrator = conn.getCurrentAdministrator();
           User mu = administrator.getMasterUser();
           if (mu == null) {
@@ -274,8 +274,8 @@ public final class IpReputationManager extends BuilderThread {
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
   protected boolean doRebuild() {
     try {
-      AOServConnector conn = AOServDaemon.getConnector();
-      Server thisServer = AOServDaemon.getThisServer();
+      AoservConnector conn = AoservDaemon.getConnector();
+      Server thisServer = AoservDaemon.getThisServer();
       OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
       int osvId = osv.getPkey();
       if (

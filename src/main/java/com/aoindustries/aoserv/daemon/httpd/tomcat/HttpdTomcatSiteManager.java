@@ -36,7 +36,7 @@ import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
 import com.aoindustries.aoserv.client.web.tomcat.SharedTomcatSite;
 import com.aoindustries.aoserv.client.web.tomcat.Site;
 import com.aoindustries.aoserv.client.web.tomcat.Worker;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.httpd.HttpdSiteManager;
 import com.aoindustries.aoserv.daemon.httpd.StopStartable;
 import com.aoindustries.aoserv.daemon.httpd.jboss.HttpdJBossSiteManager;
@@ -62,7 +62,7 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends HttpdSiteManager implements StopStartable {
+public abstract class HttpdTomcatSiteManager<T extends TomcatCommon> extends HttpdSiteManager implements StopStartable {
 
   private static final Logger logger = Logger.getLogger(HttpdTomcatSiteManager.class.getName());
 
@@ -75,7 +75,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
       return HttpdTomcatStdSiteManager.getInstance(stdSite);
     }
 
-    com.aoindustries.aoserv.client.web.jboss.Site jbossSite = tomcatSite.getHttpdJBossSite();
+    com.aoindustries.aoserv.client.web.jboss.Site jbossSite = tomcatSite.getHttpdJbossSite();
     if (jbossSite != null) {
       return HttpdJBossSiteManager.getInstance(jbossSite);
     }
@@ -100,7 +100,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
     this.tomcatSite = tomcatSite;
   }
 
-  public abstract TC getTomcatCommon();
+  public abstract T getTomcatCommon();
 
   /**
    * In addition to the standard values, also protects the /WEB-INF/ and /META-INF/ directories of all contexts.
@@ -156,7 +156,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
     ) {
       PosixFile pidFile = getPidFile();
       if (pidFile.getStat().exists()) {
-        AOServDaemon.suexec(
+        AoservDaemon.suexec(
             getStartStopScriptUsername(),
             getStartStopScriptWorkingDirectory(),
             scriptPath + " stop",
@@ -185,7 +185,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
     ) {
       PosixFile pidFile = getPidFile();
       if (!pidFile.getStat().exists()) {
-        AOServDaemon.suexec(
+        AoservDaemon.suexec(
             getStartStopScriptUsername(),
             getStartStopScriptWorkingDirectory(),
             scriptPath + " start",
@@ -201,7 +201,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
           if (!procDir.getStat().exists()) {
             System.err.println("Warning: Deleting PID file for dead process: " + pidFile.getPath());
             pidFile.delete();
-            AOServDaemon.suexec(
+            AoservDaemon.suexec(
                 getStartStopScriptUsername(),
                 getStartStopScriptWorkingDirectory(),
                 scriptPath + " start",
@@ -229,16 +229,16 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
     }
     // Only include JK settings when Tomcat instance is enabled
     boolean tomcatDisabled;
-    {
-      SharedTomcatSite htss = tomcatSite.getHttpdTomcatSharedSite();
-      if (htss != null) {
-        // Shared Tomcat
-        tomcatDisabled = htss.getHttpdSharedTomcat().isDisabled();
-      } else {
-        // Standard Tomcat
-        tomcatDisabled = httpdSite.isDisabled();
+      {
+        SharedTomcatSite htss = tomcatSite.getHttpdTomcatSharedSite();
+        if (htss != null) {
+          // Shared Tomcat
+          tomcatDisabled = htss.getHttpdSharedTomcat().isDisabled();
+        } else {
+          // Standard Tomcat
+          tomcatDisabled = httpdSite.isDisabled();
+        }
       }
-    }
     if (tomcatDisabled) {
       // Return no settings when Tomcat disabled
       return super.getJkSettings();
@@ -306,16 +306,22 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
    * Every Tomcat site is built through the same overall set of steps.
    */
   @Override
-  protected final void buildSiteDirectory(PosixFile siteDirectory, String optSlash, Set<com.aoindustries.aoserv.client.web.Site> sitesNeedingRestarted, Set<SharedTomcat> sharedTomcatsNeedingRestarted, Set<PosixFile> restorecon) throws IOException, SQLException {
+  protected final void buildSiteDirectory(
+      PosixFile siteDirectory,
+      String optSlash,
+      Set<com.aoindustries.aoserv.client.web.Site> sitesNeedingRestarted,
+      Set<SharedTomcat> sharedTomcatsNeedingRestarted,
+      Set<PosixFile> restorecon
+  ) throws IOException, SQLException {
     final int apacheUid = getApacheUid();
     final int uid = httpdSite.getLinuxServerAccount().getUid().getId();
     final int gid = httpdSite.getLinuxServerGroup().getGid().getId();
     final String siteDir = siteDirectory.getPath();
-    // TODO: Consider unpackWARs setting for root directory existence and apache configs
+    // TODO: Consider unpackWars setting for root directory existence and apache configs
     // TODO: Also unpackwars=false incompatible cgi or php options (and htaccess, ssi?)
-    // TODO: Also unpackWARs=false would require use_apache=false
+    // TODO: Also unpackWars=false would require use_apache=false
 
-    final TC tomcatCommon = getTomcatCommon();
+    final T tomcatCommon = getTomcatCommon();
     final String apacheTomcatDir = tomcatCommon.getApacheTomcatDir();
 
     final PosixFile rootDirectory = new PosixFile(siteDir + "/webapps/" + Context.ROOT_DOC_BASE);
@@ -334,18 +340,18 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
     // readmeTxt will be null when in-place upgrade not supported
     final PosixFile readmeTxt = readmeTxtContent == null ? null : new PosixFile(siteDirectory, README_TXT, false);
     final boolean isUpgrade;
-    {
-      final Stat readmeTxtStat;
-      isUpgrade =
-          !isInstall
-              && !httpdSite.isManual()
-              && readmeTxt != null
-              && !(
-              (readmeTxtStat = readmeTxt.getStat()).exists()
-                  && readmeTxtStat.isRegularFile()
-                  && readmeTxt.contentEquals(readmeTxtContent)
-          );
-    }
+      {
+        final Stat readmeTxtStat;
+        isUpgrade =
+            !isInstall
+                && !httpdSite.isManual()
+                && readmeTxt != null
+                && !(
+                (readmeTxtStat = readmeTxt.getStat()).exists()
+                    && readmeTxtStat.isRegularFile()
+                    && readmeTxt.contentEquals(readmeTxtContent)
+            );
+      }
     assert !(isInstall && isUpgrade);
     if (isInstall || isUpgrade) {
 
@@ -451,8 +457,9 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 
   /**
    * Generates the README.txt that is used to detect major version changes to rebuild the Tomcat installation.
-   *
+   * <p>
    * TODO: Generate and use these readme.txt files to detect when version changed
+   * </p>
    *
    * @return  The README.txt file contents or {@code null} if no README.txt used for change detection
    *

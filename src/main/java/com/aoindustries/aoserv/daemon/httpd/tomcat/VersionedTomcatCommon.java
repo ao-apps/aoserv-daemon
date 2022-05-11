@@ -64,7 +64,10 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
   }
 
   /**
+   * {@inheritDoc}
+   * <p>
    * See:
+   * </p>
    * <ol>
    * <li><a href="https://commons.apache.org/proper/commons-dbcp/configuration.html">DBCP – BasicDataSource Configuration</a></li>
    * <li>Tomcat 8.5:
@@ -89,7 +92,7 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
    */
   @Override
   public void writeHttpdTomcatDataSource(ContextDataSource dataSource, ChainWriter out) throws IOException, SQLException {
-    int maxActive = dataSource.getMaxActive();
+    final int maxActive = dataSource.getMaxActive();
     out.print("          <Resource\n"
         + "            name=\"").textInXmlAttribute(dataSource.getName()).print("\"\n"
         + "            auth=\"Container\"\n"

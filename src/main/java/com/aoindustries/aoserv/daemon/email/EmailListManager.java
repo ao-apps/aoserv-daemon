@@ -31,7 +31,7 @@ import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.email.MajordomoServer;
 import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -57,7 +57,7 @@ public final class EmailListManager {
    * Reads the address list from the file system.
    */
   public static String getEmailListFile(PosixPath path) throws IOException, SQLException {
-    Server thisServer = AOServDaemon.getThisServer();
+    Server thisServer = AoservDaemon.getThisServer();
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
     if (
@@ -75,7 +75,7 @@ public final class EmailListManager {
    * new <code>List</code> is stored in the database.
    */
   public static void removeEmailListAddresses(PosixPath path) throws IOException, SQLException {
-    OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
+    OperatingSystemVersion osv = AoservDaemon.getThisServer().getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
     if (
         osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
@@ -102,7 +102,7 @@ public final class EmailListManager {
       int gid,
       int mode
   ) throws IOException, SQLException {
-    Server thisServer = AOServDaemon.getThisServer();
+    Server thisServer = AoservDaemon.getThisServer();
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
     if (
@@ -112,8 +112,8 @@ public final class EmailListManager {
       throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
     }
 
-    int uid_min = thisServer.getUidMin().getId();
-    int gid_min = thisServer.getGidMin().getId();
+    int uidMin = thisServer.getUidMin().getId();
+    int gidMin = thisServer.getGidMin().getId();
 
     // Remove any '/r'
     StringBuilder sb = new StringBuilder();
@@ -132,8 +132,8 @@ public final class EmailListManager {
     // If a majordomo list, add any new directories
     if (path.toString().startsWith(MajordomoServer.MAJORDOMO_SERVER_DIRECTORY.toString() + '/')) {
       // TODO: Create /etc/mail/majordomo when first needed
-      PosixFile pathUF = new PosixFile(path.toString());
-      PosixFile listDir = pathUF.getParent();
+      PosixFile pathPosixFile = new PosixFile(path.toString());
+      PosixFile listDir = pathPosixFile.getParent();
       if (!listDir.getStat().exists()) {
         PosixFile serverDir = listDir.getParent();
         if (!serverDir.getStat().exists()) {
@@ -148,12 +148,12 @@ public final class EmailListManager {
     // TODO: Atomic write and restorecon
     File pathFile = new File(path.toString());
     try (
-      TempFileContext tempFileContext = new TempFileContext(pathFile.getParentFile());
-      TempFile tempFile = tempFileContext.createTempFile(pathFile.getName())
+        TempFileContext tempFileContext = new TempFileContext(pathFile.getParentFile());
+        TempFile tempFile = tempFileContext.createTempFile(pathFile.getName())
         ) {
       try (
-        Writer out = new OutputStreamWriter(
-              new PosixFile(tempFile.getFile()).getSecureOutputStream(uid, gid, mode, true, uid_min, gid_min),
+          Writer out = new OutputStreamWriter(
+              new PosixFile(tempFile.getFile()).getSecureOutputStream(uid, gid, mode, true, uidMin, gidMin),
               ENCODING
           )
           ) {

@@ -27,7 +27,7 @@ import com.aoapps.collections.AoCollections;
 import com.aoapps.encoding.ChainWriter;
 import com.aoapps.io.posix.PosixFile;
 import com.aoapps.net.InetAddress;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.Group;
 import com.aoindustries.aoserv.client.postgresql.Database;
@@ -35,8 +35,8 @@ import com.aoindustries.aoserv.client.postgresql.Server;
 import com.aoindustries.aoserv.client.postgresql.User;
 import com.aoindustries.aoserv.client.postgresql.UserServer;
 import com.aoindustries.aoserv.client.postgresql.Version;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.posix.linux.LinuxProcess;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
@@ -106,8 +106,8 @@ public final class PgHbaManager extends BuilderThread {
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
   protected boolean doRebuild() {
     try {
-      AOServConnector connector = AOServDaemon.getConnector();
-      com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+      AoservConnector connector = AoservDaemon.getConnector();
+      com.aoindustries.aoserv.client.linux.Server thisServer = AoservDaemon.getThisServer();
       OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
       int osvId = osv.getPkey();
       if (
@@ -130,8 +130,8 @@ public final class PgHbaManager extends BuilderThread {
                 logger.severe("No databases; refusing to rebuild config: " + ps);
               } else {
                 String version = ps.getVersion().getTechnologyVersion(connector).getVersion();
-                int postgresUID = thisServer.getLinuxServerAccount(com.aoindustries.aoserv.client.linux.User.POSTGRES).getUid().getId();
-                int postgresGID = thisServer.getLinuxServerGroup(Group.POSTGRES).getGid().getId();
+                int postgresUid = thisServer.getLinuxServerAccount(com.aoindustries.aoserv.client.linux.User.POSTGRES).getUid().getId();
+                int postgresGid = thisServer.getLinuxServerGroup(Group.POSTGRES).getGid().getId();
                 Server.Name serverName = ps.getName();
                 File serverDir = new File(PostgresServerManager.pgsqlDirectory, serverName.toString());
                 ByteArrayOutputStream bout = new ByteArrayOutputStream();
@@ -154,11 +154,11 @@ public final class PgHbaManager extends BuilderThread {
                             // Allow postgres to all databases
                             pu.getKey().equals(User.POSTGRES)
                                 // Allow database admin
-                                || psu.equals(db.getDatDBA())
+                                || psu.equals(db.getDatdba())
                                 // Allow in same account
                                 || pu.getUsername().getPackage().getAccount().equals(
                                 // TODO: Allow access to subaccounts?
-                                db.getDatDBA().getPostgresUser().getUsername().getPackage().getAccount()
+                                db.getDatdba().getPostgresUser().getUsername().getPackage().getAccount()
                             )
                         ) {
                           if (didOne) {
@@ -181,11 +181,11 @@ public final class PgHbaManager extends BuilderThread {
                             // Allow postgres to all databases
                             pu.getKey().equals(User.POSTGRES)
                                 // Allow database admin
-                                || psu.equals(db.getDatDBA())
+                                || psu.equals(db.getDatdba())
                                 // Allow in same account
                                 || pu.getUsername().getPackage().getAccount().equals(
                                 // TODO: Allow access to subaccounts?
-                                db.getDatDBA().getPostgresUser().getUsername().getPackage().getAccount()
+                                db.getDatdba().getPostgresUser().getUsername().getPackage().getAccount()
                             )
                         ) {
                           if (didOne) {
@@ -216,11 +216,11 @@ public final class PgHbaManager extends BuilderThread {
                             // Allow postgres to all databases
                             pu.getKey().equals(User.POSTGRES)
                                 // Allow database admin
-                                || psu.equals(db.getDatDBA())
+                                || psu.equals(db.getDatdba())
                                 // Allow in same account
                                 || pu.getUsername().getPackage().getAccount().equals(
                                 // TODO: Allow access to subaccounts?
-                                db.getDatDBA().getPostgresUser().getUsername().getPackage().getAccount()
+                                db.getDatdba().getPostgresUser().getUsername().getPackage().getAccount()
                             )
                         ) {
                           if (didOne) {
@@ -245,11 +245,11 @@ public final class PgHbaManager extends BuilderThread {
                             // Allow postgres to all databases
                             pu.getKey().equals(User.POSTGRES)
                                 // Allow database admin
-                                || psu.equals(db.getDatDBA())
+                                || psu.equals(db.getDatdba())
                                 // Allow in same account
                                 || pu.getUsername().getPackage().getAccount().equals(
                                 // TODO: Allow access to subaccounts?
-                                db.getDatDBA().getPostgresUser().getUsername().getPackage().getAccount()
+                                db.getDatdba().getPostgresUser().getUsername().getPackage().getAccount()
                             )
                         ) {
                           if (didOne) {
@@ -274,11 +274,11 @@ public final class PgHbaManager extends BuilderThread {
                             // Allow postgres to all databases
                             pu.getKey().equals(User.POSTGRES)
                                 // Allow database admin
-                                || psu.equals(db.getDatDBA())
+                                || psu.equals(db.getDatdba())
                                 // Allow in same account
                                 || pu.getUsername().getPackage().getAccount().equals(
                                 // TODO: Allow access to subaccounts?
-                                db.getDatDBA().getPostgresUser().getUsername().getPackage().getAccount()
+                                db.getDatdba().getPostgresUser().getUsername().getPackage().getAccount()
                             )
                         ) {
                           if (didOne) {
@@ -303,11 +303,11 @@ public final class PgHbaManager extends BuilderThread {
                             // Allow postgres to all databases
                             pu.getKey().equals(User.POSTGRES)
                                 // Allow database admin
-                                || psu.equals(db.getDatDBA())
+                                || psu.equals(db.getDatdba())
                                 // Allow in same account
                                 || pu.getUsername().getPackage().getAccount().equals(
                                 // TODO: Allow access to subaccounts?
-                                db.getDatDBA().getPostgresUser().getUsername().getPackage().getAccount()
+                                db.getDatdba().getPostgresUser().getUsername().getPackage().getAccount()
                             )
                         ) {
                           if (didOne) {
@@ -343,9 +343,9 @@ public final class PgHbaManager extends BuilderThread {
                   ) {
                     // TODO: PostgreSQL 14 allows multi-line configs with trailing backslash line continuation
                     // scram-sha-256 as of PostgreSQL 10
-                    boolean isScramSha256 = Version.isScramSha256(version);
+                    final boolean isScramSha256 = Version.isScramSha256(version);
                     // Find all non-system users on this server, used to limit "peer" and "ident" records
-                    Set<com.aoindustries.aoserv.client.account.User.Name> postgresIdentUsers = new HashSet<>();
+                    final Set<com.aoindustries.aoserv.client.account.User.Name> postgresIdentUsers = new HashSet<>();
                     for (com.aoindustries.aoserv.client.linux.UserServer lsa : thisServer.getLinuxServerAccounts()) {
                       com.aoindustries.aoserv.client.linux.User la = lsa.getLinuxAccount();
                       if (la.getType().canPostgresIdent()) {
@@ -354,21 +354,21 @@ public final class PgHbaManager extends BuilderThread {
                     }
                     // When bind is either 127.0.0.1 or ::1, the server is configured to listen on "localhost",
                     // which will listen on both.  The 127.0.0.1 / ::1 distiction only affects which family the
-                    // AOServDaemon connects to.
-                    InetAddress bind = ps.getBind().getIpAddress().getInetAddress();
-                    ProtocolFamily family = bind.getProtocolFamily();
-                    boolean isLocalhost = bind.equals(InetAddress.LOOPBACK_IPV4) || bind.equals(InetAddress.LOOPBACK_IPV6);
+                    // AoservDaemon connects to.
+                    final InetAddress bind = ps.getBind().getIpAddress().getInetAddress();
+                    final ProtocolFamily family = bind.getProtocolFamily();
+                    final boolean isLocalhost = bind.equals(InetAddress.LOOPBACK_IPV4) || bind.equals(InetAddress.LOOPBACK_IPV6);
 
                     // aoserv database
-                    UserServer postgresUser = ps.getPostgresServerUser(User.POSTGRES);
+                    final UserServer postgresUser = ps.getPostgresServerUser(User.POSTGRES);
                     if (postgresUser == null) {
                       throw new SQLException("User not found: " + User.POSTGRES + " on " + serverName);
                     }
-                    Database aoservDatabase = ps.getPostgresDatabase(Database.AOSERV);
+                    final Database aoservDatabase = ps.getPostgresDatabase(Database.AOSERV);
                     if (aoservDatabase == null) {
                       throw new SQLException("Database not found: " + Database.AOSERV + " on " + serverName);
                     }
-                    UserServer aoservDatdba = aoservDatabase.getDatDBA();
+                    final UserServer aoservDatdba = aoservDatabase.getDatdba();
                     if (!aoservDatdba.equals(postgresUser)) {
                       throw new SQLException(
                           Database.AOSERV + " on " + serverName
@@ -398,12 +398,12 @@ public final class PgHbaManager extends BuilderThread {
 
                     // postgresmon database
                     UserServer postgresmonUser = ps.getPostgresServerUser(User.POSTGRESMON);
-                    Database postgresmonDB = ps.getPostgresDatabase(Database.POSTGRESMON);
+                    Database postgresmonDatabase = ps.getPostgresDatabase(Database.POSTGRESMON);
                     if (postgresmonUser != null) {
-                      if (postgresmonDB == null) {
+                      if (postgresmonDatabase == null) {
                         throw new SQLException("Database not found: " + Database.POSTGRESMON + " on " + serverName);
                       }
-                      UserServer datdba = postgresmonDB.getDatDBA();
+                      UserServer datdba = postgresmonDatabase.getDatdba();
                       if (!datdba.equals(postgresmonUser)) {
                         throw new SQLException(
                             Database.POSTGRESMON + " on " + serverName
@@ -428,7 +428,7 @@ public final class PgHbaManager extends BuilderThread {
                       }
                     } else {
                       // Check for database exists without expected user
-                      if (postgresmonDB != null) {
+                      if (postgresmonDatabase != null) {
                         throw new SQLException("User not found: " + User.POSTGRESMON + " on " + serverName);
                       }
                       // Neither postgresmon database nor use exists - OK and skipped
@@ -457,11 +457,11 @@ public final class PgHbaManager extends BuilderThread {
                                   && !username.equals(User.POSTGRESMON)
                                   && (
                                   // Allow database admin
-                                  psu.equals(db.getDatDBA())
+                                  psu.equals(db.getDatdba())
                                       // Allow in same account as database admin
                                       || pu.getUsername().getPackage().getAccount().equals(
                                       // TODO: Allow access to subaccounts?
-                                      db.getDatDBA().getPostgresUser().getUsername().getPackage().getAccount()
+                                      db.getDatdba().getPostgresUser().getUsername().getPackage().getAccount()
                                   )
                               )
                           ) {
@@ -546,8 +546,8 @@ public final class PgHbaManager extends BuilderThread {
                     new PosixFile(serverDir, "pg_hba.conf"),
                     bout.toByteArray(),
                     0600,
-                    postgresUID,
-                    postgresGID,
+                    postgresUid,
+                    postgresGid,
                     null,
                     restorecon
                 );
@@ -602,7 +602,7 @@ public final class PgHbaManager extends BuilderThread {
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() throws IOException, SQLException {
-    com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+    com.aoindustries.aoserv.client.linux.Server thisServer = AoservDaemon.getThisServer();
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
 
@@ -613,7 +613,7 @@ public final class PgHbaManager extends BuilderThread {
               && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
               && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
               // Check config after OS check so config entry not needed
-              && AOServDaemonConfiguration.isManagerEnabled(PgHbaManager.class)
+              && AoservDaemonConfiguration.isManagerEnabled(PgHbaManager.class)
               && pgHbaManager == null
       ) {
         System.out.print("Starting PgHbaManager: ");
@@ -622,7 +622,7 @@ public final class PgHbaManager extends BuilderThread {
             osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                 || osvId == OperatingSystemVersion.CENTOS_7_X86_64
         ) {
-          AOServConnector conn = AOServDaemon.getConnector();
+          AoservConnector conn = AoservDaemon.getConnector();
           pgHbaManager = new PgHbaManager();
           conn.getAccount().getUser().addTableListener(pgHbaManager, 0);
           conn.getLinux().getUser().addTableListener(pgHbaManager, 0);

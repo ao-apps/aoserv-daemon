@@ -24,7 +24,7 @@
 package com.aoindustries.aoserv.daemon;
 
 /**
- * @see  AOServDaemonServer#getDaemonAccessEntry
+ * @see  AoservDaemonServer#getDaemonAccessEntry
  *
  * @author  AO Industries, Inc.
  */

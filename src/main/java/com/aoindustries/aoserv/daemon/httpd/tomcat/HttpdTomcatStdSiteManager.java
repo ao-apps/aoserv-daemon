@@ -25,7 +25,7 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 import com.aoapps.io.posix.PosixFile;
 import com.aoapps.lang.validation.ValidationException;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.linux.User;
@@ -35,7 +35,7 @@ import com.aoindustries.aoserv.client.web.tomcat.PrivateTomcatSite;
 import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
 import com.aoindustries.aoserv.client.web.tomcat.Version;
 import com.aoindustries.aoserv.client.web.tomcat.Worker;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import java.io.File;
@@ -49,13 +49,13 @@ import java.util.Set;
  *
  * @author  AO Industries, Inc.
  */
-abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdTomcatSiteManager<TC> {
+abstract class HttpdTomcatStdSiteManager<T extends TomcatCommon> extends HttpdTomcatSiteManager<T> {
 
   /**
    * Gets the specific manager for one type of web site.
    */
   static HttpdTomcatStdSiteManager<? extends TomcatCommon> getInstance(PrivateTomcatSite stdSite) throws IOException, SQLException {
-    AOServConnector connector = AOServDaemon.getConnector();
+    AoservConnector connector = AoservDaemon.getConnector();
     Version htv = stdSite.getHttpdTomcatSite().getHttpdTomcatVersion();
     if (htv.isTomcat3_1(connector)) {
       return new HttpdTomcatStdSiteManager_3_1(stdSite);
@@ -102,18 +102,18 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
    */
   @Override
   protected Worker getHttpdWorker() throws IOException, SQLException {
-    AOServConnector conn = AOServDaemon.getConnector();
+    AoservConnector conn = AoservDaemon.getConnector();
     List<Worker> workers = tomcatSite.getHttpdWorkers();
 
     // Prefer ajp13
     for (Worker hw : workers) {
-      if (hw.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol().equals(JkProtocol.AJP13)) {
+      if (hw.getHttpdJkProtocol(conn).getProtocol(conn).getProtocol().equals(JkProtocol.AJP13)) {
         return hw;
       }
     }
     // Try ajp12 next
     for (Worker hw : workers) {
-      if (hw.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol().equals(JkProtocol.AJP12)) {
+      if (hw.getHttpdJkProtocol(conn).getProtocol(conn).getProtocol().equals(JkProtocol.AJP12)) {
         return hw;
       }
     }
@@ -176,16 +176,16 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 
   @Override
   protected void enableDisable(PosixFile siteDirectory) throws IOException, SQLException {
-    PosixFile binUF = new PosixFile(siteDirectory, "bin", false);
-    PosixFile tomcatUF = new PosixFile(binUF, "tomcat", false);
-    PosixFile daemonUF = new PosixFile(siteDirectory, "daemon", false);
-    PosixFile daemonSymlink = new PosixFile(daemonUF, "tomcat", false);
+    PosixFile bin = new PosixFile(siteDirectory, "bin", false);
+    PosixFile tomcat = new PosixFile(bin, "tomcat", false);
+    PosixFile daemon = new PosixFile(siteDirectory, "daemon", false);
+    PosixFile daemonSymlink = new PosixFile(daemon, "tomcat", false);
     if (
         !httpdSite.isDisabled()
             && (
             !httpdSite.isManual()
                 // Script may not exist while in manual mode
-                || tomcatUF.getStat().exists()
+                || tomcat.getStat().exists()
         )
     ) {
       // Enabled
@@ -224,12 +224,12 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
       String autoWarning = getAutoWarningXml();
       String autoWarningOld = getAutoWarningXmlOld();
 
-      PosixFile confServerXML = new PosixFile(conf, "server.xml", false);
-      if (!httpdSite.isManual() || !confServerXML.getStat().exists()) {
+      PosixFile confServerXml = new PosixFile(conf, "server.xml", false);
+      if (!httpdSite.isManual() || !confServerXml.getStat().exists()) {
         // Only write to the actual file when missing or changed
         if (
             DaemonFileUtils.atomicWrite(
-                confServerXML,
+                confServerXml,
                 buildServerXml(siteDirectory, autoWarning),
                 0660,
                 httpdSite.getLinuxServerAccount().getUid().getId(),
@@ -243,27 +243,27 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
         }
       } else {
         try {
-          Server thisServer = AOServDaemon.getThisServer();
-          int uid_min = thisServer.getUidMin().getId();
-          int gid_min = thisServer.getGidMin().getId();
+          Server thisServer = AoservDaemon.getThisServer();
+          int uidMin = thisServer.getUidMin().getId();
+          int gidMin = thisServer.getGidMin().getId();
           DaemonFileUtils.stripFilePrefix(
-              confServerXML,
+              confServerXml,
               autoWarningOld,
-              uid_min,
-              gid_min
+              uidMin,
+              gidMin
           );
           // This will not be necessary once all are Tomcat 8.5 and newer
           DaemonFileUtils.stripFilePrefix(
-              confServerXML,
+              confServerXml,
               autoWarning,
-              uid_min,
-              gid_min
+              uidMin,
+              gidMin
           );
           DaemonFileUtils.stripFilePrefix(
-              confServerXML,
+              confServerXml,
               "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + autoWarning,
-              uid_min,
-              gid_min
+              uidMin,
+              gidMin
           );
         } catch (IOException err) {
           // Errors OK because this is done in manual mode and they might have symbolic linked stuff

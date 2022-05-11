@@ -40,7 +40,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Iterates through all files in /var/backup and creates hard links two or more matching files as follows:
+ * Iterates through all files in <code>/var/backup</code> and creates hard links two or more matching files.  As follows:
  * <ol>
  *   <li>Both are in /var/backup/hostname/####-##-## filenames (no partial or deleted)</li>
  *   <li>Are in different /var/backup/hostname/####-##-## directories</li>
@@ -54,15 +54,19 @@ import java.util.Set;
  *   <li>Have matching ownership</li>
  *   <li>Have exactly matching file contents</li>
  * </ol>
+ * <p>
  * This is accomplished by iterating through all /var/backup/hostname/####-##-## directories concurrently in a sorted manner such
  * that each unique path is examined once.  For each unique path, all directories having a file at that path will be compared by
  * the above rules.
+ * </p>
  * <p>
  * During a pass, the /var/backup/hostname/####-##-## may be renamed to .partial or .deleted by the backup server.  Should this happen
  * either a <code>FileNotFoundException</code> will be thrown or a directory listing will be <code>null</code> or empty.  In any of
  * these cases, the system will continue linking the other directories without interruption.
+ * </p>
  * <p>
  * Through the complete pass, statistics will be kept.  The statistics will be displayed every <code>DISPLAY_INTERVAL</code> milliseconds.  These will include:
+ * </p>
  * <ul>
  *   <li>Total number of filesystem objects (unique paths from /var/backup)</li>
  *   <li>Total number of unique paths</li>
@@ -73,6 +77,7 @@ import java.util.Set;
  *   <li>Total number of bytes in all files</li>
  *   <li>Total number of bytes saved by new hard links (not disk blocks, just file bytes)</li>
  * </ul>
+ *
  * @author  AO Industries, Inc.
  */
 public final class HardLinkVarBackup {
@@ -227,44 +232,44 @@ public final class HardLinkVarBackup {
 
                   // Look for regular file up the list to link to
                   for (int d = c - 1; d >= 0; d--) {
-                    PosixFile otherUF = unixFiles[d];
+                    PosixFile other = unixFiles[d];
                     if (
-                        otherUF != null
+                        other != null
                             // Have the same exact path relative to their /var/backup/hostname/####-##-## directories
                             && isLowestRelativePaths[d] //relativePaths[d].equals(lowestRelativePath)
                     ) {
-                      Stat otherUFStat = otherUF.getStat();
+                      Stat otherStat = other.getStat();
                       if (
                           // Are on the same underlying partition
-                          device == otherUFStat.getDevice()
+                          device == otherStat.getDevice()
                               // Are both regular files
-                              && otherUFStat.isRegularFile()
+                              && otherStat.isRegularFile()
                               // Are not already linked together
-                              && inode != otherUFStat.getInode()
+                              && inode != otherStat.getInode()
                       ) {
                         // Have matching length
-                        long otherSize = otherUFStat.getSize();
+                        long otherSize = otherStat.getSize();
                         if (otherSize == -1) {
-                          throw new IOException("Size unknown: " + otherUF);
+                          throw new IOException("Size unknown: " + other);
                         }
                         if (
                             size == otherSize
                                 // Have matching modified time
-                                && modifyTime == otherUFStat.getModifyTime()
+                                && modifyTime == otherStat.getModifyTime()
                                 // Have matching permissions
-                                && mode == otherUFStat.getMode()
+                                && mode == otherStat.getMode()
                                 // Have matching ownership
-                                && uid == otherUFStat.getUid()
-                                && gid == otherUFStat.getGid()
+                                && uid == otherStat.getUid()
+                                && gid == otherStat.getGid()
                         ) {
-                          LinkKey linkKey = new LinkKey(device, inode, otherUFStat.getDevice(), otherUFStat.getInode());
+                          LinkKey linkKey = new LinkKey(device, inode, otherStat.getDevice(), otherStat.getInode());
                           // Has already been linked for this path
                           String destination = links.get(linkKey);
                           if (destination == null) {
                             if (!contentNotEquals.contains(linkKey)) {
                               // Have exactly matching file contents
-                              if (uf.contentEquals(otherUF)) {
-                                destination = otherUF.getPath();
+                              if (uf.contentEquals(other)) {
+                                destination = other.getPath();
                               } else {
                                 contentNotEquals.add(linkKey);
                               }
@@ -279,20 +284,20 @@ public final class HardLinkVarBackup {
                               // Do hard link
                               // Make link in a temp path and then move into place atomically using renameTo
                               // Find any available filename
-                              PosixFile tempUF = null;
+                              PosixFile tempPosixFile = null;
                               for (int e = 0; e < Integer.MAX_VALUE; e++) {
                                 String tempPath = uf.getPath() + '.' + e;
                                 PosixFile temp = new PosixFile(tempPath);
                                 if (!temp.getStat().exists()) {
-                                  tempUF = temp;
+                                  tempPosixFile = temp;
                                   break;
                                 }
                               }
-                              if (tempUF == null) {
+                              if (tempPosixFile == null) {
                                 throw new IOException("Unable to make temp file: " + uf.getPath());
                               }
-                              tempUF.link(destination);
-                              tempUF.renameTo(uf);
+                              tempPosixFile.link(destination);
+                              tempPosixFile.renameTo(uf);
                             }
                             if (!links.containsKey(linkKey)) {
                               links.put(linkKey, destination);
@@ -381,8 +386,7 @@ public final class HardLinkVarBackup {
           fromDevice == other.fromDevice
               && fromInode == other.fromInode
               && toDevice == other.toDevice
-              && toInode == other.toInode
-      ;
+              && toInode == other.toInode;
     }
   }
 

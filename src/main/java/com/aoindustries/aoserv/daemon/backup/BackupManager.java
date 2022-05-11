@@ -27,7 +27,7 @@ import com.aoapps.io.posix.PosixFile;
 import com.aoapps.lang.Strings;
 import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import java.io.BufferedReader;
 import java.io.File;
@@ -88,11 +88,11 @@ public final class BackupManager {
       // Backup
       createTarball(deleteFileList, backupFile);
       // Remove the files that have been backed up.
-      Server thisServer = AOServDaemon.getThisServer();
-      int uid_min = thisServer.getUidMin().getId();
-      int gid_min = thisServer.getGidMin().getId();
+      Server thisServer = AoservDaemon.getThisServer();
+      int uidMin = thisServer.getUidMin().getId();
+      int gidMin = thisServer.getGidMin().getId();
       for (File file : deleteFileList) {
-        new PosixFile(file).secureDeleteRecursive(uid_min, gid_min);
+        new PosixFile(file).secureDeleteRecursive(uidMin, gidMin);
       }
     }
   }
@@ -120,26 +120,26 @@ public final class BackupManager {
       cmd[c + 5] = files.get(c).getPath().substring(1);
     }
 
-    AOServDaemon.exec(cmd);
+    AoservDaemon.exec(cmd);
   }
 
   /*
   static void backupInterBaseDatabases() throws IOException, SQLException {
-    if (AOServDaemon.getThisAOServer().isInterBase()) {
+    if (AoservDaemon.getThisAOServer().isInterBase()) {
       ProcessTimer timer = new ProcessTimer(
-        AOServDaemon.getFastRandom(),
-        AOServDaemonConfiguration.getWarningSmtpServer(),
-        AOServDaemonConfiguration.getWarningEmailFrom(),
-        AOServDaemonConfiguration.getWarningEmailTo(),
+        AoservDaemon.getFastRandom(),
+        AoservDaemonConfiguration.getWarningSmtpServer(),
+        AoservDaemonConfiguration.getWarningEmailFrom(),
+        AoservDaemonConfiguration.getWarningEmailTo(),
         "InterBase backup taking too long",
         "InterBase Backup",
         3L * 60 * 60 * 1000,
         60L * 60 * 1000
       );
       try {
-        AOServDaemon.executorService.submit(timer);
+        AoservDaemon.executorService.submit(timer);
         try {
-          for (InterBaseDatabase id : AOServDaemon.getThisAOServer().getInterBaseDatabases()) {
+          for (InterBaseDatabase id : AoservDaemon.getThisAOServer().getInterBaseDatabases()) {
             if (id.getBackupLevel().getLevel()>0) {
               long startTime=System.currentTimeMillis();
               try {
@@ -165,22 +165,22 @@ public final class BackupManager {
   }
 */
   /*
-  static void backupMySQLDatabases() throws IOException, SQLException {
+  static void backupMysqlDatabases() throws IOException, SQLException {
     ProcessTimer timer=new ProcessTimer(
-      AOServDaemon.getFastRandom(),
-      AOServDaemonConfiguration.getWarningSmtpServer(),
-      AOServDaemonConfiguration.getWarningEmailFrom(),
-      AOServDaemonConfiguration.getWarningEmailTo(),
+      AoservDaemon.getFastRandom(),
+      AoservDaemonConfiguration.getWarningSmtpServer(),
+      AoservDaemonConfiguration.getWarningEmailFrom(),
+      AoservDaemonConfiguration.getWarningEmailTo(),
       "MySQL backup taking too long",
       "MySQL Backup",
       3L * 60 * 60 * 1000,
       60L * 60 * 1000
     );
     try {
-      AOServDaemon.executorService.submit(timer);
+      AoservDaemon.executorService.submit(timer);
       try {
-        for (Server ms : AOServDaemon.getThisServer().getMySQLServers()) {
-          for (Database md : ms.getMySQLDatabases()) {
+        for (Server ms : AoservDaemon.getThisServer().getMysqlServers()) {
+          for (Database md : ms.getMysqlDatabases()) {
             if (md.getBackupLevel().getLevel()>0) {
               long startTime=System.currentTimeMillis();
               try {
@@ -209,19 +209,19 @@ public final class BackupManager {
   /*
   static void backupPostgresDatabases() throws IOException, SQLException {
     ProcessTimer timer=new ProcessTimer(
-      AOServDaemon.getFastRandom(),
-      AOServDaemonConfiguration.getWarningSmtpServer(),
-      AOServDaemonConfiguration.getWarningEmailFrom(),
-      AOServDaemonConfiguration.getWarningEmailTo(),
+      AoservDaemon.getFastRandom(),
+      AoservDaemonConfiguration.getWarningSmtpServer(),
+      AoservDaemonConfiguration.getWarningEmailFrom(),
+      AoservDaemonConfiguration.getWarningEmailTo(),
       "PostgreSQL backup taking too long",
       "PostgreSQL Backup",
       3L * 60 * 60 * 1000,
       60L * 60 * 1000
     );
     try {
-      AOServDaemon.executorService.submit(timer);
+      AoservDaemon.executorService.submit(timer);
       try {
-        for (Server ps : AOServDaemon.getThisServer().getPostgresServers()) {
+        for (Server ps : AoservDaemon.getThisServer().getPostgresServers()) {
           for (Database pd : ps.getPostgresDatabases()) {
             if (pd.allowsConnections() && pd.getBackupLevel().getLevel()>0) {
               long startTime=System.currentTimeMillis();
@@ -303,16 +303,16 @@ public final class BackupManager {
   public static final String DF = "/bin/df";
 
   public static long getDiskDeviceTotalSize(PosixPath path) throws IOException {
-    return getDFColumn(path, 1);
+    return getDfColumn(path, 1);
   }
 
   public static long getDiskDeviceUsedSize(PosixPath path) throws IOException {
-    return getDFColumn(path, 2);
+    return getDfColumn(path, 2);
   }
 
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
-  private static long getDFColumn(PosixPath path, int column) throws IOException {
-    return AOServDaemon.execCall(
+  private static long getDfColumn(PosixPath path, int column) throws IOException {
+    return AoservDaemon.execCall(
         stdout -> {
           try (BufferedReader in = new BufferedReader(new InputStreamReader(stdout))) {
             // The first line is the column labels

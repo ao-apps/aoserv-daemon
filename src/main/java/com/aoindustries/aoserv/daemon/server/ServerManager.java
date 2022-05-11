@@ -25,7 +25,7 @@ package com.aoindustries.aoserv.daemon.server;
 
 import com.aoapps.lang.EmptyArrays;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -55,11 +55,13 @@ public final class ServerManager {
   private static final File procMeminfo = new File("/proc/meminfo");
   private static final File xenAutoStartDirectory = new File("/etc/xen/auto");
 
-  /** One lock per process name */
+  /**
+   * One lock per process name.
+   */
   private static final Map<String, Object> processLocks = new HashMap<>();
 
   public static void controlProcess(String process, String command) throws IOException, SQLException {
-    OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
+    OperatingSystemVersion osv = AoservDaemon.getThisServer().getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
 
     Object lock;
@@ -71,12 +73,12 @@ public final class ServerManager {
     }
     synchronized (lock) {
       if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-        AOServDaemon.exec(
+        AoservDaemon.exec(
             "/etc/rc.d/init.d/" + process,
             command
         );
       } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-        AOServDaemon.exec("/usr/bin/systemctl", command, process + ".service");
+        AoservDaemon.exec("/usr/bin/systemctl", command, process + ".service");
       } else {
         throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
       }
@@ -120,7 +122,7 @@ public final class ServerManager {
   }
 
   public static String get3wareRaidReport() throws IOException {
-    return AOServDaemon.execAndCapture(
+    return AoservDaemon.execAndCapture(
         "/opt/tw_cli/tw_cli",
         "show"
     );
@@ -145,7 +147,7 @@ public final class ServerManager {
   }
 
   public static String getMdMismatchReport() throws IOException {
-    return AOServDaemon.execAndCapture(
+    return AoservDaemon.execAndCapture(
         "/opt/aoserv-daemon/bin/get_md_mismatch"
     );
   }
@@ -153,14 +155,14 @@ public final class ServerManager {
   public static String getDrbdReport() throws IOException {
     // Make sure perl is installed as required by drbdcstate
     PackageManager.installPackage(PackageManager.PackageName.PERL);
-    return AOServDaemon.execAndCapture(
+    return AoservDaemon.execAndCapture(
         "/opt/aoserv-daemon/bin/drbdcstate"
     );
   }
 
   public static String[] getLvmReport() throws IOException {
     return new String[]{
-        AOServDaemon.execAndCapture(
+        AoservDaemon.execAndCapture(
             "/usr/sbin/vgs",
             "--noheadings",
             "--separator=\t",
@@ -168,7 +170,7 @@ public final class ServerManager {
             "-o",
             "vg_name,vg_extent_size,vg_extent_count,vg_free_count,pv_count,lv_count"
         ),
-        AOServDaemon.execAndCapture(
+        AoservDaemon.execAndCapture(
             "/usr/sbin/pvs",
             "--noheadings",
             "--separator=\t",
@@ -176,7 +178,7 @@ public final class ServerManager {
             "-o",
             "pv_name,pv_pe_count,pv_pe_alloc_count,pv_size,vg_name"
         ),
-        AOServDaemon.execAndCapture(
+        AoservDaemon.execAndCapture(
             "/usr/sbin/lvs",
             "--noheadings",
             "--separator=\t",
@@ -193,19 +195,19 @@ public final class ServerManager {
     // Make sure /usr/sbin/smartctl is installed as required by hddtemp
     // No longer needed since no more 3ware support: PackageManager.PackageName.SMARTMONTOOLS
     );
-    return AOServDaemon.execAndCapture(
+    return AoservDaemon.execAndCapture(
         "/opt/aoserv-daemon/bin/aoserv-hddtemp"
     );
   }
 
   public static String getHddModelReport() throws IOException {
-    return AOServDaemon.execAndCapture(
+    return AoservDaemon.execAndCapture(
         "/opt/aoserv-daemon/bin/hddmodel"
     );
   }
 
   public static String getFilesystemsCsvReport() throws IOException, SQLException {
-    OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
+    OperatingSystemVersion osv = AoservDaemon.getThisServer().getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
     if (
         osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
@@ -216,7 +218,7 @@ public final class ServerManager {
     ) {
       // Make sure perl is installed as required by filesystemscsv
       PackageManager.installPackage(PackageManager.PackageName.PERL);
-      return AOServDaemon.execAndCapture(
+      return AoservDaemon.execAndCapture(
           "/opt/aoserv-daemon/bin/filesystemscsv"
       );
     } else {
@@ -250,25 +252,25 @@ public final class ServerManager {
    * Gets the "MemTotal" from <code>/proc/meminfo</code>, converted to bytes.
    */
   public static long getMemTotal() throws IOException {
-    final String PREFIX = "MemTotal:";
-    final String SUFFIX = " kB";
+    final String prefix = "MemTotal:";
+    final String suffix = " kB";
     try (BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(procMeminfo), StandardCharsets.US_ASCII))) {
       String line;
       while ((line = in.readLine()) != null) {
-        if (line.startsWith(PREFIX)) {
-          if (!line.endsWith(SUFFIX)) {
-            throw new IOException("Line does not end with expected suffix \"" + SUFFIX + "\": " + line);
+        if (line.startsWith(prefix)) {
+          if (!line.endsWith(suffix)) {
+            throw new IOException("Line does not end with expected suffix \"" + suffix + "\": " + line);
           }
           return 1024L * Long.parseLong(
               line.substring(
-                  PREFIX.length(),
-                  line.length() - SUFFIX.length()
+                  prefix.length(),
+                  line.length() - suffix.length()
               ).trim()
           );
         }
       }
     }
-    throw new IOException("Prefix not found in " + procMeminfo + ": \"" + PREFIX + '"');
+    throw new IOException("Prefix not found in " + procMeminfo + ": \"" + prefix + '"');
   }
 
   /**

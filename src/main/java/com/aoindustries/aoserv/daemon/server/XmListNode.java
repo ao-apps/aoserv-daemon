@@ -50,11 +50,7 @@ public final class XmListNode {
   }
 
   /**
-   * Parses into the current map
-   * @param map
-   * @param result
-   * @param pos
-   * @return
+   * Parses into the current map.
    */
   static int parseResult(XmListNode node, String result, int pos) throws ParseException {
     int len = result.length();

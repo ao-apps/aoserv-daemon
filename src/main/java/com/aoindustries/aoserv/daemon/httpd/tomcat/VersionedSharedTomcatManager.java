@@ -23,6 +23,9 @@
 
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
+import static com.aoindustries.aoserv.daemon.httpd.tomcat.VersionedTomcatCommon.BACKUP_EXTENSION;
+import static com.aoindustries.aoserv.daemon.httpd.tomcat.VersionedTomcatCommon.BACKUP_SEPARATOR;
+
 import com.aoapps.collections.SortedArrayList;
 import com.aoapps.encoding.ChainWriter;
 import com.aoapps.io.posix.PosixFile;
@@ -44,13 +47,11 @@ import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
 import com.aoindustries.aoserv.client.web.tomcat.SharedTomcatSite;
 import com.aoindustries.aoserv.client.web.tomcat.Site;
 import com.aoindustries.aoserv.client.web.tomcat.Worker;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.Delete;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.Generated;
-import static com.aoindustries.aoserv.daemon.httpd.tomcat.VersionedTomcatCommon.BACKUP_EXTENSION;
-import static com.aoindustries.aoserv.daemon.httpd.tomcat.VersionedTomcatCommon.BACKUP_SEPARATOR;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -72,7 +73,7 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCommon> extends HttpdSharedTomcatManager<TC> {
+public abstract class VersionedSharedTomcatManager<T extends VersionedTomcatCommon> extends HttpdSharedTomcatManager<T> {
 
   private static final Logger logger = Logger.getLogger(VersionedSharedTomcatManager.class.getName());
 
@@ -96,17 +97,17 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
       SharedTomcat sharedTomcat,
       List<SharedTomcatSite> sites
   ) throws IOException, SQLException {
-    final TC tomcatCommon = getTomcatCommon();
+    final T tomcatCommon = getTomcatCommon();
     final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
     final HttpdOperatingSystemConfiguration httpdConfig = osConfig.getHttpdOperatingSystemConfiguration();
     final PosixPath wwwDirectory = httpdConfig.getHttpdSitesDirectory();
 
-    Worker hw = sharedTomcat.getTomcat4Worker();
-    Bind shutdownPort = sharedTomcat.getTomcat4ShutdownPort();
+    final Worker hw = sharedTomcat.getTomcat4Worker();
+    final Bind shutdownPort = sharedTomcat.getTomcat4ShutdownPort();
     if (shutdownPort == null) {
       throw new SQLException("Unable to find shutdown key for SharedTomcat: " + sharedTomcat);
     }
-    String shutdownKey = sharedTomcat.getTomcat4ShutdownKey();
+    final String shutdownKey = sharedTomcat.getTomcat4ShutdownKey();
     if (shutdownKey == null) {
       throw new SQLException("Unable to find shutdown key for SharedTomcat: " + sharedTomcat);
     }
@@ -158,12 +159,12 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
         + "\n");
     // Find the first host (same order as hosts added below)
     String defaultHostPrimaryHostname = null;
-    FIND_FIRST :
+    FIND_FIRST:
     for (boolean listFirst : new boolean[]{true, false}) {
       for (SharedTomcatSite site : sites) {
         com.aoindustries.aoserv.client.web.Site hs = site.getHttpdTomcatSite().getHttpdSite();
         if (hs.getListFirst() == listFirst && !hs.isDisabled()) {
-          defaultHostPrimaryHostname = hs.getPrimaryHttpdSiteURL().getHostname().toLowerCase();
+          defaultHostPrimaryHostname = hs.getPrimaryVirtualHostName().getHostname().toLowerCase();
           break FIND_FIRST;
         }
       }
@@ -183,19 +184,19 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
       for (SharedTomcatSite site : sites) {
         com.aoindustries.aoserv.client.web.Site hs = site.getHttpdTomcatSite().getHttpdSite();
         if (hs.getListFirst() == listFirst && !hs.isDisabled()) {
-          String primaryHostname = hs.getPrimaryHttpdSiteURL().getHostname().toLowerCase();
+          String primaryHostname = hs.getPrimaryVirtualHostName().getHostname().toLowerCase();
           out.print("\n"
               + "      <Host\n"
               + "        name=\"").textInXmlAttribute(primaryHostname).print("\"\n"
               + "        appBase=\"").textInXmlAttribute(wwwDirectory).print('/').textInXmlAttribute(hs.getName()).print("/webapps\"\n"
-              + "        unpackWARs=\"").textInXmlAttribute(sharedTomcat.getUnpackWARs()).print("\"\n"
+              + "        unpackWARs=\"").textInXmlAttribute(sharedTomcat.getUnpackWars()).print("\"\n"
               + "        autoDeploy=\"").textInXmlAttribute(sharedTomcat.getAutoDeploy()).print("\"\n"
               + "      >\n");
           List<String> usedHostnames = new SortedArrayList<>();
           usedHostnames.add(primaryHostname);
           List<VirtualHost> binds = hs.getHttpdSiteBinds();
           for (VirtualHost bind : binds) {
-            for (VirtualHostName url : bind.getHttpdSiteURLs()) {
+            for (VirtualHostName url : bind.getVirtualHostNames()) {
               String hostname = url.getHostname().toLowerCase();
               if (!usedHostnames.contains(hostname)) {
                 out.print("        <Alias>").textInXhtml(hostname).print("</Alias>\n");
@@ -272,12 +273,12 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
     final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
     final HttpdOperatingSystemConfiguration httpdConfig = osConfig.getHttpdOperatingSystemConfiguration();
     final UserServer lsa = sharedTomcat.getLinuxServerAccount();
-    final int lsaUID = lsa.getUid().getId();
+    final int lsaUid = lsa.getUid().getId();
     final GroupServer lsg = sharedTomcat.getLinuxServerGroup();
-    final int lsgGID = lsg.getGid().getId();
+    final int lsgGid = lsg.getGid().getId();
     final PosixPath wwwDirectory = httpdConfig.getHttpdSitesDirectory();
 
-    final TC tomcatCommon = getTomcatCommon();
+    final T tomcatCommon = getTomcatCommon();
     final String apacheTomcatDir = tomcatCommon.getApacheTomcatDir();
 
     final PosixFile bin           = new PosixFile(sharedTomcatDirectory, "bin", false);
@@ -303,17 +304,17 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
     final byte[] readmeTxtContent = generateReadmeTxt(optSlash, apacheTomcatDir, sharedTomcatDirectory);
     final PosixFile readmeTxt = new PosixFile(sharedTomcatDirectory, README_TXT, false);
     final boolean isUpgrade;
-    {
-      final Stat readmeTxtStat;
-      isUpgrade =
-          !isInstall
-              && !sharedTomcat.isManual()
-              && !(
-              (readmeTxtStat = readmeTxt.getStat()).exists()
-                  && readmeTxtStat.isRegularFile()
-                  && readmeTxt.contentEquals(readmeTxtContent)
-          );
-    }
+      {
+        final Stat readmeTxtStat;
+        isUpgrade =
+            !isInstall
+                && !sharedTomcat.isManual()
+                && !(
+                (readmeTxtStat = readmeTxt.getStat()).exists()
+                    && readmeTxtStat.isRegularFile()
+                    && readmeTxt.contentEquals(readmeTxtContent)
+            );
+      }
     assert !(isInstall && isUpgrade);
     if (isInstall || isUpgrade) {
 
@@ -327,18 +328,18 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 
       List<Install> installFiles = getInstallFiles(optSlash, sharedTomcatDirectory);
       for (Install installFile : installFiles) {
-        installFile.install(optSlash, apacheTomcatDir, sharedTomcatDirectory, lsaUID, lsgGID, backupSuffix);
+        installFile.install(optSlash, apacheTomcatDir, sharedTomcatDirectory, lsaUid, lsgGid, backupSuffix);
       }
 
       // Create or replace the README.txt
       DaemonFileUtils.atomicWrite(
-          readmeTxt, readmeTxtContent, 0440, lsaUID, lsgGID,
+          readmeTxt, readmeTxtContent, 0440, lsaUid, lsgGid,
           null, null
       );
 
       // Set the ownership to avoid future rebuilds of this directory
       if (isInstall) {
-        sharedTomcatDirectory.chown(lsaUID, lsgGID);
+        sharedTomcatDirectory.chown(lsaUid, lsgGid);
       }
 
       needRestart = true;
@@ -377,7 +378,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
       PosixFile httpdSitesSh = new PosixFile(binProfileD, "httpd-sites.sh", false);
       if (
           DaemonFileUtils.atomicWrite(
-              httpdSitesSh, bout.toByteArray(), 0640, lsaUID, lsgGID,
+              httpdSitesSh, bout.toByteArray(), 0640, lsaUid, lsgGid,
               DaemonFileUtils.findUnusedBackup(httpdSitesSh + backupSuffix, BACKUP_SEPARATOR, BACKUP_EXTENSION),
               null
           )
@@ -400,11 +401,11 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
       for (SharedTomcatSite site : sites) {
         com.aoindustries.aoserv.client.web.Site hs = site.getHttpdTomcatSite().getHttpdSite();
         if (!hs.isDisabled()) {
-          String subwork = hs.getPrimaryHttpdSiteURL().getHostname().toString();
+          String subwork = hs.getPrimaryVirtualHostName().getHostname().toString();
           workFiles.remove(subwork);
           if (
               DaemonFileUtils.mkdir(
-                  new PosixFile(workCatalina, subwork, false), 0750, lsaUID, hs.getLinuxServerGroup().getGid().getId()
+                  new PosixFile(workCatalina, subwork, false), 0750, lsaUid, hs.getLinuxServerGroup().getGid().getId()
               )
           ) {
             needRestart = true;
@@ -435,7 +436,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
         }
         if (
             DaemonFileUtils.atomicWrite(
-                serverXml, bout.toByteArray(), 0640, lsaUID, lsgGID,
+                serverXml, bout.toByteArray(), 0640, lsaUid, lsgGid,
                 DaemonFileUtils.findUnusedBackup(serverXml + backupSuffix, BACKUP_SEPARATOR, BACKUP_EXTENSION),
                 null
             )
@@ -445,20 +446,20 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
         }
       } else {
         try {
-          Server thisServer = AOServDaemon.getThisServer();
-          int uid_min = thisServer.getUidMin().getId();
-          int gid_min = thisServer.getGidMin().getId();
+          Server thisServer = AoservDaemon.getThisServer();
+          int uidMin = thisServer.getUidMin().getId();
+          int gidMin = thisServer.getGidMin().getId();
           DaemonFileUtils.stripFilePrefix(
               serverXml,
               autoWarningOld,
-              uid_min,
-              gid_min
+              uidMin,
+              gidMin
           );
           DaemonFileUtils.stripFilePrefix(
               serverXml,
               "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + autoWarning,
-              uid_min,
-              gid_min
+              uidMin,
+              gidMin
           );
         } catch (IOException err) {
           // Errors OK because this is done in manual mode and they might have symbolic linked stuff
@@ -474,7 +475,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
         break;
       }
     }
-    PosixFile tomcatUF = new PosixFile(bin, "tomcat", false);
+    PosixFile tomcat = new PosixFile(bin, "tomcat", false);
     PosixFile daemonSymlink = new PosixFile(daemon, "tomcat", false);
     if (
         !sharedTomcat.isDisabled()
@@ -482,14 +483,14 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
             && (
             !sharedTomcat.isManual()
                 // Script may not exist while in manual mode
-                || tomcatUF.getStat().exists()
+                || tomcat.getStat().exists()
         )
     ) {
       // Enabled
       if (!daemonSymlink.getStat().exists()) {
         daemonSymlink
             .symLink("../bin/tomcat")
-            .chown(lsaUID, lsgGID);
+            .chown(lsaUid, lsgGid);
       }
       // Start if needed
       if (needRestart) {
@@ -662,7 +663,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 
   @Override
   protected boolean upgradeSharedTomcatDirectory(String optSlash, PosixFile siteDirectory) throws IOException, SQLException {
-    TC tomcatCommon = getTomcatCommon();
+    T tomcatCommon = getTomcatCommon();
     int uid = sharedTomcat.getLinuxServerAccount().getUid().getId();
     int gid = sharedTomcat.getLinuxServerGroup().getGid().getId();
     String apacheTomcatDir = tomcatCommon.getApacheTomcatDir();

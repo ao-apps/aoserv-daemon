@@ -25,14 +25,14 @@ package com.aoindustries.aoserv.daemon.net;
 
 import com.aoapps.io.posix.PosixFile;
 import com.aoapps.net.InetAddress;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.account.Administrator;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.master.User;
 import com.aoindustries.aoserv.client.net.IpAddress;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.posix.linux.LinuxProcess;
 import com.aoindustries.aoserv.daemon.server.VirtualServerManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
@@ -88,7 +88,7 @@ public final class NullRouteManager {
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() throws IOException, SQLException {
-    Server thisServer = AOServDaemon.getThisServer();
+    Server thisServer = AoservDaemon.getThisServer();
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
 
@@ -98,7 +98,7 @@ public final class NullRouteManager {
           osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
               && osvId != OperatingSystemVersion.CENTOS_7_X86_64
               // Check config after OS check so config entry not needed
-              && AOServDaemonConfiguration.isManagerEnabled(NullRouteManager.class)
+              && AoservDaemonConfiguration.isManagerEnabled(NullRouteManager.class)
               && instance == null
       ) {
         System.out.print("Starting NullRouteManager: ");
@@ -109,7 +109,7 @@ public final class NullRouteManager {
                 || osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
                 || osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
         ) {
-          AOServConnector conn = AOServDaemon.getConnector();
+          AoservConnector conn = AoservDaemon.getConnector();
           Administrator administrator = conn.getCurrentAdministrator();
           User mu = administrator.getMasterUser();
           if (mu == null) {
@@ -144,7 +144,7 @@ public final class NullRouteManager {
         final PrintStream out = System.out;
         synchronized (out) {
           out.print(NullRouteManager.class.getName());
-          out.print(IpAddress.getIPAddressForInt(ip));
+          out.print(IpAddress.getIpAddressForInt(ip));
           out.print(": new: level=");
           out.println(level);
         }
@@ -152,7 +152,7 @@ public final class NullRouteManager {
     }
 
     /**
-     * Decrement the null route level based on the amount of quiet time
+     * Decrement the null route level based on the amount of quiet time.
      */
     void reduceLevel(long currentTime) {
       // Check for system time set to past
@@ -164,7 +164,7 @@ public final class NullRouteManager {
           synchronized (out) {
             out.print(NullRouteManager.class.getName());
             out.print(": ");
-            out.print(IpAddress.getIPAddressForInt(ip));
+            out.print(IpAddress.getIpAddressForInt(ip));
             out.print(": system time reset: level=");
             out.println(level);
           }
@@ -182,7 +182,7 @@ public final class NullRouteManager {
             synchronized (out) {
               out.print(NullRouteManager.class.getName());
               out.print(": ");
-              out.print(IpAddress.getIPAddressForInt(ip));
+              out.print(IpAddress.getIpAddressForInt(ip));
               out.print(": decremented: level=");
               out.println(level);
             }
@@ -192,7 +192,7 @@ public final class NullRouteManager {
     }
 
     /**
-     * Increases the null route level and starts a new null route time period
+     * Increases the null route level and starts a new null route time period.
      */
     void increaseLevel(long currentTime) {
       level = Math.min(level + 1, durations.length - 1);
@@ -203,7 +203,7 @@ public final class NullRouteManager {
         synchronized (out) {
           out.print(NullRouteManager.class.getName());
           out.print(": ");
-          out.print(IpAddress.getIPAddressForInt(ip));
+          out.print(IpAddress.getIpAddressForInt(ip));
           out.print(": incremented: level=");
           out.println(level);
         }
@@ -241,7 +241,7 @@ public final class NullRouteManager {
                       NullRoute nullRoute = entry.getValue();
                       // If null route currently in progress, add to the output file
                       if (currentTime >= nullRoute.startTime && currentTime < nullRoute.endTime) {
-                        String ipString = IpAddress.getIPAddressForInt(nullRoute.ip);
+                        String ipString = IpAddress.getIpAddressForInt(nullRoute.ip);
                         InetAddress inetAddress = InetAddress.valueOf(ipString);
                         assert inetAddress.getProtocolFamily().equals(StandardProtocolFamily.INET);
                         // Never null-route private IP addresses, such as those used for communication between routers for BGP sessions
@@ -249,8 +249,7 @@ public final class NullRouteManager {
                           newContents
                               .append("route ")
                               .append(ipString)
-                              .append("/32 drop;\n")
-                          ;
+                              .append("/32 drop;\n");
                         }
                         // Find the null route that expires next
                         if (nullRoute.endTime < nearestEnding) {
@@ -277,7 +276,7 @@ public final class NullRouteManager {
                             null // SELinux disabled on dom0
                         )
                     ) {
-                      Server thisServer = AOServDaemon.getThisServer();
+                      Server thisServer = AoservDaemon.getThisServer();
                       OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
                       int osvId = osv.getPkey();
                       if (
@@ -293,7 +292,7 @@ public final class NullRouteManager {
                         }
                       } else if (osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64) {
                         try {
-                          AOServDaemon.exec("/usr/bin/systemctl", "reload-or-try-restart", "bird-1.service");
+                          AoservDaemon.exec("/usr/bin/systemctl", "reload-or-try-restart", "bird-1.service");
                         } catch (IOException e) {
                           logger.log(Level.SEVERE, "Unable to reload bird configuration", e);
                         }

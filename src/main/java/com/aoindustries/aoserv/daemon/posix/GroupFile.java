@@ -59,10 +59,8 @@ public final class GroupFile {
 
   private static final Logger logger = Logger.getLogger(GroupFile.class.getName());
 
-  private static final PosixFile
-      groupFile       = new PosixFile("/etc/group"),
-      backupGroupFile = new PosixFile("/etc/group-")
-  ;
+  private static final PosixFile groupFile = new PosixFile("/etc/group");
+  private static final PosixFile backupGroupFile = new PosixFile("/etc/group-");
 
   /**
    * Represents one line of the <code>/etc/group</code> file on a POSIX server.
@@ -106,7 +104,7 @@ public final class GroupFile {
       }
 
       if (len > 3 && (s = values.get(3)).length() > 0) {
-        groupMembers = GShadowFile.Entry.parseUserIds(s);
+        groupMembers = GshadowFile.Entry.parseUserIds(s);
       } else {
         groupMembers = Collections.emptySet();
       }
@@ -169,7 +167,7 @@ public final class GroupFile {
     }
 
     /**
-     * The group name the entry is for
+     * The group name the entry is for.
      */
     public Group.Name getGroupName() {
       return groupName;
@@ -193,21 +191,22 @@ public final class GroupFile {
   }
 
   /**
-   * Locks the group file for updates
+   * Locks the group file for updates.
    */
   public static final Object groupLock = new Object();
 
   /**
-   * Reads the full contents of /etc/group
-   *
-   * Must hold {@link #groupLock}
+   * Reads the full contents of <code>/etc/group</code>.
+   * <p>
+   * Must hold {@link #groupLock}.
+   * </p>
    */
   public static Map<Group.Name, Entry> readGroupFile() throws IOException {
     assert Thread.holdsLock(groupLock);
     try {
       Map<Group.Name, Entry> groupEntries = new LinkedHashMap<>();
       try (
-        BufferedReader in = new BufferedReader(
+          BufferedReader in = new BufferedReader(
               new InputStreamReader(
                   new FileInputStream(groupFile.getFile())
               )
@@ -250,7 +249,7 @@ public final class GroupFile {
   }
 
   /**
-   * Must hold {@link #groupLock}
+   * Must hold {@link #groupLock}.
    */
   public static void writeGroupFile(byte[] newContents, Set<PosixFile> restorecon) throws IOException {
     assert Thread.holdsLock(groupLock);
@@ -267,8 +266,9 @@ public final class GroupFile {
 
   /**
    * Builds a new version of the group file with necessary adjustments made.
-   *
-   * Must hold {@link #groupLock}
+   * <p>
+   * Must hold {@link #groupLock}.
+   * </p>
    */
   public static byte[] buildGroupFile(Map<Group.Name, Entry> groups, int gidMin, int gidMax) throws IOException {
     assert Thread.holdsLock(groupLock);

@@ -23,6 +23,12 @@
 
 package com.aoindustries.aoserv.daemon.ssl;
 
+import static com.aoindustries.aoserv.client.monitoring.AlertLevel.CRITICAL;
+import static com.aoindustries.aoserv.client.monitoring.AlertLevel.HIGH;
+import static com.aoindustries.aoserv.client.monitoring.AlertLevel.LOW;
+import static com.aoindustries.aoserv.client.monitoring.AlertLevel.MEDIUM;
+import static com.aoindustries.aoserv.client.monitoring.AlertLevel.NONE;
+
 import com.aoapps.collections.AoCollections;
 import com.aoapps.concurrent.KeyedConcurrencyReducer;
 import com.aoapps.hodgepodge.util.Tuple2;
@@ -38,17 +44,12 @@ import com.aoindustries.aoserv.client.email.SendmailServer;
 import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.monitoring.AlertLevel;
-import static com.aoindustries.aoserv.client.monitoring.AlertLevel.CRITICAL;
-import static com.aoindustries.aoserv.client.monitoring.AlertLevel.HIGH;
-import static com.aoindustries.aoserv.client.monitoring.AlertLevel.LOW;
-import static com.aoindustries.aoserv.client.monitoring.AlertLevel.MEDIUM;
-import static com.aoindustries.aoserv.client.monitoring.AlertLevel.NONE;
 import com.aoindustries.aoserv.client.pki.Certificate;
 import com.aoindustries.aoserv.client.pki.Certificate.Check;
 import com.aoindustries.aoserv.client.pki.CertificateName;
 import com.aoindustries.aoserv.client.pki.CertificateOtherUse;
 import com.aoindustries.aoserv.client.web.VirtualHost;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -150,7 +151,7 @@ public final class SslCertificateManager {
         @SuppressWarnings("deprecation")
         String hashed = Strings.convertToHex(
             MessageDigest.getInstance(ALGORITHM).digest(
-                AOServDaemon.execAndCaptureBytes(command)
+                AoservDaemon.execAndCaptureBytes(command)
             )
         );
         getHashedCache.put(cacheKey, new Tuple2<>(modifiedTime, hashed));
@@ -236,18 +237,18 @@ public final class SslCertificateManager {
         String passphrase = new SmallIdentifier().toString();
         // TODO: Try without password
         // Convert to PKCS12
-        byte[] pkcs12 = AOServDaemon.execAndCaptureBytes(
+        byte[] pkcs12 = AoservDaemon.execAndCaptureBytes(
             "openssl", "pkcs12", "-export", "-in", certCanonical.getPath(), "-passout", "pass:" + passphrase
         );
 
         // Key and cert together, load through Keystore
         // See https://stackoverflow.com/questions/21794117/java-security-cert-certificateparsingexception-signed-fields-invalid
-        final String KEYSTORE_TYPE = "PKCS12";
+        final String keystoreType = "PKCS12";
         KeyStore ks;
         try {
-          ks = KeyStore.getInstance(KEYSTORE_TYPE);
+          ks = KeyStore.getInstance(keystoreType);
         } catch (KeyStoreException e) {
-          throw new IOException(FACTORY_TYPE + ": Unable to get keystore instance of type \"" + KEYSTORE_TYPE + "\": " + e.toString(), e);
+          throw new IOException(FACTORY_TYPE + ": Unable to get keystore instance of type \"" + keystoreType + "\": " + e.toString(), e);
         }
         try (InputStream in = new ByteArrayInputStream(pkcs12)) {
           ks.load(in, passphrase.toCharArray()); // TODO: Try without passphrase
@@ -287,50 +288,50 @@ public final class SslCertificateManager {
         }
       }
       String commonName = null;
-      {
-        // See https://stackoverflow.com/questions/7933468/parsing-the-cn-out-of-a-certificate-dn
-        String x509Name = certificate.getSubjectX500Principal().getName();
-        LdapName ln;
-        try {
-          ln = new LdapName(x509Name); // Compatible: both getName() and new LdapName(...) are RFC 2253
-        } catch (InvalidNameException e) {
-          throw new IOException(FACTORY_TYPE + ": Unable to parse common name \"" + x509Name + "\": " + e.toString(), e);
-        }
-        for (Rdn rdn : ln.getRdns()) {
-          if ("CN".equalsIgnoreCase(rdn.getType())) {
-            commonName = rdn.getValue().toString();
-            break;
+        {
+          // See https://stackoverflow.com/questions/7933468/parsing-the-cn-out-of-a-certificate-dn
+          String x509Name = certificate.getSubjectX500Principal().getName();
+          LdapName ln;
+          try {
+            ln = new LdapName(x509Name); // Compatible: both getName() and new LdapName(...) are RFC 2253
+          } catch (InvalidNameException e) {
+            throw new IOException(FACTORY_TYPE + ": Unable to parse common name \"" + x509Name + "\": " + e.toString(), e);
+          }
+          for (Rdn rdn : ln.getRdns()) {
+            if ("CN".equalsIgnoreCase(rdn.getType())) {
+              commonName = rdn.getValue().toString();
+              break;
+            }
+          }
+          if (commonName == null) {
+            throw new IOException(FACTORY_TYPE + ": No common name found: " + x509Name);
           }
         }
-        if (commonName == null) {
-          throw new IOException(FACTORY_TYPE + ": No common name found: " + x509Name);
-        }
-      }
       Set<String> altNames;
-      {
-        Collection<List<?>> sans;
-        try {
-          sans = certificate.getSubjectAlternativeNames();
-        } catch (CertificateParsingException e) {
-          throw new IOException(FACTORY_TYPE + ": Unable to parse certificate subject alt names: " + e.toString(), e);
-        }
-        if (sans == null) {
-          altNames = Collections.emptySet();
-        } else {
-          altNames = AoCollections.newLinkedHashSet(sans.size());
-          for (List<?> san : sans) {
-            int type = (Integer) san.get(0);
-            if (type == 2 /* dNSName */) {
-              String altName = (String) san.get(1);
-              if (!altNames.add(altName)) {
-                throw new IOException(FACTORY_TYPE + ": Duplicate subject alt name: " + altName);
+        {
+          Collection<List<?>> sans;
+          try {
+            sans = certificate.getSubjectAlternativeNames();
+          } catch (CertificateParsingException e) {
+            throw new IOException(FACTORY_TYPE + ": Unable to parse certificate subject alt names: " + e.toString(), e);
+          }
+          if (sans == null) {
+            altNames = Collections.emptySet();
+          } else {
+            altNames = AoCollections.newLinkedHashSet(sans.size());
+            for (List<?> san : sans) {
+              int type = (Integer) san.get(0);
+              if (type == 2 /* dNSName */) {
+                String altName = (String) san.get(1);
+                if (!altNames.add(altName)) {
+                  throw new IOException(FACTORY_TYPE + ": Duplicate subject alt name: " + altName);
+                }
+              } else {
+                throw new IOException(FACTORY_TYPE + ": Unexpected subject alt name type code: " + type);
               }
-            } else {
-              throw new IOException(FACTORY_TYPE + ": Unexpected subject alt name type code: " + type);
             }
           }
         }
-      }
       X509Status result = new X509Status(
           certModifyTime,
           certificate.getNotBefore(),
@@ -445,29 +446,29 @@ public final class SslCertificateManager {
       Set<String> domains = Collections.emptySet();
       String status = "UNKNOWN";
       int days = -1;
-      // Wait until lock file removed
-      {
-        int failures = 0;
-        while (CERTBOT_LOCK.getStat().exists()) {
-          failures++;
-          if (failures >= CERTBOT_LOCKED_ATTEMPTS) {
-            throw new IOException("certbot locked by " + CERTBOT_LOCK);
-          }
-          try {
-            Thread.sleep(CERTBOT_LOCKED_SLEEP);
-          } catch (InterruptedException e) {
-            InterruptedIOException ioErr = new InterruptedIOException("Interrupted waiting on " + CERTBOT_LOCK);
-            ioErr.initCause(e);
-            // Restore the interrupted status
-            Thread.currentThread().interrupt();
-            throw ioErr;
+        // Wait until lock file removed
+        {
+          int failures = 0;
+          while (CERTBOT_LOCK.getStat().exists()) {
+            failures++;
+            if (failures >= CERTBOT_LOCKED_ATTEMPTS) {
+              throw new IOException("certbot locked by " + CERTBOT_LOCK);
+            }
+            try {
+              Thread.sleep(CERTBOT_LOCKED_SLEEP);
+            } catch (InterruptedException e) {
+              InterruptedIOException ioErr = new InterruptedIOException("Interrupted waiting on " + CERTBOT_LOCK);
+              ioErr.initCause(e);
+              // Restore the interrupted status
+              Thread.currentThread().interrupt();
+              throw ioErr;
+            }
           }
         }
-      }
       try (
-        BufferedReader in = new BufferedReader(
+          BufferedReader in = new BufferedReader(
               new StringReader(
-                  AOServDaemon.execAndCapture("certbot", "certificates", "--cert-name", certbotName)
+                  AoservDaemon.execAndCapture("certbot", "certificates", "--cert-name", certbotName)
               )
           )
           ) {
@@ -552,33 +553,33 @@ public final class SslCertificateManager {
   @SuppressWarnings("null")
   public static List<Check> checkSslCertificate(Certificate certificate, boolean allowCached) throws IOException, SQLException {
     try {
-      Server thisServer = AOServDaemon.getThisServer();
+      Server thisServer = AoservDaemon.getThisServer();
       OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
       int osvId = osv.getPkey();
       boolean isNewOpenssl;
       switch (osvId) {
-        case OperatingSystemVersion.CENTOS_5_DOM0_I686 :
-        case OperatingSystemVersion.CENTOS_5_DOM0_X86_64 :
-        case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
+        case OperatingSystemVersion.CENTOS_5_DOM0_I686:
+        case OperatingSystemVersion.CENTOS_5_DOM0_X86_64:
+        case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64:
           isNewOpenssl = false;
           break;
-        case OperatingSystemVersion.CENTOS_7_DOM0_X86_64 :
-        case OperatingSystemVersion.CENTOS_7_X86_64 :
+        case OperatingSystemVersion.CENTOS_7_DOM0_X86_64:
+        case OperatingSystemVersion.CENTOS_7_X86_64:
           isNewOpenssl = true;
           break;
-        default :
+        default:
           throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
       }
       return checkSslCertificateConcurrencyLimiter.executeSerialized(
           new Tuple2<>(certificate, allowCached),
           () -> {
-            long currentTime = System.currentTimeMillis();
+            final long currentTime = System.currentTimeMillis();
 
-            String certbotName = certificate.getCertbotName();
-            String commonName = certificate.getCommonName().getName();
+            final String certbotName = certificate.getCertbotName();
+            final String commonName = certificate.getCommonName().getName();
             // Gets a lowercase set of alts names
-            Set<String> expectedAlts;
-            Set<String> expectedAltsLower;
+            final Set<String> expectedAlts;
+            final Set<String> expectedAltsLower;
             {
               List<CertificateName> altNames = certificate.getAltNames();
               expectedAlts = AoCollections.newLinkedHashSet(altNames.size());
@@ -594,19 +595,19 @@ public final class SslCertificateManager {
                 }
               }
             }
-            List<Check> results = new ArrayList<>();
+            final List<Check> results = new ArrayList<>();
 
             // First make sure all expected files exist
-            PosixFile keyFile   = getPosixFile(certificate.getKeyFile());
-            PosixFile csrFile   = getPosixFile(certificate.getCsrFile());
-            PosixFile certFile  = getPosixFile(certificate.getCertFile());
-            PosixFile chainFile = getPosixFile(certificate.getChainFile());
+            final PosixFile keyFile   = getPosixFile(certificate.getKeyFile());
+            final PosixFile csrFile   = getPosixFile(certificate.getCsrFile());
+            final PosixFile certFile  = getPosixFile(certificate.getCertFile());
+            final PosixFile chainFile = getPosixFile(certificate.getChainFile());
 
             // Stat each file
-            Stat keyStat   = keyFile.getStat();
-            Stat csrStat   = (csrFile == null) ? null : csrFile.getStat();
-            Stat certStat  = certFile.getStat();
-            Stat chainStat = (chainFile == null) ? null : chainFile.getStat();
+            final Stat keyStat   = keyFile.getStat();
+            final Stat csrStat   = (csrFile == null) ? null : csrFile.getStat();
+            final Stat certStat  = certFile.getStat();
+            final Stat chainStat = (chainFile == null) ? null : chainFile.getStat();
 
             // Make sure each expected file exists
             boolean keyExists = keyStat.exists();
@@ -792,13 +793,13 @@ public final class SslCertificateManager {
                     )
                 );
               }
-              String x509CN = x509Status.getCommonName();
-              boolean commonNameMatches = x509CN.equals(commonName);
-              boolean commonNameMatchesIgnoreCase = x509CN.equalsIgnoreCase(commonName);
+              String x509cn = x509Status.getCommonName();
+              boolean commonNameMatches = x509cn.equals(commonName);
+              boolean commonNameMatchesIgnoreCase = x509cn.equalsIgnoreCase(commonName);
               results.add(
                   new Check(
                       FACTORY_TYPE + " Subject CN",
-                      x509CN,
+                      x509cn,
                       commonNameMatches ? NONE
                           : commonNameMatchesIgnoreCase ? LOW : HIGH,
                       commonNameMatches ? null : "Expected: " + commonName
@@ -850,12 +851,12 @@ public final class SslCertificateManager {
                   )
               );
 
-              final String CERTBOT_DOMAINS = "Certbot Subject Alternative Name";
+              final String certbotDomains = "Certbot Subject Alternative Name";
               Set<String> domains = certbotStatus.getDomains();
               if (domains.isEmpty()) {
                 results.add(
                     new Check(
-                        CERTBOT_DOMAINS,
+                        certbotDomains,
                         "(empty)",
                         HIGH,
                         "No domains from certbot"
@@ -893,7 +894,7 @@ public final class SslCertificateManager {
                 }
                 results.add(
                     new Check(
-                        CERTBOT_DOMAINS,
+                        certbotDomains,
                         StringUtils.join(domains, ' '),
                         altNamesMatch ? NONE : altNamesMatchLower ? LOW : HIGH,
                         altNamesMatch ? null : "Expected: " + StringUtils.join(expectedAlts, ' ')
@@ -903,12 +904,12 @@ public final class SslCertificateManager {
             }
 
             // Low-level if certificate appears unused
-            List<CyrusImapdBind> cyrusBinds = certificate.getCyrusImapdBinds();
-            List<CyrusImapdServer> cyrusServers = certificate.getCyrusImapdServers();
-            List<VirtualHost> hsbs = certificate.getHttpdSiteBinds();
-            List<SendmailServer> sendmailServers = certificate.getSendmailServersByServerCertificate();
-            List<SendmailServer> sendmailClients = certificate.getSendmailServersByClientCertificate();
-            List<CertificateOtherUse> otherUses = certificate.getOtherUses();
+            final List<CyrusImapdBind> cyrusBinds = certificate.getCyrusImapdBinds();
+            final List<CyrusImapdServer> cyrusServers = certificate.getCyrusImapdServers();
+            final List<VirtualHost> hsbs = certificate.getHttpdSiteBinds();
+            final List<SendmailServer> sendmailServers = certificate.getSendmailServersByServerCertificate();
+            final List<SendmailServer> sendmailClients = certificate.getSendmailServersByClientCertificate();
+            final List<CertificateOtherUse> otherUses = certificate.getOtherUses();
             int useCount = 0;
             StringBuilder usedBy = new StringBuilder();
             if (!cyrusBinds.isEmpty()) {

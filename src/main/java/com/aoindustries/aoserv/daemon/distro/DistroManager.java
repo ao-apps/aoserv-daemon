@@ -33,8 +33,8 @@ import com.aoapps.lang.SysExits;
 import com.aoapps.lang.io.IoUtils;
 import com.aoapps.lang.util.ErrorPrinter;
 import com.aoapps.lang.validation.ValidationException;
-import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.AOServTable;
+import com.aoindustries.aoserv.client.AoservConnector;
+import com.aoindustries.aoserv.client.AoservTable;
 import com.aoindustries.aoserv.client.distribution.management.DistroFile;
 import com.aoindustries.aoserv.client.distribution.management.DistroFileTable;
 import com.aoindustries.aoserv.client.distribution.management.DistroFileType;
@@ -46,11 +46,11 @@ import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.client.linux.UserServer;
-import com.aoindustries.aoserv.client.sql.SQLColumnValue;
-import com.aoindustries.aoserv.client.sql.SQLComparator;
-import com.aoindustries.aoserv.client.sql.SQLExpression;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.client.sql.SqlColumnValue;
+import com.aoindustries.aoserv.client.sql.SqlComparator;
+import com.aoindustries.aoserv.client.sql.SqlExpression;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -112,7 +112,7 @@ public final class DistroManager implements Runnable {
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() {
     if (
-        AOServDaemonConfiguration.isManagerEnabled(DistroManager.class)
+        AoservDaemonConfiguration.isManagerEnabled(DistroManager.class)
             && thread == null
     ) {
       synchronized (System.out) {
@@ -149,7 +149,7 @@ public final class DistroManager implements Runnable {
         }
 
         // It is time to run if it is the backup hour and the backup has not been run for at least 12 hours
-        Server thisServer = AOServDaemon.getThisServer();
+        Server thisServer = AoservDaemon.getThisServer();
         long distroStartTime = System.currentTimeMillis();
         Timestamp lastDistroTime = thisServer.getLastDistroTime();
         boolean isFiner = logger.isLoggable(Level.FINER);
@@ -176,7 +176,7 @@ public final class DistroManager implements Runnable {
           }
           if (runNow || currentHour == distroHour) {
             try (
-              ProcessTimer timer = new ProcessTimer(
+                ProcessTimer timer = new ProcessTimer(
                     logger,
                     DistroManager.class.getName(),
                     "run",
@@ -186,9 +186,9 @@ public final class DistroManager implements Runnable {
                     60L * 60 * 1000 // 1 hour
                 )
                 ) {
-              AOServDaemon.executorService.submit(timer);
+              AoservDaemon.executorService.submit(timer);
 
-              AOServDaemon.getThisServer().setLastDistroTime(new Timestamp(distroStartTime));
+              AoservDaemon.getThisServer().setLastDistroTime(new Timestamp(distroStartTime));
 
               DistroReportStats stats = new DistroReportStats();
               List<DistroReportFile> results = checkFilesystem(stats, null);
@@ -316,7 +316,15 @@ public final class DistroManager implements Runnable {
   /**
    * Adds a report line, displaying to provided error printer if non-null.
    */
-  private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, PosixPath path, String actualValue, String expectedValue, String recommendedAction) throws IOException {
+  private static void addResult(
+      List<DistroReportFile> results,
+      Appendable verboseOut,
+      String type,
+      PosixPath path,
+      String actualValue,
+      String expectedValue,
+      String recommendedAction
+  ) throws IOException {
     DistroReportFile report = new DistroReportFile(type, path, actualValue, expectedValue, recommendedAction);
     results.add(report);
     if (verboseOut != null) {
@@ -348,7 +356,15 @@ public final class DistroManager implements Runnable {
     addResult(results, verboseOut, type, path, null, null, null);
   }
 
-  private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, PosixFile file, String actualValue, String expectedValue, String recommendedAction) throws IOException {
+  private static void addResult(
+      List<DistroReportFile> results,
+      Appendable verboseOut,
+      String type,
+      PosixFile file,
+      String actualValue,
+      String expectedValue,
+      String recommendedAction
+  ) throws IOException {
     try {
       addResult(results, verboseOut, type, PosixPath.valueOf(file.getPath()), actualValue, expectedValue, recommendedAction);
     } catch (ValidationException e) {
@@ -376,27 +392,27 @@ public final class DistroManager implements Runnable {
     stats.startTime = System.currentTimeMillis();
     try {
       // Build the list of files that should exist
-      AOServConnector conn = AOServDaemon.getConnector();
+      AoservConnector conn = AoservDaemon.getConnector();
       DistroFileTable distroFileTable = conn.getDistribution_management().getDistroFile();
       // Getting this list provides a single, immutable, consistent snap-shot of the information
       List<DistroFile> distroFiles = distroFileTable.getRows();
       boolean[] foundFiles = new boolean[distroFiles.size()];
 
       // The comparator used for the searches
-      SQLComparator<Object> pathComparator = new SQLComparator<>(
+      SqlComparator<Object> pathComparator = new SqlComparator<>(
           conn,
-          new SQLExpression[]{
-              new SQLColumnValue(conn, distroFileTable.getTableSchema().getSchemaColumn(conn, DistroFile.COLUMN_PATH)),
-              new SQLColumnValue(conn, distroFileTable.getTableSchema().getSchemaColumn(conn, DistroFile.COLUMN_OPERATING_SYSTEM_VERSION))
+          new SqlExpression[]{
+              new SqlColumnValue(conn, distroFileTable.getTableSchema().getSchemaColumn(conn, DistroFile.COLUMN_PATH)),
+              new SqlColumnValue(conn, distroFileTable.getTableSchema().getSchemaColumn(conn, DistroFile.COLUMN_OPERATING_SYSTEM_VERSION))
           },
-          new boolean[]{AOServTable.ASCENDING, AOServTable.ASCENDING}
+          new boolean[]{AoservTable.ASCENDING, AoservTable.ASCENDING}
       );
 
       // Verify all the files, from the root to the lowest directory, accumulating the results in the results List
       List<DistroReportFile> results = new ArrayList<>();
       checkDistroFile(
-          AOServDaemon.getThisServer(),
-          AOServDaemon.getThisServer().getHost().getOperatingSystemVersion().getPkey(),
+          AoservDaemon.getThisServer(),
+          AoservDaemon.getThisServer().getHost().getOperatingSystemVersion().getPkey(),
           MessageDigestUtils.getSha256(),
           distroFiles,
           foundFiles,
@@ -453,11 +469,11 @@ public final class DistroManager implements Runnable {
   //@SuppressWarnings({"unchecked"})
   private static void checkDistroFile(
       Server thisServer,
-      Integer osVersionPKey,
+      Integer osVersionPkey,
       MessageDigest digest,
       List<DistroFile> distroFiles,
       boolean[] foundFiles,
-      SQLComparator<Object> pathComparator,
+      SqlComparator<Object> pathComparator,
       PosixFile file,
       List<DistroReportFile> results,
       DistroReportStats stats,
@@ -477,33 +493,33 @@ public final class DistroManager implements Runnable {
     }
     // Find the matching DistroFile
     DistroFile distroFile;
-    {
-      // First look for exact match
-      String filename = file.getPath();
-      int index = Collections.binarySearch(distroFiles, new Object[]{PosixPath.valueOf(filename), osVersionPKey}, pathComparator);
-      if (index >= 0) {
-        distroFile = distroFiles.get(index);
-        // Flag as found
-        foundFiles[index] = true;
-      } else {
-        // Check for hostname substitution
-        String hostname = thisServer.getHostname().toString();
-        int pos = filename.indexOf(hostname);
-        if (pos >= 0) {
-          filename = filename.substring(0, pos) + "$h" + filename.substring(pos + hostname.length());
-          index = Collections.binarySearch(distroFiles, new Object[]{PosixPath.valueOf(filename), osVersionPKey}, pathComparator);
-          if (index >= 0) {
-            distroFile = distroFiles.get(index);
-            // Flag as found
-            foundFiles[index] = true;
+      {
+        // First look for exact match
+        String filename = file.getPath();
+        int index = Collections.binarySearch(distroFiles, new Object[]{PosixPath.valueOf(filename), osVersionPkey}, pathComparator);
+        if (index >= 0) {
+          distroFile = distroFiles.get(index);
+          // Flag as found
+          foundFiles[index] = true;
+        } else {
+          // Check for hostname substitution
+          String hostname = thisServer.getHostname().toString();
+          int pos = filename.indexOf(hostname);
+          if (pos >= 0) {
+            filename = filename.substring(0, pos) + "$h" + filename.substring(pos + hostname.length());
+            index = Collections.binarySearch(distroFiles, new Object[]{PosixPath.valueOf(filename), osVersionPkey}, pathComparator);
+            if (index >= 0) {
+              distroFile = distroFiles.get(index);
+              // Flag as found
+              foundFiles[index] = true;
+            } else {
+              distroFile = null;
+            }
           } else {
             distroFile = null;
           }
-        } else {
-          distroFile = null;
         }
       }
-    }
 
     // Stat here for use below
     Stat fileStat = file.getStat();
@@ -521,42 +537,42 @@ public final class DistroManager implements Runnable {
       );
     } else {
       // Check owner
-      int fileUID = fileStat.getUid();
+      int fileUid = fileStat.getUid();
       User la = distroFile.getLinuxAccount();
       UserServer lsa = la.getLinuxServerAccount(thisServer);
       if (lsa == null) {
         throw new SQLException("Unable to find UserServer for " + la + " on " + thisServer + ", path=" + file);
       }
-      int distroUID = lsa.getUid().getId();
-      if (fileUID != distroUID) {
+      int distroUid = lsa.getUid().getId();
+      if (fileUid != distroUid) {
         addResult(
             results,
             verboseOut,
             DistroReportType.OWNER_MISMATCH,
             file,
-            Integer.toString(fileUID),
-            Integer.toString(distroUID),
-            "chown " + distroUID + " '" + file + '\''
+            Integer.toString(fileUid),
+            Integer.toString(distroUid),
+            "chown " + distroUid + " '" + file + '\''
         );
       }
 
       // Check group
-      int fileGID = fileStat.getGid();
+      int fileGid = fileStat.getGid();
       Group lg = distroFile.getLinuxGroup();
       GroupServer lsg = lg.getLinuxServerGroup(thisServer);
       if (lsg == null) {
         throw new SQLException("Unable to find GroupServer for " + lg + " on " + thisServer + ", path=" + file);
       }
-      int distroGID = lsg.getGid().getId();
-      if (fileGID != distroGID) {
+      int distroGid = lsg.getGid().getId();
+      if (fileGid != distroGid) {
         addResult(
             results,
             verboseOut,
             DistroReportType.GROUP_MISMATCH,
             file,
-            Integer.toString(fileGID),
-            Integer.toString(distroGID),
-            "chgrp " + distroGID + " '" + file + '\''
+            Integer.toString(fileGid),
+            Integer.toString(distroGid),
+            "chgrp " + distroGid + " '" + file + '\''
         );
       }
 
@@ -620,32 +636,32 @@ public final class DistroManager implements Runnable {
           if (!fileStat.isDirectory()) {
             if (!type.equals(DistroFileType.CONFIG)) {
               if (type.equals(DistroFileType.PRELINK)) {
-                long startTime = System.currentTimeMillis();
+                final long startTime = System.currentTimeMillis();
 
                 // Use prelink --verify to get original file length and digest
                 byte[] sha256;
                 long fileLen;
-                {
-                  Tuple2<byte[], Long> result = AOServDaemon.execCall(
-                      stdout -> {
-                        try (ByteCountInputStream countIn = new ByteCountInputStream(stdout)) {
-                          return new Tuple2<>(
-                              MessageDigestUtils.hashInput(digest, countIn),
-                              // Use length of unprelinked file
-                              countIn.getCount()
-                          );
-                        }
-                      },
-                      "/usr/sbin/prelink",
-                      "--verify",
-                      file.getPath()
-                  );
-                  sha256 = result.getElement1();
-                  fileLen = result.getElement2();
-                  if (sha256.length != 32) {
-                    throw new AssertionError();
+                  {
+                    Tuple2<byte[], Long> result = AoservDaemon.execCall(
+                        stdout -> {
+                          try (ByteCountInputStream countIn = new ByteCountInputStream(stdout)) {
+                            return new Tuple2<>(
+                                MessageDigestUtils.hashInput(digest, countIn),
+                                // Use length of unprelinked file
+                                countIn.getCount()
+                            );
+                          }
+                        },
+                        "/usr/sbin/prelink",
+                        "--verify",
+                        file.getPath()
+                    );
+                    sha256 = result.getElement1();
+                    fileLen = result.getElement2();
+                    if (sha256.length != 32) {
+                      throw new AssertionError();
+                    }
                   }
-                }
 
                 // Prelink MD5
                 stats.prelinkFiles++;
@@ -665,32 +681,32 @@ public final class DistroManager implements Runnable {
                       Long.toString(distroLen)
                   );
                 } else {
-                  long file_sha256_0 = IoUtils.bufferToLong(sha256);
-                  long file_sha256_1 = IoUtils.bufferToLong(sha256, 8);
-                  long file_sha256_2 = IoUtils.bufferToLong(sha256, 16);
-                  long file_sha256_3 = IoUtils.bufferToLong(sha256, 24);
-                  long distro_sha256_0 = distroFile.getFileSha256_0();
-                  long distro_sha256_1 = distroFile.getFileSha256_1();
-                  long distro_sha256_2 = distroFile.getFileSha256_2();
-                  long distro_sha256_3 = distroFile.getFileSha256_3();
+                  long fileSha0 = IoUtils.bufferToLong(sha256);
+                  long fileSha1 = IoUtils.bufferToLong(sha256, 8);
+                  long fileSha2 = IoUtils.bufferToLong(sha256, 16);
+                  long fileSha3 = IoUtils.bufferToLong(sha256, 24);
+                  long distroSha0 = distroFile.getFileSha256_0();
+                  long distroSha1 = distroFile.getFileSha256_1();
+                  long distroSha2 = distroFile.getFileSha256_2();
+                  long distroSha3 = distroFile.getFileSha256_3();
                   if (
-                      file_sha256_0 != distro_sha256_0
-                          || file_sha256_1 != distro_sha256_1
-                          || file_sha256_2 != distro_sha256_2
-                          || file_sha256_3 != distro_sha256_3
+                      fileSha0 != distroSha0
+                          || fileSha1 != distroSha1
+                          || fileSha2 != distroSha2
+                          || fileSha3 != distroSha3
                   ) {
                     addResult(
                         results,
                         verboseOut,
                         DistroReportType.DIGEST,
                         file,
-                        MessageDigestUtils.getHexChars(file_sha256_0, file_sha256_1, file_sha256_2, file_sha256_3),
-                        MessageDigestUtils.getHexChars(distro_sha256_0, distro_sha256_1, distro_sha256_2, distro_sha256_3)
+                        MessageDigestUtils.getHexChars(fileSha0, fileSha1, fileSha2, fileSha3),
+                        MessageDigestUtils.getHexChars(distroSha0, distroSha1, distroSha2, distroSha3)
                     );
                   }
                 }
 
-                // Sleep for an amount of time equivilent to half the time it took to process this file
+                // Sleep for an amount of time equivalent to half the time it took to process this file
                 long timeSpan = (System.currentTimeMillis() - startTime) / 2;
                 if (timeSpan < 0) {
                   timeSpan = 0;
@@ -721,7 +737,7 @@ public final class DistroManager implements Runnable {
                   );
                 } else {
                   // SHA-256
-                  long startTime = System.currentTimeMillis();
+                  final long startTime = System.currentTimeMillis();
 
                   byte[] sha256;
                   try (ByteCountInputStream in = new ByteCountInputStream(new FileInputStream(file.getFile()))) {
@@ -739,31 +755,31 @@ public final class DistroManager implements Runnable {
                   stats.sha256Files++;
                   stats.sha256Bytes += fileLen;
 
-                  long file_sha256_0 = IoUtils.bufferToLong(sha256);
-                  long file_sha256_1 = IoUtils.bufferToLong(sha256, 8);
-                  long file_sha256_2 = IoUtils.bufferToLong(sha256, 16);
-                  long file_sha256_3 = IoUtils.bufferToLong(sha256, 24);
-                  long distro_sha256_0 = distroFile.getFileSha256_0();
-                  long distro_sha256_1 = distroFile.getFileSha256_1();
-                  long distro_sha256_2 = distroFile.getFileSha256_2();
-                  long distro_sha256_3 = distroFile.getFileSha256_3();
+                  long fileSha0 = IoUtils.bufferToLong(sha256);
+                  long fileSha1 = IoUtils.bufferToLong(sha256, 8);
+                  long fileSha2 = IoUtils.bufferToLong(sha256, 16);
+                  long fileSha3 = IoUtils.bufferToLong(sha256, 24);
+                  long distroSha0 = distroFile.getFileSha256_0();
+                  long distroSha1 = distroFile.getFileSha256_1();
+                  long distroSha2 = distroFile.getFileSha256_2();
+                  long distroSha3 = distroFile.getFileSha256_3();
                   if (
-                      file_sha256_0 != distro_sha256_0
-                          || file_sha256_1 != distro_sha256_1
-                          || file_sha256_2 != distro_sha256_2
-                          || file_sha256_3 != distro_sha256_3
+                      fileSha0 != distroSha0
+                          || fileSha1 != distroSha1
+                          || fileSha2 != distroSha2
+                          || fileSha3 != distroSha3
                   ) {
                     addResult(
                         results,
                         verboseOut,
                         DistroReportType.DIGEST,
                         file,
-                        MessageDigestUtils.getHexChars(file_sha256_0, file_sha256_1, file_sha256_2, file_sha256_3),
-                        MessageDigestUtils.getHexChars(distro_sha256_0, distro_sha256_1, distro_sha256_2, distro_sha256_3)
+                        MessageDigestUtils.getHexChars(fileSha0, fileSha1, fileSha2, fileSha3),
+                        MessageDigestUtils.getHexChars(distroSha0, distroSha1, distroSha2, distroSha3)
                     );
                   }
 
-                  // Sleep for an amount of time equivilent to half the time it took to process this file
+                  // Sleep for an amount of time equivalent to half the time it took to process this file
                   long timeSpan = (System.currentTimeMillis() - startTime) / 2;
                   if (timeSpan < 0) {
                     timeSpan = 0;
@@ -818,7 +834,7 @@ public final class DistroManager implements Runnable {
                   for (int c = 0; c < len; c++) {
                     checkDistroFile(
                         thisServer,
-                        osVersionPKey,
+                        osVersionPkey,
                         digest,
                         distroFiles,
                         foundFiles,
@@ -916,11 +932,11 @@ public final class DistroManager implements Runnable {
                 )
             ) {
               // Allow setUID for /etc/mail/majordomo/*/wrapper 4750 root.mail
-              final String MAJORDOMO_PATH = "/etc/mail/majordomo/";
+              final String majordomoPath = "/etc/mail/majordomo/";
               boolean found = false;
               String filename = uf.getPath();
-              if (filename.startsWith(MAJORDOMO_PATH)) {
-                int pos = filename.indexOf('/', MAJORDOMO_PATH.length());
+              if (filename.startsWith(majordomoPath)) {
+                int pos = filename.indexOf('/', majordomoPath.length());
                 if (pos != -1) {
                   String fname = filename.substring(pos + 1);
                   if (
@@ -1013,8 +1029,7 @@ public final class DistroManager implements Runnable {
                     || Character.isSpaceChar(ch)
                     || Character.isWhitespace(ch)
             )
-        ) || allSpace(name)
-    ;
+        ) || allSpace(name);
   }
 
   /**

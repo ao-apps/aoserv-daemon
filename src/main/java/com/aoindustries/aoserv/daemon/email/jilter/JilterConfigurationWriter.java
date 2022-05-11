@@ -28,7 +28,7 @@ import com.aoapps.io.posix.PosixFile;
 import com.aoapps.io.posix.Stat;
 import com.aoapps.net.DomainName;
 import com.aoapps.net.InetAddress;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.account.Account;
 import com.aoindustries.aoserv.client.billing.Package;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
@@ -43,8 +43,8 @@ import com.aoindustries.aoserv.client.net.AppProtocol;
 import com.aoindustries.aoserv.client.net.Bind;
 import com.aoindustries.aoserv.client.net.Host;
 import com.aoindustries.aoserv.client.net.IpAddress;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.jilter.config.EmailLimit;
@@ -76,7 +76,7 @@ public class JilterConfigurationWriter extends BuilderThread {
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() throws IOException, SQLException {
-    Server thisServer = AOServDaemon.getThisServer();
+    Server thisServer = AoservDaemon.getThisServer();
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
 
@@ -87,7 +87,7 @@ public class JilterConfigurationWriter extends BuilderThread {
               && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
               && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
               // Check config after OS check so config entry not needed
-              && AOServDaemonConfiguration.isManagerEnabled(JilterConfigurationWriter.class)
+              && AoservDaemonConfiguration.isManagerEnabled(JilterConfigurationWriter.class)
               && configurationWriter == null
       ) {
         System.out.print("Starting JilterConfigurationWriter: ");
@@ -96,7 +96,7 @@ public class JilterConfigurationWriter extends BuilderThread {
             osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                 || osvId == OperatingSystemVersion.CENTOS_7_X86_64
         ) {
-          AOServConnector conn = AOServDaemon.getConnector();
+          AoservConnector conn = AoservDaemon.getConnector();
           configurationWriter = new JilterConfigurationWriter();
           conn.getLinux().getServer().addTableListener(configurationWriter, 0);
           conn.getNet().getBind().addTableListener(configurationWriter, 0);
@@ -118,6 +118,7 @@ public class JilterConfigurationWriter extends BuilderThread {
   public String getProcessTimerDescription() {
     return "JilterConfigurationWriter";
   }
+
   private static final Object rebuildLock = new Object();
 
   /**
@@ -128,11 +129,11 @@ public class JilterConfigurationWriter extends BuilderThread {
    * @return  the Bind or <code>null</code> if none found and jilter disabled.
    */
   public static Bind getJilterNetBind() throws IOException, SQLException {
-    AppProtocol protocol = AOServDaemon.getConnector().getNet().getAppProtocol().get(AppProtocol.MILTER);
+    AppProtocol protocol = AoservDaemon.getConnector().getNet().getAppProtocol().get(AppProtocol.MILTER);
     if (protocol == null) {
       throw new SQLException("AppProtocol not found: " + AppProtocol.MILTER);
     }
-    List<Bind> milterBinds = AOServDaemon.getThisServer().getHost().getNetBinds(protocol);
+    List<Bind> milterBinds = AoservDaemon.getThisServer().getHost().getNetBinds(protocol);
     if (milterBinds.size() > 1) {
       throw new SQLException("More than one milter found in net_binds, refusing to configure jilter");
     }
@@ -143,7 +144,7 @@ public class JilterConfigurationWriter extends BuilderThread {
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
   protected boolean doRebuild() {
     try {
-      Server thisServer = AOServDaemon.getThisServer();
+      Server thisServer = AoservDaemon.getThisServer();
       Host thisHost = thisServer.getHost();
 
       // Look for the configured net bind for the jilter
@@ -154,7 +155,7 @@ public class JilterConfigurationWriter extends BuilderThread {
         PackageManager.installPackage(PackageManager.PackageName.AOSERV_JILTER);
 
         // restrict_outbound_email
-        boolean restrict_outbound_email = thisServer.getRestrictOutboundEmail();
+        boolean restrictOutboundEmail = thisServer.getRestrictOutboundEmail();
 
         // domainPackages and domainAddresses
         Map<String, String> domainPackages = new HashMap<>();
@@ -173,7 +174,7 @@ public class JilterConfigurationWriter extends BuilderThread {
         }
 
         // ips
-        List<IpAddress> ias = thisHost.getIPAddresses();
+        List<IpAddress> ias = thisHost.getIpAddresses();
         Set<String> ips = AoCollections.newHashSet(ias.size());
         for (IpAddress ia : ias) {
           InetAddress ip = ia.getInetAddress();
@@ -210,7 +211,7 @@ public class JilterConfigurationWriter extends BuilderThread {
         Map<String, EmailLimit> emailOutLimits = AoCollections.newHashMap(size);
         Map<String, EmailLimit> emailRelayLimits = AoCollections.newHashMap(size);
         for (String packageName : domainPackages.values()) {
-          Package pk = AOServDaemon.getConnector().getBilling().getPackage().get(Account.Name.valueOf(packageName));
+          Package pk = AoservDaemon.getConnector().getBilling().getPackage().get(Account.Name.valueOf(packageName));
           if (pk == null) {
             throw new SQLException("Unable to find Package: " + packageName);
           }
@@ -234,12 +235,12 @@ public class JilterConfigurationWriter extends BuilderThread {
           JilterConfiguration jilterConfiguration = new JilterConfiguration(
               jilterNetBind.getIpAddress().getInetAddress().toString(),
               jilterNetBind.getPort().getPort(),
-              restrict_outbound_email,
-              AOServDaemonConfiguration.getMonitorSmtpServer(),
-              AOServDaemonConfiguration.getMonitorEmailSummaryFrom(),
-              AOServDaemonConfiguration.getMonitorEmailSummaryTo(),
-              AOServDaemonConfiguration.getMonitorEmailFullFrom(),
-              AOServDaemonConfiguration.getMonitorEmailFullTo(),
+              restrictOutboundEmail,
+              AoservDaemonConfiguration.getMonitorSmtpServer(),
+              AoservDaemonConfiguration.getMonitorEmailSummaryFrom(),
+              AoservDaemonConfiguration.getMonitorEmailSummaryTo(),
+              AoservDaemonConfiguration.getMonitorEmailFullFrom(),
+              AoservDaemonConfiguration.getMonitorEmailFullTo(),
               domainPackages,
               domainAddresses,
               ips,
@@ -255,29 +256,29 @@ public class JilterConfigurationWriter extends BuilderThread {
           int osv = thisServer.getHost().getOperatingSystemVersion().getPkey();
           if (osv == OperatingSystemVersion.CENTOS_7_X86_64) {
             int aoservJilterGid;
-            {
-              GroupServer aoservJilterLsg = thisServer.getLinuxServerGroup(Group.AOSERV_JILTER);
-              if (aoservJilterLsg == null) {
-                throw new SQLException("Unable to find GroupServer: " + Group.AOSERV_JILTER);
+              {
+                GroupServer aoservJilterLsg = thisServer.getLinuxServerGroup(Group.AOSERV_JILTER);
+                if (aoservJilterLsg == null) {
+                  throw new SQLException("Unable to find GroupServer: " + Group.AOSERV_JILTER);
+                }
+                aoservJilterGid = aoservJilterLsg.getGid().getId();
               }
-              aoservJilterGid = aoservJilterLsg.getGid().getId();
-            }
-            PosixFile propsUF = new PosixFile(JilterConfiguration.PROPS_FILE);
-            Stat propsStat = propsUF.getStat();
+            PosixFile propsPosixFile = new PosixFile(JilterConfiguration.PROPS_FILE);
+            Stat propsStat = propsPosixFile.getStat();
             if (
                 propsStat.getUid() != PosixFile.ROOT_UID
                     || propsStat.getGid() != aoservJilterGid
             ) {
-              propsUF.chown(PosixFile.ROOT_UID, aoservJilterGid);
+              propsPosixFile.chown(PosixFile.ROOT_UID, aoservJilterGid);
             }
             if (propsStat.getMode() != 0640) {
-              propsUF.setMode(0640);
+              propsPosixFile.setMode(0640);
             }
           }
         }
       } else {
         // Remove the package
-        if (AOServDaemonConfiguration.isPackageManagerUninstallEnabled()) {
+        if (AoservDaemonConfiguration.isPackageManagerUninstallEnabled()) {
           PackageManager.removePackage(PackageManager.PackageName.AOSERV_JILTER);
 
           // Remove any left-over config file and directory

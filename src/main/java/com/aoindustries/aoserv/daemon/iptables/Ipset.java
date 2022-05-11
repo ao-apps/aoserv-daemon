@@ -84,14 +84,14 @@ public final class Ipset {
     R
   }
 
-  /**
-   * To minimize the kernel locking duration, each ipset is only updated with
-   * what has changed since the last build.
-   */
+  ///**
+  // * To minimize the kernel locking duration, each ipset is only updated with
+  // * what has changed since the last build.
+  // */
   //private static final Map<Set, Set<Integer>> lastNetworks = new HashMap<>();
 
   /**
-   * Calls ipset -S, skipping any comment lines
+   * Calls <code>ipset -S</code>, skipping any comment lines.
    *
    * @param  setName        the name of the set
    * @param  missingAsNull  when true, a missing set will be returned as null, otherwise will throw an exception
@@ -139,7 +139,7 @@ public final class Ipset {
   }
 
   /**
-   * Calls ipset -N
+   * Calls <code>ipset -N</code>.
    */
   public static void create(String setName, SetType setType, String... options) throws IOException {
     String[] newCommand = new String[4 + options.length];
@@ -155,7 +155,7 @@ public final class Ipset {
   }
 
   /**
-   * Calls ipset -D
+   * Calls <code>ipset -D</code>.
    */
   public static void delete(String setName, int entry) throws IOException {
     ProcessResult result = ProcessResult.exec(
@@ -163,7 +163,7 @@ public final class Ipset {
             IPSET,
             "-D",
             setName,
-            IpAddress.getIPAddressForInt(entry)
+            IpAddress.getIpAddressForInt(entry)
         },
         CHARSET
     );
@@ -173,7 +173,7 @@ public final class Ipset {
   }
 
   /**
-   * Calls ipset -A
+   * Calls <code>ipset -A</code>.
    */
   public static void add(String setName, int entry) throws IOException {
     ProcessResult result = ProcessResult.exec(
@@ -181,7 +181,7 @@ public final class Ipset {
             IPSET,
             "-A",
             setName,
-            IpAddress.getIPAddressForInt(entry)
+            IpAddress.getIpAddressForInt(entry)
         },
         CHARSET
     );
@@ -203,7 +203,7 @@ public final class Ipset {
           if (spacePos == -1) {
             throw new IOException("Unable to find second space");
           }
-          entries.add(IpAddress. getIntForIPAddress(line.substring(spacePos + 1)));
+          entries.add(IpAddress. getIntForIpAddress(line.substring(spacePos + 1)));
         }
       }
     }

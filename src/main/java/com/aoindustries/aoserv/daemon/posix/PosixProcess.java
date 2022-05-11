@@ -23,7 +23,7 @@
 
 package com.aoindustries.aoserv.daemon.posix;
 
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import java.io.IOException;
 
 /**
@@ -75,14 +75,14 @@ public abstract class PosixProcess {
   public void killProc() throws IOException, InterruptedException {
     String pidS = String.valueOf(pid);
     if (isRunning()) {
-      AOServDaemon.exec("/bin/kill", "-SIGTERM", pidS);
+      AoservDaemon.exec("/bin/kill", "-SIGTERM", pidS);
       Thread.sleep(100);
     }
     if (isRunning()) {
       Thread.sleep(1900);
     }
     if (isRunning()) {
-      AOServDaemon.exec("/bin/kill", "-SIGKILL", pidS);
+      AoservDaemon.exec("/bin/kill", "-SIGKILL", pidS);
     }
   }
 
@@ -91,7 +91,7 @@ public abstract class PosixProcess {
    * <code>/bin/kill</code> executable.
    */
   public void signal(String signalName) throws IOException {
-    AOServDaemon.exec(
+    AoservDaemon.exec(
         "/bin/kill",
         "-" + signalName,
         Integer.toString(pid)

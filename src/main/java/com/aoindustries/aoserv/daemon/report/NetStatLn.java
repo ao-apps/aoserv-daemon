@@ -26,17 +26,17 @@ package com.aoindustries.aoserv.daemon.report;
 import com.aoapps.lang.EmptyArrays;
 
 /**
- * Encapsulates the output of the /bin/netstat -ln command.
+ * Encapsulates the output of the <code>/bin/netstat -ln</code> command.
  *
  * @author  AO Industries, Inc.
  */
-public final class NetStatLN {
+public final class NetStatLn {
 
-  public final String[] deviceIDs;
+  public final String[] deviceIds;
   public final int[] listens;
 
-  public NetStatLN() {
-    deviceIDs = EmptyArrays.EMPTY_STRING_ARRAY;
+  public NetStatLn() {
+    deviceIds = EmptyArrays.EMPTY_STRING_ARRAY;
     listens = EmptyArrays.EMPTY_INT_ARRAY;
   }
 }

@@ -26,34 +26,33 @@ package com.aoindustries.aoserv.daemon.report;
 import com.aoapps.lang.EmptyArrays;
 
 /**
- * Encapsulates the output of the /proc/net/dev file.
+ * Encapsulates the output of the <code>/proc/net/dev</code> file.
  *
  * @author  AO Industries, Inc.
  */
 public final class ProcNetDev {
 
-  public final String[] deviceIDs;
-  public final long[]
-      rxBytes,
-      rxPackets,
-      rxErrors,
-      rxDrop,
-      rxFIFO,
-      rxFrame,
-      rxCompress,
-      rxMulticast,
-      txBytes,
-      txPackets,
-      txErrors,
-      txDrop,
-      txFIFO,
-      txColls,
-      txCarrier,
-      txCompressed
-  ;
+  public final String[] deviceIds;
+  public final long[] rxBytes;
+  public final long[] rxPackets;
+  public final long[] rxErrors;
+  public final long[] rxDrop;
+  public final long[] rxFifo;
+  public final long[] rxFrame;
+  public final long[] rxCompress;
+  public final long[] rxMulticast;
+  public final long[] txBytes;
+  public final long[] txPackets;
+  public final long[] txErrors;
+  public final long[] txDrop;
+  public final long[] txFifo;
+  public final long[] txColls;
+  public final long[] txCarrier;
+  public final long[] txCompressed;
 
   public ProcNetDev() {
-    deviceIDs = EmptyArrays.EMPTY_STRING_ARRAY;
-    rxBytes = rxPackets = rxErrors = rxDrop = rxFIFO = rxFrame = rxCompress = rxMulticast = txBytes = txPackets = txErrors = txDrop = txFIFO = txColls = txCarrier = txCompressed = EmptyArrays.EMPTY_LONG_ARRAY;
+    deviceIds = EmptyArrays.EMPTY_STRING_ARRAY;
+    rxBytes = rxPackets = rxErrors = rxDrop = rxFifo = rxFrame = rxCompress = rxMulticast = txBytes = txPackets =
+        txErrors = txDrop = txFifo = txColls = txCarrier = txCompressed = EmptyArrays.EMPTY_LONG_ARRAY;
   }
 }

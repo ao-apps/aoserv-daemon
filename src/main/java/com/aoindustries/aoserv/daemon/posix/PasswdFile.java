@@ -60,10 +60,8 @@ public final class PasswdFile {
 
   private static final Logger logger = Logger.getLogger(PasswdFile.class.getName());
 
-  private static final PosixFile
-      passwdFile       = new PosixFile("/etc/passwd"),
-      backupPasswdFile = new PosixFile("/etc/passwd-")
-  ;
+  private static final PosixFile passwdFile = new PosixFile("/etc/passwd");
+  private static final PosixFile backupPasswdFile = new PosixFile("/etc/passwd-");
 
   /**
    * Represents one line of the <code>/etc/passwd</code> file on a POSIX server.
@@ -281,7 +279,7 @@ public final class PasswdFile {
     }
 
     /**
-     * The username the entry is for
+     * The username the entry is for.
      */
     public User.Name getUsername() {
       return username;
@@ -345,21 +343,22 @@ public final class PasswdFile {
   }
 
   /**
-   * Locks the passwd file for updates
+   * Locks the passwd file for updates.
    */
   public static final Object passwdLock = new Object();
 
   /**
-   * Reads the full contents of /etc/passwd
-   *
-   * Must hold {@link #passwdLock}
+   * Reads the full contents of <code>/etc/passwd</code>.
+   * <p>
+   * Must hold {@link #passwdLock}.
+   * </p>
    */
   public static Map<User.Name, Entry> readPasswdFile() throws IOException {
     assert Thread.holdsLock(passwdLock);
     try {
       Map<User.Name, Entry> passwdEntries = new LinkedHashMap<>();
       try (
-        BufferedReader in = new BufferedReader(
+          BufferedReader in = new BufferedReader(
               new InputStreamReader(
                   new FileInputStream(passwdFile.getFile())
               )
@@ -402,7 +401,7 @@ public final class PasswdFile {
   }
 
   /**
-   * Must hold {@link #passwdLock}
+   * Must hold {@link #passwdLock}.
    */
   public static void writePasswdFile(byte[] newContents, Set<PosixFile> restorecon) throws IOException {
     assert Thread.holdsLock(passwdLock);
@@ -419,8 +418,9 @@ public final class PasswdFile {
 
   /**
    * Builds a new version of the passwd file with necessary adjustments made.
-   *
-   * Must hold {@link #passwdLock}
+   * <p>
+   * Must hold {@link #passwdLock}.
+   * </p>
    */
   public static byte[] buildPasswdFile(Map<User.Name, Entry> expectedEntries, int uidMin, int uidMax) throws IOException {
     assert Thread.holdsLock(passwdLock);

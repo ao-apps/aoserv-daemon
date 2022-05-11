@@ -26,20 +26,18 @@ package com.aoindustries.aoserv.daemon.report;
 import com.aoapps.lang.EmptyArrays;
 
 /**
- * Encapsulates the output of the /bin/df command.
+ * Encapsulates the output of the <code>/proc/mdstat</code> file.
  *
  * @author  AO Industries, Inc.
  */
-public final class DF {
+public final class MdStat {
 
-  public final int[] device_majors;
-  public final int[] device_minors;
-  public final long[] totals;
-  public final long[] useds;
-  public final long[] frees;
+  public final int[] deviceMajors;       // *** In data
+  public final int[] deviceMinors;       // *** In data
+  public final int[] totalPartitions;    // *** In data
+  public final int[] activePartitions;   // *** In data
 
-  public DF() {
-    device_majors = device_minors = EmptyArrays.EMPTY_INT_ARRAY;
-    totals = useds = frees = EmptyArrays.EMPTY_LONG_ARRAY;
+  public MdStat() {
+    deviceMajors = deviceMinors = totalPartitions = activePartitions = EmptyArrays.EMPTY_INT_ARRAY;
   }
 }

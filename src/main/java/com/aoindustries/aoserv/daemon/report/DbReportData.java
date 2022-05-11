@@ -26,11 +26,11 @@ package com.aoindustries.aoserv.daemon.report;
 /**
  * @author  AO Industries, Inc.
  */
-public abstract class DBReportData {
+public abstract class DbReportData {
 
   public int numUsers;
 
-  protected DBReportData() {
+  protected DbReportData() {
     // Do nothing
   }
 
@@ -38,7 +38,6 @@ public abstract class DBReportData {
   public String toString() {
     return
         getClass().getName()
-            + "?numUsers=" + numUsers
-    ;
+            + "?numUsers=" + numUsers;
   }
 }

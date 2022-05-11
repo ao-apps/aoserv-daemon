@@ -24,64 +24,62 @@
 package com.aoindustries.aoserv.daemon.report;
 
 /**
- * Encapsulates the output of the /proc/sys/fs files
+ * Encapsulates the output of the <code>/proc/sys/fs</code> files.
  *
  * @author  AO Industries, Inc.
  */
 public final class ProcSys {
 
-  public final int
-      files_allocated,
-      files_used,
-      files_max,
-      nr_inodes,
-      nr_free_inodes,
-      inode_preshrink,
-      msgmax,
-      msgmnb,
-      msgmni,
-      nr_msg,
-      entropy_avail,
-      rtsig_max,
-      rtsig_nr,
-      semmsl,
-      semmns,
-      semopm,
-      semmni,
-      nr_sem,
-      shmall,
-      shmmax,
-      shmmni,
-      nr_shm,
-      shm_used,
-      threads_max
-  ;
+  public final int filesAllocated;
+  public final int filesUsed;
+  public final int filesMax;
+  public final int nrInodes;
+  public final int nrFreeInodes;
+  public final int inodePreshrink;
+  public final int msgmax;
+  public final int msgmnb;
+  public final int msgmni;
+  public final int nrMsg;
+  public final int entropyAvail;
+  public final int rtsigMax;
+  public final int rtsigNr;
+  public final int semmsl;
+  public final int semmns;
+  public final int semopm;
+  public final int semmni;
+  public final int nrSem;
+  public final int shmall;
+  public final int shmmax;
+  public final int shmmni;
+  public final int nrShm;
+  public final int shmUsed;
+  public final int threadsMax;
 
   public ProcSys() {
-    files_allocated
-        = files_used
-        = files_max
-        = nr_inodes
-        = nr_free_inodes
-        = inode_preshrink
+    filesAllocated
+        = filesUsed
+        = filesMax
+        = nrInodes
+        = nrFreeInodes
+        = inodePreshrink
         = msgmax
         = msgmnb
         = msgmni
-        = nr_msg
-        = entropy_avail
-        = rtsig_max
-        = rtsig_nr
+        = nrMsg
+        = entropyAvail
+        = rtsigMax
+        = rtsigNr
         = semmsl
         = semmns
         = semopm
         = semmni
-        = nr_sem
+        = nrSem
         = shmall
         = shmmax
         = shmmni
-        = nr_shm
-        = shm_used
-        = threads_max
+        = nrShm
+        = shmUsed
+        = threadsMax
         = 0;
   }
 }

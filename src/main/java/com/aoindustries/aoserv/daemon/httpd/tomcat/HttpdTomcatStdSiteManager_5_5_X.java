@@ -25,7 +25,7 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 import com.aoapps.encoding.ChainWriter;
 import com.aoapps.io.posix.PosixFile;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.linux.UserServer;
 import com.aoindustries.aoserv.client.net.Bind;
@@ -36,7 +36,7 @@ import com.aoindustries.aoserv.client.web.tomcat.ContextParameter;
 import com.aoindustries.aoserv.client.web.tomcat.JkProtocol;
 import com.aoindustries.aoserv.client.web.tomcat.PrivateTomcatSite;
 import com.aoindustries.aoserv.client.web.tomcat.Worker;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.posix.linux.LinuxAccountManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
@@ -68,9 +68,9 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
     final UserServer lsa = httpdSite.getLinuxServerAccount();
     final int uid = lsa.getUid().getId();
     final int gid = httpdSite.getLinuxServerGroup().getGid().getId();
-    final Server thisServer = AOServDaemon.getThisServer();
-    int uid_min = thisServer.getUidMin().getId();
-    int gid_min = thisServer.getGidMin().getId();
+    final Server thisServer = AoservDaemon.getThisServer();
+    int uidMin = thisServer.getUidMin().getId();
+    int gidMin = thisServer.getGidMin().getId();
 
     /*
      * Create the skeleton of the site, the directories and links.
@@ -104,15 +104,15 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
     String profileFile = siteDir + "/bin/profile";
     LinuxAccountManager.setBashProfile(lsa, profileFile);
     try (
-      ChainWriter out = new ChainWriter(
+        ChainWriter out = new ChainWriter(
             new BufferedOutputStream(
                 new PosixFile(profileFile).getSecureOutputStream(
                     uid,
                     gid,
                     0750,
                     false,
-                    uid_min,
-                    gid_min
+                    uidMin,
+                    gidMin
                 )
             )
         )
@@ -145,15 +145,15 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
      */
     String tomcatScript = siteDir + "/bin/tomcat";
     try (
-      ChainWriter out = new ChainWriter(
+        ChainWriter out = new ChainWriter(
             new BufferedOutputStream(
                 new PosixFile(tomcatScript).getSecureOutputStream(
                     uid,
                     gid,
                     0700,
                     false,
-                    uid_min,
-                    gid_min
+                    uidMin,
+                    gidMin
                 )
             )
         )
@@ -205,12 +205,12 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
     }
     DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-5.5/bin/setclasspath.sh", siteDir + "/bin/setclasspath.sh", uid, gid);
 
-    try (ChainWriter out = new ChainWriter(new PosixFile(siteDir + "/bin/shutdown.sh").getSecureOutputStream(uid, gid, 0700, true, uid_min, gid_min))) {
+    try (ChainWriter out = new ChainWriter(new PosixFile(siteDir + "/bin/shutdown.sh").getSecureOutputStream(uid, gid, 0700, true, uidMin, gidMin))) {
       out.print("#!/bin/sh\n"
           + "exec \"").print(siteDir).print("/bin/tomcat\" stop\n");
     }
 
-    try (ChainWriter out = new ChainWriter(new PosixFile(siteDir + "/bin/startup.sh").getSecureOutputStream(uid, gid, 0700, true, uid_min, gid_min))) {
+    try (ChainWriter out = new ChainWriter(new PosixFile(siteDir + "/bin/startup.sh").getSecureOutputStream(uid, gid, 0700, true, uidMin, gidMin))) {
       out.print("#!/bin/sh\n"
           + "exec \"").print(siteDir).print("/bin/tomcat\" start\n");
     }
@@ -227,44 +227,44 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
     DaemonFileUtils.mkdir(siteDir + "/common/lib", 0775, uid, gid);
     DaemonFileUtils.lnAll("../../" + optSlash + "apache-tomcat-5.5/common/lib/", siteDir + "/common/lib/", uid, gid);
 
-    //if (postgresServerMinorVersion != null) {
-    //  String postgresPath = osConfig.getPostgresPath(postgresServerMinorVersion);
-    //  if (postgresPath != null) {
-    //    FileUtils.ln("../../../.."+postgresPath+"/share/java/postgresql.jar", siteDir+"/common/lib/postgresql.jar", uid, gid);
-    //  }
-    //}
-    //String mysqlConnectorPath = osConfig.getMySQLConnectorJavaJarPath();
-    //if (mysqlConnectorPath != null) {
-    //  String filename = new PosixFile(mysqlConnectorPath).getFile().getName();
-    //  FileUtils.ln("../../../.."+mysqlConnectorPath, siteDir+"/common/lib/"+filename, uid, gid);
-    //}
+      //if (postgresServerMinorVersion != null) {
+      //  String postgresPath = osConfig.getPostgresPath(postgresServerMinorVersion);
+      //  if (postgresPath != null) {
+      //    FileUtils.ln("../../../.."+postgresPath+"/share/java/postgresql.jar", siteDir+"/common/lib/postgresql.jar", uid, gid);
+      //  }
+      //}
+      //String mysqlConnectorPath = osConfig.getMySQLConnectorJavaJarPath();
+      //if (mysqlConnectorPath != null) {
+      //  String filename = new PosixFile(mysqlConnectorPath).getFile().getName();
+      //  FileUtils.ln("../../../.."+mysqlConnectorPath, siteDir+"/common/lib/"+filename, uid, gid);
+      //}
 
-    /*
-     * Write the conf/catalina.policy file
-     */
-    {
-      PosixFile cp = new PosixFile(siteDir + "/conf/catalina.policy");
-      new PosixFile("/opt/apache-tomcat-5.5/conf/catalina.policy").copyTo(cp, false);
-      cp.chown(uid, gid).setMode(0660);
-    }
+      /*
+       * Write the conf/catalina.policy file
+       */
+      {
+        PosixFile cp = new PosixFile(siteDir + "/conf/catalina.policy");
+        new PosixFile("/opt/apache-tomcat-5.5/conf/catalina.policy").copyTo(cp, false);
+        cp.chown(uid, gid).setMode(0660);
+      }
 
-    {
-      PosixFile cp = new PosixFile(siteDir + "/conf/catalina.properties");
-      new PosixFile("/opt/apache-tomcat-5.5/conf/catalina.properties").copyTo(cp, false);
-      cp.chown(uid, gid).setMode(0660);
-    }
+      {
+        PosixFile cp = new PosixFile(siteDir + "/conf/catalina.properties");
+        new PosixFile("/opt/apache-tomcat-5.5/conf/catalina.properties").copyTo(cp, false);
+        cp.chown(uid, gid).setMode(0660);
+      }
 
-    {
-      PosixFile cp = new PosixFile(siteDir + "/conf/context.xml");
-      new PosixFile("/opt/apache-tomcat-5.5/conf/context.xml").copyTo(cp, false);
-      cp.chown(uid, gid).setMode(0660);
-    }
+      {
+        PosixFile cp = new PosixFile(siteDir + "/conf/context.xml");
+        new PosixFile("/opt/apache-tomcat-5.5/conf/context.xml").copyTo(cp, false);
+        cp.chown(uid, gid).setMode(0660);
+      }
 
-    {
-      PosixFile cp = new PosixFile(siteDir + "/conf/logging.properties");
-      new PosixFile("/opt/apache-tomcat-5.5/conf/logging.properties").copyTo(cp, false);
-      cp.chown(uid, gid).setMode(0660);
-    }
+      {
+        PosixFile cp = new PosixFile(siteDir + "/conf/logging.properties");
+        new PosixFile("/opt/apache-tomcat-5.5/conf/logging.properties").copyTo(cp, false);
+        cp.chown(uid, gid).setMode(0660);
+      }
 
     /*
      * Create the tomcat-users.xml file
@@ -292,11 +292,11 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
     /*
      * Write the ROOT/WEB-INF/web.xml file.
      */
-    String webXML = siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/web.xml";
+    String webXml = siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/web.xml";
     try (
-      ChainWriter out = new ChainWriter(
+        ChainWriter out = new ChainWriter(
             new BufferedOutputStream(
-                new PosixFile(webXML).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
+                new PosixFile(webXml).getSecureOutputStream(uid, gid, 0664, false, uidMin, gidMin)
             )
         )
         ) {
@@ -321,7 +321,7 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
   @Override
   protected byte[] buildServerXml(PosixFile siteDirectory, String autoWarning) throws IOException, SQLException {
     final TomcatCommon_5_5_X tomcatCommon = getTomcatCommon();
-    AOServConnector conn = AOServDaemon.getConnector();
+    AoservConnector conn = AoservDaemon.getConnector();
 
     // Build to RAM first
     ByteArrayOutputStream bout = new ByteArrayOutputStream();
@@ -331,7 +331,7 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
         throw new SQLException("Expected to only find one Worker for PrivateTomcatSite #" + httpdSite.getPkey() + ", found " + hws.size());
       }
       Worker hw = hws.get(0);
-      String hwProtocol = hw.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol();
+      String hwProtocol = hw.getHttpdJkProtocol(conn).getProtocol(conn).getProtocol();
       if (!hwProtocol.equals(JkProtocol.AJP13)) {
         throw new SQLException("Worker #" + hw.getPkey() + " for PrivateTomcatSite #" + httpdSite.getPkey() + " must be AJP13 but it is " + hwProtocol);
       }
@@ -388,7 +388,7 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
           + "        name=\"localhost\"\n"
           + "        debug=\"0\"\n"
           + "        appBase=\"webapps\"\n"
-          + "        unpackWARs=\"").textInXmlAttribute(tomcatStdSite.getUnpackWARs()).print("\"\n"
+          + "        unpackWARs=\"").textInXmlAttribute(tomcatStdSite.getUnpackWars()).print("\"\n"
           + "        autoDeploy=\"").textInXmlAttribute(tomcatStdSite.getAutoDeploy()).print("\"\n"
           + "        xmlValidation=\"false\"\n"
           + "        xmlNamespaceAware=\"false\"\n"

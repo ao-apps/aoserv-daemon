@@ -27,7 +27,7 @@ import com.aoapps.encoding.ChainWriter;
 import com.aoapps.io.posix.PosixFile;
 import com.aoapps.io.posix.Stat;
 import com.aoapps.net.InetAddress;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.dns.Zone;
 import com.aoindustries.aoserv.client.linux.Group;
@@ -36,8 +36,8 @@ import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.net.AppProtocol;
 import com.aoindustries.aoserv.client.net.Bind;
 import com.aoindustries.aoserv.client.net.Host;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.ftp.FTPManager;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
@@ -62,10 +62,11 @@ import java.util.logging.Logger;
 
 /**
  * Handles the building of name server processes and files.
- *
+ * <p>
  * TODO: Had to put "DISABLE_ZONE_CHECKING="yes"" in /etc/sysconfig/named due
  *       to check finding "has no address records" for MX records.  We should
  *       check for this and enable zone checking.
+ * </p>
  *
  * @author  AO Industries, Inc.
  */
@@ -75,8 +76,9 @@ public final class DNSManager extends BuilderThread {
 
   /**
    * The IPs allowed to query non-AO names.
-   *
+   * <p>
    * TODO: This should be configured via a new aoserv table instead of hard-coded.
+   * </p>
    */
   private static final String ACL =
       // Private IP addresses used internally
@@ -95,22 +97,19 @@ public final class DNSManager extends BuilderThread {
           //+ " 66.220.7.80/29;"   // gtapolicemods.com
           // Fremont Management
           + " 65.19.176.24/29;" // Firewalls
-          + " 66.220.7.0/27;"  // Hosts
-    // Amsterdam
-    //+ " 64.62.145.40/29;"  // Firewalls
-    // Mobile
-    // + " 50.242.159.138;"     // 7262 Bull Pen Cir
-    // Spain
-    //+ " 81.19.103.96/28;"  // Firewalls
-    //+ " 81.19.103.64/27;"  // Hosts
-    // Secure Medical
-    //+ " 66.17.86.0/24;"
-  ;
+          + " 66.220.7.0/27;";  // Hosts
+  // Amsterdam
+  //+ " 64.62.145.40/29;"  // Firewalls
+  // Mobile
+  // + " 50.242.159.138;"     // 7262 Bull Pen Cir
+  // Spain
+  //+ " 81.19.103.96/28;"  // Firewalls
+  //+ " 81.19.103.64/27;"  // Hosts
+  // Secure Medical
+  //+ " 66.17.86.0/24;"
 
-  private static final PosixFile
-      newConfFile = new PosixFile("/etc/named.conf.new"),
-      confFile = new PosixFile("/etc/named.conf")
-  ;
+  private static final PosixFile newConfFile = new PosixFile("/etc/named.conf.new");
+  private static final PosixFile confFile = new PosixFile("/etc/named.conf");
 
   private static final PosixFile namedZoneDir = new PosixFile("/var/named");
 
@@ -128,16 +127,20 @@ public final class DNSManager extends BuilderThread {
       "named.local",
       "named.zero",
       "slaves"
-  },
-      centos7StaticFiles = {
-          "data",
-          "dynamic",
-          "named.ca",
-          "named.empty",
-          "named.localhost",
-          "named.loopback",
-          "slaves"
-      };
+  };
+
+  /**
+   * Files and directories in /var/named that are never removed.
+   */
+  private static final String[] centos7StaticFiles = {
+      "data",
+      "dynamic",
+      "named.ca",
+      "named.empty",
+      "named.localhost",
+      "named.loopback",
+      "slaves"
+  };
 
   @SuppressWarnings("ReturnOfCollectionOrArrayField")
   private static String[] getStaticFiles(int osv) throws IllegalArgumentException {
@@ -166,8 +169,8 @@ public final class DNSManager extends BuilderThread {
   @Override
   protected boolean doRebuild() {
     try {
-      AOServConnector connector = AOServDaemon.getConnector();
-      Server thisServer = AOServDaemon.getThisServer();
+      AoservConnector connector = AoservDaemon.getConnector();
+      Server thisServer = AoservDaemon.getThisServer();
       Host thisHost = thisServer.getHost();
       OperatingSystemVersion osv = thisHost.getOperatingSystemVersion();
       int osvId = osv.getPkey();
@@ -178,24 +181,25 @@ public final class DNSManager extends BuilderThread {
         throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
       }
 
-      int uid_min = thisServer.getUidMin().getId();
-      int gid_min = thisServer.getGidMin().getId();
+      int uidMin = thisServer.getUidMin().getId();
+
+      int gidMin = thisServer.getGidMin().getId();
 
       synchronized (rebuildLock) {
-        AppProtocol dns = AOServDaemon.getConnector().getNet().getAppProtocol().get(AppProtocol.DNS);
+        AppProtocol dns = AoservDaemon.getConnector().getNet().getAppProtocol().get(AppProtocol.DNS);
         if (dns == null) {
           throw new SQLException("Unable to find Protocol: " + AppProtocol.DNS);
         }
         List<Bind> netBinds = thisHost.getNetBinds(dns);
         if (!netBinds.isEmpty()) {
           final int namedGid;
-          {
-            GroupServer lsg = thisServer.getLinuxServerGroup(Group.NAMED);
-            if (lsg == null) {
-              throw new SQLException("Unable to find GroupServer: " + Group.NAMED + " on " + thisServer.getHostname());
+            {
+              GroupServer lsg = thisServer.getLinuxServerGroup(Group.NAMED);
+              if (lsg == null) {
+                throw new SQLException("Unable to find GroupServer: " + Group.NAMED + " on " + thisServer.getHostname());
+              }
+              namedGid = lsg.getGid().getId();
             }
-            namedGid = lsg.getGid().getId();
-          }
 
           // Only restart when needed
           boolean[] needsRestart = {false};
@@ -211,7 +215,7 @@ public final class DNSManager extends BuilderThread {
                 PackageManager.PackageName.BIND,
                 () -> {
                   try {
-                    AOServDaemon.exec("/usr/bin/systemctl", "enable", "named");
+                    AoservDaemon.exec("/usr/bin/systemctl", "enable", "named");
                   } catch (IOException e) {
                     throw new UncheckedIOException(e);
                   }
@@ -246,13 +250,13 @@ public final class DNSManager extends BuilderThread {
             ) {
               // Build to a memory buffer
               byte[] newContents;
-              {
-                bout.reset();
-                try (PrintWriter out = new PrintWriter(bout)) {
-                  zone.printZoneFile(out);
+                {
+                  bout.reset();
+                  try (PrintWriter out = new PrintWriter(bout)) {
+                    zone.printZoneFile(out);
+                  }
+                  newContents = bout.toByteArray();
                 }
-                newContents = bout.toByteArray();
-              }
               if (!realFileStat.exists() || !realFile.contentEquals(newContents)) {
                 PosixFile newFile = new PosixFile(namedZoneDir, file + ".new", false);
                 try (OutputStream newOut = newFile.getSecureOutputStream(
@@ -260,8 +264,8 @@ public final class DNSManager extends BuilderThread {
                     namedGid,
                     0640,
                     true,
-                    uid_min,
-                    gid_min
+                    uidMin,
+                    gidMin
                 )) {
                   newOut.write(newContents);
                 }
@@ -277,179 +281,179 @@ public final class DNSManager extends BuilderThread {
            * Create the new /etc/named.conf file
            */
           byte[] newContents;
-          {
-            bout.reset();
-            try (ChainWriter out = new ChainWriter(bout)) {
-              out.print("//\n"
-                  + "// named.conf\n"
-                  + "//\n"
-                  + "// Generated by ").print(DNSManager.class.getName()).print("\n"
-                  + "//\n"
-                  + "\n");
-              if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-                out.print("options {\n"
-                    + "\tdirectory \"").print(namedZoneDir.getPath()).print("\";\n"
-                    + "\tlisten-on-v6 port 53 { ::1; };\n"
-                    + "\tdump-file \"/var/named/data/cache_dump.db\";\n"
-                    + "\tstatistics-file \"/var/named/data/named_stats.txt\";\n"
-                    + "\tmemstatistics-file \"/var/named/data/named_mem_stats.txt\";\n"
-                    // query-source equal to 53 also made it harder to distinguish incoming/outgoing queries on firewall
-                    // safe-mail.net didn't resolve with this source port: + "\tquery-source port 53;\n"
-                    // safe-mail.net didn't resolve with this source port: + "\tquery-source-v6 port 53;\n"
-                    + "\tallow-transfer { none; };\n"
-                    + "\tnotify no;\n"
-                    //+ "\talso-notify { none; };\n"
-                    + "\tallow-query { " + ACL + " };\n"
-                    + "\tallow-recursion { " + ACL + " };\n");
-                Map<Integer, Set<InetAddress>> alreadyAddedIPs = new HashMap<>();
-                for (Bind nb : netBinds) {
-                  int port = nb.getPort().getPort();
-                  InetAddress ip = nb.getIpAddress().getInetAddress();
-                  Set<InetAddress> ips = alreadyAddedIPs.get(port);
-                  if (ips == null) {
-                    alreadyAddedIPs.put(port, ips = new HashSet<>());
+            {
+              bout.reset();
+              try (ChainWriter out = new ChainWriter(bout)) {
+                out.print("//\n"
+                    + "// named.conf\n"
+                    + "//\n"
+                    + "// Generated by ").print(DNSManager.class.getName()).print("\n"
+                    + "//\n"
+                    + "\n");
+                if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                  out.print("options {\n"
+                      + "\tdirectory \"").print(namedZoneDir.getPath()).print("\";\n"
+                      + "\tlisten-on-v6 port 53 { ::1; };\n"
+                      + "\tdump-file \"/var/named/data/cache_dump.db\";\n"
+                      + "\tstatistics-file \"/var/named/data/named_stats.txt\";\n"
+                      + "\tmemstatistics-file \"/var/named/data/named_mem_stats.txt\";\n"
+                      // query-source equal to 53 also made it harder to distinguish incoming/outgoing queries on firewall
+                      // safe-mail.net didn't resolve with this source port: + "\tquery-source port 53;\n"
+                      // safe-mail.net didn't resolve with this source port: + "\tquery-source-v6 port 53;\n"
+                      + "\tallow-transfer { none; };\n"
+                      + "\tnotify no;\n"
+                      //+ "\talso-notify { none; };\n"
+                      + "\tallow-query { " + ACL + " };\n"
+                      + "\tallow-recursion { " + ACL + " };\n");
+                  Map<Integer, Set<InetAddress>> alreadyAddedIps = new HashMap<>();
+                  for (Bind nb : netBinds) {
+                    int port = nb.getPort().getPort();
+                    InetAddress ip = nb.getIpAddress().getInetAddress();
+                    Set<InetAddress> ips = alreadyAddedIps.get(port);
+                    if (ips == null) {
+                      alreadyAddedIps.put(port, ips = new HashSet<>());
+                    }
+                    if (ips.add(ip)) {
+                      ProtocolFamily family = ip.getProtocolFamily();
+                      if (family.equals(StandardProtocolFamily.INET)) {
+                        out.print("\tlisten-on port ").print(port).print(" { ").print(ip.toString()).print("; };\n");
+                      } else if (family.equals(StandardProtocolFamily.INET6)) {
+                        out.print("\tlisten-on-v6 port ").print(port).print(" { ").print(ip.toString()).print("; };\n");
+                      } else {
+                        throw new AssertionError("Unexpected family: " + family);
+                      }
+                    }
                   }
-                  if (ips.add(ip)) {
+                  out.print("};\n"
+                      + "logging {\n"
+                      + "\tchannel default_debug {\n"
+                      + "\t\tfile \"data/named.run\";\n"
+                      + "\t\tseverity dynamic;\n"
+                      + "\t};\n"
+                      + "};\n"
+                      + "include \"/etc/named.rfc1912.zones\";\n");
+                  for (Zone zone : zones) {
+                    String file = zone.getFile();
+                    out.print("\n"
+                        + "zone \"").print(zone.getZone()).print("\" IN {\n"
+                        + "\ttype master;\n"
+                        + "\tfile \"").print(file).print("\";\n"
+                        + "\tallow-query { any; };\n"
+                        + "\tallow-update { none; };\n");
+                    if (zone.isArpa()) {
+                      // Allow notify HE slaves and allow transfer
+                      // TODO: This should also be config/tables, not hard-coded
+                      out.print("\tallow-transfer { 216.218.133.2; };\n"
+                          + "\tnotify explicit;\n"
+                          + "\talso-notify { 216.218.130.2; 216.218.131.2; 216.218.132.2; 216.66.1.2; 216.66.80.18; };\n");
+                    }
+                    out.print("};\n");
+                  }
+                } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+                  out.print("options {\n");
+                  // Find all unique InetAddresses per port
+                  Map<Integer, Set<InetAddress>> ipsPerPortV4 = new HashMap<>();
+                  Map<Integer, Set<InetAddress>> ipsPerPortV6 = new HashMap<>();
+                  for (Bind nb : netBinds) {
+                    int port = nb.getPort().getPort();
+                    InetAddress ip = nb.getIpAddress().getInetAddress();
+                    Map<Integer, Set<InetAddress>> ipsPerPort;
                     ProtocolFamily family = ip.getProtocolFamily();
                     if (family.equals(StandardProtocolFamily.INET)) {
-                      out.print("\tlisten-on port ").print(port).print(" { ").print(ip.toString()).print("; };\n");
+                      ipsPerPort = ipsPerPortV4;
                     } else if (family.equals(StandardProtocolFamily.INET6)) {
-                      out.print("\tlisten-on-v6 port ").print(port).print(" { ").print(ip.toString()).print("; };\n");
+                      ipsPerPort = ipsPerPortV6;
                     } else {
                       throw new AssertionError("Unexpected family: " + family);
                     }
+                    Set<InetAddress> ips = ipsPerPort.get(port);
+                    if (ips == null) {
+                      ipsPerPort.put(port, ips = new LinkedHashSet<>());
+                    }
+                    ips.add(ip);
                   }
+                  for (Map.Entry<Integer, Set<InetAddress>> entry : ipsPerPortV4.entrySet()) {
+                    out.print("\tlisten-on port ").print(entry.getKey()).print(" {");
+                    for (InetAddress ip : entry.getValue()) {
+                      assert ip.getProtocolFamily().equals(StandardProtocolFamily.INET);
+                      out.print(' ').print(ip.toString()).print(';');
+                    }
+                    out.print(" };\n");
+                  }
+                  for (Map.Entry<Integer, Set<InetAddress>> entry : ipsPerPortV6.entrySet()) {
+                    out.print("\tlisten-on-v6 port ").print(entry.getKey()).print(" {");
+                    for (InetAddress ip : entry.getValue()) {
+                      assert ip.getProtocolFamily().equals(StandardProtocolFamily.INET6);
+                      out.print(' ').print(ip.toString()).print(';');
+                    }
+                    out.print(" };\n");
+                  }
+                  out.print("\tdirectory \t\"").print(namedZoneDir.getPath()).print("\";\n"
+                      + "\tdump-file \t\"/var/named/data/cache_dump.db\";\n"
+                      + "\tstatistics-file \"/var/named/data/named_stats.txt\";\n"
+                      + "\tmemstatistics-file \"/var/named/data/named_mem_stats.txt\";\n"
+                      // recursing-file and secroots-file were added in CentOS 7.6
+                      + "\trecursing-file  \"/var/named/data/named.recursing\";\n"
+                      + "\tsecroots-file   \"/var/named/data/named.secroots\";\n"
+                      + "\n"
+                      + "\tallow-query { " + ACL + " };\n"
+                      //+ "\trecursion yes;\n"
+                      + "\tallow-recursion { " + ACL + " };\n"
+                      + "\tallow-query-cache { " + ACL + " };\n"
+                      + "\n"
+                      + "\tallow-transfer { none; };\n"
+                      + "\tnotify no;\n"
+                      //+ "\talso-notify { none; };\n"
+                      + "\n"
+                      + "\tdnssec-enable yes;\n"
+                      + "\tdnssec-validation yes;\n"
+                      + "\n"
+                      + "\t/* Path to ISC DLV key */\n"
+                      + "\tbindkeys-file \"/etc/named.iscdlv.key\";\n"
+                      + "\n"
+                      + "\tmanaged-keys-directory \"/var/named/dynamic\";\n"
+                      + "\n"
+                      + "\tpid-file \"/run/named/named.pid\";\n"
+                      + "\tsession-keyfile \"/run/named/session.key\";\n"
+                      + "};\n"
+                      + "\n"
+                      + "logging {\n"
+                      + "\tchannel default_debug {\n"
+                      + "\t\tfile \"data/named.run\";\n"
+                      + "\t\tseverity dynamic;\n"
+                      + "\t};\n"
+                      + "};\n"
+                      + "\n"
+                      + "zone \".\" IN {\n"
+                      + "\ttype hint;\n"
+                      + "\tfile \"named.ca\";\n"
+                      + "};\n"
+                      + "\n"
+                      + "include \"/etc/named.rfc1912.zones\";\n"
+                      + "include \"/etc/named.root.key\";\n");
+                  for (Zone zone : zones) {
+                    String file = zone.getFile();
+                    out.print("\n"
+                        + "zone \"").print(zone.getZone()).print("\" IN {\n"
+                        + "\ttype master;\n"
+                        + "\tfile \"").print(file).print("\";\n"
+                        + "\tallow-query { any; };\n"
+                        + "\tallow-update { none; };\n");
+                    if (zone.isArpa()) {
+                      // Allow notify HE slaves and allow transfer
+                      // TODO: This should also be config/tables, not hard-coded
+                      out.print("\tallow-transfer { 216.218.133.2; };\n"
+                          + "\tnotify explicit;\n"
+                          + "\talso-notify { 216.218.130.2; 216.218.131.2; 216.218.132.2; 216.66.1.2; 216.66.80.18; };\n");
+                    }
+                    out.print("};\n");
+                  }
+                } else {
+                  throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
                 }
-                out.print("};\n"
-                    + "logging {\n"
-                    + "\tchannel default_debug {\n"
-                    + "\t\tfile \"data/named.run\";\n"
-                    + "\t\tseverity dynamic;\n"
-                    + "\t};\n"
-                    + "};\n"
-                    + "include \"/etc/named.rfc1912.zones\";\n");
-                for (Zone zone : zones) {
-                  String file = zone.getFile();
-                  out.print("\n"
-                      + "zone \"").print(zone.getZone()).print("\" IN {\n"
-                      + "\ttype master;\n"
-                      + "\tfile \"").print(file).print("\";\n"
-                      + "\tallow-query { any; };\n"
-                      + "\tallow-update { none; };\n");
-                  if (zone.isArpa()) {
-                    // Allow notify HE slaves and allow transfer
-                    // TODO: This should also be config/tables, not hard-coded
-                    out.print("\tallow-transfer { 216.218.133.2; };\n"
-                        + "\tnotify explicit;\n"
-                        + "\talso-notify { 216.218.130.2; 216.218.131.2; 216.218.132.2; 216.66.1.2; 216.66.80.18; };\n");
-                  }
-                  out.print("};\n");
-                }
-              } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-                out.print("options {\n");
-                // Find all unique InetAddresses per port
-                Map<Integer, Set<InetAddress>> ipsPerPortV4 = new HashMap<>();
-                Map<Integer, Set<InetAddress>> ipsPerPortV6 = new HashMap<>();
-                for (Bind nb : netBinds) {
-                  int port = nb.getPort().getPort();
-                  InetAddress ip = nb.getIpAddress().getInetAddress();
-                  Map<Integer, Set<InetAddress>> ipsPerPort;
-                  ProtocolFamily family = ip.getProtocolFamily();
-                  if (family.equals(StandardProtocolFamily.INET)) {
-                    ipsPerPort = ipsPerPortV4;
-                  } else if (family.equals(StandardProtocolFamily.INET6)) {
-                    ipsPerPort = ipsPerPortV6;
-                  } else {
-                    throw new AssertionError("Unexpected family: " + family);
-                  }
-                  Set<InetAddress> ips = ipsPerPort.get(port);
-                  if (ips == null) {
-                    ipsPerPort.put(port, ips = new LinkedHashSet<>());
-                  }
-                  ips.add(ip);
-                }
-                for (Map.Entry<Integer, Set<InetAddress>> entry : ipsPerPortV4.entrySet()) {
-                  out.print("\tlisten-on port ").print(entry.getKey()).print(" {");
-                  for (InetAddress ip : entry.getValue()) {
-                    assert ip.getProtocolFamily().equals(StandardProtocolFamily.INET);
-                    out.print(' ').print(ip.toString()).print(';');
-                  }
-                  out.print(" };\n");
-                }
-                for (Map.Entry<Integer, Set<InetAddress>> entry : ipsPerPortV6.entrySet()) {
-                  out.print("\tlisten-on-v6 port ").print(entry.getKey()).print(" {");
-                  for (InetAddress ip : entry.getValue()) {
-                    assert ip.getProtocolFamily().equals(StandardProtocolFamily.INET6);
-                    out.print(' ').print(ip.toString()).print(';');
-                  }
-                  out.print(" };\n");
-                }
-                out.print("\tdirectory \t\"").print(namedZoneDir.getPath()).print("\";\n"
-                    + "\tdump-file \t\"/var/named/data/cache_dump.db\";\n"
-                    + "\tstatistics-file \"/var/named/data/named_stats.txt\";\n"
-                    + "\tmemstatistics-file \"/var/named/data/named_mem_stats.txt\";\n"
-                    // recursing-file and secroots-file were added in CentOS 7.6
-                    + "\trecursing-file  \"/var/named/data/named.recursing\";\n"
-                    + "\tsecroots-file   \"/var/named/data/named.secroots\";\n"
-                    + "\n"
-                    + "\tallow-query { " + ACL + " };\n"
-                    //+ "\trecursion yes;\n"
-                    + "\tallow-recursion { " + ACL + " };\n"
-                    + "\tallow-query-cache { " + ACL + " };\n"
-                    + "\n"
-                    + "\tallow-transfer { none; };\n"
-                    + "\tnotify no;\n"
-                    //+ "\talso-notify { none; };\n"
-                    + "\n"
-                    + "\tdnssec-enable yes;\n"
-                    + "\tdnssec-validation yes;\n"
-                    + "\n"
-                    + "\t/* Path to ISC DLV key */\n"
-                    + "\tbindkeys-file \"/etc/named.iscdlv.key\";\n"
-                    + "\n"
-                    + "\tmanaged-keys-directory \"/var/named/dynamic\";\n"
-                    + "\n"
-                    + "\tpid-file \"/run/named/named.pid\";\n"
-                    + "\tsession-keyfile \"/run/named/session.key\";\n"
-                    + "};\n"
-                    + "\n"
-                    + "logging {\n"
-                    + "\tchannel default_debug {\n"
-                    + "\t\tfile \"data/named.run\";\n"
-                    + "\t\tseverity dynamic;\n"
-                    + "\t};\n"
-                    + "};\n"
-                    + "\n"
-                    + "zone \".\" IN {\n"
-                    + "\ttype hint;\n"
-                    + "\tfile \"named.ca\";\n"
-                    + "};\n"
-                    + "\n"
-                    + "include \"/etc/named.rfc1912.zones\";\n"
-                    + "include \"/etc/named.root.key\";\n");
-                for (Zone zone : zones) {
-                  String file = zone.getFile();
-                  out.print("\n"
-                      + "zone \"").print(zone.getZone()).print("\" IN {\n"
-                      + "\ttype master;\n"
-                      + "\tfile \"").print(file).print("\";\n"
-                      + "\tallow-query { any; };\n"
-                      + "\tallow-update { none; };\n");
-                  if (zone.isArpa()) {
-                    // Allow notify HE slaves and allow transfer
-                    // TODO: This should also be config/tables, not hard-coded
-                    out.print("\tallow-transfer { 216.218.133.2; };\n"
-                        + "\tnotify explicit;\n"
-                        + "\talso-notify { 216.218.130.2; 216.218.131.2; 216.218.132.2; 216.66.1.2; 216.66.80.18; };\n");
-                  }
-                  out.print("};\n");
-                }
-              } else {
-                throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
               }
+              newContents = bout.toByteArray();
             }
-            newContents = bout.toByteArray();
-          }
           if (!confFile.getStat().exists() || !confFile.contentEquals(newContents)) {
             needsRestart[0] = true;
             try (OutputStream newOut = newConfFile.getSecureOutputStream(
@@ -457,8 +461,8 @@ public final class DNSManager extends BuilderThread {
                 namedGid,
                 0640,
                 true,
-                uid_min,
-                gid_min
+                uidMin,
+                gidMin
             )) {
               newOut.write(newContents);
             }
@@ -477,7 +481,7 @@ public final class DNSManager extends BuilderThread {
            */
           files.addAll(Arrays.asList(getStaticFiles(osvId)));
           FTPManager.trimFiles(namedZoneDir, files);
-        } else if (AOServDaemonConfiguration.isPackageManagerUninstallEnabled()) {
+        } else if (AoservDaemonConfiguration.isPackageManagerUninstallEnabled()) {
           // No binds, uninstall package(s)
           if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
             PackageManager.removePackage(PackageManager.PackageName.CACHING_NAMESERVER);
@@ -501,19 +505,19 @@ public final class DNSManager extends BuilderThread {
   private static final Object restartLock = new Object();
 
   private static void restart() throws IOException, SQLException {
-    AppProtocol dns = AOServDaemon.getConnector().getNet().getAppProtocol().get(AppProtocol.DNS);
+    AppProtocol dns = AoservDaemon.getConnector().getNet().getAppProtocol().get(AppProtocol.DNS);
     if (dns == null) {
       throw new SQLException("Unable to find AppProtocol: " + AppProtocol.DNS);
     }
-    Host thisHost = AOServDaemon.getThisServer().getHost();
+    Host thisHost = AoservDaemon.getThisServer().getHost();
     if (!thisHost.getNetBinds(dns).isEmpty()) {
       OperatingSystemVersion osv = thisHost.getOperatingSystemVersion();
       int osvId = osv.getPkey();
       synchronized (restartLock) {
         if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-          AOServDaemon.exec("/etc/rc.d/init.d/named", "restart");
+          AoservDaemon.exec("/etc/rc.d/init.d/named", "restart");
         } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-          AOServDaemon.exec("/usr/bin/systemctl", "reload-or-restart", "named");
+          AoservDaemon.exec("/usr/bin/systemctl", "reload-or-restart", "named");
         } else {
           throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
         }
@@ -523,7 +527,7 @@ public final class DNSManager extends BuilderThread {
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() throws IOException, SQLException {
-    OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
+    OperatingSystemVersion osv = AoservDaemon.getThisServer().getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
     synchronized (System.out) {
       if (
@@ -532,7 +536,7 @@ public final class DNSManager extends BuilderThread {
               && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
               && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
               // Check config after OS check so config entry not needed
-              && AOServDaemonConfiguration.isManagerEnabled(DNSManager.class)
+              && AoservDaemonConfiguration.isManagerEnabled(DNSManager.class)
               && dnsManager == null
       ) {
         System.out.print("Starting DNSManager: ");
@@ -541,7 +545,7 @@ public final class DNSManager extends BuilderThread {
             osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                 || osvId == OperatingSystemVersion.CENTOS_7_X86_64
         ) {
-          AOServConnector conn = AOServDaemon.getConnector();
+          AoservConnector conn = AoservDaemon.getConnector();
           dnsManager = new DNSManager();
           conn.getDns().getZone().addTableListener(dnsManager, 0);
           conn.getDns().getRecord().addTableListener(dnsManager, 0);

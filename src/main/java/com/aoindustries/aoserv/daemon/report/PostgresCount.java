@@ -24,7 +24,7 @@
 package com.aoindustries.aoserv.daemon.report;
 
 import com.aoapps.lang.util.ErrorPrinter;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -32,18 +32,18 @@ import java.io.IOException;
 import java.sql.SQLException;
 
 /**
- * Uses the information available in /proc to determine the number of active PostgreSQL connections.
+ * Uses the information available in <code>/proc</code> to determine the number of active PostgreSQL connections.
  *
  * @author  AO Industries, Inc.
  */
-public final class PostgresCount extends DBReportData {
+public final class PostgresCount extends DbReportData {
 
   private static final File proc = new File("/proc");
 
   public PostgresCount() throws IOException, SQLException {
     int total = 0;
     // Only the outer-most server counts the postgres processes
-    if (AOServDaemon.getThisServer().getFailoverServer() == null) {
+    if (AoservDaemon.getThisServer().getFailoverServer() == null) {
       String[] list = proc.list();
       int len = list.length;
       for (int c = 0; c < len; c++) {

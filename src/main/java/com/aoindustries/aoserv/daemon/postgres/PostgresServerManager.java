@@ -30,7 +30,7 @@ import com.aoapps.io.posix.PosixFile;
 import com.aoapps.net.InetAddress;
 import com.aoapps.net.Port;
 import com.aoapps.sql.pool.AOConnectionPool;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.net.AppProtocol;
 import com.aoindustries.aoserv.client.net.Bind;
@@ -38,8 +38,8 @@ import com.aoindustries.aoserv.client.postgresql.Database;
 import com.aoindustries.aoserv.client.postgresql.Server;
 import com.aoindustries.aoserv.client.postgresql.User;
 import com.aoindustries.aoserv.client.postgresql.Version;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.server.ServerManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
@@ -86,7 +86,7 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
   protected boolean doRebuild() {
     try {
-      com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+      com.aoindustries.aoserv.client.linux.Server thisServer = AoservDaemon.getThisServer();
       OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
       int osvId = osv.getPkey();
       if (
@@ -113,10 +113,10 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
 
         // Set postgresql_port_t SELinux ports.
         switch (osvId) {
-          case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
+          case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64:
             // SELinux left in Permissive state, not configured here
             break;
-          case OperatingSystemVersion.CENTOS_7_X86_64 : {
+          case OperatingSystemVersion.CENTOS_7_X86_64: {
             // Install /usr/bin/semanage if missing
             PackageManager.installPackage(PackageManager.PackageName.POLICYCOREUTILS_PYTHON);
             // Reconfigure SELinux ports
@@ -125,7 +125,7 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
             }
             break;
           }
-          default :
+          default:
             throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
         }
 
@@ -143,7 +143,7 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
   private static final Map<Integer, AOConnectionPool> pools = new HashMap<>();
 
   static AOConnectionPool getPool(Server ps) throws IOException, SQLException {
-    AOServConnector connector  = AOServDaemon.getConnector();
+    AoservConnector connector  = AoservDaemon.getConnector();
     String version = ps.getVersion().getTechnologyVersion(connector).getVersion();
     synchronized (pools) {
       Integer pkeyObj = ps.getPkey();
@@ -183,28 +183,28 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
                 || version.startsWith(Version.VERSION_14 + 'R')
         ) {
           // Connect to 127.0.0.1 or ::1
-          StringBuilder jdbcUrlSB = new StringBuilder();
-          jdbcUrlSB.append("jdbc:postgresql://");
+          StringBuilder jdbcUrlSb = new StringBuilder();
+          jdbcUrlSb.append("jdbc:postgresql://");
           Bind nb = ps.getBind();
           InetAddress ia = nb.getIpAddress().getInetAddress();
           ProtocolFamily family = ia.getProtocolFamily();
           if (family.equals(StandardProtocolFamily.INET)) {
-            jdbcUrlSB.append(InetAddress.LOOPBACK_IPV4.toBracketedString());
+            jdbcUrlSb.append(InetAddress.LOOPBACK_IPV4.toBracketedString());
           } else if (family.equals(StandardProtocolFamily.INET6)) {
-            jdbcUrlSB.append(InetAddress.LOOPBACK_IPV6.toBracketedString());
+            jdbcUrlSb.append(InetAddress.LOOPBACK_IPV6.toBracketedString());
           } else {
             throw new AssertionError("Unexpected family: " + family);
           }
           Port port = nb.getPort();
           if (!port.equals(Server.DEFAULT_PORT)) {
-            jdbcUrlSB
+            jdbcUrlSb
                 .append(':')
                 .append(port.getPort());
           }
-          jdbcUrlSB
+          jdbcUrlSb
               .append('/')
               .append(URLEncoder.encode(pd.getName().toString(), StandardCharsets.UTF_8.name())); // Java 10: No .name()
-          jdbcUrl = jdbcUrlSB.toString();
+          jdbcUrl = jdbcUrlSb.toString();
         } else {
           throw new RuntimeException("Unexpected version of PostgreSQL: " + version);
         }
@@ -213,9 +213,9 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
             pd.getJdbcDriver(),
             jdbcUrl,
             User.POSTGRES.toString(),
-            AOServDaemonConfiguration.getPostgresPassword(serverName),
-            AOServDaemonConfiguration.getPostgresConnections(serverName),
-            AOServDaemonConfiguration.getPostgresMaxConnectionAge(serverName),
+            AoservDaemonConfiguration.getPostgresPassword(serverName),
+            AoservDaemonConfiguration.getPostgresConnections(serverName),
+            AoservDaemonConfiguration.getPostgresMaxConnectionAge(serverName),
             logger
         );
         pools.put(pkeyObj, pool);
@@ -228,7 +228,7 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
   public static void start() throws IOException, SQLException {
-    com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+    com.aoindustries.aoserv.client.linux.Server thisServer = AoservDaemon.getThisServer();
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
 
@@ -239,7 +239,7 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
               && osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
               && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
               // Check config after OS check so config entry not needed
-              && AOServDaemonConfiguration.isManagerEnabled(PostgresServerManager.class)
+              && AoservDaemonConfiguration.isManagerEnabled(PostgresServerManager.class)
               && postgresServerManager == null
       ) {
         System.out.print("Starting PostgresServerManager: ");
@@ -248,7 +248,7 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
             osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                 || osvId == OperatingSystemVersion.CENTOS_7_X86_64
         ) {
-          AOServConnector conn = AOServDaemon.getConnector();
+          AoservConnector conn = AoservDaemon.getConnector();
           postgresServerManager = new PostgresServerManager();
           conn.getPostgresql().getServer().addTableListener(postgresServerManager, 0);
           // Register in CronDaemon
@@ -272,15 +272,15 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
     return "Rebuild PostgreSQL Servers";
   }
 
-  public static void restartPostgreSQL(Server ps) throws IOException, SQLException {
+  public static void restartPostgresql(Server ps) throws IOException, SQLException {
     ServerManager.controlProcess("postgresql-" + ps.getName(), "restart");
   }
 
-  public static void startPostgreSQL(Server ps) throws IOException, SQLException {
+  public static void startPostgresql(Server ps) throws IOException, SQLException {
     ServerManager.controlProcess("postgresql-" + ps.getName(), "start");
   }
 
-  public static void stopPostgreSQL(Server ps) throws IOException, SQLException {
+  public static void stopPostgresql(Server ps) throws IOException, SQLException {
     ServerManager.controlProcess("postgresql-" + ps.getName(), "stop");
   }
 
@@ -302,15 +302,16 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
 
   /**
    * Rotates PostgreSQL log files.  Those older than one month are removed.
-   *
+   * <p>
    * TODO: Should use standard log file rotation, so configuration still works if aoserv-daemon disabled or removed.
+   * </p>
    */
   @Override
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
   public void run(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
     try {
-      AOServConnector conn = AOServDaemon.getConnector();
-      for (Server postgresServer : AOServDaemon.getThisServer().getPostgresServers()) {
+      AoservConnector conn = AoservDaemon.getConnector();
+      for (Server postgresServer : AoservDaemon.getThisServer().getPostgresServers()) {
         String version = postgresServer.getVersion().getTechnologyVersion(conn).getVersion();
         if (
             !version.startsWith(Version.VERSION_7_1 + '.')

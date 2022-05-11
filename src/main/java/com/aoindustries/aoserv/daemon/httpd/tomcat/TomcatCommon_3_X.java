@@ -60,13 +60,13 @@ public abstract class TomcatCommon_3_X extends TomcatCommon {
   /**
    * Creates the test-tomcat.xml file in the provided conf directory.
    */
-  public void createTestTomcatXml(String confDirectory, int uid, int gid, int mode, int uid_min, int gid_min) throws IOException {
-    DaemonFileUtils.copyResource(TomcatCommon_3_X.class, "test-tomcat.xml", confDirectory + "/test-tomcat.xml", uid, gid, 0660, uid_min, gid_min);
+  public void createTestTomcatXml(String confDirectory, int uid, int gid, int mode, int uidMin, int gidMin) throws IOException {
+    DaemonFileUtils.copyResource(TomcatCommon_3_X.class, "test-tomcat.xml", confDirectory + "/test-tomcat.xml", uid, gid, 0660, uidMin, gidMin);
   }
 
-  public abstract void createWebDtd(String confDirectory, int uid, int gid, int mode, int uid_min, int gid_min) throws IOException;
+  public abstract void createWebDtd(String confDirectory, int uid, int gid, int mode, int uidMin, int gidMin) throws IOException;
 
-  public abstract void createWebXml(String confDirectory, int uid, int gid, int mode, int uid_min, int gid_min) throws IOException;
+  public abstract void createWebXml(String confDirectory, int uid, int gid, int mode, int uidMin, int gidMin) throws IOException;
 
   public void copyCocoonProperties1(OutputStream out) throws IOException {
     DaemonFileUtils.copyResource(TomcatCommon_3_X.class, "cocoon.properties.1", out);
@@ -81,9 +81,9 @@ public abstract class TomcatCommon_3_X extends TomcatCommon {
    */
   public abstract void printTomcatUsers(ChainWriter out);
 
-  /**
-   * Gets the servlet API version.
-   */
+  ///**
+  // * Gets the servlet API version.
+  // */
   //abstract String getServletApiVersion();
 
   /**

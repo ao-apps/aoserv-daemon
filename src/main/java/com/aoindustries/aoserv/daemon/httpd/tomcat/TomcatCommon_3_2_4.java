@@ -58,13 +58,13 @@ public final class TomcatCommon_3_2_4 extends TomcatCommon_3_X {
   }
 
   @Override
-  public void createWebDtd(String confDirectory, int uid, int gid, int mode, int uid_min, int gid_min) throws IOException {
-    DaemonFileUtils.copyResource(TomcatCommon_3_2_4.class, "web.dtd-3.2.4", confDirectory + "/web.dtd", uid, gid, mode, uid_min, gid_min);
+  public void createWebDtd(String confDirectory, int uid, int gid, int mode, int uidMin, int gidMin) throws IOException {
+    DaemonFileUtils.copyResource(TomcatCommon_3_2_4.class, "web.dtd-3.2.4", confDirectory + "/web.dtd", uid, gid, mode, uidMin, gidMin);
   }
 
   @Override
-  public void createWebXml(String confDirectory, int uid, int gid, int mode, int uid_min, int gid_min) throws IOException {
-    DaemonFileUtils.copyResource(TomcatCommon_3_2_4.class, "web.xml-3.2.4", confDirectory + "/web.xml", uid, gid, mode, uid_min, gid_min);
+  public void createWebXml(String confDirectory, int uid, int gid, int mode, int uidMin, int gidMin) throws IOException {
+    DaemonFileUtils.copyResource(TomcatCommon_3_2_4.class, "web.xml-3.2.4", confDirectory + "/web.xml", uid, gid, mode, uidMin, gidMin);
   }
 
   @Override

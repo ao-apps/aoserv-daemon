@@ -225,7 +225,6 @@ public final class Service {
         bind.equals(other.bind)
             && socket_type.equals(other.socket_type)
             && service.equals(other.service)
-            && Objects.equals(port, other.port)
-    ;
+            && Objects.equals(port, other.port);
   }
 }

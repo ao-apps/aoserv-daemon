@@ -23,11 +23,12 @@
 
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
+import static com.aoindustries.aoserv.daemon.httpd.tomcat.VersionedTomcatCommon.BACKUP_EXTENSION;
+import static com.aoindustries.aoserv.daemon.httpd.tomcat.VersionedTomcatCommon.BACKUP_SEPARATOR;
+
 import com.aoapps.encoding.ChainWriter;
 import com.aoapps.io.posix.PosixFile;
 import com.aoapps.lang.io.IoUtils;
-import static com.aoindustries.aoserv.daemon.httpd.tomcat.VersionedTomcatCommon.BACKUP_EXTENSION;
-import static com.aoindustries.aoserv.daemon.httpd.tomcat.VersionedTomcatCommon.BACKUP_SEPARATOR;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;

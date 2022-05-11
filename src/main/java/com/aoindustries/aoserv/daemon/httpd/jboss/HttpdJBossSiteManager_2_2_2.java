@@ -26,7 +26,7 @@ package com.aoindustries.aoserv.daemon.httpd.jboss;
 import com.aoapps.encoding.ChainWriter;
 import com.aoapps.io.posix.PosixFile;
 import com.aoapps.net.InetAddress;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.linux.Group;
 import com.aoindustries.aoserv.client.linux.GroupServer;
 import com.aoindustries.aoserv.client.linux.PosixPath;
@@ -39,7 +39,7 @@ import com.aoindustries.aoserv.client.web.tomcat.Context;
 import com.aoindustries.aoserv.client.web.tomcat.JkProtocol;
 import com.aoindustries.aoserv.client.web.tomcat.Version;
 import com.aoindustries.aoserv.client.web.tomcat.Worker;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.TomcatCommon_3_2_4;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.TomcatCommon_3_X;
@@ -110,7 +110,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
     DaemonFileUtils.mkdir(siteDir + "/var/run", 0770, uid, gid);
     DaemonFileUtils.mkdir(siteDir + "/webapps", 0775, uid, gid);
 
-    String templateDir = jbossSite.getHttpdJBossVersion().getTemplateDirectory();
+    String templateDir = jbossSite.getHttpdJbossVersion().getTemplateDirectory();
     File f = new File(templateDir);
     String[] contents = f.list();
     String[] command = new String[contents.length + 3];
@@ -120,9 +120,9 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
     for (int i = 0; i < contents.length; i++) {
       command[i + 2] = templateDir + "/" + contents[i];
     }
-    AOServDaemon.exec(command);
+    AoservDaemon.exec(command);
     // chown
-    AOServDaemon.exec(
+    AoservDaemon.exec(
         "/bin/chown",
         "-R",
         laUsername.toString(),
@@ -132,7 +132,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
         siteDir + "/daemon"
     );
     // chgrp
-    AOServDaemon.exec(
+    AoservDaemon.exec(
         "/bin/chgrp",
         "-R",
         laGroupname.toString(),
@@ -152,17 +152,34 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
     for (int i = 0; i < 5; i++) {
       for (String f2content : f2contents) {
         switch (i) {
-          case 0: command3[1] = "2222"; command3[2] = String.valueOf(jbossSite.getJnpBind().getPort().getPort()); break;
-          case 1: command3[1] = "3333"; command3[2] = String.valueOf(jbossSite.getWebserverBind().getPort().getPort()); break;
-          case 2: command3[1] = "4444"; command3[2] = String.valueOf(jbossSite.getRmiBind().getPort().getPort()); break;
-          case 3: command3[1] = "5555"; command3[2] = String.valueOf(jbossSite.getHypersonicBind().getPort().getPort()); break;
-          case 4: command3[1] = "6666"; command3[2] = String.valueOf(jbossSite.getJmxBind().getPort().getPort()); break;
+          case 0:
+            command3[1] = "2222";
+            command3[2] = String.valueOf(jbossSite.getJnpBind().getPort().getPort());
+            break;
+          case 1:
+            command3[1] = "3333";
+            command3[2] = String.valueOf(jbossSite.getWebserverBind().getPort().getPort());
+            break;
+          case 2:
+            command3[1] = "4444";
+            command3[2] = String.valueOf(jbossSite.getRmiBind().getPort().getPort());
+            break;
+          case 3:
+            command3[1] = "5555";
+            command3[2] = String.valueOf(jbossSite.getHypersonicBind().getPort().getPort());
+            break;
+          case 4:
+            command3[1] = "6666";
+            command3[2] = String.valueOf(jbossSite.getJmxBind().getPort().getPort());
+            break;
+          default:
+            throw new AssertionError();
         }
         command3[4] = jbossConfDir + "/" + f2content;
-        AOServDaemon.exec(command3);
+        AoservDaemon.exec(command3);
       }
     }
-    AOServDaemon.exec(
+    AoservDaemon.exec(
         replaceCommand.toString(),
         "site_name",
         siteName,
@@ -193,17 +210,17 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
      */
     DaemonFileUtils.mkdir(siteDir + "/classes", 0770, uid, gid);
 
-    Server thisServer = AOServDaemon.getThisServer();
-    int uid_min = thisServer.getUidMin().getId();
-    int gid_min = thisServer.getGidMin().getId();
+    Server thisServer = AoservDaemon.getThisServer();
+    int uidMin = thisServer.getUidMin().getId();
+    int gidMin = thisServer.getGidMin().getId();
     /*
      * Write the manifest.servlet file.
      */
     String confManifestServlet = siteDir + "/conf/manifest.servlet";
     try (
-      ChainWriter out = new ChainWriter(
+        ChainWriter out = new ChainWriter(
             new BufferedOutputStream(
-                new PosixFile(confManifestServlet).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+                new PosixFile(confManifestServlet).getSecureOutputStream(uid, gid, 0660, false, uidMin, gidMin)
             )
         )
         ) {
@@ -231,11 +248,11 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
     /*
      * Create the conf/server.dtd file.
      */
-    String confServerDTD = siteDir + "/conf/server.dtd";
+    String confServerDtd = siteDir + "/conf/server.dtd";
     try (
-      ChainWriter out = new ChainWriter(
+        ChainWriter out = new ChainWriter(
             new BufferedOutputStream(
-                new PosixFile(confServerDTD).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+                new PosixFile(confServerDtd).getSecureOutputStream(uid, gid, 0660, false, uidMin, gidMin)
             )
         )
         ) {
@@ -281,16 +298,16 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
     /*
      * Create the test-tomcat.xml file.
      */
-    tomcatCommon.createTestTomcatXml(siteDir + "/conf", uid, gid, 0660, uid_min, gid_min);
+    tomcatCommon.createTestTomcatXml(siteDir + "/conf", uid, gid, 0660, uidMin, gidMin);
 
     /*
      * Create the tomcat-users.xml file
      */
     String confTomcatUsers = siteDir + "/conf/tomcat-users.xml";
     try (
-      ChainWriter out = new ChainWriter(
+        ChainWriter out = new ChainWriter(
             new BufferedOutputStream(
-                new PosixFile(confTomcatUsers).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+                new PosixFile(confTomcatUsers).getSecureOutputStream(uid, gid, 0660, false, uidMin, gidMin)
             )
         )
         ) {
@@ -300,19 +317,19 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
     /*
      * Create the web.dtd file.
      */
-    tomcatCommon.createWebDtd(siteDir + "/conf", uid, gid, 0660, uid_min, gid_min);
+    tomcatCommon.createWebDtd(siteDir + "/conf", uid, gid, 0660, uidMin, gidMin);
 
     /*
      * Create the web.xml file.
      */
-    tomcatCommon.createWebXml(siteDir + "/conf", uid, gid, 0660, uid_min, gid_min);
+    tomcatCommon.createWebXml(siteDir + "/conf", uid, gid, 0660, uidMin, gidMin);
 
     /*
      * Create the empty log files.
      */
     for (String tomcatLogFile : TomcatCommon_3_X.tomcatLogFiles) {
       String filename = siteDir + "/var/log/" + tomcatLogFile;
-      new PosixFile(filename).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min).close();
+      new PosixFile(filename).getSecureOutputStream(uid, gid, 0660, false, uidMin, gidMin).close();
     }
 
     /*
@@ -320,14 +337,14 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
      */
     String manifestFile = siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/META-INF/MANIFEST.MF";
     try (
-      ChainWriter out = new ChainWriter(
+        ChainWriter out = new ChainWriter(
             new PosixFile(manifestFile).getSecureOutputStream(
                 uid,
                 gid,
                 0664,
                 false,
-                uid_min,
-                gid_min
+                uidMin,
+                gidMin
             )
         )
         ) {
@@ -338,7 +355,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
      * Write the cocoon.properties file.
      */
     String cocoonProps = siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/conf/cocoon.properties";
-    try (OutputStream fileOut = new BufferedOutputStream(new PosixFile(cocoonProps).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min))) {
+    try (OutputStream fileOut = new BufferedOutputStream(new PosixFile(cocoonProps).getSecureOutputStream(uid, gid, 0660, false, uidMin, gidMin))) {
       tomcatCommon.copyCocoonProperties1(fileOut);
       try (ChainWriter out = new ChainWriter(fileOut)) {
         out.print("processor.xsp.repository = ").print(siteDir).print("/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/cocoon\n");
@@ -350,11 +367,11 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
     /*
      * Write the ROOT/WEB-INF/web.xml file.
      */
-    String webXML = siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/web.xml";
+    String webXml = siteDir + "/webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/web.xml";
     try (
-      ChainWriter out = new ChainWriter(
+        ChainWriter out = new ChainWriter(
             new BufferedOutputStream(
-                new PosixFile(webXML).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
+                new PosixFile(webXml).getSecureOutputStream(uid, gid, 0664, false, uidMin, gidMin)
             )
         )
         ) {
@@ -392,16 +409,16 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
   }
 
   /**
-   * Only supports ajp12
+   * Only supports ajp12.
    */
   @Override
   protected Worker getHttpdWorker() throws IOException, SQLException {
-    AOServConnector conn = AOServDaemon.getConnector();
+    AoservConnector conn = AoservDaemon.getConnector();
     List<Worker> workers = tomcatSite.getHttpdWorkers();
 
     // Try ajp12 next
     for (Worker hw : workers) {
-      if (hw.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol().equals(JkProtocol.AJP12)) {
+      if (hw.getHttpdJkProtocol(conn).getProtocol(conn).getProtocol().equals(JkProtocol.AJP12)) {
         return hw;
       }
     }
@@ -410,16 +427,16 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 
   @Override
   protected void enableDisable(PosixFile siteDirectory) throws IOException, SQLException {
-    PosixFile binUF = new PosixFile(siteDirectory, "bin", false);
-    PosixFile jbossUF = new PosixFile(binUF, "jboss", false);
-    PosixFile daemonUF = new PosixFile(siteDirectory, "daemon", false);
-    PosixFile daemonSymlink = new PosixFile(daemonUF, "jboss", false);
+    PosixFile bin = new PosixFile(siteDirectory, "bin", false);
+    PosixFile jboss = new PosixFile(bin, "jboss", false);
+    PosixFile daemon = new PosixFile(siteDirectory, "daemon", false);
+    PosixFile daemonSymlink = new PosixFile(daemon, "jboss", false);
     if (
         !httpdSite.isDisabled()
             && (
             !httpdSite.isManual()
                 // Script may not exist while in manual mode
-                || jbossUF.getStat().exists()
+                || jboss.getStat().exists()
         )
     ) {
       // Enabled
@@ -442,7 +459,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
    */
   protected byte[] buildServerXml(PosixFile siteDirectory, String autoWarning) throws IOException, SQLException {
     final String siteDir = siteDirectory.getPath();
-    final AOServConnector conn = AOServDaemon.getConnector();
+    final AoservConnector conn = AoservDaemon.getConnector();
     final Version htv = tomcatSite.getHttpdTomcatVersion();
 
     ByteArrayOutputStream bout = new ByteArrayOutputStream();
@@ -474,7 +491,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 
       for (Worker worker : tomcatSite.getHttpdWorkers()) {
         Bind netBind = worker.getBind();
-        String protocol = worker.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol();
+        String protocol = worker.getHttpdJkProtocol(conn).getProtocol(conn).getProtocol();
 
         out.print("    <Connector className=\"org.apache.tomcat.service.PoolTcpConnector\">\n"
             + "      <Parameter name=\"handler\" value=\"");
@@ -501,7 +518,9 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
         );
       }
       for (Context htc : tomcatSite.getHttpdTomcatContexts()) {
-        out.print("    <Context path=\"").textInXmlAttribute(htc.getPath()).print("\" docBase=\"").textInXmlAttribute(htc.getDocBase()).print("\" debug=\"").textInXmlAttribute(htc.getDebugLevel()).print("\" reloadable=\"").textInXmlAttribute(htc.isReloadable()).print("\" />\n");
+        out.print("    <Context path=\"").textInXmlAttribute(htc.getPath()).print("\" docBase=\"")
+            .textInXmlAttribute(htc.getDocBase()).print("\" debug=\"").textInXmlAttribute(htc.getDebugLevel())
+            .print("\" reloadable=\"").textInXmlAttribute(htc.isReloadable()).print("\" />\n");
       }
       out.print("  </ContextManager>\n"
           + "</Server>\n");
@@ -523,16 +542,16 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
       String autoWarning = getAutoWarningXml();
       String autoWarningOld = getAutoWarningXmlOld();
 
-      Server thisServer = AOServDaemon.getThisServer();
-      int uid_min = thisServer.getUidMin().getId();
-      int gid_min = thisServer.getGidMin().getId();
+      Server thisServer = AoservDaemon.getThisServer();
+      int uidMin = thisServer.getUidMin().getId();
+      int gidMin = thisServer.getGidMin().getId();
 
-      PosixFile confServerXML = new PosixFile(conf, "server.xml", false);
-      if (!httpdSite.isManual() || !confServerXML.getStat().exists()) {
+      PosixFile confServerXml = new PosixFile(conf, "server.xml", false);
+      if (!httpdSite.isManual() || !confServerXml.getStat().exists()) {
         // Only write to the actual file when missing or changed
         if (
             DaemonFileUtils.atomicWrite(
-                confServerXML,
+                confServerXml,
                 buildServerXml(siteDirectory, autoWarning),
                 0660,
                 httpdSite.getLinuxServerAccount().getUid().getId(),
@@ -547,16 +566,16 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
       } else {
         try {
           DaemonFileUtils.stripFilePrefix(
-              confServerXML,
+              confServerXml,
               autoWarningOld,
-              uid_min,
-              gid_min
+              uidMin,
+              gidMin
           );
           DaemonFileUtils.stripFilePrefix(
-              confServerXML,
+              confServerXml,
               autoWarning,
-              uid_min,
-              gid_min
+              uidMin,
+              gidMin
           );
         } catch (IOException err) {
           // Errors OK because this is done in manual mode and they might have symbolic linked stuff

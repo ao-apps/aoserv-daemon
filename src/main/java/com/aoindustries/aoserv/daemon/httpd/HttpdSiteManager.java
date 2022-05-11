@@ -23,13 +23,15 @@
 
 package com.aoindustries.aoserv.daemon.httpd;
 
+import static com.aoindustries.aoserv.daemon.httpd.HttpdServerManager.PHP_SESSION;
+
 import com.aoapps.encoding.ChainWriter;
 import com.aoapps.io.posix.PosixFile;
 import com.aoapps.io.posix.Stat;
 import com.aoapps.lang.validation.ValidationException;
 import com.aoapps.tempfiles.TempFile;
 import com.aoapps.tempfiles.TempFileContext;
-import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.aosh.Command;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.LinuxId;
@@ -42,9 +44,8 @@ import com.aoindustries.aoserv.client.web.StaticSite;
 import com.aoindustries.aoserv.client.web.VirtualHost;
 import com.aoindustries.aoserv.client.web.VirtualHostName;
 import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.ftp.FTPManager;
-import static com.aoindustries.aoserv.daemon.httpd.HttpdServerManager.PHP_SESSION;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.HttpdTomcatSiteManager;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
@@ -141,9 +142,10 @@ public abstract class HttpdSiteManager {
   }
 
   /**
-   * Responsible for control of all things in [/var]/www
-   *
+   * Responsible for control of all things in <code>[/var]/www</code>.
+   * <p>
    * Only called by the already synchronized <code>HttpdManager.doRebuild()</code> method.
+   * </p>
    */
   static void doRebuild(
       List<File> deleteFileList,
@@ -156,18 +158,18 @@ public abstract class HttpdSiteManager {
       // Get values used in the rest of the method.
       HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
       String optSlash = osConfig.getHttpdSitesOptSlash();
-      Server thisServer = AOServDaemon.getThisServer();
+      Server thisServer = AoservDaemon.getThisServer();
 
       // The www directories that exist but are not used will be removed
       PosixFile wwwDirectory = new PosixFile(osConfig.getHttpdSitesDirectory().toString());
       Set<String> wwwRemoveList = new HashSet<>();
-      {
-        String[] list = wwwDirectory.list();
-        if (list != null) {
-          wwwRemoveList.addAll(Arrays.asList(list));
-          wwwRemoveList.removeAll(keepWwwDirs);
+        {
+          String[] list = wwwDirectory.list();
+          if (list != null) {
+            wwwRemoveList.addAll(Arrays.asList(list));
+            wwwRemoveList.removeAll(keepWwwDirs);
+          }
         }
-      }
 
       // Iterate through each site
       for (Site httpdSite : thisServer.getHttpdSites()) {
@@ -214,15 +216,17 @@ public abstract class HttpdSiteManager {
    * Stops any daemons that should not be running.
    * Restarts any sites that need restarted.
    * Starts any daemons that should be running.
-   *
+   * <p>
    * Makes calls with a one-minute time-out.
    * Logs errors on calls as warnings, continues to next site.
-   *
+   * </p>
+   * <p>
    * Only called by the already synchronized <code>HttpdManager.doRebuild()</code> method.
+   * </p>
    */
   @SuppressWarnings("SleepWhileInLoop")
   static void stopStartAndRestart(Set<Site> sitesNeedingRestarted) throws IOException, SQLException {
-    for (Site httpdSite : AOServDaemon.getThisServer().getHttpdSites()) {
+    for (Site httpdSite : AoservDaemon.getThisServer().getHttpdSites()) {
       HttpdSiteManager manager = getInstance(httpdSite);
       if (manager instanceof StopStartable) {
         final StopStartable stopStartRestartable = (StopStartable) manager;
@@ -266,7 +270,7 @@ public abstract class HttpdSiteManager {
           };
         }
         try {
-          Future<Object> commandFuture = AOServDaemon.executorService.submit(commandCallable);
+          Future<Object> commandFuture = AoservDaemon.executorService.submit(commandCallable);
           commandFuture.get(60, TimeUnit.SECONDS);
         } catch (InterruptedException err) {
           logger.log(Level.WARNING, null, err);
@@ -296,7 +300,7 @@ public abstract class HttpdSiteManager {
       int daemonUid = daemonDirectoryStat.getUid();
       UserServer daemonLsa;
       try {
-        daemonLsa = AOServDaemon.getThisServer().getLinuxServerAccount(LinuxId.valueOf(daemonUid));
+        daemonLsa = AoservDaemon.getThisServer().getLinuxServerAccount(LinuxId.valueOf(daemonUid));
       } catch (ValidationException e) {
         throw new IOException(e);
       }
@@ -310,8 +314,8 @@ public abstract class HttpdSiteManager {
             if (daemonUid != PosixFile.ROOT_UID) {
               final User.Name username = daemonLsa.getLinuxAccount_username_id();
               try {
-                Future<Object> stopFuture = AOServDaemon.executorService.submit(() -> {
-                  AOServDaemon.suexec(
+                Future<Object> stopFuture = AoservDaemon.executorService.submit(() -> {
+                  AoservDaemon.suexec(
                       username,
                       siteDirectory.getFile(),
                       scriptFile.getPath() + " stop",
@@ -342,13 +346,13 @@ public abstract class HttpdSiteManager {
    *
    * @return  <code>null</code> if successful or a user-readable reason if not successful
    */
-  public static String startHttpdSite(int sitePKey) throws IOException, SQLException {
-    AOServConnector conn = AOServDaemon.getConnector();
+  public static String startHttpdSite(int sitePkey) throws IOException, SQLException {
+    AoservConnector conn = AoservDaemon.getConnector();
 
-    Site httpdSite = conn.getWeb().getSite().get(sitePKey);
-    Server thisServer = AOServDaemon.getThisServer();
+    Site httpdSite = conn.getWeb().getSite().get(sitePkey);
+    Server thisServer = AoservDaemon.getThisServer();
     if (!httpdSite.getLinuxServer().equals(thisServer)) {
-      return "Site #" + sitePKey + " has server of " + httpdSite.getLinuxServer().getHostname() + ", which is not this server (" + thisServer.getHostname() + ')';
+      return "Site #" + sitePkey + " has server of " + httpdSite.getLinuxServer().getHostname() + ", which is not this server (" + thisServer.getHostname() + ')';
     }
 
     HttpdSiteManager manager = getInstance(httpdSite);
@@ -373,10 +377,10 @@ public abstract class HttpdSiteManager {
             // Null means all went well
             : null;
       } else {
-        return "Site #" + sitePKey + " is not currently startable";
+        return "Site #" + sitePkey + " is not currently startable";
       }
     } else {
-      return "Site #" + sitePKey + " is not a type of site that can be stopped and started";
+      return "Site #" + sitePkey + " is not a type of site that can be stopped and started";
     }
   }
 
@@ -385,13 +389,13 @@ public abstract class HttpdSiteManager {
    *
    * @return  <code>null</code> if successful or a user-readable reason if not success.
    */
-  public static String stopHttpdSite(int sitePKey) throws IOException, SQLException {
-    AOServConnector conn = AOServDaemon.getConnector();
+  public static String stopHttpdSite(int sitePkey) throws IOException, SQLException {
+    AoservConnector conn = AoservDaemon.getConnector();
 
-    Site httpdSite = conn.getWeb().getSite().get(sitePKey);
-    Server thisServer = AOServDaemon.getThisServer();
+    Site httpdSite = conn.getWeb().getSite().get(sitePkey);
+    Server thisServer = AoservDaemon.getThisServer();
     if (!httpdSite.getLinuxServer().equals(thisServer)) {
-      return "Site #" + sitePKey + " has server of " + httpdSite.getLinuxServer().getHostname() + ", which is not this server (" + thisServer.getHostname() + ')';
+      return "Site #" + sitePkey + " has server of " + httpdSite.getLinuxServer().getHostname() + ", which is not this server (" + thisServer.getHostname() + ')';
     }
 
     HttpdSiteManager manager = getInstance(httpdSite);
@@ -407,7 +411,7 @@ public abstract class HttpdSiteManager {
         return "Site was already stopped";
       }
     } else {
-      return "Site #" + sitePKey + " is not a type of site that can be stopped and started";
+      return "Site #" + sitePkey + " is not a type of site that can be stopped and started";
     }
   }
 
@@ -435,8 +439,7 @@ public abstract class HttpdSiteManager {
             + "\n"
             + "  support@aoindustries.com\n"
             + "  (205) 454-2556\n"
-            + "-->\n"
-    ;
+            + "-->\n";
   }
 
   /**
@@ -457,36 +460,35 @@ public abstract class HttpdSiteManager {
             + "\n"
             + "  support@aoindustries.com\n"
             + "  (205) 454-2556\n"
-            + "-->\n"
-    ;
+            + "-->\n";
   }
 
-  /**
-   * Gets the auto-mode warning using Unix-style comments (#).  This
-   * may be used on any config files that a user would be tempted to change
-   * directly.
-   */
-  /* public String getAutoWarningUnix() throws IOException, SQLException {
-    return
-      "#\n"
-      + "# Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
-      + "# to this file will be overwritten.  Please set the is_manual flag for this website\n"
-      + "# to be able to make permanent changes to this file.\n"
-      + "#\n"
-      + "# Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSiteCP.ao?pkey="+httpdSite.getPkey()+"\n"
-      + "#\n"
-      + "# AOSH: "+Command.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getName()+' '+httpdSite.getAOServer().getHostname()+" true\n"
-      + "#\n"
-      + "# support@aoindustries.com\n"
-      + "# (205) 454-2556\n"
-      + "#\n"
-    ;
-  }*/
+  ///**
+  // * Gets the auto-mode warning using Unix-style comments (#).  This
+  // * may be used on any config files that a user would be tempted to change
+  // * directly.
+  // */
+  //public String getAutoWarningUnix() throws IOException, SQLException {
+  //  return
+  //    "#\n"
+  //    + "# Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
+  //    + "# to this file will be overwritten.  Please set the is_manual flag for this website\n"
+  //    + "# to be able to make permanent changes to this file.\n"
+  //    + "#\n"
+  //    + "# Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSiteCP.ao?pkey="+httpdSite.getPkey()+"\n"
+  //    + "#\n"
+  //    + "# AOSH: "+Command.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getName()+' '+httpdSite.getAOServer().getHostname()+" true\n"
+  //    + "#\n"
+  //    + "# support@aoindustries.com\n"
+  //    + "# (205) 454-2556\n"
+  //    + "#\n";
+  //}
 
   /**
    * Gets any packages that must be installed for this site.
-   *
+   * <p>
    * By default, no specific packages are required.
+   * </p>
    */
   protected Set<PackageManager.PackageName> getRequiredPackages() throws IOException, SQLException {
     return Collections.emptySet();
@@ -501,14 +503,19 @@ public abstract class HttpdSiteManager {
    * If any shared Tomcat needs to be restarted due to changes in the files, add to <code>sharedTomcatsNeedingRestarted</code>.
    * Any files under siteDirectory that need to be updated to enable/disable this site should be changed.
    * Actual process start/stop will be performed later in <code>stopStartAndRestart</code>.
-   *
    * <ol>
    *   <li>If <code>siteDirectory</code> doesn't exist, create it as root with mode 0700</li>
    *   <li>If <code>siteDirectory</code> owned by root, do full pass (this implies manual=false regardless of setting)</li>
    *   <li>Otherwise, make necessary config changes or upgrades while adhering to the manual flag</li>
    * </ol>
    */
-  protected abstract void buildSiteDirectory(PosixFile siteDirectory, String optSlash, Set<Site> sitesNeedingRestarted, Set<SharedTomcat> sharedTomcatsNeedingRestarted, Set<PosixFile> restorecon) throws IOException, SQLException;
+  protected abstract void buildSiteDirectory(
+      PosixFile siteDirectory,
+      String optSlash,
+      Set<Site> sitesNeedingRestarted,
+      Set<SharedTomcat> sharedTomcatsNeedingRestarted,
+      Set<PosixFile> restorecon
+  ) throws IOException, SQLException;
 
   /**
    * Determines if should have anonymous FTP area.
@@ -552,9 +559,10 @@ public abstract class HttpdSiteManager {
 
   /**
    * Determines if PHP should be enabled.
-   *
+   * <p>
    * If this is enabled and CGI is disabled, then the HttpdServer for the
    * site must use mod_php.
+   * </p>
    *
    * @see  Site#getPhpVersion()
    */
@@ -571,7 +579,7 @@ public abstract class HttpdSiteManager {
     PosixFile phpFile = new PosixFile(cgibinDirectory, "php", false);
     // TODO: If every server this site runs as uses mod_php, then don't make the script? (and the config that refers to this script)
     if (enableCgi() && enablePhp()) {
-      Server thisServer = AOServDaemon.getThisServer();
+      Server thisServer = AoservDaemon.getThisServer();
       final OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
       final int osvId = osv.getPkey();
 
@@ -676,9 +684,9 @@ public abstract class HttpdSiteManager {
       }
 
       // Only rewrite when needed
-      int uid = httpdSite.getLinuxServerAccount().getUid().getId();
-      int gid = httpdSite.getLinuxServerGroup().getGid().getId();
-      int mode = 0755;
+      final int uid = httpdSite.getLinuxServerAccount().getUid().getId();
+      final int gid = httpdSite.getLinuxServerGroup().getGid().getId();
+      final int mode = 0755;
       // Create parent if missing
       PosixFile parent = cgibinDirectory.getParent();
       if (!parent.getStat().exists()) {
@@ -753,18 +761,19 @@ public abstract class HttpdSiteManager {
 
   /**
    * Creates the test index.html file if it is missing.
-   *
+   * <p>
    * TODO: Generate proper disabled page automatically.
    *       Or, better, put into logic of static site rebuild.
+   * </p>
    */
   protected void createTestIndex(PosixFile indexFile) throws IOException, SQLException {
     if (!indexFile.getStat().exists()) {
-      VirtualHostName primaryHsu = httpdSite.getPrimaryHttpdSiteURL();
+      VirtualHostName primaryHsu = httpdSite.getPrimaryVirtualHostName();
       String primaryUrl = primaryHsu == null ? httpdSite.getName() : primaryHsu.getHostname().toString();
       // Write to temp file first
       try (
-        TempFileContext tempFileContext = new TempFileContext(indexFile.getFile().getParent());
-        TempFile tempFile = tempFileContext.createTempFile(indexFile.getFile().getName())
+          TempFileContext tempFileContext = new TempFileContext(indexFile.getFile().getParent());
+          TempFile tempFile = tempFileContext.createTempFile(indexFile.getFile().getName())
           ) {
         try (ChainWriter out = new ChainWriter(new FileOutputStream(tempFile.getFile()))) {
           out.print("<html>\n"
@@ -775,11 +784,11 @@ public abstract class HttpdSiteManager {
               + "</html>\n");
         }
         // Set permissions and ownership
-        PosixFile tempUF = new PosixFile(tempFile.getFile());
-        tempUF.setMode(0664);
-        tempUF.chown(httpdSite.getLinuxServerAccount().getUid().getId(), httpdSite.getLinuxServerGroup().getGid().getId());
+        PosixFile tempPosixFile = new PosixFile(tempFile.getFile());
+        tempPosixFile.setMode(0664);
+        tempPosixFile.chown(httpdSite.getLinuxServerAccount().getUid().getId(), httpdSite.getLinuxServerGroup().getGid().getId());
         // Move into place
-        tempUF.renameTo(indexFile);
+        tempPosixFile.renameTo(indexFile);
       }
     }
   }
@@ -806,7 +815,7 @@ public abstract class HttpdSiteManager {
       }
     }
     if (uid == -1) {
-      Server thisServer = AOServDaemon.getThisServer();
+      Server thisServer = AoservDaemon.getThisServer();
       UserServer apacheLsa = thisServer.getLinuxServerAccount(User.APACHE);
       if (apacheLsa == null) {
         throw new SQLException("Unable to find UserServer: " + User.APACHE + " on " + thisServer.getHostname());
@@ -822,13 +831,13 @@ public abstract class HttpdSiteManager {
           new Location(true, ".*/CVS(/.*|$)"),
           new Location(true, ".*/CVSROOT(/.*|$)"),
           new Location(true, ".*/\\.cvsignore(/.*|$)")
-      //standardRejectedLocations.add(new Location(true, "/CVS/Attic"));
-      //standardRejectedLocations.add(new Location(true, "/CVS/Entries"));
-      // Already covered by Entries: standardRejectedLocations.add(new Location(true, "/CVS/Entries\\.Static"));
-      //standardRejectedLocations.add(new Location(true, "/CVS/Repository"));
-      //standardRejectedLocations.add(new Location(true, "/CVS/RevisionCache"));
-      //standardRejectedLocations.add(new Location(true, "/CVS/Root"));
-      //standardRejectedLocations.add(new Location(true, "/CVS/\\.#merg"));
+    //standardRejectedLocations.add(new Location(true, "/CVS/Attic"));
+    //standardRejectedLocations.add(new Location(true, "/CVS/Entries"));
+    // Already covered by Entries: standardRejectedLocations.add(new Location(true, "/CVS/Entries\\.Static"));
+    //standardRejectedLocations.add(new Location(true, "/CVS/Repository"));
+    //standardRejectedLocations.add(new Location(true, "/CVS/RevisionCache"));
+    //standardRejectedLocations.add(new Location(true, "/CVS/Root"));
+    //standardRejectedLocations.add(new Location(true, "/CVS/\\.#merg"));
     )
   );
 
@@ -893,8 +902,7 @@ public abstract class HttpdSiteManager {
       Location other = (Location) obj;
       return
           isRegularExpression == other.isRegularExpression
-              && location.equals(other.location)
-      ;
+              && location.equals(other.location);
     }
 
     @Override
@@ -915,7 +923,7 @@ public abstract class HttpdSiteManager {
    * Gets an unmodifiable map of URL patterns that should be rejected.
    */
   public Map<String, List<Location>> getRejectedLocations() throws IOException, SQLException {
-    OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
+    OperatingSystemVersion osv = AoservDaemon.getThisServer().getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
     if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
       // Protection is built into the config files
@@ -961,44 +969,44 @@ public abstract class HttpdSiteManager {
   //private static final List<PermanentRewriteRule> standardPermanentRewriteRules = new ArrayList<>();
   //private static final List<PermanentRewriteRule> unmodifiableStandardPermanentRewriteRules = Collections.unmodifiableList(standardPermanentRewriteRules);
   //static {
-    // emacs / kwrite
-    // Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*)~$", "$1"));
-    // Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*)~/(.*)$", "$1/$2"));
-
-    // vi / vim
-    // .test.php.swp
-    // Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*/)\\.([^/]+)\\.swp$", "$1$2"));
-    // Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*/)\\.([^/]+)\\.swp/(.*)$", "$1$2/$3"));
-
-    // Some other kind (seen as left-over #wp-config.php# in web root)
-    // #wp-config.php#
-    // Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*/)#([^/]+)#$", "$1$2")); // TODO [NE]? % encoded?
-    // Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*/)#([^/]+)#/(.*)$", "$1$2/$3")); // TODO [NE]? % encoded?
-
-    // TODO: nano .save files? https://askubuntu.com/questions/601985/what-are-save-files
-
-    // Should we report these in the distro scans instead of using these rules?
-
-    //standardPermanentRewriteRules.put("^(.*)\\.do~$", "$1.do");
-    //standardPermanentRewriteRules.put("^(.*)\\.do~/(.*)$", "$1.do/$2");
-    //standardPermanentRewriteRules.put("^(.*)\\.jsp~$", "$1.jsp");
-    //standardPermanentRewriteRules.put("^(.*)\\.jsp~/(.*)$", "$1.jsp/$2");
-    //standardPermanentRewriteRules.put("^(.*)\\.jspa~$", "$1.jspa");
-    //standardPermanentRewriteRules.put("^(.*)\\.jspa~/(.*)$", "$1.jspa/$2");
-    //standardPermanentRewriteRules.put("^(.*)\\.php~$", "$1.php");
-    //standardPermanentRewriteRules.put("^(.*)\\.php~/(.*)$", "$1.php/$2");
-    //standardPermanentRewriteRules.put("^(.*)\\.php3~$", "$1.php3");
-    //standardPermanentRewriteRules.put("^(.*)\\.php3~/(.*)$", "$1.php3/$2");
-    //standardPermanentRewriteRules.put("^(.*)\\.php4~$", "$1.php4");
-    //standardPermanentRewriteRules.put("^(.*)\\.php4~/(.*)$", "$1.php4/$2");
-    //standardPermanentRewriteRules.put("^(.*)\\.phtml~$", "$1.phtml");
-    //standardPermanentRewriteRules.put("^(.*)\\.phtml~/(.*)$", "$1.phtml/$2");
-    //standardPermanentRewriteRules.put("^(.*)\\.shtml~$", "$1.shtml");
-    //standardPermanentRewriteRules.put("^(.*)\\.shtml~/(.*)$", "$1.shtml/$2");
-    //standardPermanentRewriteRules.put("^(.*)\\.vm~$", "$1.vm");
-    //standardPermanentRewriteRules.put("^(.*)\\.vm~/(.*)$", "$1.vm/$2");
-    //standardPermanentRewriteRules.put("^(.*)\\.xml~$", "$1.xml");
-    //standardPermanentRewriteRules.put("^(.*)\\.xml~/(.*)$", "$1.xml/$2");
+  //  // emacs / kwrite
+  //  // Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*)~$", "$1"));
+  //  // Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*)~/(.*)$", "$1/$2"));
+  //
+  //  // vi / vim
+  //  // .test.php.swp
+  //  // Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*/)\\.([^/]+)\\.swp$", "$1$2"));
+  //  // Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*/)\\.([^/]+)\\.swp/(.*)$", "$1$2/$3"));
+  //
+  //  // Some other kind (seen as left-over #wp-config.php# in web root)
+  //  // #wp-config.php#
+  //  // Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*/)#([^/]+)#$", "$1$2")); // TODO [NE]? % encoded?
+  //  // Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*/)#([^/]+)#/(.*)$", "$1$2/$3")); // TODO [NE]? % encoded?
+  //
+  //  // TODO: nano .save files? https://askubuntu.com/questions/601985/what-are-save-files
+  //
+  //  // Should we report these in the distro scans instead of using these rules?
+  //
+  //  standardPermanentRewriteRules.put("^(.*)\\.do~$", "$1.do");
+  //  standardPermanentRewriteRules.put("^(.*)\\.do~/(.*)$", "$1.do/$2");
+  //  standardPermanentRewriteRules.put("^(.*)\\.jsp~$", "$1.jsp");
+  //  standardPermanentRewriteRules.put("^(.*)\\.jsp~/(.*)$", "$1.jsp/$2");
+  //  standardPermanentRewriteRules.put("^(.*)\\.jspa~$", "$1.jspa");
+  //  standardPermanentRewriteRules.put("^(.*)\\.jspa~/(.*)$", "$1.jspa/$2");
+  //  standardPermanentRewriteRules.put("^(.*)\\.php~$", "$1.php");
+  //  standardPermanentRewriteRules.put("^(.*)\\.php~/(.*)$", "$1.php/$2");
+  //  standardPermanentRewriteRules.put("^(.*)\\.php3~$", "$1.php3");
+  //  standardPermanentRewriteRules.put("^(.*)\\.php3~/(.*)$", "$1.php3/$2");
+  //  standardPermanentRewriteRules.put("^(.*)\\.php4~$", "$1.php4");
+  //  standardPermanentRewriteRules.put("^(.*)\\.php4~/(.*)$", "$1.php4/$2");
+  //  standardPermanentRewriteRules.put("^(.*)\\.phtml~$", "$1.phtml");
+  //  standardPermanentRewriteRules.put("^(.*)\\.phtml~/(.*)$", "$1.phtml/$2");
+  //  standardPermanentRewriteRules.put("^(.*)\\.shtml~$", "$1.shtml");
+  //  standardPermanentRewriteRules.put("^(.*)\\.shtml~/(.*)$", "$1.shtml/$2");
+  //  standardPermanentRewriteRules.put("^(.*)\\.vm~$", "$1.vm");
+  //  standardPermanentRewriteRules.put("^(.*)\\.vm~/(.*)$", "$1.vm/$2");
+  //  standardPermanentRewriteRules.put("^(.*)\\.xml~$", "$1.xml");
+  //  standardPermanentRewriteRules.put("^(.*)\\.xml~/(.*)$", "$1.xml/$2");
   //}
 
   /**
@@ -1011,8 +1019,9 @@ public abstract class HttpdSiteManager {
 
   /**
    * By default, sites will block all TRACE and TRACK requests.
-   *
+   * <p>
    * Seriously consider security ramifications before enabling TRACK and TRACE.
+   * </p>
    *
    * @see  Site#getBlockTraceTrack()
    */
@@ -1063,8 +1072,7 @@ public abstract class HttpdSiteManager {
       return
           isMount == other.isMount
               && path.equals(other.path)
-              && jkCode.equals(other.jkCode)
-      ;
+              && jkCode.equals(other.jkCode);
     }
 
     @Override
@@ -1090,8 +1098,9 @@ public abstract class HttpdSiteManager {
 
   /**
    * Gets the JkMount and JkUnmounts for this site.
-   *
+   * <p>
    * This default implementation returns an empty set.
+   * </p>
    *
    * @return  An empty set if no Jk enabled.
    */
