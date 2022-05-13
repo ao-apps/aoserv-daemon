@@ -79,4 +79,4 @@ module com.aoindustries.aoserv.daemon {
   //requires java.logging;
   requires java.naming;
   requires java.sql;
-} // TODO: Avoiding rewrite-maven-plugin-4.22.2 truncation
+}
