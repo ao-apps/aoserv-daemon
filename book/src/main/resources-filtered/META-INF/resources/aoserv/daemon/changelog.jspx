@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
     shortTitle="Changelog"
     tocLevels="1"
     datePublished="2020-04-16T21:06:03-05:00"
-    dateModified="2022-05-04T04:08:06-05:00"
+    dateModified="2022-05-17T02:47:45-05:00"
   >
     <c:if test="${fn:endsWith('@{project.version}', '-SNAPSHOT') and !fn:endsWith('@{project.version}', '-POST-SNAPSHOT')}">
       <changelog:release
@@ -47,29 +47,38 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
         artifactId="@{documented.artifactId}"
         repository="@{nexusUrl}content/repositories/snapshots/"
         scmUrl="@{project.scm.url}"
-      >
-        <ul>
-          <li>Updated to Apache Tomcat 8.5.78 with MySQL JDBC 8.0.29 and PostgreSQL JDBC 42.3.4.</li>
-          <li>Updated to Apache Tomcat 9.0.62 with MySQL JDBC 8.0.29 and PostgreSQL JDBC 42.3.4.</li>
-          <li>Updated to Apache Tomcat 10.0.20 with MySQL JDBC 8.0.29 and PostgreSQL JDBC 42.3.4.</li>
-          <li>Performed <ao:a href="https://checkstyle.org/">Checkstyle</ao:a> clean-up:
-            <ol>
-              <li>Renamed <code>AOServDaemon</code> to <code>AoservDaemon</code>.</li>
-              <li>Renamed <code>AOServDaemonConfiguration</code> to <code>AoservDaemonConfiguration</code>.</li>
-              <li>Renamed <code>AOServDaemonServer</code> to <code>AoservDaemonServer</code>.</li>
-              <li>Renamed <code>AOServDaemonServerThread</code> to <code>AoservDaemonServerThread</code>.</li>
-              <li>Renamed <code>AOServerEnvironment</code> to <code>LinuxServerEnvironment</code>.</li>
-              <li>Renamed <code>DBReportData</code> to <code>DbReportData</code>.</li>
-              <li>Renamed <code>DF</code> to <code>DiskUsage</code>.</li>
-              <li>Renamed <code>GShadowFile</code> to <code>GshadowFile</code>.</li>
-              <li>Renamed <code>MDStat</code> to <code>MdStat</code>.</li>
-              <li>Renamed <code>MySQLAdmin</code> to <code>MysqlAdmin</code>.</li>
-              <li>Renamed <code>NetStatLN</code> to <code>NetStatLn</code>.</li>
-            </ol>
-          </li>
-        </ul>
-      </changelog:release>
+      />
     </c:if>
+
+    <changelog:release
+      projectName="@{documented.name}"
+      version="1.90.0"
+      datePublished="2022-05-17T02:47:45-05:00"
+      groupId="@{project.groupId}"
+      artifactId="@{documented.artifactId}"
+      scmUrl="@{project.scm.url}"
+    >
+      <ul>
+        <li>Updated to Apache Tomcat 8.5.78 with MySQL JDBC 8.0.29 and PostgreSQL JDBC 42.3.4.</li>
+        <li>Updated to Apache Tomcat 9.0.62 with MySQL JDBC 8.0.29 and PostgreSQL JDBC 42.3.4.</li>
+        <li>Updated to Apache Tomcat 10.0.20 with MySQL JDBC 8.0.29 and PostgreSQL JDBC 42.3.4.</li>
+        <li>Performed <ao:a href="https://checkstyle.org/">Checkstyle</ao:a> clean-up:
+          <ol>
+            <li>Renamed <code>AOServDaemon</code> to <code>AoservDaemon</code>.</li>
+            <li>Renamed <code>AOServDaemonConfiguration</code> to <code>AoservDaemonConfiguration</code>.</li>
+            <li>Renamed <code>AOServDaemonServer</code> to <code>AoservDaemonServer</code>.</li>
+            <li>Renamed <code>AOServDaemonServerThread</code> to <code>AoservDaemonServerThread</code>.</li>
+            <li>Renamed <code>AOServerEnvironment</code> to <code>LinuxServerEnvironment</code>.</li>
+            <li>Renamed <code>DBReportData</code> to <code>DbReportData</code>.</li>
+            <li>Renamed <code>DF</code> to <code>DiskUsage</code>.</li>
+            <li>Renamed <code>GShadowFile</code> to <code>GshadowFile</code>.</li>
+            <li>Renamed <code>MDStat</code> to <code>MdStat</code>.</li>
+            <li>Renamed <code>MySQLAdmin</code> to <code>MysqlAdmin</code>.</li>
+            <li>Renamed <code>NetStatLN</code> to <code>NetStatLn</code>.</li>
+          </ol>
+        </li>
+      </ul>
+    </changelog:release>
 
     <changelog:release
       projectName="@{documented.name}"
