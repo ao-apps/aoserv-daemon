@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
     shortTitle="Changelog"
     tocLevels="1"
     datePublished="2020-04-16T21:06:03-05:00"
-    dateModified="2022-06-12T16:51:59-05:00"
+    dateModified="2022-06-12T17:13:46-05:00"
   >
     <c:if test="${fn:endsWith('@{project.version}', '-SNAPSHOT') and !fn:endsWith('@{project.version}', '-POST-SNAPSHOT')}">
       <changelog:release
@@ -47,14 +47,23 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
         artifactId="@{documented.artifactId}"
         repository="@{nexusUrl}content/repositories/snapshots/"
         scmUrl="@{project.scm.url}"
-      >
-        <ul>
-          <li>Added support for Apache Tomcat 8.5.81 with MySQL JDBC 8.0.29 and PostgreSQL JDBC 42.4.0.</li>
-          <li>Added support for Apache Tomcat 9.0.64 with MySQL JDBC 8.0.29 and PostgreSQL JDBC 42.4.0.</li>
-          <li>Added support for Apache Tomcat 10.0.22 with MySQL JDBC 8.0.29 and PostgreSQL JDBC 42.4.0.</li>
-        </ul>
-      </changelog:release>
+      />
     </c:if>
+
+    <changelog:release
+      projectName="@{documented.name}"
+      version="1.91.3"
+      datePublished="2022-06-12T17:13:46-05:00"
+      groupId="@{project.groupId}"
+      artifactId="@{documented.artifactId}"
+      scmUrl="@{project.scm.url}"
+    >
+      <ul>
+        <li>Added support for Apache Tomcat 8.5.81 with MySQL JDBC 8.0.29 and PostgreSQL JDBC 42.4.0.</li>
+        <li>Added support for Apache Tomcat 9.0.64 with MySQL JDBC 8.0.29 and PostgreSQL JDBC 42.4.0.</li>
+        <li>Added support for Apache Tomcat 10.0.22 with MySQL JDBC 8.0.29 and PostgreSQL JDBC 42.4.0.</li>
+      </ul>
+    </changelog:release>
 
     <changelog:release
       projectName="@{documented.name}"
