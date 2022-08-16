@@ -520,7 +520,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
         <groupId>com.sun.mail</groupId><artifactId>javax.mail</artifactId><version>1.6.2</version>
       </dependency>
       <dependency>
-        <groupId>com.aoindustries</groupId><artifactId>noc-monitor-portmon</artifactId><version>1.4.1-SNAPSHOT<!-- ${POST-SNAPSHOT} --></version>
+        <groupId>com.aoindustries</groupId><artifactId>noc-monitor-portmon</artifactId><version>1.4.1${POST-SNAPSHOT}</version>
       </dependency>
       <!-- Transitive -->
       <dependency>
