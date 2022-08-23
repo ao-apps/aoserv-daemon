@@ -153,6 +153,28 @@ final class TomcatCommon_10_0_X extends VersionedTomcatCommon {
       Version version = new Version(rpm.getVersion(), rpm.getRelease());
       String suffix = osConfig.getPackageReleaseSuffix();
       // Downgrade support
+      if (version.compareTo("10.0.23-2" + suffix) < 0) {
+        UpgradeSymlink[] downgradeSymlinks = {
+            // postgresql-42.4.2.jar -> postgresql-42.4.1.jar
+            new UpgradeSymlink(
+                "lib/postgresql-42.4.2.jar",
+                "/dev/null",
+                "lib/postgresql-42.4.1.jar",
+                "/dev/null"
+            ),
+            new UpgradeSymlink(
+                "lib/postgresql-42.4.2.jar",
+                "../" + optSlash + "apache-tomcat-10.0/lib/postgresql-42.4.2.jar",
+                "lib/postgresql-42.4.1.jar",
+                "../" + optSlash + "apache-tomcat-10.0/lib/postgresql-42.4.1.jar"
+            ),
+        };
+        for (UpgradeSymlink symlink : downgradeSymlinks) {
+          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
+            needsRestart = true;
+          }
+        }
+      }
       if (version.compareTo("10.0.23-1" + suffix) < 0) {
         UpgradeSymlink[] downgradeSymlinks = {
             // jakartaee-migration-1.0.1-shaded.jar -> jakartaee-migration-1.0.0-shaded.jar
@@ -906,7 +928,29 @@ final class TomcatCommon_10_0_X extends VersionedTomcatCommon {
           }
         }
       }
-      if (version.compareTo("10.0.23-1" + suffix) > 0) {
+      if (version.compareTo("10.0.23-2" + suffix) >= 0) {
+        UpgradeSymlink[] upgradeSymlinks = {
+            // postgresql-42.4.1.jar -> postgresql-42.4.2.jar
+            new UpgradeSymlink(
+                "lib/postgresql-42.4.1.jar",
+                "/dev/null",
+                "lib/postgresql-42.4.2.jar",
+                "/dev/null"
+            ),
+            new UpgradeSymlink(
+                "lib/postgresql-42.4.1.jar",
+                "../" + optSlash + "apache-tomcat-10.0/lib/postgresql-42.4.1.jar",
+                "lib/postgresql-42.4.2.jar",
+                "../" + optSlash + "apache-tomcat-10.0/lib/postgresql-42.4.2.jar"
+            ),
+        };
+        for (UpgradeSymlink symlink : upgradeSymlinks) {
+          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
+            needsRestart = true;
+          }
+        }
+      }
+      if (version.compareTo("10.0.23-2" + suffix) > 0) {
         throw new IllegalStateException("Version of Tomcat newer than expected: " + version);
       }
     }
