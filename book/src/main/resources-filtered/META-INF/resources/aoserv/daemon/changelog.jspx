@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
     shortTitle="Changelog"
     tocLevels="1"
     datePublished="2020-04-16T21:06:03-05:00"
-    dateModified="2022-10-09T14:54:53-05:00"
+    dateModified="2022-10-14T23:14:37-05:00"
   >
     <c:if test="${fn:endsWith('@{project.version}', '-SNAPSHOT') and !fn:endsWith('@{project.version}', '-POST-SNAPSHOT')}">
       <changelog:release
@@ -49,9 +49,10 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
         scmUrl="@{project.scm.url}"
       >
         <ul>
-          <li>Added support for Apache Tomcat 8.5.82 with MySQL JDBC 8.0.30 and PostgreSQL JDBC 42.5.0.</li>
-          <li>Added support for Apache Tomcat 9.0.68 with MySQL JDBC 8.0.30 and PostgreSQL JDBC 42.5.0.</li>
-          <li>Added support for Apache Tomcat 10.0.26 with MySQL JDBC 8.0.30 and PostgreSQL JDBC 42.5.0.</li>
+          <li>Added support for Apache Tomcat 8.5.83 with MySQL JDBC 8.0.31 and PostgreSQL JDBC 42.5.0.</li>
+          <li>Added support for Apache Tomcat 9.0.68 with MySQL JDBC 8.0.31 and PostgreSQL JDBC 42.5.0.</li>
+          <li>Added support for Apache Tomcat 10.0.27 with MySQL JDBC 8.0.31 and PostgreSQL JDBC 42.5.0.</li>
+          <li>Updated dependencies.</li>
         </ul>
       </changelog:release>
     </c:if>

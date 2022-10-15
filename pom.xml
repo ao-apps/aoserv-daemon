@@ -167,7 +167,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
         <configuration>
           <usedDependencies>
             <!-- Runtime Direct -->
-            <dependency>mysql:mysql-connector-java</dependency>
+            <dependency>com.mysql:mysql-connector-j</dependency>
             <dependency>org.postgresql:postgresql</dependency>
           </usedDependencies>
         </configuration>
@@ -488,7 +488,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
         <groupId>com.aoindustries</groupId><artifactId>aoserv-backup</artifactId><version>1.90.0${POST-SNAPSHOT}</version>
       </dependency>
       <dependency>
-        <groupId>com.aoindustries</groupId><artifactId>aoserv-client</artifactId><version>1.91.5${POST-SNAPSHOT}</version>
+        <groupId>com.aoindustries</groupId><artifactId>aoserv-client</artifactId><version>1.91.6-SNAPSHOT<!-- ${POST-SNAPSHOT} --></version>
       </dependency>
       <dependency>
         <groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId><version>1.90.0${POST-SNAPSHOT}</version>
@@ -506,7 +506,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
         <groupId>com.sun.mail</groupId><artifactId>javax.mail</artifactId><version>1.6.2</version>
       </dependency>
       <dependency>
-        <groupId>com.aoindustries</groupId><artifactId>noc-monitor-portmon</artifactId><version>1.4.1${POST-SNAPSHOT}</version>
+        <groupId>com.aoindustries</groupId><artifactId>noc-monitor-portmon</artifactId><version>1.4.2-SNAPSHOT<!-- ${POST-SNAPSHOT} --></version>
       </dependency>
       <!-- Transitive -->
       <dependency>
@@ -529,7 +529,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
       </dependency>
       <!-- Runtime Direct -->
       <dependency>
-        <groupId>mysql</groupId><artifactId>mysql-connector-java</artifactId><version>8.0.31</version>
+        <groupId>com.mysql</groupId><artifactId>mysql-connector-j</artifactId><version>8.0.31</version>
       </dependency>
       <dependency>
         <groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><version>42.5.0</version>
@@ -632,7 +632,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
     </dependency>
     <!-- Runtime Direct -->
     <dependency>
-      <groupId>mysql</groupId><artifactId>mysql-connector-java</artifactId>
+      <groupId>com.mysql</groupId><artifactId>mysql-connector-j</artifactId>
       <scope>runtime</scope>
     </dependency>
     <dependency>
