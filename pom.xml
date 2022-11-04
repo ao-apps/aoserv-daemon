@@ -536,7 +536,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
       </dependency>
       <!-- Runtime Transitive -->
       <dependency>
-        <groupId>org.checkerframework</groupId><artifactId>checker-qual</artifactId><version>3.26.0</version>
+        <groupId>org.checkerframework</groupId><artifactId>checker-qual</artifactId><version>3.27.0</version>
       </dependency>
       <dependency>
         <groupId>com.google.protobuf</groupId><artifactId>protobuf-java</artifactId><version>3.21.9</version>
