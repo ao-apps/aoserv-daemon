@@ -152,6 +152,30 @@ public final class PostgresUserManager extends BuilderThread {
           User.PG_DATABASE_OWNER
       ));
     }
+    if (
+        version.startsWith(Version.VERSION_15 + '.')
+            || version.startsWith(Version.VERSION_15 + 'R')
+    ) {
+      return new HashSet<>(Arrays.asList(
+          User.POSTGRES,
+          // PostgreSQL 10+
+          User.PG_MONITOR,
+          User.PG_READ_ALL_SETTINGS,
+          User.PG_READ_ALL_STATS,
+          User.PG_SIGNAL_BACKEND,
+          User.PG_STAT_SCAN_TABLES,
+          // PostgreSQL 11+
+          User.PG_EXECUTE_SERVER_PROGRAM,
+          User.PG_READ_SERVER_FILES,
+          User.PG_WRITE_SERVER_FILES,
+          // PostgreSQL 14+
+          User.PG_READ_ALL_DATA,
+          User.PG_WRITE_ALL_DATA,
+          User.PG_DATABASE_OWNER,
+          // PostgreSQL 15+
+          User.PG_CHECKPOINT
+      ));
+    }
     throw new NotImplementedException("TODO: Implement for version " + version);
   }
 
