@@ -88,6 +88,12 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
    *   <li><a href="https://tomcat.apache.org/tomcat-10.0-doc/jdbc-pool.html">The Tomcat JDBC Connection Pool</a></li>
    *   </ol>
    * </li>
+   * <li>Tomcat 10.1:
+   *   <ol type="a">
+   *   <li><a href="https://tomcat.apache.org/tomcat-10.1-doc/jndi-datasource-examples-howto.html">JNDI Datasource HOW-TO</a></li>
+   *   <li><a href="https://tomcat.apache.org/tomcat-10.1-doc/jdbc-pool.html">The Tomcat JDBC Connection Pool</a></li>
+   *   </ol>
+   * </li>
    * </ol>
    */
   @Override

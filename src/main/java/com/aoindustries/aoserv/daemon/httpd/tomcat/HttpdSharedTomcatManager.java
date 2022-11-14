@@ -113,6 +113,9 @@ public abstract class HttpdSharedTomcatManager<T extends TomcatCommon> implement
     if (htv.isTomcat10_0_X(connector)) {
       return new HttpdSharedTomcatManager_10_0_X(sharedTomcat);
     }
+    if (htv.isTomcat10_1_X(connector)) {
+      return new HttpdSharedTomcatManager_10_1_X(sharedTomcat);
+    }
     throw new SQLException("Unsupported version of shared Tomcat: " + htv.getTechnologyVersion(connector).getVersion() + " on " + sharedTomcat);
   }
 

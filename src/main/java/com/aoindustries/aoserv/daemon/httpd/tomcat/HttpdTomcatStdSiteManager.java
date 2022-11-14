@@ -87,6 +87,9 @@ abstract class HttpdTomcatStdSiteManager<T extends TomcatCommon> extends HttpdTo
     if (htv.isTomcat10_0_X(connector)) {
       return new HttpdTomcatStdSiteManager_10_0_X(stdSite);
     }
+    if (htv.isTomcat10_1_X(connector)) {
+      return new HttpdTomcatStdSiteManager_10_1_X(stdSite);
+    }
     throw new SQLException("Unsupported version of standard Tomcat: " + htv.getTechnologyVersion(connector).getVersion() + " on " + stdSite);
   }
 

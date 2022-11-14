@@ -84,6 +84,9 @@ abstract class HttpdTomcatSharedSiteManager<T extends TomcatCommon> extends Http
     if (htv.isTomcat10_0_X(connector)) {
       return new HttpdTomcatSharedSiteManager_10_0_X(shrSite);
     }
+    if (htv.isTomcat10_1_X(connector)) {
+      return new HttpdTomcatSharedSiteManager_10_1_X(shrSite);
+    }
     throw new SQLException("Unsupported version of shared Tomcat: " + htv.getTechnologyVersion(connector).getVersion() + " on " + shrSite);
   }
 

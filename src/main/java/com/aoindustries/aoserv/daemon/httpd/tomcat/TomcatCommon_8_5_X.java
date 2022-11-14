@@ -72,24 +72,31 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
     return "apache-tomcat-8.5";
   }
 
-  // Note: Updates here should be matched between all VersionTomcat versions (8.5, 9.0, 10.0 currently)
+  // Note: Updates here should be matched between all VersionTomcat versions (8.5, 9.0, 10.0, 10.1 currently)
   //       in order to allow both upgrade and downgrade between them.
   @Override
   protected List<Install> getInstallFiles(String optSlash, PosixFile installDir, int confMode) throws IOException, SQLException {
     return Arrays.asList(
         new Mkdir        ("bin", 0770),
         new Symlink      ("bin/bootstrap.jar"),
+        // Skipped bin/catalina.bat
         new ProfileScript("bin/catalina.sh"),
+        // Skipped bin/catalina-tasks.xml
+        // Skipped bin/ciphers.bat in Tomcat 8.5+
         new ProfileScript("bin/ciphers.sh"), // Tomcat 8.5+
         new Symlink      ("bin/commons-daemon.jar"),
         // Skipped bin/commons-daemon-native.tar.gz
         new Delete       ("bin/commons-logging-api.jar"), // Tomcat 5.5
+        // Skipped bin/configtest.bat
         new ProfileScript("bin/configtest.sh"),
-        // Skipped bin/daemon.sh from Tomcat 9.0
+        // Skipped bin/daemon.sh in Tomcat 8.5+
+        // Skipped bin/digest.bat
         new ProfileScript("bin/digest.sh"),
         new Delete       ("bin/jasper.sh"), // Tomcat 4.1
         new Delete       ("bin/jspc.sh"), // Tomcat 4.1
-        // Skipped bin/makebase.sh from Tomcat 9.0
+        // Skipped bin/makebase.bat in Tomcat 9.0+
+        // Skipped bin/makebase.sh in Tomcat 9.0+
+        // Skipped bin/migrate.bat in Tomcat 10.0+
         new Delete       ("bin/migrate.sh"), // Tomcat 10.0+
         new Delete       ("bin/profile"), // Tomcat 4.1, Tomcat 5.5, Tomcat 6.0, Tomcat 7.0, Tomcat 8.0
         new Mkdir        ("bin/profile.d", 0750),
@@ -100,14 +107,20 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
         new Generated    ("bin/profile.d/java-server.sh",                 0640, VersionedTomcatCommon::generateProfileJavaServerSh),
         new Symlink      ("bin/profile.d/jdk.sh", generateProfileJdkShTarget(optSlash)),
         new Generated    ("bin/profile.d/umask.sh",                       0640, VersionedTomcatCommon::generateProfileUmaskSh),
+        // Skipped bin/setclasspath.bat
         new Symlink      ("bin/setclasspath.sh"),
+        // Skipped bin/shutdown.bat
         new Generated    ("bin/shutdown.sh", 0700, VersionedTomcatCommon::generateShutdownSh),
+        // Skipped bin/startup.bat
         new Generated    ("bin/startup.sh",  0700, VersionedTomcatCommon::generateStartupSh),
         new Delete       ("bin/tomcat-jni.jar"), // Tomcat 4.1
         new Symlink      ("bin/tomcat-juli.jar"),
         // Skipped bin/tomcat-native.tar.gz
+        // Skipped bin/tool-wrapper.bat
         new Symlink      ("bin/tool-wrapper.sh"),
+        // Skipped bin/version.bat
         new ProfileScript("bin/version.sh"),
+        // Skipped BUILDING.txt
         new Delete       ("common"), // Tomcat 4.1, Tomcat 5.5
         new Mkdir        ("conf", confMode),
         new Mkdir        ("conf/Catalina", 0770),
@@ -121,17 +134,25 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
         new Copy         ("conf/tomcat-users.xml", 0660),
         new Symlink      ("conf/tomcat-users.xsd"),
         new Symlink      ("conf/web.xml"),
+        // Skipped CONTRIBUTING.md
         new Mkdir        ("daemon", 0770),
         new Mkdir        ("lib", 0770),
         new SymlinkAll   ("lib"),
+        // Skipped LICENSE
         new Symlink      ("logs", "var/log"),
+        // Skipped NOTICE in Tomcat 8.5 to 9.0
+        // Skipped README.md
         new Delete       ("RELEASE-NOTES"), // Backup any existing, new will be created to detect version updates that do not change symlinks
+        // Skipped RUNNING.txt
         new Delete       ("shared"), // Tomcat 4.1, Tomcat 5.5
         new Delete       ("server"), // Tomcat 4.1, Tomcat 5.5
         new Mkdir        ("temp", 0770),
         new Mkdir        ("var", 0770),
         new Mkdir        ("var/log", 0770),
         new Mkdir        ("var/run", 0770),
+        // Skipped webapps (is handled elsewhere)
+        // Skipped webapps_docs.tgz
+        // Skipped webapps_examples.tgz
         new Mkdir        ("work", 0750),
         new Mkdir        ("work/Catalina", 0750),
         new Delete       ("conf/Tomcat-Apache") // Tomcat 4.1, Tomcat 5.5

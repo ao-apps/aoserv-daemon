@@ -73,6 +73,7 @@ public final class PackageManager {
     APACHE_TOMCAT_8_5(APACHE_TOMCAT_PREFIX + "8_5"),
     APACHE_TOMCAT_9_0(APACHE_TOMCAT_PREFIX + "9_0"),
     APACHE_TOMCAT_10_0(APACHE_TOMCAT_PREFIX + "10_0"),
+    APACHE_TOMCAT_10_1(APACHE_TOMCAT_PREFIX + "10_1"),
     AOSERV_FTP_SHELLS("aoserv-ftp-shells"),
     AOSERV_HTTPD_CONFIG("aoserv-httpd-config"),
     AOSERV_HTTPD_SITE_DISABLED("aoserv-httpd-site-disabled"),
