@@ -174,6 +174,28 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
       Version version = new Version(rpm.getVersion(), rpm.getRelease());
       String suffix = osConfig.getPackageReleaseSuffix();
       // Downgrade support
+      if (version.compareTo("8.5.84-1" + suffix) < 0) {
+        UpgradeSymlink[] downgradeSymlinks = {
+            // postgresql-42.5.1.jar -> postgresql-42.5.0.jar
+            new UpgradeSymlink(
+                "lib/postgresql-42.5.1.jar",
+                "/dev/null",
+                "lib/postgresql-42.5.0.jar",
+                "/dev/null"
+            ),
+            new UpgradeSymlink(
+                "lib/postgresql-42.5.1.jar",
+                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.5.1.jar",
+                "lib/postgresql-42.5.0.jar",
+                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.5.0.jar"
+            ),
+        };
+        for (UpgradeSymlink symlink : downgradeSymlinks) {
+          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
+            needsRestart = true;
+          }
+        }
+      }
       if (version.compareTo("8.5.83-1" + suffix) < 0) {
         UpgradeSymlink[] downgradeSymlinks = {
             // mysql-connector-j-8.0.31.jar -> mysql-connector-java-8.0.30.jar
@@ -968,7 +990,29 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
           }
         }
       }
-      if (version.compareTo("8.5.83-1" + suffix) > 0) {
+      if (version.compareTo("8.5.84-1" + suffix) >= 0) {
+        UpgradeSymlink[] upgradeSymlinks = {
+            // postgresql-42.5.0.jar -> postgresql-42.5.1.jar
+            new UpgradeSymlink(
+                "lib/postgresql-42.5.0.jar",
+                "/dev/null",
+                "lib/postgresql-42.5.1.jar",
+                "/dev/null"
+            ),
+            new UpgradeSymlink(
+                "lib/postgresql-42.5.0.jar",
+                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.5.0.jar",
+                "lib/postgresql-42.5.1.jar",
+                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.5.1.jar"
+            ),
+        };
+        for (UpgradeSymlink symlink : upgradeSymlinks) {
+          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
+            needsRestart = true;
+          }
+        }
+      }
+      if (version.compareTo("8.5.84-1" + suffix) > 0) {
         throw new IllegalStateException("Version of Tomcat newer than expected: " + version);
       }
     }

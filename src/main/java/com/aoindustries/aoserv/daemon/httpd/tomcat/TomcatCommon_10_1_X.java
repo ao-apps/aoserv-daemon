@@ -33,6 +33,7 @@ import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.ProfileScript;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.Symlink;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.SymlinkAll;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
+import com.aoindustries.aoserv.daemon.util.UpgradeSymlink;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -173,11 +174,55 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
       Version version = new Version(rpm.getVersion(), rpm.getRelease());
       String suffix = osConfig.getPackageReleaseSuffix();
       // Downgrade support
+      if (version.compareTo("10.1.2-2" + suffix) < 0) {
+        UpgradeSymlink[] downgradeSymlinks = {
+            // postgresql-42.5.1.jar -> postgresql-42.5.0.jar
+            new UpgradeSymlink(
+                "lib/postgresql-42.5.1.jar",
+                "/dev/null",
+                "lib/postgresql-42.5.0.jar",
+                "/dev/null"
+            ),
+            new UpgradeSymlink(
+                "lib/postgresql-42.5.1.jar",
+                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.5.1.jar",
+                "lib/postgresql-42.5.0.jar",
+                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.5.0.jar"
+            ),
+        };
+        for (UpgradeSymlink symlink : downgradeSymlinks) {
+          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
+            needsRestart = true;
+          }
+        }
+      }
       if (version.compareTo("10.1.2-1" + suffix) < 0) {
         throw new IllegalStateException("Version of Tomcat older than expected: " + version);
       }
       // Upgrade support
-      if (version.compareTo("10.1.2-1" + suffix) > 0) {
+      if (version.compareTo("10.1.2-2" + suffix) >= 0) {
+        UpgradeSymlink[] upgradeSymlinks = {
+            // postgresql-42.5.0.jar -> postgresql-42.5.1.jar
+            new UpgradeSymlink(
+                "lib/postgresql-42.5.0.jar",
+                "/dev/null",
+                "lib/postgresql-42.5.1.jar",
+                "/dev/null"
+            ),
+            new UpgradeSymlink(
+                "lib/postgresql-42.5.0.jar",
+                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.5.0.jar",
+                "lib/postgresql-42.5.1.jar",
+                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.5.1.jar"
+            ),
+        };
+        for (UpgradeSymlink symlink : upgradeSymlinks) {
+          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
+            needsRestart = true;
+          }
+        }
+      }
+      if (version.compareTo("10.1.2-2" + suffix) > 0) {
         throw new IllegalStateException("Version of Tomcat newer than expected: " + version);
       }
     }

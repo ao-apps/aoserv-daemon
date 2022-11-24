@@ -174,6 +174,28 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
       Version version = new Version(rpm.getVersion(), rpm.getRelease());
       String suffix = osConfig.getPackageReleaseSuffix();
       // Downgrade support
+      if (version.compareTo("9.0.69-2" + suffix) < 0) {
+        UpgradeSymlink[] downgradeSymlinks = {
+            // postgresql-42.5.1.jar -> postgresql-42.5.0.jar
+            new UpgradeSymlink(
+                "lib/postgresql-42.5.1.jar",
+                "/dev/null",
+                "lib/postgresql-42.5.0.jar",
+                "/dev/null"
+            ),
+            new UpgradeSymlink(
+                "lib/postgresql-42.5.1.jar",
+                "../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.5.1.jar",
+                "lib/postgresql-42.5.0.jar",
+                "../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.5.0.jar"
+            ),
+        };
+        for (UpgradeSymlink symlink : downgradeSymlinks) {
+          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
+            needsRestart = true;
+          }
+        }
+      }
       if (version.compareTo("9.0.69-1" + suffix) < 0) {
         // 9.0.69-1 has same files as 9.0.68-2
       }
@@ -1056,7 +1078,29 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
       if (version.compareTo("9.0.69-1" + suffix) >= 0) {
         // 9.0.69-1 has same files as 9.0.68-2
       }
-      if (version.compareTo("9.0.69-1" + suffix) > 0) {
+      if (version.compareTo("9.0.69-2" + suffix) >= 0) {
+        UpgradeSymlink[] upgradeSymlinks = {
+            // postgresql-42.5.0.jar -> postgresql-42.5.1.jar
+            new UpgradeSymlink(
+                "lib/postgresql-42.5.0.jar",
+                "/dev/null",
+                "lib/postgresql-42.5.1.jar",
+                "/dev/null"
+            ),
+            new UpgradeSymlink(
+                "lib/postgresql-42.5.0.jar",
+                "../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.5.0.jar",
+                "lib/postgresql-42.5.1.jar",
+                "../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.5.1.jar"
+            ),
+        };
+        for (UpgradeSymlink symlink : upgradeSymlinks) {
+          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
+            needsRestart = true;
+          }
+        }
+      }
+      if (version.compareTo("9.0.69-2" + suffix) > 0) {
         throw new IllegalStateException("Version of Tomcat newer than expected: " + version);
       }
     }
