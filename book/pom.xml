@@ -29,7 +29,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
     <relativePath>../../../oss/parent/pom.xml</relativePath>
   </parent>
 
-  <groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-book</artifactId><version>1.91.7-POST-SNAPSHOT</version>
+  <groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-book</artifactId><version>1.91.8-SNAPSHOT</version>
   <packaging>bundle</packaging>
 
   <properties>
