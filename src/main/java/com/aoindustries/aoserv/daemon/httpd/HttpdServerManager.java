@@ -94,7 +94,7 @@ import org.apache.commons.lang3.NotImplementedException;
  * </p>
  * <p>
  * TODO: Write/update /etc/system/system/httpd[@name}.service.d/php.conf for PHP 7+
- *       Or, could this be somehow added by the php_7_* packages?
+ *       Or, could this be somehow added by the php-7.* packages?
  * </p>
  *
  * @author  AO Industries, Inc.
@@ -2798,6 +2798,8 @@ public final class HttpdServerManager {
         Bind nb = hb.getNetBind();
         InetAddress ip = nb.getIpAddress().getInetAddress();
         int port = nb.getPort().getPort();
+        // TODO: Rocky 9: ListenFree for anything other than wildcard or loopback
+        //                See how "hasSpecificAddress" is determined, share logic
         out.print("Listen ").print(escape(dollarVariable, ip.toBracketedString() + ":" + port));
         String appProtocol = nb.getAppProtocol().getProtocol();
         if (appProtocol.equals(AppProtocol.HTTP)) {
