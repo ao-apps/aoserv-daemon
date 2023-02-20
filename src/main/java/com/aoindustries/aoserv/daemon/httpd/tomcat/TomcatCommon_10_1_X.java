@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2022  AO Industries, Inc.
+ * Copyright (C) 2022, 2023  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -174,6 +174,48 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
       Version version = new Version(rpm.getVersion(), rpm.getRelease());
       String suffix = osConfig.getPackageReleaseSuffix();
       // Downgrade support
+      if (version.compareTo("10.1.5-1" + suffix) < 0) {
+        UpgradeSymlink[] downgradeSymlinks = {
+            // ecj-4.26.jar -> ecj-4.25.jar
+            new UpgradeSymlink(
+                "lib/ecj-4.26.jar",
+                "../" + optSlash + "apache-tomcat-10.1/lib/ecj-4.26.jar",
+                "lib/ecj-4.25.jar",
+                "../" + optSlash + "apache-tomcat-10.1/lib/ecj-4.25.jar"
+            ),
+            // mysql-connector-j-8.0.32.jar -> mysql-connector-j-8.0.31.jar
+            new UpgradeSymlink(
+                "lib/mysql-connector-j-8.0.32.jar",
+                "/dev/null",
+                "lib/mysql-connector-j-8.0.31.jar",
+                "/dev/null"
+            ),
+            new UpgradeSymlink(
+                "lib/mysql-connector-j-8.0.32.jar",
+                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.0.32.jar",
+                "lib/mysql-connector-j-8.0.31.jar",
+                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.0.31.jar"
+            ),
+            // postgresql-42.5.4.jar -> postgresql-42.5.1.jar
+            new UpgradeSymlink(
+                "lib/postgresql-42.5.4.jar",
+                "/dev/null",
+                "lib/postgresql-42.5.1.jar",
+                "/dev/null"
+            ),
+            new UpgradeSymlink(
+                "lib/postgresql-42.5.4.jar",
+                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.5.4.jar",
+                "lib/postgresql-42.5.1.jar",
+                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.5.1.jar"
+            ),
+        };
+        for (UpgradeSymlink symlink : downgradeSymlinks) {
+          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
+            needsRestart = true;
+          }
+        }
+      }
       if (version.compareTo("10.1.4-1" + suffix) < 0) {
         UpgradeSymlink[] downgradeSymlinks = {
             // jakartaee-migration-1.0.6-shaded.jar -> jakartaee-migration-1.0.5-shaded.jar
@@ -254,7 +296,49 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
           }
         }
       }
-      if (version.compareTo("10.1.4-1" + suffix) > 0) {
+      if (version.compareTo("10.1.5-1" + suffix) >= 0) {
+        UpgradeSymlink[] upgradeSymlinks = {
+            // ecj-4.25.jar -> ecj-4.26.jar
+            new UpgradeSymlink(
+                "lib/ecj-4.25.jar",
+                "../" + optSlash + "apache-tomcat-10.1/lib/ecj-4.25.jar",
+                "lib/ecj-4.26.jar",
+                "../" + optSlash + "apache-tomcat-10.1/lib/ecj-4.26.jar"
+            ),
+            // mysql-connector-j-8.0.31.jar -> mysql-connector-j-8.0.32.jar
+            new UpgradeSymlink(
+                "lib/mysql-connector-j-8.0.31.jar",
+                "/dev/null",
+                "lib/mysql-connector-j-8.0.32.jar",
+                "/dev/null"
+            ),
+            new UpgradeSymlink(
+                "lib/mysql-connector-j-8.0.31.jar",
+                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.0.31.jar",
+                "lib/mysql-connector-j-8.0.32.jar",
+                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.0.32.jar"
+            ),
+            // postgresql-42.5.1.jar -> postgresql-42.5.4.jar
+            new UpgradeSymlink(
+                "lib/postgresql-42.5.1.jar",
+                "/dev/null",
+                "lib/postgresql-42.5.4.jar",
+                "/dev/null"
+            ),
+            new UpgradeSymlink(
+                "lib/postgresql-42.5.1.jar",
+                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.5.1.jar",
+                "lib/postgresql-42.5.4.jar",
+                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.5.4.jar"
+            ),
+        };
+        for (UpgradeSymlink symlink : upgradeSymlinks) {
+          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
+            needsRestart = true;
+          }
+        }
+      }
+      if (version.compareTo("10.1.5-1" + suffix) > 0) {
         throw new IllegalStateException("Version of Tomcat newer than expected: " + version);
       }
     }
