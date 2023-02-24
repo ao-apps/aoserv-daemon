@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2018, 2019, 2020, 2021, 2022, 2023  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -37,6 +37,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Some common code for all installations of Tomcat 8.5 and above.
@@ -243,13 +244,15 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
    */
   static class Version extends Tuple2<PackageManager.Version, PackageManager.Version> implements Comparable<Version> {
 
+    private static final char SEPARATOR = '-';
+
     Version(PackageManager.Version version, PackageManager.Version release) {
       super(version, release);
     }
 
     @Override
     public String toString() {
-      return getElement1() + "_" + getElement2();
+      return Objects.toString(getElement1()) + SEPARATOR + Objects.toString(getElement2());
     }
 
     @Override
@@ -262,10 +265,10 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
     }
 
     /**
-     * Compares to the given version and release, separated by last "-".
+     * Compares to the given version and release, separated by last {@literal #SEPARATOR}.
      */
     public int compareTo(String versionAndRelase) {
-      int last = versionAndRelase.lastIndexOf('-');
+      int last = versionAndRelase.lastIndexOf(SEPARATOR);
       if (last == -1) {
         throw new IllegalArgumentException("No hyphen in combined version and release: " + versionAndRelase);
       }
