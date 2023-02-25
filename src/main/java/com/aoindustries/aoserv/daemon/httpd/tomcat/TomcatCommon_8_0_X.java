@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2016, 2017, 2018, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2016, 2017, 2018, 2020, 2021, 2022, 2023  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -105,7 +105,15 @@ final class TomcatCommon_8_0_X extends TomcatCommon {
         osConfig == OperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64
             || osConfig == OperatingSystemConfiguration.CENTOS_7_X86_64
     ) {
-      String rpmVersion = PackageManager.getInstalledPackage(PackageManager.PackageName.APACHE_TOMCAT_8_0).getVersion().toString();
+      PackageManager.Rpm rpm = PackageManager.getInstalledPackage(PackageManager.PackageName.APACHE_TOMCAT_8_0);
+      if (rpm == null) {
+        rpm = PackageManager.getInstalledPackage(PackageManager.PackageName.OLD_APACHE_TOMCAT_8_0);
+      }
+      if (rpm == null) {
+        throw new AssertionError("Package not installed: " + PackageManager.PackageName.APACHE_TOMCAT_8_0
+            + " or " + PackageManager.PackageName.OLD_APACHE_TOMCAT_8_0);
+      }
+      String rpmVersion = rpm.getVersion().toString();
       if ("8.0.30".equals(rpmVersion)) {
         // Nothing to do
       } else if ("8.0.32".equals(rpmVersion)) {

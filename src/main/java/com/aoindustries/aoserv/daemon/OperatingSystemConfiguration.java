@@ -125,6 +125,11 @@ public enum OperatingSystemConfiguration {
     public String getPackageReleaseSuffix() {
       return ".aorepo";
     }
+
+    @Override
+    public String getOldPackageReleaseSuffix() {
+      return ".ao";
+    }
   },
   CENTOS_5DOM0_I686 {
     @Override
@@ -184,6 +189,11 @@ public enum OperatingSystemConfiguration {
     public String getPackageReleaseSuffix() {
       return CENTOS_5_I686_AND_X86_64.getPackageReleaseSuffix();
     }
+
+    @Override
+    public String getOldPackageReleaseSuffix() {
+      return CENTOS_5_I686_AND_X86_64.getOldPackageReleaseSuffix();
+    }
   },
   CENTOS_5DOM0_X86_64 {
     @Override
@@ -242,6 +252,11 @@ public enum OperatingSystemConfiguration {
     @Override
     public String getPackageReleaseSuffix() {
       return CENTOS_5_I686_AND_X86_64.getPackageReleaseSuffix();
+    }
+
+    @Override
+    public String getOldPackageReleaseSuffix() {
+      return CENTOS_5_I686_AND_X86_64.getOldPackageReleaseSuffix();
     }
   },
   CENTOS_7_X86_64 {
@@ -331,6 +346,11 @@ public enum OperatingSystemConfiguration {
     public String getPackageReleaseSuffix() {
       return ".el7.aorepo";
     }
+
+    @Override
+    public String getOldPackageReleaseSuffix() {
+      return ".el7.ao";
+    }
   },
   CENTOS_7DOM0_X86_64 {
     @Override
@@ -390,6 +410,11 @@ public enum OperatingSystemConfiguration {
     @Override
     public String getPackageReleaseSuffix() {
       return CENTOS_7_X86_64.getPackageReleaseSuffix();
+    }
+
+    @Override
+    public String getOldPackageReleaseSuffix() {
+      return CENTOS_7_X86_64.getOldPackageReleaseSuffix();
     }
   };
 
@@ -483,7 +508,12 @@ public enum OperatingSystemConfiguration {
   public abstract PackageManager.PackageName getJdk17PackageName();
 
   /**
-   * Gets the expected suffix on RPM release numbers.
+   * Gets the expected suffix on RPM release numbers after the move to AORepo.org.
    */
   public abstract String getPackageReleaseSuffix();
+
+  /**
+   * Gets the expected suffix on RPM release numbers before the move to AORepo.org.
+   */
+  public abstract String getOldPackageReleaseSuffix();
 }

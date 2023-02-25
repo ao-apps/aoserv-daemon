@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -54,9 +54,14 @@ public final class PackageManager {
   private static final Logger logger = Logger.getLogger(PackageManager.class.getName());
 
   /**
-   * The name prefix used to match any Apache Tomcat package installations.
+   * The name prefix used to match any Apache Tomcat package installations after the move to AORepo.org.
    */
   public static final String APACHE_TOMCAT_PREFIX = "apache-tomcat-";
+
+  /**
+   * The name prefix used to match any Apache Tomcat package installations before the move to AORepo.org.
+   */
+  public static final String OLD_APACHE_TOMCAT_PREFIX = "apache-tomcat_";
 
   /**
    * The set of all managed package names.  This is specified as an enum
@@ -68,12 +73,19 @@ public final class PackageManager {
     APACHE_TOMCAT_4_1(APACHE_TOMCAT_PREFIX + "4.1"),
     APACHE_TOMCAT_5_5(APACHE_TOMCAT_PREFIX + "5.5"),
     APACHE_TOMCAT_6_0(APACHE_TOMCAT_PREFIX + "6.0"),
+    OLD_APACHE_TOMCAT_6_0(OLD_APACHE_TOMCAT_PREFIX + "6_0"),
     APACHE_TOMCAT_7_0(APACHE_TOMCAT_PREFIX + "7.0"),
+    OLD_APACHE_TOMCAT_7_0(OLD_APACHE_TOMCAT_PREFIX + "7_0"),
     APACHE_TOMCAT_8_0(APACHE_TOMCAT_PREFIX + "8.0"),
+    OLD_APACHE_TOMCAT_8_0(OLD_APACHE_TOMCAT_PREFIX + "8_0"),
     APACHE_TOMCAT_8_5(APACHE_TOMCAT_PREFIX + "8.5"),
+    OLD_APACHE_TOMCAT_8_5(OLD_APACHE_TOMCAT_PREFIX + "8_5"),
     APACHE_TOMCAT_9_0(APACHE_TOMCAT_PREFIX + "9.0"),
+    OLD_APACHE_TOMCAT_9_0(OLD_APACHE_TOMCAT_PREFIX + "9_0"),
     APACHE_TOMCAT_10_0(APACHE_TOMCAT_PREFIX + "10.0"),
+    OLD_APACHE_TOMCAT_10_0(OLD_APACHE_TOMCAT_PREFIX + "10_0"),
     APACHE_TOMCAT_10_1(APACHE_TOMCAT_PREFIX + "10.1"),
+    OLD_APACHE_TOMCAT_10_1(OLD_APACHE_TOMCAT_PREFIX + "10_1"),
     AOSERV_FTP_SHELLS("aoserv-ftp-shells"),
     AOSERV_HTTPD_CONFIG("aoserv-httpd-config"),
     AOSERV_HTTPD_SITE_DISABLED("aoserv-httpd-site-disabled"),

@@ -171,8 +171,16 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
     OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
     if (osConfig == OperatingSystemConfiguration.CENTOS_7_X86_64) {
       PackageManager.Rpm rpm = PackageManager.getInstalledPackage(PackageManager.PackageName.APACHE_TOMCAT_10_1);
+      if (rpm == null) {
+        rpm = PackageManager.getInstalledPackage(PackageManager.PackageName.OLD_APACHE_TOMCAT_10_1);
+      }
+      if (rpm == null) {
+        throw new AssertionError("Package not installed: " + PackageManager.PackageName.APACHE_TOMCAT_10_1
+            + " or " + PackageManager.PackageName.OLD_APACHE_TOMCAT_10_1);
+      }
       Version version = new Version(rpm.getVersion(), rpm.getRelease());
       String suffix = osConfig.getPackageReleaseSuffix();
+      String oldSuffix = osConfig.getOldPackageReleaseSuffix();
       // Downgrade support
       if (version.compareTo("10.1.5-1" + suffix) < 0) {
         UpgradeSymlink[] downgradeSymlinks = {
@@ -232,7 +240,7 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
           }
         }
       }
-      if (version.compareTo("10.1.2-2" + suffix) < 0) {
+      if (version.compareTo("10.1.2-2" + oldSuffix) < 0) {
         UpgradeSymlink[] downgradeSymlinks = {
             // postgresql-42.5.1.jar -> postgresql-42.5.0.jar
             new UpgradeSymlink(
@@ -254,11 +262,11 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
           }
         }
       }
-      if (version.compareTo("10.1.2-1" + suffix) < 0) {
+      if (version.compareTo("10.1.2-1" + oldSuffix) < 0) {
         throw new IllegalStateException("Version of Tomcat older than expected: " + version);
       }
       // Upgrade support
-      if (version.compareTo("10.1.2-2" + suffix) >= 0) {
+      if (version.compareTo("10.1.2-2" + oldSuffix) >= 0) {
         UpgradeSymlink[] upgradeSymlinks = {
             // postgresql-42.5.0.jar -> postgresql-42.5.1.jar
             new UpgradeSymlink(
