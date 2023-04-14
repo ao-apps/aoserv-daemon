@@ -21,7 +21,7 @@ Server management daemon for the [AOServ Platform](https://aoindustries.com/aose
 * [Project Home](https://aoindustries.com/aoserv/daemon/)
 * [Changelog](https://aoindustries.com/aoserv/daemon/changelog)
 * [API Docs](https://aoindustries.com/aoserv/daemon/apidocs/)
-* [Maven Central Repository](https://central.sonatype.com/search?namespace=com.aoindustries&q=a%3Aaoserv-daemon)
+* [Maven Central Repository](https://central.sonatype.com/artifact/com.aoindustries/aoserv-daemon)
 * [GitHub](https://github.com/ao-apps/aoserv-daemon)
 
 ## Modules
