@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
     shortTitle="Changelog"
     tocLevels="1"
     datePublished="2020-04-16T21:06:03-05:00"
-    dateModified="2023-02-24T21:16:14Z"
+    dateModified="2023-07-12T21:07:31Z"
   >
     <c:if test="${fn:endsWith('@{project.version}', '-SNAPSHOT') and !fn:endsWith('@{project.version}', '-POST-SNAPSHOT')}">
       <changelog:release
@@ -58,6 +58,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
             and <ao:a href="https://aorepo.org/linux/aorepo/el7/x86_64/RPMS/">CentOS 7 packages</ao:a>
             to <ao:a href="https://aorepo.org/">AORepo.org</ao:a>.
           </li>
+          <li>Added support for <ao:a href="https://www.php.net/releases/8.2/index.php">PHP 8.2</ao:a>.</li>
         </ul>
       </changelog:release>
     </c:if>
@@ -169,7 +170,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
         <li>Updated to Apache Tomcat 8.5.75 with MySQL JDBC 8.0.28 and PostgreSQL JDBC 42.3.1.</li>
         <li>Updated to Apache Tomcat 9.0.58 with MySQL JDBC 8.0.28 and PostgreSQL JDBC 42.3.1.</li>
         <li>Updated to Apache Tomcat 10.0.16 with MySQL JDBC 8.0.28 and PostgreSQL JDBC 42.3.1.</li>
-        <li>Added support for PHP 8.1.</li>
+        <li>Added support for <ao:a href="https://www.php.net/releases/8.1/index.php">PHP 8.1</ao:a>.</li>
       </ul>
     </changelog:release>
 
@@ -395,7 +396,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
       scmUrl="@{project.scm.url}"
     >
       <ul>
-        <li>Added support for <ao:a href="https://www.php.net/releases/8.0/">PHP 8.0</ao:a>.</li>
+        <li>Added support for <ao:a href="https://www.php.net/releases/8.0/index.php">PHP 8.0</ao:a>.</li>
         <li>Added missing newline in server.xml generator.</li>
         <li>
           <code>dump_mysql_database</code> script now uses <code>--login-path=mysql=<var>\${name}</var></code>
