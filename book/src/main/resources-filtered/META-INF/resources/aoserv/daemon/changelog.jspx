@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
     shortTitle="Changelog"
     tocLevels="1"
     datePublished="2020-04-16T21:06:03-05:00"
-    dateModified="2023-07-12T21:07:31Z"
+    dateModified="2023-07-13T19:04:32Z"
   >
     <c:if test="${fn:endsWith('@{project.version}', '-SNAPSHOT') and !fn:endsWith('@{project.version}', '-POST-SNAPSHOT')}">
       <changelog:release
@@ -49,9 +49,9 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
         scmUrl="@{project.scm.url}"
       >
         <ul>
-          <li>Added support for Apache Tomcat 8.5.85 with MySQL JDBC 8.0.32 and PostgreSQL JDBC 42.5.4.</li>
-          <li>Added support for Apache Tomcat 9.0.71 with MySQL JDBC 8.0.32 and PostgreSQL JDBC 42.5.4.</li>
-          <li>Added support for Apache Tomcat 10.1.5 with MySQL JDBC 8.0.32 and PostgreSQL JDBC 42.5.4.</li>
+          <li>Added support for Apache Tomcat 8.5.91 with MySQL JDBC 8.0.33 and PostgreSQL JDBC 42.6.0.</li>
+          <li>Added support for Apache Tomcat 9.0.78 with MySQL JDBC 8.0.33 and PostgreSQL JDBC 42.6.0.</li>
+          <li>Added support for Apache Tomcat 10.1.11 with MySQL JDBC 8.0.33 and PostgreSQL JDBC 42.6.0.</li>
           <li>Added support for <ao:a href="https://rockylinux.org/news/rocky-linux-9-1-ga-release/">Rocky Linux 9</ao:a>.</li>
           <li>
             Moved <ao:a href="https://aorepo.org/linux/aorepo/el5/i686,x86_64/RPMS/">CentOS 5 packages</ao:a>

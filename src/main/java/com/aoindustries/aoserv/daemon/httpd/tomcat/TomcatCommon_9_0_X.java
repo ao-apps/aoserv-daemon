@@ -178,10 +178,44 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
         throw new AssertionError("Package not installed: " + PackageManager.PackageName.APACHE_TOMCAT_9_0
             + " or " + PackageManager.PackageName.OLD_APACHE_TOMCAT_9_0);
       }
-      Version version = new Version(rpm.getVersion(), rpm.getRelease());
-      String suffix = osConfig.getPackageReleaseSuffix();
-      String oldSuffix = osConfig.getOldPackageReleaseSuffix();
+      final Version version = new Version(rpm.getVersion(), rpm.getRelease());
+      final String suffix = osConfig.getPackageReleaseSuffix();
       // Downgrade support
+      if (version.compareTo("9.0.78-1" + suffix) < 0) {
+        UpgradeSymlink[] downgradeSymlinks = {
+            // mysql-connector-j-8.0.33.jar -> mysql-connector-j-8.0.32.jar
+            new UpgradeSymlink(
+                "lib/mysql-connector-j-8.0.33.jar",
+                "/dev/null",
+                "lib/mysql-connector-j-8.0.32.jar",
+                "/dev/null"
+            ),
+            new UpgradeSymlink(
+                "lib/mysql-connector-j-8.0.33.jar",
+                "../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-j-8.0.33.jar",
+                "lib/mysql-connector-j-8.0.32.jar",
+                "../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-j-8.0.32.jar"
+            ),
+            // postgresql-42.6.0.jar -> postgresql-42.5.4.jar
+            new UpgradeSymlink(
+                "lib/postgresql-42.6.0.jar",
+                "/dev/null",
+                "lib/postgresql-42.5.4.jar",
+                "/dev/null"
+            ),
+            new UpgradeSymlink(
+                "lib/postgresql-42.6.0.jar",
+                "../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.6.0.jar",
+                "lib/postgresql-42.5.4.jar",
+                "../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.5.4.jar"
+            ),
+        };
+        for (UpgradeSymlink symlink : downgradeSymlinks) {
+          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
+            needsRestart = true;
+          }
+        }
+      }
       if (version.compareTo("9.0.71-1" + suffix) < 0) {
         UpgradeSymlink[] downgradeSymlinks = {
             // mysql-connector-j-8.0.32.jar -> mysql-connector-j-8.0.31.jar
@@ -220,6 +254,7 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
       if (version.compareTo("9.0.70-2" + suffix) < 0) {
         // 9.0.70-2 has same files as 9.0.70-1
       }
+      final String oldSuffix = osConfig.getOldPackageReleaseSuffix();
       if (version.compareTo("9.0.70-1" + oldSuffix) < 0) {
         // 9.0.70-1 has same files as 9.0.69-2
       }
@@ -1190,7 +1225,42 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
           }
         }
       }
-      if (version.compareTo("9.0.71-1" + suffix) > 0) {
+      if (version.compareTo("9.0.78-1" + suffix) >= 0) {
+        UpgradeSymlink[] upgradeSymlinks = {
+            // mysql-connector-j-8.0.32.jar -> mysql-connector-j-8.0.33.jar
+            new UpgradeSymlink(
+                "lib/mysql-connector-j-8.0.32.jar",
+                "/dev/null",
+                "lib/mysql-connector-j-8.0.33.jar",
+                "/dev/null"
+            ),
+            new UpgradeSymlink(
+                "lib/mysql-connector-j-8.0.32.jar",
+                "../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-j-8.0.32.jar",
+                "lib/mysql-connector-j-8.0.33.jar",
+                "../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-j-8.0.33.jar"
+            ),
+            // postgresql-42.5.4.jar -> postgresql-42.6.0.jar
+            new UpgradeSymlink(
+                "lib/postgresql-42.5.4.jar",
+                "/dev/null",
+                "lib/postgresql-42.6.0.jar",
+                "/dev/null"
+            ),
+            new UpgradeSymlink(
+                "lib/postgresql-42.5.4.jar",
+                "../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.5.4.jar",
+                "lib/postgresql-42.6.0.jar",
+                "../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.6.0.jar"
+            ),
+        };
+        for (UpgradeSymlink symlink : upgradeSymlinks) {
+          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
+            needsRestart = true;
+          }
+        }
+      }
+      if (version.compareTo("9.0.78-1" + suffix) > 0) {
         throw new IllegalStateException("Version of Tomcat newer than expected: " + version);
       }
     }

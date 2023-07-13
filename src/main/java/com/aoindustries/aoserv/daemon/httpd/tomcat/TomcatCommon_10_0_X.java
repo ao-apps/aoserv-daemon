@@ -178,13 +178,13 @@ final class TomcatCommon_10_0_X extends VersionedTomcatCommon {
         throw new AssertionError("Package not installed: " + PackageManager.PackageName.APACHE_TOMCAT_10_0
             + " or " + PackageManager.PackageName.OLD_APACHE_TOMCAT_10_0);
       }
-      Version version = new Version(rpm.getVersion(), rpm.getRelease());
-      String suffix = osConfig.getPackageReleaseSuffix();
-      String oldSuffix = osConfig.getOldPackageReleaseSuffix();
+      final Version version = new Version(rpm.getVersion(), rpm.getRelease());
+      final String suffix = osConfig.getPackageReleaseSuffix();
       // Downgrade support
       if (version.compareTo("10.0.27-3" + suffix) < 0) {
         // 10.0.27-3 has same files as 10.0.27-2
       }
+      final String oldSuffix = osConfig.getOldPackageReleaseSuffix();
       if (version.compareTo("10.0.27-2" + oldSuffix) < 0) {
         UpgradeSymlink[] downgradeSymlinks = {
             // postgresql-42.5.1.jar -> postgresql-42.5.0.jar

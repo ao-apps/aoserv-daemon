@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2018, 2019, 2020, 2021, 2022, 2023  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -173,6 +173,7 @@ abstract class VersionedTomcatStdSiteManager<T extends VersionedTomcatCommon> ex
           + "      maxPostSize=\"").textInXmlAttribute(tomcatStdSite.getMaxPostSize()).print("\"\n"
           + "      protocol=\"AJP/1.3\"\n"
           + "      redirectPort=\"8443\"\n"
+          + "      maxParameterCount=\"1000\"\n" // Since Tomcat 8.5.88, 9.0.74, 10.1.8.  Default is 10000
           + "      secretRequired=\"false\"\n"
           + "      URIEncoding=\"UTF-8\"\n");
       // Do not include when is default "true"
