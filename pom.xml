@@ -29,11 +29,11 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
     <relativePath>../../oss/parent/pom.xml</relativePath>
   </parent>
 
-  <groupId>com.aoindustries</groupId><artifactId>aoserv-daemon</artifactId><version>1.91.8-SNAPSHOT</version>
+  <groupId>com.aoindustries</groupId><artifactId>aoserv-daemon</artifactId><version>1.91.8</version>
   <packaging>bundle</packaging>
 
   <properties>
-    <project.build.outputTimestamp>2023-02-08T21:06:04Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2023-08-16T00:18:37Z</project.build.outputTimestamp>
     <module.name>com.aoindustries.aoserv.daemon</module.name>
     <!-- TODO: Java 11 once CentOS 5 is gone -->
     <!-- Java 1.8 -->
@@ -95,7 +95,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
     <connection>scm:git:git://github.com/ao-apps/aoserv-daemon.git</connection>
     <developerConnection>scm:git:git@github.com:ao-apps/aoserv-daemon.git</developerConnection>
     <url>https://github.com/ao-apps/aoserv-daemon</url>
-    <tag>HEAD</tag>
+    <tag>aoserv-daemon-1.91.8</tag>
   </scm>
 
   <issueManagement>
