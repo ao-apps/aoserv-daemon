@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
     shortTitle="Changelog"
     tocLevels="1"
     datePublished="2020-04-16T21:06:03-05:00"
-    dateModified="2023-08-01T14:54:51Z"
+    dateModified="2023-08-16T00:21:30Z"
   >
     <c:if test="${fn:endsWith('@{project.version}', '-SNAPSHOT') and !fn:endsWith('@{project.version}', '-POST-SNAPSHOT')}">
       <changelog:release
@@ -47,21 +47,30 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
         artifactId="@{documented.artifactId}"
         repository="@{nexusUrl}content/repositories/snapshots/"
         scmUrl="@{project.scm.url}"
-      >
-        <ul>
-          <li>Added support for Apache Tomcat 8.5.91 with MySQL JDBC 8.1.0 and PostgreSQL JDBC 42.6.0.</li>
-          <li>Added support for Apache Tomcat 9.0.78 with MySQL JDBC 8.1.0 and PostgreSQL JDBC 42.6.0.</li>
-          <li>Added support for Apache Tomcat 10.1.11 with MySQL JDBC 8.1.0 and PostgreSQL JDBC 42.6.0.</li>
-          <li>Added support for <ao:a href="https://rockylinux.org/news/rocky-linux-9-1-ga-release/">Rocky Linux 9</ao:a>.</li>
-          <li>
-            Moved <ao:a href="https://aorepo.org/linux/aorepo/el5/i686,x86_64/RPMS/">CentOS 5 packages</ao:a>
-            and <ao:a href="https://aorepo.org/linux/aorepo/el7/x86_64/RPMS/">CentOS 7 packages</ao:a>
-            to <ao:a href="https://aorepo.org/">AORepo.org</ao:a>.
-          </li>
-          <li>Added support for <ao:a href="https://www.php.net/releases/8.2/index.php">PHP 8.2</ao:a>.</li>
-        </ul>
-      </changelog:release>
+      />
     </c:if>
+
+    <changelog:release
+      projectName="@{documented.name}"
+      version="1.91.8"
+      datePublished="2023-08-16T00:21:30Z"
+      groupId="@{project.groupId}"
+      artifactId="@{documented.artifactId}"
+      scmUrl="@{project.scm.url}"
+    >
+      <ul>
+        <li>Added support for Apache Tomcat 8.5.91 with MySQL JDBC 8.1.0 and PostgreSQL JDBC 42.6.0.</li>
+        <li>Added support for Apache Tomcat 9.0.78 with MySQL JDBC 8.1.0 and PostgreSQL JDBC 42.6.0.</li>
+        <li>Added support for Apache Tomcat 10.1.11 with MySQL JDBC 8.1.0 and PostgreSQL JDBC 42.6.0.</li>
+        <li>Added support for <ao:a href="https://rockylinux.org/news/rocky-linux-9-1-ga-release/">Rocky Linux 9</ao:a>.</li>
+        <li>
+          Moved <ao:a href="https://aorepo.org/linux/aorepo/el5/i686,x86_64/RPMS/">CentOS 5 packages</ao:a>
+          and <ao:a href="https://aorepo.org/linux/aorepo/el7/x86_64/RPMS/">CentOS 7 packages</ao:a>
+          to <ao:a href="https://aorepo.org/">AORepo.org</ao:a>.
+        </li>
+        <li>Added support for <ao:a href="https://www.php.net/releases/8.2/index.php">PHP 8.2</ao:a>.</li>
+      </ul>
+    </changelog:release>
 
     <changelog:release
       projectName="@{documented.name}"
