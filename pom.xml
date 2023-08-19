@@ -537,7 +537,8 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
         <groupId>org.checkerframework</groupId><artifactId>checker-qual</artifactId><version>3.37.0</version>
       </dependency>
       <dependency>
-        <groupId>com.google.protobuf</groupId><artifactId>protobuf-java</artifactId><version>3.24.0</version>
+        <!-- When updating versions, review pgp-keys-map.list -->
+        <groupId>com.google.protobuf</groupId><artifactId>protobuf-java</artifactId><version>3.24.1</version>
       </dependency>
       <!-- Test Direct -->
       <dependency>
