@@ -181,6 +181,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
       final Version version = new Version(rpm.getVersion(), rpm.getRelease());
       final String suffix = osConfig.getPackageReleaseSuffix();
       // Downgrade support
+      if (version.compareTo("10.1.13-1" + suffix) < 0) {
+        // 10.1.13-1 has same files as 10.1.12-1
+      }
       if (version.compareTo("10.1.12-1" + suffix) < 0) {
         // 10.1.12-1 has same files as 10.1.11-2
       }
@@ -494,7 +497,10 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
       if (version.compareTo("10.1.12-1" + suffix) >= 0) {
         // 10.1.12-1 has same files as 10.1.11-2
       }
-      if (version.compareTo("10.1.12-1" + suffix) > 0) {
+      if (version.compareTo("10.1.13-1" + suffix) >= 0) {
+        // 10.1.13-1 has same files as 10.1.12-1
+      }
+      if (version.compareTo("10.1.13-1" + suffix) > 0) {
         throw new IllegalStateException("Version of Tomcat newer than expected: " + version);
       }
     }
