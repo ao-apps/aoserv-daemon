@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2017, 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2017, 2018, 2019, 2020, 2021, 2022, 2023  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -466,28 +466,28 @@ public final class PasswdFile {
           assert existingEntry.username.equals(username);
           if (logger.isLoggable(Level.INFO)) {
             if (existingEntry.uid != expectedEntry.uid) {
-              logger.info("Updating uid in " + passwdFile + ": " + username + " -> " + expectedEntry.uid);
+              logger.info("Updating uid in " + passwdFile + ": " + username + " → " + expectedEntry.uid);
             }
             if (existingEntry.gid != expectedEntry.gid) {
-              logger.info("Updating gid in " + passwdFile + ": " + username + " -> " + expectedEntry.gid);
+              logger.info("Updating gid in " + passwdFile + ": " + username + " → " + expectedEntry.gid);
             }
             if (!Objects.equals(existingEntry.fullName, expectedEntry.fullName)) {
-              logger.info("Updating full name in " + passwdFile + ": " + username + " -> " + expectedEntry.fullName);
+              logger.info("Updating full name in " + passwdFile + ": " + username + " → " + expectedEntry.fullName);
             }
             if (!Objects.equals(existingEntry.officeLocation, expectedEntry.officeLocation)) {
-              logger.info("Updating office location in " + passwdFile + ": " + username + " -> " + expectedEntry.officeLocation);
+              logger.info("Updating office location in " + passwdFile + ": " + username + " → " + expectedEntry.officeLocation);
             }
             if (!Objects.equals(existingEntry.officePhone, expectedEntry.officePhone)) {
-              logger.info("Updating office phone in " + passwdFile + ": " + username + " -> " + expectedEntry.officePhone);
+              logger.info("Updating office phone in " + passwdFile + ": " + username + " → " + expectedEntry.officePhone);
             }
             if (!Objects.equals(existingEntry.homePhone, expectedEntry.homePhone)) {
-              logger.info("Updating home phone in " + passwdFile + ": " + username + " -> " + expectedEntry.homePhone);
+              logger.info("Updating home phone in " + passwdFile + ": " + username + " → " + expectedEntry.homePhone);
             }
             if (!existingEntry.home.equals(expectedEntry.home)) {
-              logger.info("Updating home directory in " + passwdFile + ": " + username + " -> " + expectedEntry.home);
+              logger.info("Updating home directory in " + passwdFile + ": " + username + " → " + expectedEntry.home);
             }
             if (!existingEntry.shell.equals(expectedEntry.shell)) {
-              logger.info("Updating shell in " + passwdFile + ": " + username + " -> " + expectedEntry.shell);
+              logger.info("Updating shell in " + passwdFile + ": " + username + " → " + expectedEntry.shell);
             }
           }
           mapEntry.setValue(expectedEntry);

@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2002-2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2002-2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -115,7 +115,7 @@ public final class MySQLDBUserManager extends BuilderThread {
               }
             }
             if (!requiredDbUsers.isEmpty()) {
-              logger.severe("Required db users not found; refusing to rebuild config: " + mysqlServer + " -> " + requiredDbUsers);
+              logger.severe("Required db users not found; refusing to rebuild config: " + mysqlServer + " → " + requiredDbUsers);
             } else {
               boolean modified = false;
 

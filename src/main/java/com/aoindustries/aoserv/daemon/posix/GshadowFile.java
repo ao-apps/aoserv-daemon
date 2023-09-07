@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2017, 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2017, 2018, 2019, 2020, 2021, 2022, 2023  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -367,7 +367,7 @@ public final class GshadowFile {
         if (!entry.getGroupMembers().equals(expectedMembers)) {
           assert entry.groupName.equals(groupName);
           if (logger.isLoggable(Level.INFO)) {
-            logger.info("Updating group members in " + gshadowFile + ": " + groupName + " -> " + expectedMembers);
+            logger.info("Updating group members in " + gshadowFile + ": " + groupName + " → " + expectedMembers);
           }
           mapEntry.setValue(
               new Entry(

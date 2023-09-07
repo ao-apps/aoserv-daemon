@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2008, 2009, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2008, 2009, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -403,7 +403,7 @@ public final class DaemonFileUtils {
           // Create temp backup
           backupTemp = new PosixFile(tempFileContext.createTempFile(backupFile.getFile().getName()).getFile());
           if (logger.isLoggable(Level.FINE)) {
-            logger.fine("mktemp \"" + backupFile + "\" -> \"" + backupTemp + '"');
+            logger.fine("mktemp \"" + backupFile + "\" → \"" + backupTemp + '"');
           }
           long numBytes = FileUtils.copy(file.getFile(), backupTemp.getFile());
           if (logger.isLoggable(Level.FINE)) {
@@ -450,7 +450,7 @@ public final class DaemonFileUtils {
         // Write the new contents into a temp file
         PosixFile fileTemp = new PosixFile(tempFileContext.createTempFile(file.getFile().getName()).getFile());
         if (logger.isLoggable(Level.FINE)) {
-          logger.fine("mktemp \"" + file + "\" -> \"" + fileTemp + '"');
+          logger.fine("mktemp \"" + file + "\" → \"" + fileTemp + '"');
         }
         // TODO: Find some way to avoid race condition and redirects while not doing funny file permission changes
         try (FileOutputStream out = new FileOutputStream(fileTemp.getFile())) {
