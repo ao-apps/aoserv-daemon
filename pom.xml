@@ -172,16 +172,6 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId><artifactId>maven-dependency-plugin</artifactId>
-        <configuration>
-          <usedDependencies>
-            <!-- Runtime Direct -->
-            <dependency>com.mysql:mysql-connector-j</dependency>
-            <dependency>org.postgresql:postgresql</dependency>
-          </usedDependencies>
-        </configuration>
-      </plugin>
-      <plugin>
         <groupId>com.github.spotbugs</groupId><artifactId>spotbugs-maven-plugin</artifactId>
         <configuration>
           <!-- TODO: Clean-up SpotBugs -->
