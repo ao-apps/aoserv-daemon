@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -3007,7 +3007,7 @@ public final class HttpdServerManager {
     String primaryHostname = primaryVirtualHostName.getHostname().toString();
 
     // TODO: Robots NOINDEX, NOFOLLOW on test URL, when it is not the primary?
-    // TODO: Canonical URL header for non-primary, non-test: https://support.google.com/webmasters/answer/139066
+    // TODO: Canonical URL header for non-primary, non-test: https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls
     bout.reset();
     try (ChainWriter out = new ChainWriter(bout)) {
       switch (osConfig) {
