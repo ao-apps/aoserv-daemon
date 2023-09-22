@@ -57,8 +57,6 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
     <!-- Dependencies -->
     <commons-lang3.version>3.13.0</commons-lang3.version>
     <gson.version>2.10.1</gson.version>
-    <!-- TODO: Remove once moved to platform.aoapps.com -->
-    <google.analytics.trackingId>UA-86871646-1</google.analytics.trackingId>
     <!-- com.aoindustries is on original Sonatype Nexus Repository Manager -->
     <nexusUrl>https://oss.sonatype.org/</nexusUrl>
   </properties>
