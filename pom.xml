@@ -54,9 +54,6 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
     <description.html><![CDATA[Server management daemon for the <a target="${javadoc.target}" href="https://aoindustries.com/aoserv/">AOServ Platform</a>.]]></description.html>
     <!-- SonarQube -->
     <sonar.projectKey>com.aoapps.platform:aoapps-daemon<!-- TODO: ${project.groupId}:${project.artifactId} --></sonar.projectKey>
-    <!-- Dependencies -->
-    <commons-lang3.version>3.13.0</commons-lang3.version>
-    <gson.version>2.10.1</gson.version>
     <!-- com.aoindustries is on original Sonatype Nexus Repository Manager -->
     <nexusUrl>https://oss.sonatype.org/</nexusUrl>
   </properties>
@@ -408,11 +405,11 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
                   <location>${project.build.directory}/offlineLinks/com.aoindustries/aoserv-jilter-config</location>
                 </offlineLink>
                 <offlineLink>
-                  <url>https://javadoc.io/doc/org.apache.commons/commons-lang3/${commons-lang3.version}/</url>
+                  <url>https://javadoc.io/doc/org.apache.commons/commons-lang3/${org.apache.commons:commons-lang3:jar.version}/</url>
                   <location>${project.build.directory}/offlineLinks/org.apache.commons/commons-lang3</location>
                 </offlineLink>
                 <offlineLink>
-                  <url>https://javadoc.io/doc/com.google.code.gson/gson/${gson.version}/</url>
+                  <url>https://javadoc.io/doc/com.google.code.gson/gson/${com.google.code.gson:gson:jar.version}/</url>
                   <location>${project.build.directory}/offlineLinks/com.google.code.gson/gson</location>
                 </offlineLink>
                 <!-- ao-javadoc-offline: <groupId>com.sun.mail</groupId><artifactId>javax.mail</artifactId><classifier>javadoc</classifier> -->
@@ -497,10 +494,10 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
         <groupId>com.aoindustries</groupId><artifactId>aoserv-jilter-config</artifactId><version>1.90.0${POST-SNAPSHOT}</version>
       </dependency>
       <dependency>
-        <groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId><version>${commons-lang3.version}</version>
+        <groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId><version>3.13.0</version>
       </dependency>
       <dependency>
-        <groupId>com.google.code.gson</groupId><artifactId>gson</artifactId><version>${gson.version}</version>
+        <groupId>com.google.code.gson</groupId><artifactId>gson</artifactId><version>2.10.1</version>
       </dependency>
       <dependency>
         <groupId>com.sun.mail</groupId><artifactId>javax.mail</artifactId><version>1.6.2</version>
