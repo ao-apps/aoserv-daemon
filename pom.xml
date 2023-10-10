@@ -533,7 +533,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
       </dependency>
       <!-- Runtime Transitive -->
       <dependency>
-        <groupId>org.checkerframework</groupId><artifactId>checker-qual</artifactId><version>3.38.0</version>
+        <groupId>org.checkerframework</groupId><artifactId>checker-qual</artifactId><version>3.39.0</version>
       </dependency>
       <dependency>
         <!-- When updating versions, review pgp-keys-map.list -->
