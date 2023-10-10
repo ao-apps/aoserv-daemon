@@ -145,10 +145,10 @@ public abstract class VersionedSharedTomcatManager<T extends VersionedTomcatComm
         + "    <Connector\n"
         + "      port=\"").textInXmlAttribute(hw.getBind().getPort().getPort()).print("\"\n"
         + "      address=\"").textInXmlAttribute(IpAddress.LOOPBACK_IP).print("\"\n"
+        + "      maxParameterCount=\"").textInXmlAttribute(sharedTomcat.getMaxParameterCount()).print("\"\n"
         + "      maxPostSize=\"").textInXmlAttribute(sharedTomcat.getMaxPostSize()).print("\"\n"
         + "      protocol=\"AJP/1.3\"\n"
         + "      redirectPort=\"8443\"\n"
-        + "      maxParameterCount=\"1000\"\n" // Since Tomcat 8.5.88, 9.0.74, 10.1.8.  Default is 10000
         + "      secretRequired=\"false\"\n"
         + "      URIEncoding=\"UTF-8\"\n");
     // Do not include when is default "true"
@@ -192,6 +192,7 @@ public abstract class VersionedSharedTomcatManager<T extends VersionedTomcatComm
               + "        appBase=\"").textInXmlAttribute(wwwDirectory).print('/').textInXmlAttribute(hs.getName()).print("/webapps\"\n"
               + "        unpackWARs=\"").textInXmlAttribute(sharedTomcat.getUnpackWars()).print("\"\n"
               + "        autoDeploy=\"").textInXmlAttribute(sharedTomcat.getAutoDeploy()).print("\"\n"
+              + "        undeployOldVersions=\"").textInXmlAttribute(sharedTomcat.getUndeployOldVersions()).print("\"\n"
               + "      >\n");
           List<String> usedHostnames = new SortedArrayList<>();
           usedHostnames.add(primaryHostname);

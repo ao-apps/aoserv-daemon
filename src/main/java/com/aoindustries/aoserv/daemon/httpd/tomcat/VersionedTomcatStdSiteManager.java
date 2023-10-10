@@ -170,10 +170,10 @@ abstract class VersionedTomcatStdSiteManager<T extends VersionedTomcatCommon> ex
           + "    <Connector\n"
           + "      port=\"").textInXmlAttribute(hw.getBind().getPort().getPort()).print("\"\n"
           + "      address=\"").textInXmlAttribute(IpAddress.LOOPBACK_IP).print("\"\n"
+          + "      maxParameterCount=\"").textInXmlAttribute(tomcatStdSite.getMaxParameterCount()).print("\"\n"
           + "      maxPostSize=\"").textInXmlAttribute(tomcatStdSite.getMaxPostSize()).print("\"\n"
           + "      protocol=\"AJP/1.3\"\n"
           + "      redirectPort=\"8443\"\n"
-          + "      maxParameterCount=\"1000\"\n" // Since Tomcat 8.5.88, 9.0.74, 10.1.8.  Default is 10000
           + "      secretRequired=\"false\"\n"
           + "      URIEncoding=\"UTF-8\"\n");
       // Do not include when is default "true"
@@ -200,6 +200,7 @@ abstract class VersionedTomcatStdSiteManager<T extends VersionedTomcatCommon> ex
           + "        appBase=\"webapps\"\n"
           + "        unpackWARs=\"").textInXmlAttribute(tomcatStdSite.getUnpackWars()).print("\"\n"
           + "        autoDeploy=\"").textInXmlAttribute(tomcatStdSite.getAutoDeploy()).print("\"\n"
+          + "        undeployOldVersions=\"").textInXmlAttribute(tomcatStdSite.getUndeployOldVersions()).print("\"\n"
           + "      >\n");
       for (Context htc : tomcatSite.getHttpdTomcatContexts()) {
         if (!htc.isServerXmlConfigured()) {

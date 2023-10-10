@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -414,6 +414,7 @@ class HttpdSharedTomcatManager_7_0_X extends HttpdSharedTomcatManager<TomcatComm
               + "    <Connector\n"
               + "      port=\"").textInXmlAttribute(hw.getBind().getPort().getPort()).print("\"\n"
               + "      address=\"").textInXmlAttribute(IpAddress.LOOPBACK_IP).print("\"\n"
+              + "      maxParameterCount=\"").textInXmlAttribute(sharedTomcat.getMaxParameterCount()).print("\"\n"
               + "      maxPostSize=\"").textInXmlAttribute(sharedTomcat.getMaxPostSize()).print("\"\n"
               + "      protocol=\"AJP/1.3\"\n"
               + "      redirectPort=\"8443\"\n"
@@ -436,6 +437,7 @@ class HttpdSharedTomcatManager_7_0_X extends HttpdSharedTomcatManager<TomcatComm
                   + "        appBase=\"").textInXmlAttribute(wwwDirectory).print('/').textInXmlAttribute(hs.getName()).print("/webapps\"\n"
                   + "        unpackWARs=\"").textInXmlAttribute(sharedTomcat.getUnpackWars()).print("\"\n"
                   + "        autoDeploy=\"").textInXmlAttribute(sharedTomcat.getAutoDeploy()).print("\"\n"
+                  + "        undeployOldVersions=\"").textInXmlAttribute(sharedTomcat.getUndeployOldVersions()).print("\"\n"
                   + "        xmlValidation=\"false\"\n"
                   + "        xmlNamespaceAware=\"false\"\n"
                   + "      >\n");

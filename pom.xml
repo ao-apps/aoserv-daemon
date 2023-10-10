@@ -29,7 +29,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
     <relativePath>../../oss/parent/pom.xml</relativePath>
   </parent>
 
-  <groupId>com.aoindustries</groupId><artifactId>aoserv-daemon</artifactId><version>1.91.10-POST-SNAPSHOT</version>
+  <groupId>com.aoindustries</groupId><artifactId>aoserv-daemon</artifactId><version>1.92.0-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <properties>
@@ -485,7 +485,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
         <groupId>com.aoindustries</groupId><artifactId>aoserv-backup</artifactId><version>1.90.0${POST-SNAPSHOT}</version>
       </dependency>
       <dependency>
-        <groupId>com.aoindustries</groupId><artifactId>aoserv-client</artifactId><version>1.91.8${POST-SNAPSHOT}</version>
+        <groupId>com.aoindustries</groupId><artifactId>aoserv-client</artifactId><version>1.92.0-SNAPSHOT<!-- ${POST-SNAPSHOT} --></version>
       </dependency>
       <dependency>
         <groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId><version>1.90.0${POST-SNAPSHOT}</version>

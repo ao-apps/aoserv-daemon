@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2007-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2007-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -45,6 +45,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * Manages PrivateTomcatSite version 6.0.X configurations.
@@ -52,6 +53,8 @@ import java.util.List;
  * @author  AO Industries, Inc.
  */
 class HttpdTomcatStdSiteManager_6_0_X extends HttpdTomcatStdSiteManager<TomcatCommon_6_0_X> {
+
+  private static final Logger logger = Logger.getLogger(HttpdTomcatStdSiteManager_6_0_X.class.getName());
 
   HttpdTomcatStdSiteManager_6_0_X(PrivateTomcatSite tomcatStdSite) throws SQLException, IOException {
     super(tomcatStdSite);
@@ -345,6 +348,7 @@ class HttpdTomcatStdSiteManager_6_0_X extends HttpdTomcatStdSiteManager<TomcatCo
           + "    <Connector\n"
           + "      port=\"").textInXmlAttribute(hw.getBind().getPort().getPort()).print("\"\n"
           + "      address=\"").textInXmlAttribute(IpAddress.LOOPBACK_IP).print("\"\n"
+          + "      maxParameterCount=\"").textInXmlAttribute(tomcatStdSite.getMaxParameterCount()).print("\"\n"
           + "      maxPostSize=\"").textInXmlAttribute(tomcatStdSite.getMaxPostSize()).print("\"\n"
           + "      protocol=\"AJP/1.3\"\n"
           + "      redirectPort=\"8443\"\n");
@@ -360,8 +364,11 @@ class HttpdTomcatStdSiteManager_6_0_X extends HttpdTomcatStdSiteManager<TomcatCo
           + "        name=\"localhost\"\n"
           + "        appBase=\"webapps\"\n"
           + "        unpackWARs=\"").textInXmlAttribute(tomcatStdSite.getUnpackWars()).print("\"\n"
-          + "        autoDeploy=\"").textInXmlAttribute(tomcatStdSite.getAutoDeploy()).print("\"\n"
-          + "        xmlValidation=\"false\"\n"
+          + "        autoDeploy=\"").textInXmlAttribute(tomcatStdSite.getAutoDeploy()).print("\"\n");
+      if (tomcatStdSite.getUndeployOldVersions()) {
+        logger.warning("Ignoring unsupported undeployOldVersions in Tomcat 6.0, Tomcat 7.0 or newer required");
+      }
+      out.print("        xmlValidation=\"false\"\n"
           + "        xmlNamespaceAware=\"false\"\n"
           + "      >\n");
       for (Context htc : tomcatSite.getHttpdTomcatContexts()) {
