@@ -585,7 +585,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
                   boolean isMysql40;
                   try (ResultSet results = stmt.executeQuery(currentSql = "SELECT VERSION()")) {
                     if (!results.next()) {
-                      throw new SQLException("No row returned");
+                      throw new SQLException("No row returned"); // TODO: NoRowException move to ao-sql
                     }
                     isMysql40 = results.getString(1).startsWith(Server.VERSION_4_0_PREFIX);
                   }
