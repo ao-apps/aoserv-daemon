@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
     shortTitle="Changelog"
     tocLevels="1"
     datePublished="2020-04-16T21:06:03-05:00"
-    dateModified="2023-10-16T19:52:35Z"
+    dateModified="2023-10-25T06:48:56Z"
   >
     <c:set var="latestRelease" value="1.91.10" />
     <c:if test="${
@@ -61,9 +61,9 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
             Enabled control over Tomcat <ao:a href="https://tomcat.apache.org/tomcat-9.0-doc/config/host.html#Common_Attributes"><code>undeployOldVersions</code></ao:a>
             setting in support of parallel deployments.
           </li>
-          <li>Added support for Apache Tomcat 8.5.94 with MySQL JDBC 8.1.0 and PostgreSQL JDBC 42.6.0.</li>
+          <li>Added support for Apache Tomcat 8.5.95 with MySQL JDBC 8.1.0 and PostgreSQL JDBC 42.6.0.</li>
           <li>Added support for Apache Tomcat 9.0.82 with MySQL JDBC 8.1.0 and PostgreSQL JDBC 42.6.0.</li>
-          <li>Added support for Apache Tomcat 10.1.14 with MySQL JDBC 8.1.0 and PostgreSQL JDBC 42.6.0.</li>
+          <li>Added support for Apache Tomcat 10.1.15 with MySQL JDBC 8.1.0 and PostgreSQL JDBC 42.6.0.</li>
         </ul>
       </changelog:release>
     </c:if>
