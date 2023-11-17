@@ -181,6 +181,28 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
       final Version version = new Version(rpm.getVersion(), rpm.getRelease());
       final String suffix = osConfig.getPackageReleaseSuffix();
       // Downgrade support
+      if (version.compareTo("10.1.16-1" + suffix) < 0) {
+        UpgradeSymlink[] downgradeSymlinks = {
+            // mysql-connector-j-8.2.0.jar -> mysql-connector-j-8.1.0.jar
+            new UpgradeSymlink(
+                "lib/mysql-connector-j-8.2.0.jar",
+                "/dev/null",
+                "lib/mysql-connector-j-8.1.0.jar",
+                "/dev/null"
+            ),
+            new UpgradeSymlink(
+                "lib/mysql-connector-j-8.2.0.jar",
+                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.2.0.jar",
+                "lib/mysql-connector-j-8.1.0.jar",
+                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.1.0.jar"
+            ),
+        };
+        for (UpgradeSymlink symlink : downgradeSymlinks) {
+          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
+            needsRestart = true;
+          }
+        }
+      }
       if (version.compareTo("10.1.15-1" + suffix) < 0) {
         // 10.1.15-1 has same files as 10.1.14-1
       }
@@ -512,7 +534,29 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
       if (version.compareTo("10.1.15-1" + suffix) >= 0) {
         // 10.1.15-1 has same files as 10.1.14-1
       }
-      if (version.compareTo("10.1.15-1" + suffix) > 0) {
+      if (version.compareTo("10.1.16-1" + suffix) >= 0) {
+        UpgradeSymlink[] upgradeSymlinks = {
+            // mysql-connector-j-8.1.0.jar -> mysql-connector-j-8.2.0.jar
+            new UpgradeSymlink(
+                "lib/mysql-connector-j-8.1.0.jar",
+                "/dev/null",
+                "lib/mysql-connector-j-8.2.0.jar",
+                "/dev/null"
+            ),
+            new UpgradeSymlink(
+                "lib/mysql-connector-j-8.1.0.jar",
+                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.1.0.jar",
+                "lib/mysql-connector-j-8.2.0.jar",
+                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.2.0.jar"
+            ),
+        };
+        for (UpgradeSymlink symlink : upgradeSymlinks) {
+          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
+            needsRestart = true;
+          }
+        }
+      }
+      if (version.compareTo("10.1.16-1" + suffix) > 0) {
         throw new IllegalStateException("Version of Tomcat newer than expected: " + version);
       }
     }
