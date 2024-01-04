@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2013, 2014, 2017, 2018, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2013, 2014, 2017, 2018, 2020, 2021, 2022, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -355,10 +355,10 @@ public final class NetworkMonitor {
           while (!Thread.currentThread().isInterrupted()) {
             try {
               final String[] cmd = new String[
-              (controllingNullRoutes ? 0 : 1)
+                  (controllingNullRoutes ? 0 : 1)
                   + 6
                   + networkRanges.size()
-              ];
+                  ];
               int index = 0;
               // No nice level when controlling null routes
               if (!controllingNullRoutes) {
