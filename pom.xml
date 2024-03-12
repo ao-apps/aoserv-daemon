@@ -503,7 +503,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
         <groupId>com.sun.mail</groupId><artifactId>javax.mail</artifactId><version>1.6.2</version>
       </dependency>
       <dependency>
-        <groupId>com.aoindustries</groupId><artifactId>noc-monitor-portmon</artifactId><version>1.4.2${POST-SNAPSHOT}</version>
+        <groupId>com.aoindustries</groupId><artifactId>noc-monitor-portmon</artifactId><version>1.4.3-SNAPSHOT<!-- ${POST-SNAPSHOT} --></version>
       </dependency>
       <!-- Transitive -->
       <dependency>
@@ -529,7 +529,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
         <groupId>com.mysql</groupId><artifactId>mysql-connector-j</artifactId><version>8.3.0</version>
       </dependency>
       <dependency>
-        <groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><version>42.7.1</version>
+        <groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><version>42.7.2</version>
       </dependency>
       <!-- Runtime Transitive -->
       <dependency>
