@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2005-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2005-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -102,7 +102,7 @@ public final class AWStatsManager extends BuilderThread {
         Set<PosixFile> restorecon = new LinkedHashSet<>();
         try {
           // Get some variables that will be used throughout the method
-          List<File> deleteFileList = new ArrayList<>();
+          final List<File> deleteFileList = new ArrayList<>();
           // Get the list of all files and directories under /etc/awstats
           Set<String> existingConfigFiles = new HashSet<>();
             {
