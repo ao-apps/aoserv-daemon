@@ -3317,6 +3317,8 @@ public final class HttpdServerManager {
     return bout.toByteArray();
   }
 
+  private static final Object processControlLock = new Object();
+
   /**
    * Reloads the configs for all provided <code>HttpdServer</code>s.
    */
@@ -3325,8 +3327,6 @@ public final class HttpdServerManager {
       reloadConfigs(hs);
     }
   }
-
-  private static final Object processControlLock = new Object();
 
   private static void reloadConfigs(HttpdServer hs) throws IOException, SQLException {
     OperatingSystemVersion osv = hs.getLinuxServer().getHost().getOperatingSystemVersion();
