@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2018, 2019, 2020, 2021, 2022, 2023  AO Industries, Inc.
+ * Copyright (C) 2018, 2019, 2020, 2021, 2022, 2023, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -282,9 +282,37 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
   }
 
   /**
+   * Gets the version of the installed RPM.
+   *
+   * @param oldPackageName (Optional) the old name for the package before changing to aorepo.org.
+   */
+  protected Version getRpmVersion(PackageManager.PackageName packageName, PackageManager.PackageName oldPackageName)
+      throws IOException {
+    PackageManager.Rpm rpm = PackageManager.getInstalledPackage(packageName);
+    if (rpm == null && oldPackageName != null) {
+      rpm = PackageManager.getInstalledPackage(oldPackageName);
+    }
+    if (rpm == null) {
+      if (oldPackageName == null) {
+        throw new AssertionError("Package not installed: " + packageName);
+      } else {
+        throw new AssertionError("Package not installed: " + packageName
+            + " or " + oldPackageName);
+      }
+    }
+    return new Version(rpm.getVersion(), rpm.getRelease());
+  }
+
+  /**
    * Upgrades the Tomcat installed in the provided directory.
    *
    * @param optSlash  Relative path from the CATALINA_HOME to /opt/, including trailing slash, such as <code>../../opt/</code>.
    */
   protected abstract boolean upgradeTomcatDirectory(String optSlash, PosixFile tomcatDirectory, int uid, int gid) throws IOException, SQLException;
+
+  /**
+   * Does this version support org.apache.catalina.core.OpenSSLLifecycleListener in server.xml?
+   * This was added between Tomcat 10.1.16 and 10.1.24.
+   */
+  protected abstract boolean getSupportsOpenSslLifecycleListener() throws IOException, SQLException;
 }

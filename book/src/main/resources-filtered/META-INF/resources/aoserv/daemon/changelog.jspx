@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 aoserv-daemon - Server management daemon for the AOServ Platform.
-Copyright (C) 2020, 2021, 2022, 2023  AO Industries, Inc.
+Copyright (C) 2020, 2021, 2022, 2023, 2024  AO Industries, Inc.
     support@aoindustries.com
     7262 Bull Pen Cir
     Mobile, AL 36695
@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
     shortTitle="Changelog"
     tocLevels="1"
     datePublished="2020-04-16T21:06:03-05:00"
-    dateModified="2023-11-17T22:19:02Z"
+    dateModified="2024-05-30T01:19:29Z"
   >
     <c:set var="latestRelease" value="1.91.10" />
     <c:if test="${
@@ -61,9 +61,9 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
             Enabled control over Tomcat <ao:a href="https://tomcat.apache.org/tomcat-9.0-doc/config/host.html#Common_Attributes"><code>undeployOldVersions</code></ao:a>
             setting in support of parallel deployments.
           </li>
-          <li>Added support for Apache Tomcat 8.5.96 with MySQL JDBC 8.1.0 and PostgreSQL JDBC 42.6.0.</li>
-          <li>Added support for Apache Tomcat 9.0.83 with MySQL JDBC 8.1.0 and PostgreSQL JDBC 42.6.0.</li>
-          <li>Added support for Apache Tomcat 10.1.16 with MySQL JDBC 8.1.0 and PostgreSQL JDBC 42.6.0.</li>
+          <li>Added support for Apache Tomcat 8.5.100 with MySQL JDBC 8.4.0 and PostgreSQL JDBC 42.7.3.</li>
+          <li>Added support for Apache Tomcat 9.0.89 with MySQL JDBC 8.4.0 and PostgreSQL JDBC 42.7.3.</li>
+          <li>Added support for Apache Tomcat 10.1.24 with MySQL JDBC 8.4.0 and PostgreSQL JDBC 42.7.3.</li>
         </ul>
       </changelog:release>
     </c:if>

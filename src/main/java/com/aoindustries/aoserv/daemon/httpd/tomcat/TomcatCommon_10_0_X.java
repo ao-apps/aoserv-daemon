@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2021, 2022, 2023  AO Industries, Inc.
+ * Copyright (C) 2021, 2022, 2023, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -170,15 +170,8 @@ final class TomcatCommon_10_0_X extends VersionedTomcatCommon {
     boolean needsRestart = false;
     OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
     if (osConfig == OperatingSystemConfiguration.CENTOS_7_X86_64) {
-      PackageManager.Rpm rpm = PackageManager.getInstalledPackage(PackageManager.PackageName.APACHE_TOMCAT_10_0);
-      if (rpm == null) {
-        rpm = PackageManager.getInstalledPackage(PackageManager.PackageName.OLD_APACHE_TOMCAT_10_0);
-      }
-      if (rpm == null) {
-        throw new AssertionError("Package not installed: " + PackageManager.PackageName.APACHE_TOMCAT_10_0
-            + " or " + PackageManager.PackageName.OLD_APACHE_TOMCAT_10_0);
-      }
-      final Version version = new Version(rpm.getVersion(), rpm.getRelease());
+      final Version version = getRpmVersion(PackageManager.PackageName.APACHE_TOMCAT_10_0,
+          PackageManager.PackageName.OLD_APACHE_TOMCAT_10_0);
       final String suffix = osConfig.getPackageReleaseSuffix();
       // Downgrade support
       if (version.compareTo("10.0.27-3" + suffix) < 0) {
@@ -1154,5 +1147,10 @@ final class TomcatCommon_10_0_X extends VersionedTomcatCommon {
       }
     }
     return needsRestart;
+  }
+
+  @Override
+  protected boolean getSupportsOpenSslLifecycleListener() {
+    return false;
   }
 }

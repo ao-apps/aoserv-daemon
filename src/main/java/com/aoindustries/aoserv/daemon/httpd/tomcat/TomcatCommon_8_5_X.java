@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2018, 2019, 2020, 2021, 2022, 2023  AO Industries, Inc.
+ * Copyright (C) 2018, 2019, 2020, 2021, 2022, 2023, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -170,17 +170,45 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
     boolean needsRestart = false;
     OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
     if (osConfig == OperatingSystemConfiguration.CENTOS_7_X86_64) {
-      PackageManager.Rpm rpm = PackageManager.getInstalledPackage(PackageManager.PackageName.APACHE_TOMCAT_8_5);
-      if (rpm == null) {
-        rpm = PackageManager.getInstalledPackage(PackageManager.PackageName.OLD_APACHE_TOMCAT_8_5);
-      }
-      if (rpm == null) {
-        throw new AssertionError("Package not installed: " + PackageManager.PackageName.APACHE_TOMCAT_8_5
-            + " or " + PackageManager.PackageName.OLD_APACHE_TOMCAT_8_5);
-      }
-      final Version version = new Version(rpm.getVersion(), rpm.getRelease());
+      final Version version = getRpmVersion(PackageManager.PackageName.APACHE_TOMCAT_8_5,
+          PackageManager.PackageName.OLD_APACHE_TOMCAT_8_5);
       final String suffix = osConfig.getPackageReleaseSuffix();
       // Downgrade support
+      if (version.compareTo("8.5.100-1" + suffix) < 0) {
+        UpgradeSymlink[] downgradeSymlinks = {
+            // mysql-connector-j-8.4.0.jar -> mysql-connector-j-8.2.0.jar
+            new UpgradeSymlink(
+                "lib/mysql-connector-j-8.4.0.jar",
+                "/dev/null",
+                "lib/mysql-connector-j-8.2.0.jar",
+                "/dev/null"
+            ),
+            new UpgradeSymlink(
+                "lib/mysql-connector-j-8.4.0.jar",
+                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-j-8.4.0.jar",
+                "lib/mysql-connector-j-8.2.0.jar",
+                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-j-8.2.0.jar"
+            ),
+            // postgresql-42.7.3.jar -> postgresql-42.6.0.jar
+            new UpgradeSymlink(
+                "lib/postgresql-42.7.3.jar",
+                "/dev/null",
+                "lib/postgresql-42.6.0.jar",
+                "/dev/null"
+            ),
+            new UpgradeSymlink(
+                "lib/postgresql-42.7.3.jar",
+                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.7.3.jar",
+                "lib/postgresql-42.6.0.jar",
+                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.6.0.jar"
+            ),
+        };
+        for (UpgradeSymlink symlink : downgradeSymlinks) {
+          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
+            needsRestart = true;
+          }
+        }
+      }
       if (version.compareTo("8.5.96-1" + suffix) < 0) {
         UpgradeSymlink[] downgradeSymlinks = {
             // mysql-connector-j-8.2.0.jar -> mysql-connector-j-8.1.0.jar
@@ -1278,10 +1306,50 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
           }
         }
       }
-      if (version.compareTo("8.5.96-1" + suffix) > 0) {
+      if (version.compareTo("8.5.100-1" + suffix) >= 0) {
+        UpgradeSymlink[] upgradeSymlinks = {
+            // mysql-connector-j-8.2.0.jar -> mysql-connector-j-8.4.0.jar
+            new UpgradeSymlink(
+                "lib/mysql-connector-j-8.2.0.jar",
+                "/dev/null",
+                "lib/mysql-connector-j-8.4.0.jar",
+                "/dev/null"
+            ),
+            new UpgradeSymlink(
+                "lib/mysql-connector-j-8.2.0.jar",
+                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-j-8.2.0.jar",
+                "lib/mysql-connector-j-8.4.0.jar",
+                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-j-8.4.0.jar"
+            ),
+            // postgresql-42.6.0.jar -> postgresql-42.7.3.jar
+            new UpgradeSymlink(
+                "lib/postgresql-42.6.0.jar",
+                "/dev/null",
+                "lib/postgresql-42.7.3.jar",
+                "/dev/null"
+            ),
+            new UpgradeSymlink(
+                "lib/postgresql-42.6.0.jar",
+                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.6.0.jar",
+                "lib/postgresql-42.7.3.jar",
+                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.7.3.jar"
+            ),
+        };
+        for (UpgradeSymlink symlink : upgradeSymlinks) {
+          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
+            needsRestart = true;
+          }
+        }
+      }
+      if (version.compareTo("8.5.100-1" + suffix) > 0) {
         throw new IllegalStateException("Version of Tomcat newer than expected: " + version);
       }
     }
     return needsRestart;
+  }
+
+  @Override
+  protected boolean getSupportsOpenSslLifecycleListener() {
+    return false;
   }
 }

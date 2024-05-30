@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2018, 2019, 2020, 2021, 2022, 2023  AO Industries, Inc.
+ * Copyright (C) 2018, 2019, 2020, 2021, 2022, 2023, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -144,10 +144,17 @@ abstract class VersionedTomcatStdSiteManager<T extends VersionedTomcatCommon> ex
           + "  <Listener className=\"org.apache.catalina.startup.VersionLoggerListener\" />\n"
           + "  <!-- Security listener. Documentation at /docs/config/listeners.html\n"
           + "  <Listener className=\"org.apache.catalina.security.SecurityListener\" />\n"
-          + "  -->\n"
-          + "  <!--APR library loader. Documentation at /docs/apr.html -->\n"
-          + "  <Listener className=\"org.apache.catalina.core.AprLifecycleListener\" SSLEngine=\"on\" />\n"
-          + "  <!-- Prevent memory leaks due to use of particular java/javax APIs-->\n"
+          + "  -->\n");
+      if (tomcatCommon.getSupportsOpenSslLifecycleListener()) {
+        out.print("  <!-- OpenSSL support using Tomcat Native -->\n"
+            + "  <Listener className=\"org.apache.catalina.core.AprLifecycleListener\" />\n"
+            + "  <!-- OpenSSL support using FFM API from Java 22 -->\n"
+            + "  <!-- <Listener className=\"org.apache.catalina.core.OpenSSLLifecycleListener\" /> -->\n");
+      } else {
+        out.print("  <!--APR library loader. Documentation at /docs/apr.html -->\n"
+            + "  <Listener className=\"org.apache.catalina.core.AprLifecycleListener\" SSLEngine=\"on\" />\n");
+      }
+      out.print("  <!-- Prevent memory leaks due to use of particular java/javax APIs-->\n"
           + "  <Listener className=\"org.apache.catalina.core.JreMemoryLeakPreventionListener\" />\n"
           + "  <Listener className=\"org.apache.catalina.mbeans.GlobalResourcesLifecycleListener\" />\n"
           + "  <Listener className=\"org.apache.catalina.core.ThreadLocalLeakPreventionListener\" />\n"
