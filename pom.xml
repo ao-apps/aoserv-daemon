@@ -55,6 +55,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
     <!-- SonarQube -->
     <sonar.projectKey>com.aoapps.platform:aoapps-daemon<!-- TODO: ${project.groupId}:${project.artifactId} --></sonar.projectKey>
     <!-- com.aoindustries is on original Sonatype Nexus Repository Manager -->
+    <nexusServerId>ossrh-aoindustries</nexusServerId>
     <nexusUrl>https://oss.sonatype.org/</nexusUrl>
   </properties>
 
