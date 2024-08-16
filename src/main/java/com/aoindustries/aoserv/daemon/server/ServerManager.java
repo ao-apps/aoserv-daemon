@@ -45,7 +45,6 @@ import java.util.Map;
  *
  * @author  AO Industries, Inc.
  */
-// TODO: ROCKY_9_X86_64
 public final class ServerManager {
 
   /** Make no instances. */
@@ -79,7 +78,10 @@ public final class ServerManager {
             "/etc/rc.d/init.d/" + process,
             command
         );
-      } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+      } else if (
+          osvId == OperatingSystemVersion.CENTOS_7_X86_64
+              || osvId == OperatingSystemVersion.ROCKY_9_X86_64
+      ) {
         AoservDaemon.exec("/usr/bin/systemctl", command, process + ".service");
       } else {
         throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
@@ -217,6 +219,7 @@ public final class ServerManager {
             || osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
             || osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
             || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+            || osvId == OperatingSystemVersion.ROCKY_9_X86_64
     ) {
       // Make sure perl is installed as required by filesystemscsv
       PackageManager.installPackage(OperatingSystemConfiguration.getOperatingSystemConfiguration().getPerlPackageName());
