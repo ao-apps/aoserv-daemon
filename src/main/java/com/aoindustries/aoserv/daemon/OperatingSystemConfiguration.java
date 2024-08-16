@@ -112,6 +112,11 @@ public enum OperatingSystemConfiguration {
     public String getOldPackageReleaseSuffix() {
       return ".ao";
     }
+
+    @Override
+    public PackageManager.PackageName getPerlPackageName() {
+      return PackageManager.PackageName.PERL;
+    }
   },
   CENTOS_5DOM0_I686 {
     @Override
@@ -166,6 +171,11 @@ public enum OperatingSystemConfiguration {
     public String getOldPackageReleaseSuffix() {
       return CENTOS_5_I686_AND_X86_64.getOldPackageReleaseSuffix();
     }
+
+    @Override
+    public PackageManager.PackageName getPerlPackageName() {
+      return CENTOS_5_I686_AND_X86_64.getPerlPackageName();
+    }
   },
   CENTOS_5DOM0_X86_64 {
     @Override
@@ -219,6 +229,11 @@ public enum OperatingSystemConfiguration {
     @Override
     public String getOldPackageReleaseSuffix() {
       return CENTOS_5_I686_AND_X86_64.getOldPackageReleaseSuffix();
+    }
+
+    @Override
+    public PackageManager.PackageName getPerlPackageName() {
+      return CENTOS_5_I686_AND_X86_64.getPerlPackageName();
     }
   },
   CENTOS_7_X86_64 {
@@ -295,6 +310,11 @@ public enum OperatingSystemConfiguration {
     public String getOldPackageReleaseSuffix() {
       return ".el7.ao";
     }
+
+    @Override
+    public PackageManager.PackageName getPerlPackageName() {
+      return PackageManager.PackageName.PERL;
+    }
   },
   CENTOS_7DOM0_X86_64 {
     @Override
@@ -349,6 +369,11 @@ public enum OperatingSystemConfiguration {
     @Override
     public String getOldPackageReleaseSuffix() {
       return CENTOS_7_X86_64.getOldPackageReleaseSuffix();
+    }
+
+    @Override
+    public PackageManager.PackageName getPerlPackageName() {
+      return CENTOS_7_X86_64.getPerlPackageName();
     }
   };
 
@@ -439,4 +464,9 @@ public enum OperatingSystemConfiguration {
    * Gets the expected suffix on RPM release numbers before the move to AORepo.org.
    */
   public abstract String getOldPackageReleaseSuffix();
+
+  /**
+   * Gets the package that provides PERL.
+   */
+  public abstract PackageManager.PackageName getPerlPackageName();
 }

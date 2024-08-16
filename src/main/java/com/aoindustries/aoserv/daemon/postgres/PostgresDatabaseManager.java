@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2001-2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -42,6 +42,7 @@ import com.aoindustries.aoserv.client.postgresql.UserServer;
 import com.aoindustries.aoserv.client.postgresql.Version;
 import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.client.AoservDaemonProtocol;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
@@ -396,7 +397,7 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
         }
       }
     // Make sure perl is installed as required by dump_postgres_database
-    PackageManager.installPackage(PackageManager.PackageName.PERL);
+    PackageManager.installPackage(OperatingSystemConfiguration.getOperatingSystemConfiguration().getPerlPackageName());
     if (gzip) {
       PackageManager.installPackage(PackageManager.PackageName.GZIP);
     }

@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023  AO Industries, Inc.
+ * Copyright (C) 2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -133,6 +133,7 @@ public final class PackageManager {
     NET_TOOLS("net-tools"),
     OPENSSH_SERVER("openssh-server"),
     PERL("perl"),
+    PERL_INTERPRETER("perl-interpreter"),
     PHP_5_2("php-5.2"),
     PHP_5_2_EXT_MEMCACHED("php-5.2-ext-memcached"),
     PHP_5_2_I686("php-5.2-i686"),

@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2002-2013, 2014, 2016, 2017, 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2002-2013, 2014, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -26,6 +26,7 @@ package com.aoindustries.aoserv.daemon.server;
 import com.aoapps.lang.EmptyArrays;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AoservDaemon;
+import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -152,9 +153,9 @@ public final class ServerManager {
     );
   }
 
-  public static String getDrbdReport() throws IOException {
+  public static String getDrbdReport() throws IOException, SQLException {
     // Make sure perl is installed as required by drbdcstate
-    PackageManager.installPackage(PackageManager.PackageName.PERL);
+    PackageManager.installPackage(OperatingSystemConfiguration.getOperatingSystemConfiguration().getPerlPackageName());
     return AoservDaemon.execAndCapture(
         "/opt/aoserv-daemon/bin/drbdcstate"
     );
@@ -217,7 +218,7 @@ public final class ServerManager {
             || osvId == OperatingSystemVersion.CENTOS_7_X86_64
     ) {
       // Make sure perl is installed as required by filesystemscsv
-      PackageManager.installPackage(PackageManager.PackageName.PERL);
+      PackageManager.installPackage(OperatingSystemConfiguration.getOperatingSystemConfiguration().getPerlPackageName());
       return AoservDaemon.execAndCapture(
           "/opt/aoserv-daemon/bin/filesystemscsv"
       );
