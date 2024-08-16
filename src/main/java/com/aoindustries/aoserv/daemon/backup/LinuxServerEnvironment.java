@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2013, 2017, 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2001-2013, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -165,6 +165,7 @@ public class LinuxServerEnvironment extends PosixFileEnvironment {
             && osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
             && osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
             && osvId != OperatingSystemVersion.CENTOS_7_X86_64
+            && osvId != OperatingSystemVersion.ROCKY_9_X86_64
     ) {
       throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
     }
@@ -186,6 +187,7 @@ public class LinuxServerEnvironment extends PosixFileEnvironment {
     } else if (
         osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
             || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+            || osvId == OperatingSystemVersion.ROCKY_9_X86_64
     ) {
       // /dev is mounted devtmpfs now
       filesystemRules.put("/dev/", FilesystemIteratorRule.SKIP);
@@ -246,6 +248,7 @@ public class LinuxServerEnvironment extends PosixFileEnvironment {
     if (
         osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
             || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+            || osvId == OperatingSystemVersion.ROCKY_9_X86_64
     ) {
       // /run is mounted tmpfs
       filesystemRules.put("/run/", FilesystemIteratorRule.SKIP);
@@ -293,7 +296,7 @@ public class LinuxServerEnvironment extends PosixFileEnvironment {
         filesystemRules.put("/var/lib/mysql/" + name + "/" + hostname + ".pid", FilesystemIteratorRule.SKIP);
         // Skip /var/lock/subsys/mysql-(name)
         filesystemRules.put("/var/lock/subsys/mysql-" + name, FilesystemIteratorRule.SKIP);
-      } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+      } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64 || osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
         // Skip /var/lib/mysql/tmp/(name)/
         filesystemRules.put(
             "/var/lib/mysql/tmp/" + mysqlServer.getName() + "/",
@@ -320,6 +323,7 @@ public class LinuxServerEnvironment extends PosixFileEnvironment {
     if (
         osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
             || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+            || osvId == OperatingSystemVersion.ROCKY_9_X86_64 // TODO: Review once we have NFS mount in Rocky 9
     ) {
       // /var/lib/nfs/rpc_pipefs is mounted sunrpc
       filesystemRules.put("/var/lib/nfs/rpc_pipefs", FilesystemIteratorRule.SKIP);
@@ -342,7 +346,7 @@ public class LinuxServerEnvironment extends PosixFileEnvironment {
       if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
         // Skip /var/lock/subsys/postgresql-(name)
         filesystemRules.put("/var/lock/subsys/postgresql-" + name, FilesystemIteratorRule.SKIP);
-      } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+      } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64 || osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
         // Nothing to skip
       } else {
         throw new SQLException("Server found on unexpected operating system: " + osv);
@@ -384,7 +388,7 @@ public class LinuxServerEnvironment extends PosixFileEnvironment {
           filesystemRules.put("/var/lock/subsys/httpd" + num, FilesystemIteratorRule.SKIP);
           filesystemRules.put("/var/run/httpd" + num + ".pid", FilesystemIteratorRule.SKIP);
         }
-      } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+      } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64 || osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
         // Nothing to skip - Apache transient files in /run
       } else {
         throw new SQLException("HttpdServer found on unexpected operating system: " + osv);

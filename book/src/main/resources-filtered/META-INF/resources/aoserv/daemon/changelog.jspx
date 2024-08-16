@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
     shortTitle="Changelog"
     tocLevels="1"
     datePublished="2020-04-16T21:06:03-05:00"
-    dateModified="2024-08-04T02:47:21Z"
+    dateModified="2024-08-16T17:29:16Z"
   >
     <c:set var="latestRelease" value="1.91.10" />
     <c:if test="${
@@ -64,6 +64,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
           <li>Added support for Apache Tomcat 8.5.100 with MySQL JDBC 8.4.0 and PostgreSQL JDBC 42.7.3.</li>
           <li>Added support for Apache Tomcat 9.0.91 with MySQL JDBC 9.0.0 and PostgreSQL JDBC 42.7.3.</li>
           <li>Added support for Apache Tomcat 10.1.26 with MySQL JDBC 9.0.0 and PostgreSQL JDBC 42.7.3.</li>
+          <li>Additional support for <ao:a href="https://rockylinux.org/news/rocky-linux-9-1-ga-release/">Rocky Linux 9</ao:a>.</li>
         </ul>
       </changelog:release>
     </c:if>
