@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2001-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -26,14 +26,17 @@ package com.aoindustries.aoserv.daemon.distro;
 import static com.aoindustries.aoserv.client.distribution.Architecture.I686_AND_X86_64;
 import static com.aoindustries.aoserv.client.distribution.Architecture.X86_64;
 import static com.aoindustries.aoserv.client.distribution.OperatingSystem.CENTOS;
+import static com.aoindustries.aoserv.client.distribution.OperatingSystem.ROCKY;
 import static com.aoindustries.aoserv.client.distribution.OperatingSystemVersion.CENTOS_5_DOM0_X86_64;
 import static com.aoindustries.aoserv.client.distribution.OperatingSystemVersion.CENTOS_5_I686_AND_X86_64;
 import static com.aoindustries.aoserv.client.distribution.OperatingSystemVersion.CENTOS_7_DOM0_X86_64;
 import static com.aoindustries.aoserv.client.distribution.OperatingSystemVersion.CENTOS_7_X86_64;
+import static com.aoindustries.aoserv.client.distribution.OperatingSystemVersion.ROCKY_9_X86_64;
 import static com.aoindustries.aoserv.client.distribution.OperatingSystemVersion.VERSION_5;
 import static com.aoindustries.aoserv.client.distribution.OperatingSystemVersion.VERSION_5_DOM0;
 import static com.aoindustries.aoserv.client.distribution.OperatingSystemVersion.VERSION_7;
 import static com.aoindustries.aoserv.client.distribution.OperatingSystemVersion.VERSION_7_DOM0;
+import static com.aoindustries.aoserv.client.distribution.OperatingSystemVersion.VERSION_9;
 
 import com.aoapps.encoding.TextInPsqlEncoder;
 import com.aoapps.hodgepodge.io.ByteCountInputStream;
@@ -303,6 +306,8 @@ public final class DistroGenerator {
         case CENTOS_7_X86_64:
         case CENTOS_7_DOM0_X86_64:
           return CENTOS;
+        case ROCKY_9_X86_64:
+          return ROCKY;
         default:
           throw new RuntimeException("Unsupported operating_system_version: " + osv);
       }
@@ -318,6 +323,8 @@ public final class DistroGenerator {
           return VERSION_7;
         case CENTOS_7_DOM0_X86_64:
           return VERSION_7_DOM0;
+        case ROCKY_9_X86_64:
+          return VERSION_9;
         default:
           throw new RuntimeException("Unsupported operating_system_version: " + osv);
       }
@@ -330,6 +337,7 @@ public final class DistroGenerator {
         case CENTOS_5_DOM0_X86_64:
         case CENTOS_7_X86_64:
         case CENTOS_7_DOM0_X86_64:
+        case ROCKY_9_X86_64:
           return X86_64;
         default:
           throw new RuntimeException("Unexpected value for osv: " + osv);
@@ -355,6 +363,8 @@ public final class DistroGenerator {
         return root + '/' + CENTOS + '/' + VERSION_7      + '/' + X86_64;
       case CENTOS_7_DOM0_X86_64:
         return root + '/' + CENTOS + '/' + VERSION_7_DOM0 + '/' + X86_64;
+      case ROCKY_9_X86_64:
+        return root + '/' + ROCKY  + '/' + VERSION_9      + '/' + X86_64;
       default:
         throw new RuntimeException("Unexpected value for osv: " + osv);
     }
@@ -519,7 +529,8 @@ public final class DistroGenerator {
           CENTOS_5_I686_AND_X86_64,
           CENTOS_5_DOM0_X86_64,
           CENTOS_7_X86_64,
-          CENTOS_7_DOM0_X86_64
+          CENTOS_7_DOM0_X86_64,
+          ROCKY_9_X86_64
       );
       readFileLists(
           ConfigFile.NEVERS_TXT,
@@ -527,7 +538,8 @@ public final class DistroGenerator {
           CENTOS_5_I686_AND_X86_64,
           CENTOS_5_DOM0_X86_64,
           CENTOS_7_X86_64,
-          CENTOS_7_DOM0_X86_64
+          CENTOS_7_DOM0_X86_64,
+          ROCKY_9_X86_64
       );
       readFileLists(
           ConfigFile.NO_RECURSES_TXT,
@@ -535,7 +547,8 @@ public final class DistroGenerator {
           CENTOS_5_I686_AND_X86_64,
           CENTOS_5_DOM0_X86_64,
           CENTOS_7_X86_64,
-          CENTOS_7_DOM0_X86_64
+          CENTOS_7_DOM0_X86_64,
+          ROCKY_9_X86_64
       );
       readFileLists(
           ConfigFile.OPTIONALS_TXT,
@@ -543,7 +556,8 @@ public final class DistroGenerator {
           CENTOS_5_I686_AND_X86_64,
           CENTOS_5_DOM0_X86_64,
           CENTOS_7_X86_64,
-          CENTOS_7_DOM0_X86_64
+          CENTOS_7_DOM0_X86_64,
+          ROCKY_9_X86_64
       );
       readFileLists(
           ConfigFile.PRELINKS_TXT,
@@ -557,7 +571,8 @@ public final class DistroGenerator {
           CENTOS_5_I686_AND_X86_64,
           CENTOS_5_DOM0_X86_64,
           CENTOS_7_X86_64,
-          CENTOS_7_DOM0_X86_64
+          CENTOS_7_DOM0_X86_64,
+          ROCKY_9_X86_64
       );
     }
 
@@ -989,6 +1004,11 @@ public final class DistroGenerator {
       }
       if (version.equals(VERSION_7_DOM0) && architecture.equals(X86_64)) {
         return CENTOS_7_DOM0_X86_64;
+      }
+    }
+    if (name.equals(ROCKY)) {
+      if (version.equals(VERSION_9) && architecture.equals(X86_64)) {
+        return ROCKY_9_X86_64;
       }
     }
     throw new RuntimeException("Unsupported operating system: name=" + name + ", version=" + version + ", architecture=" + architecture);
