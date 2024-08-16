@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2003-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2003-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -75,6 +75,7 @@ import java.util.regex.Pattern;
  *
  * @author  AO Industries, Inc.
  */
+// TODO: ROCKY_9_X86_64 probably switch to postfix
 public final class SendmailCFManager extends BuilderThread {
 
   private static final Logger logger = Logger.getLogger(SendmailCFManager.class.getName());
