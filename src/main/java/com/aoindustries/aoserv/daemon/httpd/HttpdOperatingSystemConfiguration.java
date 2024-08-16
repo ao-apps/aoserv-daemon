@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2008-2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2008-2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -176,6 +176,72 @@ public enum HttpdOperatingSystemConfiguration {
         throw new WrappedException(e);
       }
     }
+  },
+  ROCKY_9_X86_64 {
+    @Override
+    public OperatingSystemConfiguration getOperatingSystemConfiguration() {
+      return OperatingSystemConfiguration.ROCKY_9_X86_64;
+    }
+
+    //public String getDefaultPhpPostgresMinorVersion() {
+    //    return "15";
+    //}
+
+    @Override
+    public PosixPath getPhpCgiPath(String minorVersion) {
+      try {
+        if (minorVersion.startsWith("8.")) {
+          return PosixPath.valueOf("/opt/php-" + minorVersion + "/bin/php-cgi");
+        } else {
+          throw new AssertionError("Unexpected PHP version: " + minorVersion);
+        }
+      } catch (ValidationException e) {
+        throw new WrappedException(e);
+      }
+    }
+
+    @Override
+    public PosixPath getHttpdSitesDirectory() {
+      return OperatingSystemVersion.getHttpdSitesDirectory(OperatingSystemVersion.ROCKY_9_X86_64);
+    }
+
+    @Override
+    public String getHttpdSitesOptSlash() {
+      return "../../../opt/";
+    }
+
+    @Override
+    public PosixPath getHttpdSharedTomcatsDirectory() {
+      return OperatingSystemVersion.getHttpdSharedTomcatsDirectory(OperatingSystemVersion.ROCKY_9_X86_64);
+    }
+
+    @Override
+    public String getHttpdSharedTomcatsOptSlash() {
+      return "../../../../opt/";
+    }
+
+    @Override
+    public PackageManager.PackageName getAwstatsPackageName() {
+      return PackageManager.PackageName.AWSTATS;
+    }
+
+    @Override
+    public PosixPath getAwstatsVarDirectory() {
+      try {
+        return PosixPath.valueOf("/var/opt/awstats");
+      } catch (ValidationException e) {
+        throw new WrappedException(e);
+      }
+    }
+
+    @Override
+    public PosixPath getAwstatsBinDirectory() {
+      try {
+        return PosixPath.valueOf("/opt/awstats");
+      } catch (ValidationException e) {
+        throw new WrappedException(e);
+      }
+    }
   };
 
   /**
@@ -193,6 +259,8 @@ public enum HttpdOperatingSystemConfiguration {
         return CENTOS_5_I686_AND_X86_64;
       case OperatingSystemVersion.CENTOS_7_X86_64:
         return CENTOS_7_X86_64;
+      case OperatingSystemVersion.ROCKY_9_X86_64:
+        return ROCKY_9_X86_64;
       default:
         throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
     }

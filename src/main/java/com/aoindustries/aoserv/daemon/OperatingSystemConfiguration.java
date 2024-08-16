@@ -375,6 +375,82 @@ public enum OperatingSystemConfiguration {
     public PackageManager.PackageName getPerlPackageName() {
       return CENTOS_7_X86_64.getPerlPackageName();
     }
+  },
+  ROCKY_9_X86_64 {
+    @Override
+    public HttpdOperatingSystemConfiguration getHttpdOperatingSystemConfiguration() {
+      return HttpdOperatingSystemConfiguration.ROCKY_9_X86_64;
+    }
+
+    /**
+     * This replace command is copied from /opt/mysql-5.7/bin/replace
+     * TODO: Just use sed instead.
+     */
+    @Override
+    public PosixPath getReplaceCommand() {
+      try {
+        return PosixPath.valueOf("/opt/aoserv-daemon/bin/replace");
+      } catch (ValidationException e) {
+        throw new WrappedException(e);
+      }
+    }
+
+    //@Override
+    //public PosixPath getAOServClientScriptInclude() {
+    //  return "/opt/aoserv-client/scripts/aoserv-client.sh";
+    //}
+
+    @Override
+    public PosixPath getPostgresPath(String minorVersion) {
+      try {
+        return PosixPath.valueOf("/opt/postgresql-" + minorVersion);
+      } catch (ValidationException e) {
+        throw new WrappedException(e);
+      }
+    }
+
+    //public PosixPath getMySQLConnectorJavaJarPath() {
+    //  return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
+    //}
+
+    @Override
+    public PosixPath getDefaultJdkProfileSh() {
+      try {
+        return PosixPath.valueOf("/opt/jdk-lts/profile.sh");
+      } catch (ValidationException e) {
+        throw new WrappedException(e);
+      }
+    }
+
+    @Override
+    public PackageManager.PackageName getDefaultJdkPackageName() {
+      return PackageManager.PackageName.JDK_LTS;
+    }
+
+    @Override
+    public PosixPath getJdk17ProfileSh() {
+      throw new UnsupportedOperationException("JDK 1.7 never supported on Rocky 9");
+    }
+
+    @Override
+    public PackageManager.PackageName getJdk17PackageName() {
+      throw new UnsupportedOperationException("JDK 1.7 never supported on Rocky 9");
+    }
+
+    @Override
+    public String getPackageReleaseSuffix() {
+      return ".el7.aorepo";
+    }
+
+    @Override
+    public String getOldPackageReleaseSuffix() {
+      return getPackageReleaseSuffix(); // Packages were never released under old names
+    }
+
+    @Override
+    public PackageManager.PackageName getPerlPackageName() {
+      return PackageManager.PackageName.PERL_INTERPRETER;
+    }
   };
 
   /**
@@ -398,6 +474,8 @@ public enum OperatingSystemConfiguration {
         return CENTOS_7_X86_64;
       case OperatingSystemVersion.CENTOS_7_DOM0_X86_64:
         return CENTOS_7DOM0_X86_64;
+      case OperatingSystemVersion.ROCKY_9_X86_64:
+        return ROCKY_9_X86_64;
       default:
         throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
     }
