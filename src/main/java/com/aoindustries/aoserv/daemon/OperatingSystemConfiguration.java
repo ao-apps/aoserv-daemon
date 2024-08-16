@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2008-2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023  AO Industries, Inc.
+ * Copyright (C) 2008-2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -42,24 +42,6 @@ public enum OperatingSystemConfiguration {
     @Override
     public HttpdOperatingSystemConfiguration getHttpdOperatingSystemConfiguration() {
       return HttpdOperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64;
-    }
-
-    @Override
-    public PosixPath getOpensslDefaultCaFile() {
-      try {
-        return PosixPath.valueOf("/etc/pki/tls/certs/ca-bundle.crt");
-      } catch (ValidationException e) {
-        throw new WrappedException(e);
-      }
-    }
-
-    @Override
-    public PosixPath getOpensslDefaultChainFile() {
-      try {
-        return PosixPath.valueOf("/etc/pki/tls/certs/server-chain.crt");
-      } catch (ValidationException e) {
-        throw new WrappedException(e);
-      }
     }
 
     /**
@@ -138,16 +120,6 @@ public enum OperatingSystemConfiguration {
     }
 
     @Override
-    public PosixPath getOpensslDefaultCaFile() {
-      return CENTOS_5_I686_AND_X86_64.getOpensslDefaultCaFile();
-    }
-
-    @Override
-    public PosixPath getOpensslDefaultChainFile() {
-      return CENTOS_5_I686_AND_X86_64.getOpensslDefaultChainFile();
-    }
-
-    @Override
     public PosixPath getReplaceCommand() {
       return CENTOS_5_I686_AND_X86_64.getReplaceCommand();
     }
@@ -202,16 +174,6 @@ public enum OperatingSystemConfiguration {
     }
 
     @Override
-    public PosixPath getOpensslDefaultCaFile() {
-      return CENTOS_5_I686_AND_X86_64.getOpensslDefaultCaFile();
-    }
-
-    @Override
-    public PosixPath getOpensslDefaultChainFile() {
-      return CENTOS_5_I686_AND_X86_64.getOpensslDefaultChainFile();
-    }
-
-    @Override
     public PosixPath getReplaceCommand() {
       return CENTOS_5_I686_AND_X86_64.getReplaceCommand();
     }
@@ -263,24 +225,6 @@ public enum OperatingSystemConfiguration {
     @Override
     public HttpdOperatingSystemConfiguration getHttpdOperatingSystemConfiguration() {
       return HttpdOperatingSystemConfiguration.CENTOS_7_X86_64;
-    }
-
-    @Override
-    public PosixPath getOpensslDefaultCaFile() {
-      try {
-        return PosixPath.valueOf("/etc/pki/tls/certs/ca-bundle.crt");
-      } catch (ValidationException e) {
-        throw new WrappedException(e);
-      }
-    }
-
-    @Override
-    public PosixPath getOpensslDefaultChainFile() {
-      try {
-        return PosixPath.valueOf("/etc/pki/tls/certs/server-chain.crt");
-      } catch (ValidationException e) {
-        throw new WrappedException(e);
-      }
     }
 
     /**
@@ -356,16 +300,6 @@ public enum OperatingSystemConfiguration {
     @Override
     public HttpdOperatingSystemConfiguration getHttpdOperatingSystemConfiguration() {
       return null;
-    }
-
-    @Override
-    public PosixPath getOpensslDefaultCaFile() {
-      return CENTOS_7_X86_64.getOpensslDefaultCaFile();
-    }
-
-    @Override
-    public PosixPath getOpensslDefaultChainFile() {
-      return CENTOS_7_X86_64.getOpensslDefaultChainFile();
     }
 
     @Override
@@ -449,17 +383,6 @@ public enum OperatingSystemConfiguration {
    * if this OS version doesn't have any HTTP servers.
    */
   public abstract HttpdOperatingSystemConfiguration getHttpdOperatingSystemConfiguration();
-
-  /**
-   * Gets the default certificate authority file for OpenSSL.
-   */
-  public abstract PosixPath getOpensslDefaultCaFile();
-
-  /**
-   * Gets the default certificate chain file for OpenSSL, if any.
-   * This file may be not exist even when this returns non-null.
-   */
-  public abstract PosixPath getOpensslDefaultChainFile();
 
   /**
    * Gets the full path to the replace command or <code>null</code>
