@@ -62,26 +62,9 @@ import java.util.logging.Logger;
 /**
  * Handles the configuration of firewalld.
  */
-// TODO: ROCKY_9_X86_64
 public final class FirewalldManager extends BuilderThread {
 
   private static final Logger logger = Logger.getLogger(FirewalldManager.class.getName());
-
-  /**
-   * The zones for SSH, used as a fail-safe if SSH not added to any zone.
-   */
-  private static final Set<FirewallZone.Name> sshFailsafeZones = Collections.unmodifiableSet(
-      new LinkedHashSet<>(
-          Arrays.asList(
-              FirewallZone.DMZ,
-              FirewallZone.EXTERNAL,
-              FirewallZone.HOME,
-              FirewallZone.INTERNAL,
-              FirewallZone.PUBLIC,
-              FirewallZone.WORK
-          )
-      )
-  );
 
   private static FirewalldManager firewalldManager;
 
@@ -154,13 +137,16 @@ public final class FirewalldManager extends BuilderThread {
       Host thisHost = thisServer.getHost();
       OperatingSystemVersion osv = thisHost.getOperatingSystemVersion();
       int osvId = osv.getPkey();
+      if (
+          osvId != OperatingSystemVersion.CENTOS_7_X86_64
+              && osvId != OperatingSystemVersion.ROCKY_9_X86_64
+      ) {
+        throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+      }
 
       synchronized (rebuildLock) {
-        if (
-            osvId == OperatingSystemVersion.CENTOS_7_X86_64
-                // Manage firewalld only when installed
-                && PackageManager.getInstalledPackage(PackageManager.PackageName.FIREWALLD) != null
-        ) {
+        // Manage firewalld only when installed
+        if (PackageManager.getInstalledPackage(PackageManager.PackageName.FIREWALLD) != null) {
           List<Bind> netBinds = thisHost.getNetBinds();
           if (logger.isLoggable(Level.FINE)) {
             logger.fine("netBinds: " + netBinds);
@@ -187,6 +173,18 @@ public final class FirewalldManager extends BuilderThread {
               ServiceSet serviceSet = ServiceSet.createOptimizedServiceSet("ssh", targets);
               // TODO: Include rate-limiting from public zone, as well as a zone for monitoring
               if (zones.isEmpty()) {
+                // The zones for SSH, used as a fail-safe if SSH not added to any zone.
+                // Obtained from <code>grep -l -r ssh /usr/lib/firewalld/zones | sort</code>
+                Set<FirewallZone.Name> sshFailsafeZones = new LinkedHashSet<>();
+                sshFailsafeZones.add(FirewallZone.DMZ);
+                sshFailsafeZones.add(FirewallZone.EXTERNAL);
+                sshFailsafeZones.add(FirewallZone.HOME);
+                sshFailsafeZones.add(FirewallZone.INTERNAL);
+                if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+                  sshFailsafeZones.add(FirewallZone.NM_SHARED);
+                }
+                sshFailsafeZones.add(FirewallZone.PUBLIC);
+                sshFailsafeZones.add(FirewallZone.WORK);
                 if (logger.isLoggable(Level.WARNING)) {
                   logger.warning("ssh does not have any zones, using fail-safe zones: " + sshFailsafeZones);
                 }
@@ -753,7 +751,10 @@ public final class FirewalldManager extends BuilderThread {
       ) {
         System.out.print("Starting FirewalldManager: ");
         // Must be a supported operating system
-        if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+        if (
+            osvId == OperatingSystemVersion.CENTOS_7_X86_64
+                || osvId == OperatingSystemVersion.ROCKY_9_X86_64
+        ) {
           AoservConnector conn = AoservDaemon.getConnector();
           firewalldManager = new FirewalldManager();
           conn.getNet().getFirewallZone().addTableListener(firewalldManager, 0);
