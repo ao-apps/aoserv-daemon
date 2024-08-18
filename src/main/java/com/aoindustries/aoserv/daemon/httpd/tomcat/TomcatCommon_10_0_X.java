@@ -1151,7 +1151,7 @@ final class TomcatCommon_10_0_X extends VersionedTomcatCommon {
   }
 
   @Override
-  protected boolean getSupportsOpenSslLifecycleListener() {
-    return false;
+  OpenSslLifecycleType getOpenSslLifecycleType() {
+    return OpenSslLifecycleType.TOMCAT_8_5;
   }
 }

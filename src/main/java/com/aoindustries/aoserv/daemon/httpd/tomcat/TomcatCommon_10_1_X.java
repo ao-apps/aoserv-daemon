@@ -175,6 +175,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
           PackageManager.PackageName.OLD_APACHE_TOMCAT_10_1);
       final String suffix = osConfig.getPackageReleaseSuffix();
       // Downgrade support
+      if (version.compareTo("10.1.28-1" + suffix) < 0) {
+        // 10.1.28-1 has same files as 10.1.26-1
+      }
       if (version.compareTo("10.1.26-1" + suffix) < 0) {
         UpgradeSymlink[] downgradeSymlinks = {
             // mysql-connector-j-9.0.0.jar -> mysql-connector-j-8.4.0.jar
@@ -690,7 +693,10 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
           }
         }
       }
-      if (version.compareTo("10.1.26-1" + suffix) > 0) {
+      if (version.compareTo("10.1.26-1" + suffix) >= 0) {
+        // 10.1.28-1 has same files as 10.1.26-1
+      }
+      if (version.compareTo("10.1.28-1" + suffix) > 0) {
         throw new IllegalStateException("Version of Tomcat newer than expected: " + version);
       }
     }
@@ -698,11 +704,11 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
   }
 
   @Override
-  protected boolean getSupportsOpenSslLifecycleListener() throws IOException, SQLException {
+  OpenSslLifecycleType getOpenSslLifecycleType() throws IOException, SQLException {
     Version version = getRpmVersion(PackageManager.PackageName.APACHE_TOMCAT_10_1,
         PackageManager.PackageName.OLD_APACHE_TOMCAT_10_1);
-    OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
-    String suffix = osConfig.getPackageReleaseSuffix();
-    return version.compareTo("10.1.24-1" + suffix) >= 0;
+    String suffix = OperatingSystemConfiguration.getOperatingSystemConfiguration().getPackageReleaseSuffix();
+    return version.compareTo("10.1.24-1" + suffix) >= 0
+        ? OpenSslLifecycleType.TOMCAT_10_1_24 : OpenSslLifecycleType.TOMCAT_8_5;
   }
 }

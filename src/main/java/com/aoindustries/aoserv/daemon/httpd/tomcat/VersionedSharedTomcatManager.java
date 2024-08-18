@@ -120,15 +120,7 @@ public abstract class VersionedSharedTomcatManager<T extends VersionedTomcatComm
         + "  <!-- Security listener. Documentation at /docs/config/listeners.html\n"
         + "  <Listener className=\"org.apache.catalina.security.SecurityListener\" />\n"
         + "  -->\n");
-    if (tomcatCommon.getSupportsOpenSslLifecycleListener()) {
-      out.print("  <!-- OpenSSL support using Tomcat Native -->\n"
-          + "  <Listener className=\"org.apache.catalina.core.AprLifecycleListener\" />\n"
-          + "  <!-- OpenSSL support using FFM API from Java 22 -->\n"
-          + "  <!-- <Listener className=\"org.apache.catalina.core.OpenSSLLifecycleListener\" /> -->\n");
-    } else {
-      out.print("  <!--APR library loader. Documentation at /docs/apr.html -->\n"
-          + "  <Listener className=\"org.apache.catalina.core.AprLifecycleListener\" SSLEngine=\"on\" />\n");
-    }
+    tomcatCommon.getOpenSslLifecycleType().printOpenSslLifecycleListener(out);
     out.print("  <!-- Prevent memory leaks due to use of particular java/javax APIs-->\n"
         + "  <Listener className=\"org.apache.catalina.core.JreMemoryLeakPreventionListener\" />\n"
         + "  <Listener className=\"org.apache.catalina.mbeans.GlobalResourcesLifecycleListener\" />\n"

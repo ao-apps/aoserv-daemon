@@ -310,9 +310,52 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
    */
   protected abstract boolean upgradeTomcatDirectory(String optSlash, PosixFile tomcatDirectory, int uid, int gid) throws IOException, SQLException;
 
+  static enum OpenSslLifecycleType {
+    /**
+     * This was used for all of Tomcat 8.5, Tomcat 9.0 through 9.0.91, all of Tomcat 10.0, and Tomcat 10.1 through 10.1.16.
+     */
+    TOMCAT_8_5 {
+      @Override
+      void printOpenSslLifecycleListener(ChainWriter out) {
+        out.print("  <!--APR library loader. Documentation at /docs/apr.html -->\n"
+            + "  <Listener className=\"org.apache.catalina.core.AprLifecycleListener\" SSLEngine=\"on\" />\n");
+      }
+    },
+
+    /**
+     * This was added between Tomcat 9.0.91 and 9.0.93.
+     */
+    TOMCAT_9_0_93 {
+      @Override
+      void printOpenSslLifecycleListener(ChainWriter out) {
+        out.print("  <!-- APR connector and OpenSSL support using Tomcat Native -->\n"
+            + "  <Listener className=\"org.apache.catalina.core.AprLifecycleListener\" />\n"
+            + "  <!-- OpenSSL support using FFM API from Java 22 -->\n"
+            + "  <!-- <Listener className=\"org.apache.catalina.core.OpenSSLLifecycleListener\" /> -->\n");
+      }
+    },
+
+    /**
+     * This was added between Tomcat 10.1.16 and 10.1.24.
+     */
+    TOMCAT_10_1_24 {
+      @Override
+      void printOpenSslLifecycleListener(ChainWriter out) {
+        out.print("  <!-- OpenSSL support using Tomcat Native -->\n"
+            + "  <Listener className=\"org.apache.catalina.core.AprLifecycleListener\" />\n"
+            + "  <!-- OpenSSL support using FFM API from Java 22 -->\n"
+            + "  <!-- <Listener className=\"org.apache.catalina.core.OpenSSLLifecycleListener\" /> -->\n");
+      }
+    };
+
+    /**
+     * Prints the OpenSSL support section of the server.xml.
+     */
+    abstract void printOpenSslLifecycleListener(ChainWriter out);
+  }
+
   /**
-   * Does this version support org.apache.catalina.core.OpenSSLLifecycleListener in server.xml?
-   * This was added between Tomcat 10.1.16 and 10.1.24.
+   * Gets the type of org.apache.catalina.core.OpenSSLLifecycleListener for this version.
    */
-  protected abstract boolean getSupportsOpenSslLifecycleListener() throws IOException, SQLException;
+  abstract OpenSslLifecycleType getOpenSslLifecycleType() throws IOException, SQLException;
 }

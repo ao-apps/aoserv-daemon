@@ -175,6 +175,21 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
           PackageManager.PackageName.OLD_APACHE_TOMCAT_9_0);
       final String suffix = osConfig.getPackageReleaseSuffix();
       // Downgrade support
+      if (version.compareTo("9.0.93-1" + suffix) < 0) {
+        UpgradeSymlink[] downgradeSymlinks = {
+            // tomcat-coyote-ffm.jar introduced
+            new UpgradeSymlink(
+                "lib/tomcat-coyote-ffm.jar",
+                "../" + optSlash + "apache-tomcat-9.0/lib/tomcat-coyote-ffm.jar",
+                null
+            ),
+        };
+        for (UpgradeSymlink symlink : downgradeSymlinks) {
+          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
+            needsRestart = true;
+          }
+        }
+      }
       if (version.compareTo("9.0.91-1" + suffix) < 0) {
         UpgradeSymlink[] downgradeSymlinks = {
             // mysql-connector-j-9.0.0.jar -> mysql-connector-j-8.4.0.jar
@@ -1480,7 +1495,22 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
           }
         }
       }
-      if (version.compareTo("9.0.91-1" + suffix) > 0) {
+      if (version.compareTo("9.0.93-1" + suffix) >= 0) {
+        UpgradeSymlink[] upgradeSymlinks = {
+            // tomcat-coyote-ffm.jar introduced
+            new UpgradeSymlink(
+                "lib/tomcat-coyote-ffm.jar",
+                null,
+                "../" + optSlash + "apache-tomcat-9.0/lib/tomcat-coyote-ffm.jar"
+            ),
+        };
+        for (UpgradeSymlink symlink : upgradeSymlinks) {
+          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
+            needsRestart = true;
+          }
+        }
+      }
+      if (version.compareTo("9.0.93-1" + suffix) > 0) {
         throw new IllegalStateException("Version of Tomcat newer than expected: " + version);
       }
     }
@@ -1488,7 +1518,11 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
   }
 
   @Override
-  protected boolean getSupportsOpenSslLifecycleListener() {
-    return false;
+  OpenSslLifecycleType getOpenSslLifecycleType() throws IOException, SQLException {
+    Version version = getRpmVersion(PackageManager.PackageName.APACHE_TOMCAT_9_0,
+        PackageManager.PackageName.OLD_APACHE_TOMCAT_9_0);
+    String suffix = OperatingSystemConfiguration.getOperatingSystemConfiguration().getPackageReleaseSuffix();
+    return version.compareTo("9.0.93-1" + suffix) >= 0
+        ? OpenSslLifecycleType.TOMCAT_9_0_93 : OpenSslLifecycleType.TOMCAT_8_5;
   }
 }
