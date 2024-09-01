@@ -571,49 +571,69 @@ public final class MrtgManager extends BuilderThread {
                   + "      <hr />\n"
                   + "      <h2>Load Average (times 1000)</h2>\n"
                   + "      <p>\n"
-                  + "        <a href=\"load.html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"load-day.png\" alt=\"load\" /></a>\n"
+                  + "        <a href=\"load.html\"><img style=\"border:0px; display:block;\" width=\""
+                  + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT
+                  + "\" src=\"load-day.png\" alt=\"load\" /></a>\n"
                   + "      </p>\n"
                   + "      <hr />\n"
                   + "      <h2>Server CPU Utilization (%)</h2>\n"
                   + "      <p>\n"
-                  + "        <a href=\"cpu.html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"cpu-day.png\" alt=\"cpu\" /></a>\n"
+                  + "        <a href=\"cpu.html\"><img style=\"border:0px; display:block;\" width=\""
+                  + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT
+                  + "\" src=\"cpu-day.png\" alt=\"cpu\" /></a>\n"
                   + "      </p>\n"
                   + "      <hr />\n"
                   + "      <h2>Server Disk I/O (blocks per second)</h2>\n"
                   + "      <p>\n"
-                  + "        <a href=\"diskio.html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"diskio-day.png\" alt=\"diskio\" /></a>\n"
+                  + "        <a href=\"diskio.html\"><img style=\"border:0px; display:block;\" width=\""
+                  + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT
+                  + "\" src=\"diskio-day.png\" alt=\"diskio\" /></a>\n"
                   + "      </p>\n");
               for (int c = 0; c < dfDevices.size(); c++) {
                 out.print("      <hr />\n"
                     + "      <h2>").textInXhtml(dfDevices.get(c)).print(" Space and Inodes (%)</h2>\n"
                     + "      <p>\n"
-                    + "        <a href=\"").textInXmlAttribute(dfSafeNames.get(c)).print(".html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"").textInXmlAttribute(dfSafeNames.get(c)).print("-day.png\" alt=\"").textInXmlAttribute(dfDevices.get(c)).print("\" /></a>\n"
+                    + "        <a href=\"").textInXmlAttribute(dfSafeNames.get(c))
+                    .print(".html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH
+                        + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"").textInXmlAttribute(dfSafeNames.get(c))
+                    .print("-day.png\" alt=\"").textInXmlAttribute(dfDevices.get(c)).print("\" /></a>\n"
                     + "      </p>\n");
               }
               out.print("      <hr />\n"
                   + "      <h2>Server Memory and Swap space (%)</h2>\n"
                   + "      <p>\n"
-                  + "        <a href=\"mem.html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"mem-day.png\" alt=\"mem\" /></a>\n"
+                  + "        <a href=\"mem.html\"><img style=\"border:0px; display:block;\" width=\""
+                  + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT
+                  + "\" src=\"mem-day.png\" alt=\"mem\" /></a>\n"
                   + "      </p>\n");
               for (Device netDevice : netDevices) {
                 String deviceId = netDevice.getDeviceId().getName();
                 out.print("      <hr />\n"
                     + "      <h2>").textInXhtml(netDevice.getDescription()).print(" traffic</h2>\n"
                     + "      <p>\n"
-                    + "        <a href=\"").textInXmlAttribute(deviceId).print(".html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"").textInXmlAttribute(deviceId).print("-day.png\" alt=\"").textInXmlAttribute(deviceId).print("\" /></a>\n"
+                    + "        <a href=\"").textInXmlAttribute(deviceId)
+                    .print(".html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH
+                        + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"").textInXmlAttribute(deviceId)
+                    .print("-day.png\" alt=\"").textInXmlAttribute(deviceId).print("\" /></a>\n"
                     + "      </p>\n");
               }
               out.print("      <hr />\n"
                   + "      <h2>Server Swap and Paging I/O (in+out blocks per second)</h2>\n"
                   + "      <p>\n"
-                  + "        <a href=\"swap.html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"swap-day.png\" alt=\"swap\" /></a>\n"
+                  + "        <a href=\"swap.html\"><img style=\"border:0px; display:block;\" width=\""
+                  + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT
+                  + "\" src=\"swap-day.png\" alt=\"swap\" /></a>\n"
                   + "      </p>\n");
               for (HttpdServer httpdServer : httpdServers) {
                 String safeName = getHttpdServerSafeName(httpdServer);
                 out.print("      <hr />\n"
                     + "      <h2>").textInXhtml(getHttpdServerDisplay(osv, httpdServer)).print("</h2>\n"
                     + "      <p>\n"
-                    + "        <a href=\"").textInXmlAttribute(safeName).print(".html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"").textInXmlAttribute(safeName).print("-day.png\" alt=\"").textInXmlAttribute(getHttpdServerDisplay(osv, httpdServer)).print("\" /></a>\n"
+                    + "        <a href=\"").textInXmlAttribute(safeName)
+                    .print(".html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH
+                        + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"").textInXmlAttribute(safeName)
+                    .print("-day.png\" alt=\"").textInXmlAttribute(getHttpdServerDisplay(osv, httpdServer))
+                    .print("\" /></a>\n"
                     + "      </p>\n");
               }
               if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
