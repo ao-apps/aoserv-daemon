@@ -541,7 +541,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
       </dependency>
       <dependency>
         <!-- When updating versions, review pgp-keys-map.list -->
-        <groupId>com.google.protobuf</groupId><artifactId>protobuf-java</artifactId><version>3.25.4</version>
+        <groupId>com.google.protobuf</groupId><artifactId>protobuf-java</artifactId><version>3.25.5</version>
       </dependency>
       <!-- Test Direct -->
       <dependency>
