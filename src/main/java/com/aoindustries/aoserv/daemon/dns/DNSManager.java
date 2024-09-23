@@ -275,15 +275,16 @@ public final class DNSManager extends BuilderThread {
                     + "\tdump-file \t\"/var/named/data/cache_dump.db\";\n"
                     + "\tstatistics-file \"/var/named/data/named_stats.txt\";\n"
                     + "\tmemstatistics-file \"/var/named/data/named_mem_stats.txt\";\n");
-                // recursing-file and secroots-file were added in CentOS 7.6
-                // secroots-file put first in Rocky 9
                 if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+                  // secroots-file put first with tabs in Rocky 9
+                  out.print("\tsecroots-file\t\"/var/named/data/named.secroots\";\n"
+                      + "\trecursing-file\t\"/var/named/data/named.recursing\";\n");
+                } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+                  // secroots-file put second with spaces in CentOS 7
+                  out.print("\trecursing-file  \"/var/named/data/named.recursing\";\n");
                   out.print("\tsecroots-file   \"/var/named/data/named.secroots\";\n");
-                }
-                out.print("\trecursing-file  \"/var/named/data/named.recursing\";\n");
-                // secroots-file put second in CentOS 7
-                if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-                  out.print("\tsecroots-file   \"/var/named/data/named.secroots\";\n");
+                } else {
+                  throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
                 }
                 out.print("\n"
                     + "\tallow-query { " + acl + " };\n"
@@ -295,6 +296,10 @@ public final class DNSManager extends BuilderThread {
                     + "\tnotify no;\n"
                     //+ "\talso-notify { none; };\n"
                     + "\n");
+                if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+                  out.print("\trecursion yes;\n"
+                      + "\n");
+                }
                 if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
                   out.print("\tdnssec-enable yes;\n");
                 }
