@@ -89,23 +89,12 @@ public final class DNSManager extends BuilderThread {
           // Loopback IP
           + " 127.0.0.0/8;"
           // Fremont
-          //+ " 64.71.143.176/29;" // Firewalls
           + " 66.160.183.0/24;"  // Virtual Servers
           + " 64.62.174.0/24;"   // Virtual Servers
           + " 64.71.144.0/25;"   // Virtual Servers
-          //+ " 66.220.7.80/29;"   // gtapolicemods.com
           // Fremont Management
           + " 65.19.176.24/29;" // Firewalls
           + " 66.220.7.0/27;";  // Hosts
-  // Amsterdam
-  //+ " 64.62.145.40/29;"  // Firewalls
-  // Mobile
-  // + " 50.242.159.138;"     // 7262 Bull Pen Cir
-  // Spain
-  //+ " 81.19.103.96/28;"  // Firewalls
-  //+ " 81.19.103.64/27;"  // Hosts
-  // Secure Medical
-  //+ " 66.17.86.0/24;"
 
   private static final PosixFile newConfFile = new PosixFile("/etc/named.conf.new");
   private static final PosixFile confFile = new PosixFile("/etc/named.conf");
