@@ -1,6 +1,6 @@
 #
 # aoserv-daemon - Server management daemon for the AOServ Platform.
-# Copyright (C) 2001-2006, 2008, 2010, 2013, 2015, 2016, 2019, 2020, 2021  AO Industries, Inc.
+# Copyright (C) 2001-2006, 2008, 2010, 2013, 2015, 2016, 2019, 2020, 2021, 2024  AO Industries, Inc.
 #     support@aoindustries.com
 #     7262 Bull Pen Cir
 #     Mobile, AL 36695
@@ -67,6 +67,14 @@ aoserv.daemon.mysql.max_connection_age=
 
 # Cyrus
 aoserv.daemon.cyrus.password=[CYRUS_PASSWORD]
+
+# DNS
+# Private IP addresses used internally
+aoserv.daemon.dns.DNSManager.acl.1=10.0.0.0/8
+aoserv.daemon.dns.DNSManager.acl.2=172.16.0.0/24
+aoserv.daemon.dns.DNSManager.acl.3=192.168.0.0/16
+# Loopback IP
+aoserv.daemon.dns.DNSManager.acl.4=127.0.0.0/8
 
 # NetworkMonitor settings
 aoserv.daemon.monitor.NetworkMonitor.networkNames=

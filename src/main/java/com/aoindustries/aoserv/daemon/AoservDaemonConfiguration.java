@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2013, 2014, 2015, 2017, 2019, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2001-2013, 2014, 2015, 2017, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -33,9 +33,12 @@ import com.aoindustries.aoserv.daemon.client.AoservDaemonProtocol;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 /**
  * The configuration for all AOServ processes is stored in a properties file.
@@ -49,7 +52,27 @@ public final class AoservDaemonConfiguration {
     throw new AssertionError();
   }
 
+  /**
+   * The prefix automatically added to property names.
+   */
+  private static final String PROPERTY_PREFIX = "aoserv.daemon.";
+
   private static Properties props;
+
+  @SuppressWarnings("ReturnOfCollectionOrArrayField")
+  private synchronized static Properties getProps() throws ConfigurationException {
+    try {
+      if (props == null) {
+        props = PropertiesUtils.loadFromResource(
+            AoservDaemonConfiguration.class,
+            "/com/aoindustries/aoserv/daemon/aoserv-daemon.properties"
+        );
+      }
+      return props;
+    } catch (IOException e) {
+      throw new ConfigurationException(e);
+    }
+  }
 
   /**
    * Gets a property value.
@@ -57,28 +80,15 @@ public final class AoservDaemonConfiguration {
    * @param  required  when {@code true} the value must be non-null and non-empty
    */
   private static String getProperty(String name, String templateSkip, boolean required) throws ConfigurationException {
-    try {
-      String propName = "aoserv.daemon." + name;
-      String value;
-      synchronized (AoservDaemonConfiguration.class) {
-        if (props == null) {
-          props = PropertiesUtils.loadFromResource(
-              AoservDaemonConfiguration.class,
-              "/com/aoindustries/aoserv/daemon/aoserv-daemon.properties"
-          );
-        }
-        value = props.getProperty(propName);
-      }
-      if (value != null && templateSkip != null) {
-        value = value.replace(templateSkip, "");
-      }
-      if (required && (value == null || value.isEmpty())) {
-        throw new ConfigurationException("Required property not found: " + propName);
-      }
-      return value;
-    } catch (IOException e) {
-      throw new ConfigurationException(e);
+    String propName = PROPERTY_PREFIX + name;
+    String value = getProps().getProperty(propName);
+    if (value != null && templateSkip != null) {
+      value = value.replace(templateSkip, "");
     }
+    if (required && (value == null || value.isEmpty())) {
+      throw new ConfigurationException("Required property not found: " + propName);
+    }
+    return value;
   }
 
   /**
@@ -371,5 +381,35 @@ public final class AoservDaemonConfiguration {
       return false;
     }
     throw new ConfigurationException("Value in aoserv-daemon.properties must be either \"true\" or \"false\": " + key);
+  }
+
+  /**
+   * Gets the named server ACL.
+   */
+  public static Set<String> getDnsNamedAcl() throws ConfigurationException {
+    final String prefix = "dns.DNSManager.acl.";
+    Set<String> usedNames = new HashSet<>();
+    Set<String> acl = new LinkedHashSet<>();
+    for (int i = 1; i < Integer.MAX_VALUE; i++) {
+      String name = prefix + i;
+      String value = getProperty(name, null, false);
+      if (value == null || value.isEmpty()) {
+        break;
+      }
+      if (!usedNames.add(PROPERTY_PREFIX + name)) {
+        throw new AssertionError();
+      }
+      if (!acl.add(value)) {
+        throw new ConfigurationException("Duplicate acl entry: " + acl);
+      }
+    }
+    // Look for any key orphaned
+    Properties props = getProps();
+    for (String name : props.stringPropertyNames()) {
+      if (!usedNames.contains(name) && name.startsWith(PROPERTY_PREFIX + prefix)) {
+        throw new ConfigurationException("Orphaned acl entry: " + name + " -> " + props.getProperty(name));
+      }
+    }
+    return Collections.unmodifiableSet(acl);
   }
 }

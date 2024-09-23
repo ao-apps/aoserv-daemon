@@ -76,25 +76,18 @@ public final class DNSManager extends BuilderThread {
   private static final Logger logger = Logger.getLogger(DNSManager.class.getName());
 
   /**
-   * The IPs allowed to query non-AO names.
-   * <p>
-   * TODO: This should be configured via a new aoserv table instead of hard-coded.
-   * </p>
+   * Gets the IPs allowed to query non-AO names from {@link AoservDaemonConfiguration}.
    */
-  private static final String ACL =
-      // Private IP addresses used internally
-      "10.0.0.0/8;"
-          + " 172.16.0.0/24;"
-          + " 192.168.0.0/16;"
-          // Loopback IP
-          + " 127.0.0.0/8;"
-          // Fremont
-          + " 66.160.183.0/24;"  // Virtual Servers
-          + " 64.62.174.0/24;"   // Virtual Servers
-          + " 64.71.144.0/25;"   // Virtual Servers
-          // Fremont Management
-          + " 65.19.176.24/29;" // Firewalls
-          + " 66.220.7.0/27;";  // Hosts
+  private static String getAcl() {
+    StringBuilder sb = new StringBuilder();
+    for (String acl : AoservDaemonConfiguration.getDnsNamedAcl()) {
+      if (sb.length() != 0) {
+        sb.append(' ');
+      }
+      sb.append(acl).append(';');
+    }
+    return sb.toString();
+  }
 
   private static final PosixFile newConfFile = new PosixFile("/etc/named.conf.new");
   private static final PosixFile confFile = new PosixFile("/etc/named.conf");
@@ -272,6 +265,7 @@ public final class DNSManager extends BuilderThread {
             {
               bout.reset();
               try (ChainWriter out = new ChainWriter(bout)) {
+                final String acl = getAcl();
                 out.print("//\n"
                     + "// named.conf\n"
                     + "//\n"
@@ -291,8 +285,8 @@ public final class DNSManager extends BuilderThread {
                       + "\tallow-transfer { none; };\n"
                       + "\tnotify no;\n"
                       //+ "\talso-notify { none; };\n"
-                      + "\tallow-query { " + ACL + " };\n"
-                      + "\tallow-recursion { " + ACL + " };\n");
+                      + "\tallow-query { " + acl + " };\n"
+                      + "\tallow-recursion { " + acl + " };\n");
                   Map<Integer, Set<InetAddress>> alreadyAddedIps = new HashMap<>();
                   for (Bind nb : netBinds) {
                     int port = nb.getPort().getPort();
@@ -384,10 +378,10 @@ public final class DNSManager extends BuilderThread {
                       + "\trecursing-file  \"/var/named/data/named.recursing\";\n"
                       + "\tsecroots-file   \"/var/named/data/named.secroots\";\n"
                       + "\n"
-                      + "\tallow-query { " + ACL + " };\n"
+                      + "\tallow-query { " + acl + " };\n"
                       //+ "\trecursion yes;\n"
-                      + "\tallow-recursion { " + ACL + " };\n"
-                      + "\tallow-query-cache { " + ACL + " };\n"
+                      + "\tallow-recursion { " + acl + " };\n"
+                      + "\tallow-query-cache { " + acl + " };\n"
                       + "\n"
                       + "\tallow-transfer { none; };\n"
                       + "\tnotify no;\n"
