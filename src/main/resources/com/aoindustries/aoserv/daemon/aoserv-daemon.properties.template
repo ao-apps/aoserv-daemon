@@ -80,7 +80,7 @@ aoserv.daemon.dns.DNSManager.acl.4=127.0.0.0/8
 aoserv.daemon.monitor.NetworkMonitor.networkNames=
 
 # PackageManager settings
-aoserv.daemon.unix.linux.PackageManager.uninstallEnabled=true
+aoserv.daemon.posix.linux.PackageManager.uninstallEnabled=true
 
 # Enabled/disabled each Manager
 aoserv.daemon.cvsd.CvsManager.enabled=true
@@ -115,10 +115,10 @@ aoserv.daemon.net.fail2ban.Fail2banManager.enabled=true
 aoserv.daemon.net.firewalld.FirewalldManager.enabled=true
 aoserv.daemon.net.ssh.SshdManager.enabled=true
 aoserv.daemon.net.xinetd.XinetdManager.enabled=true
+aoserv.daemon.posix.linux.LinuxAccountManager.enabled=true
 aoserv.daemon.postgres.PgHbaManager.enabled=true
 aoserv.daemon.postgres.PostgresDatabaseManager.enabled=true
 aoserv.daemon.postgres.PostgresServerManager.enabled=true
 aoserv.daemon.postgres.PostgresUserManager.enabled=true
 aoserv.daemon.random.RandomEntropyManager.enabled=true
 aoserv.daemon.timezone.TimeZoneManager.enabled=true
-aoserv.daemon.unix.linux.LinuxAccountManager.enabled=true
