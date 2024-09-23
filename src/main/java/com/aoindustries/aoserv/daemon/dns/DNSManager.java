@@ -70,7 +70,6 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-// TODO: ROCKY_9_X86_64
 public final class DNSManager extends BuilderThread {
 
   private static final Logger logger = Logger.getLogger(DNSManager.class.getName());
@@ -113,7 +112,7 @@ public final class DNSManager extends BuilderThread {
   /**
    * Files and directories in /var/named that are never removed.
    */
-  private static final String[] centos7StaticFiles = {
+  private static final String[] centos7Rocky9StaticFiles = {
       "data",
       "dynamic",
       "named.ca",
@@ -128,8 +127,9 @@ public final class DNSManager extends BuilderThread {
     if (osv == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
       return centos5StaticFiles;
     }
-    if (osv == OperatingSystemVersion.CENTOS_7_X86_64) {
-      return centos7StaticFiles;
+    if (osv == OperatingSystemVersion.CENTOS_7_X86_64
+        || osv == OperatingSystemVersion.ROCKY_9_X86_64) {
+      return centos7Rocky9StaticFiles;
     }
     throw new IllegalArgumentException("Unsupported OperatingSystemVersion: " + osv);
   }
@@ -158,6 +158,7 @@ public final class DNSManager extends BuilderThread {
       if (
           osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
               && osvId != OperatingSystemVersion.CENTOS_7_X86_64
+              && osvId != OperatingSystemVersion.ROCKY_9_X86_64
       ) {
         throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
       }
@@ -191,7 +192,8 @@ public final class DNSManager extends BuilderThread {
                 PackageManager.PackageName.BIND,
                 PackageManager.PackageName.CACHING_NAMESERVER
             );
-          } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+          } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64
+              || osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
             PackageManager.installPackage(
                 PackageManager.PackageName.BIND,
                 () -> {
@@ -331,7 +333,8 @@ public final class DNSManager extends BuilderThread {
                     }
                     out.print("};\n");
                   }
-                } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+                } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64
+                    || osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
                   out.print("options {\n");
                   // Find all unique InetAddresses per port
                   Map<Integer, Set<InetAddress>> ipsPerPortV4 = new HashMap<>();
@@ -373,11 +376,18 @@ public final class DNSManager extends BuilderThread {
                   out.print("\tdirectory \t\"").print(namedZoneDir.getPath()).print("\";\n"
                       + "\tdump-file \t\"/var/named/data/cache_dump.db\";\n"
                       + "\tstatistics-file \"/var/named/data/named_stats.txt\";\n"
-                      + "\tmemstatistics-file \"/var/named/data/named_mem_stats.txt\";\n"
-                      // recursing-file and secroots-file were added in CentOS 7.6
-                      + "\trecursing-file  \"/var/named/data/named.recursing\";\n"
-                      + "\tsecroots-file   \"/var/named/data/named.secroots\";\n"
-                      + "\n"
+                      + "\tmemstatistics-file \"/var/named/data/named_mem_stats.txt\";\n");
+                  // recursing-file and secroots-file were added in CentOS 7.6
+                  // secroots-file put first in Rocky 9
+                  if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+                    out.print("\tsecroots-file   \"/var/named/data/named.secroots\";\n");
+                  }
+                  out.print("\trecursing-file  \"/var/named/data/named.recursing\";\n");
+                  // secroots-file put second in CentOS 7
+                  if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+                    out.print("\tsecroots-file   \"/var/named/data/named.secroots\";\n");
+                  }
+                  out.print("\n"
                       + "\tallow-query { " + acl + " };\n"
                       //+ "\trecursion yes;\n"
                       + "\tallow-recursion { " + acl + " };\n"
@@ -386,18 +396,30 @@ public final class DNSManager extends BuilderThread {
                       + "\tallow-transfer { none; };\n"
                       + "\tnotify no;\n"
                       //+ "\talso-notify { none; };\n"
-                      + "\n"
-                      + "\tdnssec-enable yes;\n"
-                      + "\tdnssec-validation yes;\n"
-                      + "\n"
-                      + "\t/* Path to ISC DLV key */\n"
+                      + "\n");
+                  if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+                    out.print("\tdnssec-enable yes;\n");
+                  }
+                  out.print("\tdnssec-validation yes;\n"
+                      + "\n");
+                  if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+                    out.print("\t/* Path to ISC DLV key */\n"
                       + "\tbindkeys-file \"/etc/named.iscdlv.key\";\n"
-                      + "\n"
-                      + "\tmanaged-keys-directory \"/var/named/dynamic\";\n"
-                      + "\n"
+                      + "\n");
+                  }
+                  out.print("\tmanaged-keys-directory \"/var/named/dynamic\";\n");
+                  if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+                    out.print("\tgeoip-directory \"/usr/share/GeoIP\";\n");
+                  }
+                  out.print("\n"
                       + "\tpid-file \"/run/named/named.pid\";\n"
-                      + "\tsession-keyfile \"/run/named/session.key\";\n"
-                      + "};\n"
+                      + "\tsession-keyfile \"/run/named/session.key\";\n");
+                  if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+                    out.print("\n"
+                      + "\t/* https://fedoraproject.org/wiki/Changes/CryptoPolicy */\n"
+                      + "\tinclude \"/etc/crypto-policies/back-ends/bind.config\";\n");
+                  }
+                  out.print("};\n"
                       + "\n"
                       + "logging {\n"
                       + "\tchannel default_debug {\n"
@@ -468,7 +490,8 @@ public final class DNSManager extends BuilderThread {
           if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
             PackageManager.removePackage(PackageManager.PackageName.CACHING_NAMESERVER);
             PackageManager.removePackage(PackageManager.PackageName.BIND);
-          } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+          } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64
+              || osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
             PackageManager.removePackage(PackageManager.PackageName.BIND);
           } else {
             throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
@@ -498,7 +521,8 @@ public final class DNSManager extends BuilderThread {
       synchronized (restartLock) {
         if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
           AoservDaemon.exec("/etc/rc.d/init.d/named", "restart");
-        } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+        } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64
+            || osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
           AoservDaemon.exec("/usr/bin/systemctl", "reload-or-restart", "named");
         } else {
           throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
@@ -526,6 +550,7 @@ public final class DNSManager extends BuilderThread {
         if (
             osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                 || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+                || osvId == OperatingSystemVersion.ROCKY_9_X86_64
         ) {
           AoservConnector conn = AoservDaemon.getConnector();
           dnsManager = new DNSManager();
