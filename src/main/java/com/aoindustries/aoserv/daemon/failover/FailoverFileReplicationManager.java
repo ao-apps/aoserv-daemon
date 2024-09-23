@@ -2171,6 +2171,7 @@ public final class FailoverFileReplicationManager {
         out.write(AoservDaemonProtocol.DONE);
         out.flush();
       } catch (Throwable t) {
+        logger.log(Level.SEVERE, "closing socket due to exception", t);
         t0 = Throwables.addSuppressed(t0, t);
         activity.update("socket: close");
         t0 = AutoCloseables.closeAndCatch(t0, socket);
