@@ -302,8 +302,8 @@ public final class DNSManager extends BuilderThread {
                     + "\n");
                 if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
                   out.print("\t/* Path to ISC DLV key */\n"
-                    + "\tbindkeys-file \"/etc/named.iscdlv.key\";\n"
-                    + "\n");
+                      + "\tbindkeys-file \"/etc/named.iscdlv.key\";\n"
+                      + "\n");
                 }
                 out.print("\tmanaged-keys-directory \"/var/named/dynamic\";\n");
                 if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
@@ -314,8 +314,8 @@ public final class DNSManager extends BuilderThread {
                     + "\tsession-keyfile \"/run/named/session.key\";\n");
                 if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
                   out.print("\n"
-                    + "\t/* https://fedoraproject.org/wiki/Changes/CryptoPolicy */\n"
-                    + "\tinclude \"/etc/crypto-policies/back-ends/bind.config\";\n");
+                      + "\t/* https://fedoraproject.org/wiki/Changes/CryptoPolicy */\n"
+                      + "\tinclude \"/etc/crypto-policies/back-ends/bind.config\";\n");
                 }
                 out.print("};\n"
                     + "\n"

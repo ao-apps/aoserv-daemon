@@ -60,7 +60,7 @@ public final class AoservDaemonConfiguration {
   private static Properties props;
 
   @SuppressWarnings("ReturnOfCollectionOrArrayField")
-  private synchronized static Properties getProps() throws ConfigurationException {
+  private static synchronized Properties getProps() throws ConfigurationException {
     try {
       if (props == null) {
         props = PropertiesUtils.loadFromResource(
