@@ -49,7 +49,6 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-// TODO: ROCKY_9_X86_64
 public final class DaemonFileUtils {
 
   /** Make no instances. */
@@ -521,7 +520,7 @@ public final class DaemonFileUtils {
   }
 
   /**
-   * Calls "restorecon" on the given set of paths if this server is CentOS 7
+   * Calls "restorecon" on the given set of paths if this server is CentOS 7 or Rocky 9
    * and has selinux installed.
    */
   public static void restorecon(Set<PosixFile> restorecon) throws IOException, SQLException {
@@ -536,7 +535,8 @@ public final class DaemonFileUtils {
           break;
         }
         case OperatingSystemVersion.CENTOS_7_DOM0_X86_64:
-        case OperatingSystemVersion.CENTOS_7_X86_64: {
+        case OperatingSystemVersion.CENTOS_7_X86_64:
+        case OperatingSystemVersion.ROCKY_9_X86_64: {
           String restoreconCommand = "/usr/sbin/restorecon";
           if (PackageManager.getInstalledPackage(PackageManager.PackageName.POLICYCOREUTILS) == null) {
             if (logger.isLoggable(Level.WARNING)) {

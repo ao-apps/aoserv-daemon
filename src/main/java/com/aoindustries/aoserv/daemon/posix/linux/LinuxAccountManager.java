@@ -95,7 +95,6 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-// TODO: ROCKY_9_X86_64
 public final class LinuxAccountManager extends BuilderThread {
 
   private static final Logger logger = Logger.getLogger(LinuxAccountManager.class.getName());
@@ -165,6 +164,7 @@ public final class LinuxAccountManager extends BuilderThread {
     if (
         osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
             && osvId != OperatingSystemVersion.CENTOS_7_X86_64
+            && osvId != OperatingSystemVersion.ROCKY_9_X86_64
     ) {
       throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
     }
@@ -694,7 +694,8 @@ public final class LinuxAccountManager extends BuilderThread {
         }
 
         // Configure sudo
-        if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+        if (osvId == OperatingSystemVersion.CENTOS_7_X86_64
+            || osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
           Map<String, String> sudoers = new LinkedHashMap<>();
           for (UserServer lsa : lsas) {
             String sudo = lsa.getSudo();
@@ -737,8 +738,13 @@ public final class LinuxAccountManager extends BuilderThread {
                   username.equals(User.CENTOS.toString())
                       && PackageManager.getInstalledPackage(PackageManager.PackageName.CLOUD_INIT) != null
               ) {
-                // Overwrite the file that is created by the "cloud-init" package on boot
-                sudoersFilename = "90-cloud-init-users";
+                if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+                  // Overwrite the file that is created by the "cloud-init" package on boot
+                  sudoersFilename = "90-cloud-init-users";
+                } else {
+                  // TODO: ROCKY_9_X86_64: See if uses cloud-init same way as CentOS 7, see all "cloud-init" in aoserv-daemon.
+                  throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+                }
               } else {
                 sudoersFilename = username;
               }
@@ -1100,6 +1106,7 @@ public final class LinuxAccountManager extends BuilderThread {
         cryptAlgorithm = PosixFile.CryptAlgorithm.MD5;
         break;
       case OperatingSystemVersion.CENTOS_7_X86_64:
+      case OperatingSystemVersion.ROCKY_9_X86_64:
         cryptAlgorithm = PosixFile.CryptAlgorithm.SHA512;
         break;
       default:
@@ -1131,6 +1138,7 @@ public final class LinuxAccountManager extends BuilderThread {
         if (
             osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                 || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+                || osvId == OperatingSystemVersion.ROCKY_9_X86_64
         ) {
           AoservConnector conn = AoservDaemon.getConnector();
           linuxAccountManager = new LinuxAccountManager();

@@ -54,7 +54,6 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-// TODO: ROCKY_9_X86_64
 public final class GshadowFile {
 
   /** Make no instances. */
@@ -326,7 +325,8 @@ public final class GshadowFile {
         if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
           // Set to 0400
           mode = 0400;
-        } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+        } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64
+            || osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
           // Set to 0000
           mode = 0000;
         } else {
