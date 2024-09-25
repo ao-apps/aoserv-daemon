@@ -212,7 +212,7 @@ public final class MrtgManager extends BuilderThread {
               // Add the network devices
               List<Device> netDevices = thisHost.getNetDevices();
               for (Device netDevice : netDevices) {
-                out.print("  <a href=\"").textInXmlAttribute(netDevice.getDeviceId().getName()).print(".html\">").textInXhtml(netDevice.getDescription()).print("</a> |\n");
+                out.print("  <a href=\"").textInXmlAttribute(netDevice.getDeviceId().getName().toLowerCase(Locale.ROOT)).print(".html\">").textInXhtml(netDevice.getDescription()).print("</a> |\n");
               }
               out.print("  <a href=\"swap.html\">Swap</a> |\n");
               for (HttpdServer httpdServer : httpdServers) {
@@ -549,7 +549,8 @@ public final class MrtgManager extends BuilderThread {
               // Add the network devices
               List<Device> netDevices = thisHost.getNetDevices();
               for (Device netDevice : netDevices) {
-                out.print("          <a href=\"").textInXmlAttribute(netDevice.getDeviceId().getName()).print(".html\">").textInXhtml(netDevice.getDescription()).print("</a> |\n");
+                out.print("          <a href=\"").textInXmlAttribute(netDevice.getDeviceId().getName().toLowerCase(Locale.ROOT))
+                    .print(".html\">").textInXhtml(netDevice.getDescription()).print("</a> |\n");
               }
               out.print("          <a href=\"swap.html\">Swap</a> |\n");
               for (HttpdServer httpdServer : httpdServers) {
@@ -599,12 +600,13 @@ public final class MrtgManager extends BuilderThread {
                   + "      </p>\n");
               for (Device netDevice : netDevices) {
                 String deviceId = netDevice.getDeviceId().getName();
+                String lowerDeviceId = deviceId.toLowerCase(Locale.ROOT);
                 out.print("      <hr />\n"
                     + "      <h2>").textInXhtml(netDevice.getDescription()).print(" traffic</h2>\n"
                     + "      <p>\n"
-                    + "        <a href=\"").textInXmlAttribute(deviceId)
+                    + "        <a href=\"").textInXmlAttribute(lowerDeviceId)
                     .print(".html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH
-                        + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"").textInXmlAttribute(deviceId)
+                        + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"").textInXmlAttribute(lowerDeviceId)
                     .print("-day.png\" alt=\"").textInXmlAttribute(deviceId).print("\" /></a>\n"
                     + "      </p>\n");
               }
