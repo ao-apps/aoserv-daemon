@@ -666,7 +666,7 @@ public final class MrtgManager extends BuilderThread {
                 out.print("<hr />\n"
                     + "<!-- Begin MRTG Block -->\n"
                     + "    <div id=\"footer\">\n"
-                    + "      <a href=\"http://oss.oetiker.ch/mrtg/\"><img src=\"mrtg-l.png\" width=\"63\" title=\"MRTG\" alt=\"MRTG\" /><img src=\"mrtg-m.png\" width=\"25\" title=\"MRTG\" alt=\"MRTG\" /><img src=\"mrtg-r.png\" width=\"388\" title=\"Multi Router Traffic Grapher\" alt=\"Multi Router Traffic Grapher\" /></a>\n"
+                    + "      <a href=\"http://oss.oetiker.ch/mrtg/\"><img src=\"mrtg-l.png\" width=\"63\" height=\"25\" title=\"MRTG\" alt=\"MRTG\" /><img src=\"mrtg-m.png\" width=\"25\" height=\"25\" title=\"MRTG\" alt=\"MRTG\" /><img src=\"mrtg-r.png\" width=\"388\" height=\"25\" title=\"Multi Router Traffic Grapher\" alt=\"Multi Router Traffic Grapher\" /></a>\n"
                     + "      <p id=\"version\">2.17.4</p>\n"
                     + "      <address>\n"
                     + "        <a href=\"http://tobi.oetiker.ch/\">Tobias Oetiker</a>\n"
