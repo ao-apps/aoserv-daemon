@@ -56,6 +56,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -225,30 +226,31 @@ public final class MrtgManager extends BuilderThread {
                   + "Interval: 5\n");
               for (Device netDevice : netDevices) {
                 String deviceId = netDevice.getDeviceId().getName();
+                String lowerDeviceId = deviceId.toLowerCase(Locale.ROOT);
                 out.print("\n"
-                    + "Target[").print(deviceId).print("]: `").print(aoservMrtgBin).print("/mrtg_net_device ").print(deviceId).print("`\n"
-                    + "Options[").print(deviceId).print("]: noinfo, growright, transparent");
+                    + "Target[").print(lowerDeviceId).print("]: `").print(aoservMrtgBin).print("/mrtg_net_device ").print(deviceId).print("`\n"
+                    + "Options[").print(lowerDeviceId).print("]: noinfo, growright, transparent");
                 long maxBitRate = netDevice.getMaxBitRate();
                 if (maxBitRate == -1) {
                   out.print(", nopercent");
                 }
                 out.print("\n"
-                    + "MaxBytes[").print(deviceId).print("]: ").print(maxBitRate == -1 ? 100000000 : netDevice.getMaxBitRate()).print("\n"
-                    + "kilo[").print(deviceId).print("]: 1024\n"
-                    + "YLegend[").print(deviceId).print("]: Bits per second\n"
-                    + "ShortLegend[").print(deviceId).print("]: b/s\n"
-                    + "Legend1[").print(deviceId).print("]: Incoming Traffic in Bits per second\n"
-                    + "Legend2[").print(deviceId).print("]: Outgoing Traffic in Bits per second\n"
-                    + "Legend3[").print(deviceId).print("]: Maximal 5 Minute Incoming Traffic\n"
-                    + "Legend4[").print(deviceId).print("]: Maximal 5 Minute Outgoing Traffic\n"
-                    + "LegendI[").print(deviceId).print("]:  In:\n"
-                    + "LegendO[").print(deviceId).print("]:  Out:\n"
-                    + "Timezone[").print(deviceId).print("]: ").print(thisServer.getTimeZone()).print("\n"
-                    + "Title[").print(deviceId).print("]: ").print(netDevice.getDescription()).print(" traffic\n"
-                    + "PageFoot[").print(deviceId).print("]: <p>\n"
-                    + "PageTop[").print(deviceId).print("]: <h2>").print(netDevice.getDescription()).print(" traffic</h2>\n"
-                    + "XSize[").print(deviceId).print("]: ").print(GRAPH_WIDTH).print("\n"
-                    + "YSize[").print(deviceId).print("]: ").print(GRAPH_HEIGHT).print("\n");
+                    + "MaxBytes[").print(lowerDeviceId).print("]: ").print(maxBitRate == -1 ? 100000000 : netDevice.getMaxBitRate()).print("\n"
+                    + "kilo[").print(lowerDeviceId).print("]: 1024\n"
+                    + "YLegend[").print(lowerDeviceId).print("]: Bits per second\n"
+                    + "ShortLegend[").print(lowerDeviceId).print("]: b/s\n"
+                    + "Legend1[").print(lowerDeviceId).print("]: Incoming Traffic in Bits per second\n"
+                    + "Legend2[").print(lowerDeviceId).print("]: Outgoing Traffic in Bits per second\n"
+                    + "Legend3[").print(lowerDeviceId).print("]: Maximal 5 Minute Incoming Traffic\n"
+                    + "Legend4[").print(lowerDeviceId).print("]: Maximal 5 Minute Outgoing Traffic\n"
+                    + "LegendI[").print(lowerDeviceId).print("]:  In:\n"
+                    + "LegendO[").print(lowerDeviceId).print("]:  Out:\n"
+                    + "Timezone[").print(lowerDeviceId).print("]: ").print(thisServer.getTimeZone()).print("\n"
+                    + "Title[").print(lowerDeviceId).print("]: ").print(netDevice.getDescription()).print(" traffic\n"
+                    + "PageFoot[").print(lowerDeviceId).print("]: <p>\n"
+                    + "PageTop[").print(lowerDeviceId).print("]: <h2>").print(netDevice.getDescription()).print(" traffic</h2>\n"
+                    + "XSize[").print(lowerDeviceId).print("]: ").print(GRAPH_WIDTH).print("\n"
+                    + "YSize[").print(lowerDeviceId).print("]: ").print(GRAPH_HEIGHT).print("\n");
               }
               out.print("\n"
                   + "Target[load]: `").print(aoservMrtgBin).print("/mrtg_load`\n"
