@@ -351,8 +351,8 @@ public final class LinuxAccountManager extends BuilderThread {
                   throw new SQLException("Unable to find primary GroupServer for username=" + username + " on " + lsa.getServer());
                 }
                 PosixPath shell = la.getShell().getPath();
-                // CentOS 5 requires /bin/bash, but CentOS 7 ships with /sbin/nologin.
-                // Unfortunately, in our current schema the shell is set of all servers at once.
+                // TODO: CentOS 5 requires /bin/bash, but CentOS 7 ships with /sbin/nologin.
+                // Unfortunately, in our current schema the shell is set on all servers at once.
                 // This ugly hack allows us to store the new version, and it will be converted
                 // for compatibility with CentOS 5 on-the-fly.
                 if (
@@ -374,6 +374,20 @@ public final class LinuxAccountManager extends BuilderThread {
                   //    shell = Shell.BASH;
                   //  }
                 }
+                // GECOS names changed in Rocky 9
+                // TODO: Unfortunately, in our current schema the GECOS is set on all servers at once.
+                // This ugly hack allows us to store the new version, and it will be converted
+                // for compatibility with CentOS 7 on-the-fly.
+                User.Gecos name = la.getName();
+                try {
+                  if (osvId != OperatingSystemVersion.ROCKY_9_X86_64 && username.equals(User.TSS)) {
+                    name = User.Gecos.valueOf("Account used by the trousers package to sandbox the tcsd daemon");
+                  } else if (osvId != OperatingSystemVersion.ROCKY_9_X86_64 && username.equals(User.NOBODY)) {
+                    name = User.Gecos.valueOf("Nobody");
+                  }
+                } catch (ValidationException e) {
+                  throw new AssertionError(e);
+                }
                 if (
                     passwdEntries.put(
                         username,
@@ -381,7 +395,7 @@ public final class LinuxAccountManager extends BuilderThread {
                             username,
                             lsa.getUid().getId(),
                             primaryGroup.getGid().getId(),
-                            la.getName(),
+                            name,
                             la.getOfficeLocation(),
                             la.getOfficePhone(),
                             la.getHomePhone(),
