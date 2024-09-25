@@ -659,9 +659,15 @@ public final class MrtgManager extends BuilderThread {
                 out.print("<hr />\n"
                     + "<!-- Begin MRTG Block -->\n"
                     + "    <div id=\"footer\">\n"
-                    + "      <a href=\"http://oss.oetiker.ch/mrtg/\"><img src=\"mrtg-l.png\" width=\"63\" height=\"25\" title=\"MRTG\" alt=\"MRTG\" /><img src=\"mrtg-m.png\" width=\"25\" height=\"25\" title=\"MRTG\" alt=\"MRTG\" /><img src=\"mrtg-r.png\" width=\"388\" height=\"25\" title=\"Multi Router Traffic Grapher\" alt=\"Multi Router Traffic Grapher\" /></a>\n"
-                    + "      <p id=\"version\">2.17.4</p>\n"
-                    + "      <address>\n"
+                    + "      <a href=\"http://oss.oetiker.ch/mrtg/\"><img src=\"mrtg-l.png\" width=\"63\" height=\"25\" title=\"MRTG\" alt=\"MRTG\" /><img src=\"mrtg-m.png\" width=\"25\" height=\"25\" title=\"MRTG\" alt=\"MRTG\" /><img src=\"mrtg-r.png\" width=\"388\" height=\"25\" title=\"Multi Router Traffic Grapher\" alt=\"Multi Router Traffic Grapher\" /></a>\n");
+                if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+                  out.print("      <p id=\"version\">2.17.4</p>\n");
+                } else if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+                  out.print("      <p id=\"version\">2.17.7</p>\n");
+                } else {
+                  throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+                }
+                out.print("      <address>\n"
                     + "        <a href=\"http://tobi.oetiker.ch/\">Tobias Oetiker</a>\n"
                     + "        <a href=\"mailto:tobi+mrtglink@oetiker.ch\">&lt;tobi@oetiker.ch&gt;</a><br />\n"
                     + "and        <a href=\"http://www.bungi.com/\">Dave Rand</a>\n"
