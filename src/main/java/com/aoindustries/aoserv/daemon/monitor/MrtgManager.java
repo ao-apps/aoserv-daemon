@@ -64,7 +64,9 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-// TODO: ROCKY_9_X86_64
+// TODO: Upscale the graphs for modern high-resolution screens
+//       https://oss.oetiker.ch/mrtg/doc/mrtg-reference.en.html#XSize-and-YSize
+//       Try XZoom and YZoom and/or XScale and YScale
 public final class MrtgManager extends BuilderThread {
 
   private static final Logger logger = Logger.getLogger(MrtgManager.class.getName());
@@ -72,8 +74,8 @@ public final class MrtgManager extends BuilderThread {
   public static final int GRAPH_WIDTH = 600;
   public static final int GRAPH_HEIGHT = 150;
 
-  private static final int TOTAL_GRAPH_WIDTH = GRAPH_WIDTH + 100;
-  private static final int TOTAL_GRAPH_HEIGHT = GRAPH_HEIGHT + 35;
+  private static final int TOTAL_GRAPH_WIDTH = GRAPH_WIDTH + 100; // TODO: Why is it 100 here?
+  private static final int TOTAL_GRAPH_HEIGHT = GRAPH_HEIGHT + 35; // TODO: Why is it 35 here?
 
   private static final PosixFile cfgFile = new PosixFile("/etc/mrtg/mrtg.cfg");
   private static final PosixFile cfgFileNew = new PosixFile("/etc/mrtg/mrtg.cfg.new");
