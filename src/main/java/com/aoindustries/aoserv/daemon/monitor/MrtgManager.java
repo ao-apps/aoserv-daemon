@@ -142,6 +142,26 @@ public final class MrtgManager extends BuilderThread {
       String aoservMrtgBin = "/opt/aoserv-mrtg/bin";
 
       synchronized (rebuildLock) {
+        if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+          // Rocky 9 minimal installations have a much more stripped-down perl installation via the
+          // perl-interpreter package.  At the same time, the mrtg package does not specify all of its
+          // perl module dependencies.  Install any missing module dependencies now.
+          PackageManager.installPackages(
+              PackageManager.PackageName.PERL_FILE_COPY,
+              PackageManager.PackageName.PERL_TIME_HIRES);
+        }
+        // Make sure sysstat is installed and started
+        PackageManager.installPackage(
+            PackageManager.PackageName.SYSSTAT,
+            () -> {
+              if (osvId == OperatingSystemVersion.CENTOS_7_X86_64
+                  || osvId == OperatingSystemVersion.ROCKY_9_X86_64
+              ) {
+                AoservDaemon.exec("/usr/bin/systemctl", "start", "sysstat");
+              }
+            }
+        );
+
         // Make sure mrtg package is installed and enabled
         PackageManager.installPackage(
             PackageManager.PackageName.MRTG,
@@ -149,7 +169,6 @@ public final class MrtgManager extends BuilderThread {
               if (osvId == OperatingSystemVersion.CENTOS_7_X86_64
                   || osvId == OperatingSystemVersion.ROCKY_9_X86_64
               ) {
-                AoservDaemon.exec("/usr/bin/systemctl", "start", "sysstat");
                 AoservDaemon.exec("/usr/bin/systemctl", "enable", "mrtg");
                 AoservDaemon.exec("/usr/bin/systemctl", "restart", "mrtg");
               }

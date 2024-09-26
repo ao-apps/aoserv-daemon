@@ -134,7 +134,9 @@ public final class PackageManager {
     NET_TOOLS("net-tools"),
     OPENSSH_SERVER("openssh-server"),
     PERL("perl"),
+    PERL_FILE_COPY("perl-File-Copy"),
     PERL_INTERPRETER("perl-interpreter"),
+    PERL_TIME_HIRES("perl-Time-HiRes"),
     PHP_5_2("php-5.2"),
     PHP_5_2_EXT_MEMCACHED("php-5.2-ext-memcached"),
     PHP_5_2_I686("php-5.2-i686"),
@@ -342,6 +344,7 @@ public final class PackageManager {
     SPAMASSASSIN_AFTER_NETWORK_ONLINE("spamassassin-after-network-online"),
     SSHD_AFTER_NETWORK_ONLINE("sshd-after-network-online"),
     SUDO("sudo"),
+    SYSSTAT("sysstat"),
     TAR("tar"),
     TOMCAT_CONNECTORS("tomcat-connectors"),
     UTIL_LINUX("util-linux");
