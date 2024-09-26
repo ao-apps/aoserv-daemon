@@ -150,6 +150,7 @@ public final class MrtgManager extends BuilderThread {
                   || osvId == OperatingSystemVersion.ROCKY_9_X86_64
               ) {
                 try {
+                  AoservDaemon.exec("/usr/bin/systemctl", "start", "sysstat");
                   AoservDaemon.exec("/usr/bin/systemctl", "enable", "mrtg");
                   AoservDaemon.exec("/usr/bin/systemctl", "restart", "mrtg");
                 } catch (IOException e) {
