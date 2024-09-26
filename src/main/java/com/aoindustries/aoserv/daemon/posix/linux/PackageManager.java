@@ -26,6 +26,7 @@ package com.aoindustries.aoserv.daemon.posix.linux;
 import com.aoapps.concurrent.ConcurrentListenerManager;
 import com.aoapps.hodgepodge.io.DirectoryMetaSnapshot;
 import com.aoapps.lang.Strings;
+import com.aoapps.lang.io.function.IORunnable;
 import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import java.io.IOException;
@@ -829,7 +830,7 @@ public final class PackageManager {
    *
    * @return  the highest version of RPM that is installed
    */
-  public static Rpm installPackage(PackageName name, Runnable onInstall) throws IOException {
+  public static Rpm installPackage(PackageName name, IORunnable onInstall) throws IOException {
     synchronized (packagesLock) {
       // Check if exists by looking through all to find highest version
       Rpm highestVersionFound = getInstalledPackage(name);

@@ -45,7 +45,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.io.UncheckedIOException;
 import java.net.ProtocolFamily;
 import java.net.StandardProtocolFamily;
 import java.sql.SQLException;
@@ -159,11 +158,7 @@ public final class DNSManager extends BuilderThread {
           PackageManager.installPackage(
               PackageManager.PackageName.BIND,
               () -> {
-                try {
-                  AoservDaemon.exec("/usr/bin/systemctl", "enable", "named");
-                } catch (IOException e) {
-                  throw new UncheckedIOException(e);
-                }
+                AoservDaemon.exec("/usr/bin/systemctl", "enable", "named");
                 needsRestart[0] = true;
               }
           );

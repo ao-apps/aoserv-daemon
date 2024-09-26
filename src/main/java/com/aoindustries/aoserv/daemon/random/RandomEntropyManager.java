@@ -32,7 +32,6 @@ import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -203,12 +202,8 @@ public final class RandomEntropyManager implements Runnable {
               PackageManager.installPackage(
                   PackageManager.PackageName.HAVEGED,
                   () -> {
-                    try {
-                      AoservDaemon.exec("/usr/bin/systemctl", "enable", "haveged.service");
-                      AoservDaemon.exec("/usr/bin/systemctl", "start",  "haveged.service");
-                    } catch (IOException e) {
-                      throw new UncheckedIOException(e);
-                    }
+                    AoservDaemon.exec("/usr/bin/systemctl", "enable", "haveged.service");
+                    AoservDaemon.exec("/usr/bin/systemctl", "start",  "haveged.service");
                   }
               );
               havegedInstalled = true;

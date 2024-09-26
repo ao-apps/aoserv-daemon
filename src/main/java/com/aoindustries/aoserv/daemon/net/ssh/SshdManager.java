@@ -40,7 +40,6 @@ import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.selinux.SEManagePort;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.net.ProtocolFamily;
 import java.net.StandardProtocolFamily;
 import java.sql.SQLException;
@@ -428,16 +427,12 @@ public final class SshdManager extends BuilderThread {
                 PackageManager.PackageName.OPENSSH_SERVER,
                 () -> {
                   // Enable service after package installation
-                  try {
-                    if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-                      AoservDaemon.exec("/sbin/chkconfig", "sshd", "on");
-                    } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-                      AoservDaemon.exec("/usr/bin/systemctl", "enable", "sshd.service");
-                    } else {
-                      throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-                    }
-                  } catch (IOException e) {
-                    throw new UncheckedIOException(e);
+                  if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                    AoservDaemon.exec("/sbin/chkconfig", "sshd", "on");
+                  } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+                    AoservDaemon.exec("/usr/bin/systemctl", "enable", "sshd.service");
+                  } else {
+                    throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
                   }
                   needsRestart[0] = true;
                 }

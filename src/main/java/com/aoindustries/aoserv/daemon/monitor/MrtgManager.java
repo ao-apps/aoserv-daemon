@@ -149,13 +149,9 @@ public final class MrtgManager extends BuilderThread {
               if (osvId == OperatingSystemVersion.CENTOS_7_X86_64
                   || osvId == OperatingSystemVersion.ROCKY_9_X86_64
               ) {
-                try {
-                  AoservDaemon.exec("/usr/bin/systemctl", "start", "sysstat");
-                  AoservDaemon.exec("/usr/bin/systemctl", "enable", "mrtg");
-                  AoservDaemon.exec("/usr/bin/systemctl", "restart", "mrtg");
-                } catch (IOException e) {
-                  throw new UncheckedIOException(e);
-                }
+                AoservDaemon.exec("/usr/bin/systemctl", "start", "sysstat");
+                AoservDaemon.exec("/usr/bin/systemctl", "enable", "mrtg");
+                AoservDaemon.exec("/usr/bin/systemctl", "restart", "mrtg");
               }
             }
         );
