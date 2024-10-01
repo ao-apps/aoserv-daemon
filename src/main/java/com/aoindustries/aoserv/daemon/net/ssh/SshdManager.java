@@ -24,6 +24,7 @@
 package com.aoindustries.aoserv.daemon.net.ssh;
 
 import com.aoapps.encoding.ChainWriter;
+import com.aoapps.encoding.EncodingContext;
 import com.aoapps.io.posix.PosixFile;
 import com.aoapps.net.InetAddress;
 import com.aoapps.net.Port;
@@ -38,10 +39,14 @@ import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.selinux.SEManagePort;
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.ProtocolFamily;
 import java.net.StandardProtocolFamily;
+import java.nio.charset.Charset;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -56,7 +61,6 @@ import java.util.logging.Logger;
 /**
  * Handles the building of SSHD configs and files.
  */
-// TODO: ROCKY_9_X86_64
 public final class SshdManager extends BuilderThread {
 
   private static final Logger logger = Logger.getLogger(SshdManager.class.getName());
@@ -94,7 +98,16 @@ public final class SshdManager extends BuilderThread {
    * build any config file with more than 16 <code>net_binds</code>.
    * </p>
    */
-  // We're buildng our own RPM again: private static final int MAX_LISTEN_SOCKS = 16; // Matches the value defined in sshd.c
+  private static final int MAX_LISTEN_SOCKS = 16; // Matches the value defined in sshd.c
+
+  private static final PosixFile SSHD_CONFIG = new PosixFile("/etc/ssh/sshd_config");
+
+  /**
+   * Uses same encoding as {@link ChainWriter}.
+   */
+  private static final Charset ENCODING = EncodingContext.DEFAULT.getCharacterEncoding();
+
+  private static final String SFTP_SUBSYSTEM = "Subsystem\tsftp\t/usr/libexec/openssh/sftp-server";
 
   private static SshdManager sshdManager;
 
@@ -102,13 +115,22 @@ public final class SshdManager extends BuilderThread {
     // Do nothing
   }
 
-  private static void writeListenAddresses(Collection<? extends Bind> nbs, ChainWriter out) throws SQLException, IOException {
+  private static void writeListenAddresses(Collection<? extends Bind> nbs, ChainWriter out, int maxListenSocks) throws SQLException, IOException {
     if (nbs.isEmpty()) {
       // Restore defaults
       out.print("#ListenAddress 0.0.0.0\n"
           + "#ListenAddress ::\n");
     } else {
+      int count = 0;
       for (Bind nb : nbs) {
+        if (count == maxListenSocks) {
+          out.print("#\n"
+              + "# Warning: MAX_LISTEN_SOCKS (" + maxListenSocks + ") exceeded, remaining ListenAddress are disabled.\n"
+              + "#\n");
+        }
+        if (count >= maxListenSocks) {
+          out.print('#');
+        }
         out.print("ListenAddress ");
         InetAddress ip = nb.getIpAddress().getInetAddress();
         ProtocolFamily family = ip.getProtocolFamily();
@@ -124,6 +146,7 @@ public final class SshdManager extends BuilderThread {
           out.print(':').print(port);
         }
         out.print("\n");
+        count++;
       }
     }
   }
@@ -162,7 +185,7 @@ public final class SshdManager extends BuilderThread {
         + "Protocol 2\n");
     // Changed to not allow Protocol 1 on 2005-02-01 by Dan Armstrong
     //+ "Protocol 2,1\n");
-    writeListenAddresses(nbs, out);
+    writeListenAddresses(nbs, out, Integer.MAX_VALUE);
     out.print("AcceptEnv SCREEN_SESSION\n"
         + "SyslogFacility AUTHPRIV\n"
         + "PermitRootLogin yes\n"
@@ -176,8 +199,9 @@ public final class SshdManager extends BuilderThread {
         + "AcceptEnv LC_IDENTIFICATION LC_ALL\n"
         + "MaxStartups " + MAX_STARTUPS + "\n"
         + "X11Forwarding yes\n"
-        + "UsePrivilegeSeparation yes\n"
-        + "Subsystem sftp /usr/libexec/openssh/sftp-server -l VERBOSE");
+        + "UsePrivilegeSeparation yes\n");
+    out.print(SFTP_SUBSYSTEM.replace('\t', ' '));
+    out.print(" -l VERBOSE");
     long sftpUmask = thisServer.getSftpUmask();
     if (sftpUmask != -1) {
       out.print(" -u ").print(getSftpUmaskString(sftpUmask));
@@ -212,7 +236,7 @@ public final class SshdManager extends BuilderThread {
         + "#\n"
         + "Port " + DEFAULT_PORT + "\n");
     if (nbs.isEmpty()) {
-      // Restore to default settigs before disabling service
+      // Restore to default settings before disabling service
       out.print("#AddressFamily any\n");
     } else {
       // Determine address family
@@ -247,7 +271,7 @@ public final class SshdManager extends BuilderThread {
       }
       out.print('\n');
     }
-    writeListenAddresses(nbs, out);
+    writeListenAddresses(nbs, out, Integer.MAX_VALUE);
     out.print("\n"
         + "HostKey /etc/ssh/ssh_host_rsa_key\n"
         + "#HostKey /etc/ssh/ssh_host_dsa_key\n"
@@ -364,7 +388,7 @@ public final class SshdManager extends BuilderThread {
         + "AcceptEnv SCREEN_SESSION\n"
         + "\n"
         + "# override default of no subsystems\n"
-        + "Subsystem\tsftp\t/usr/libexec/openssh/sftp-server -l VERBOSE");
+        + SFTP_SUBSYSTEM + " -l VERBOSE");
     long sftpUmask = thisServer.getSftpUmask();
     if (sftpUmask != -1) {
       out.print(" -u ").print(getSftpUmaskString(sftpUmask));
@@ -378,6 +402,106 @@ public final class SshdManager extends BuilderThread {
         + "#\tPermitTTY no\n"
         + "#\tForceCommand cvs server\n"
     );
+  }
+
+  /**
+   * Builds the /etc/ssh/sshd_config file for Rocky 9.
+   */
+  private static void writeConfigFileRocky9(Server thisServer, ChainWriter out) throws SQLException, IOException {
+    boolean foundSftp = false;
+    try (BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(SSHD_CONFIG.getFile()), ENCODING))) {
+      String line;
+      while ((line = in.readLine()) != null) {
+        if (line.startsWith(SFTP_SUBSYSTEM)) {
+          if (foundSftp) {
+            throw new AssertionError("More than one sftp subsystem defined");
+          } else {
+            foundSftp = true;
+            out.print(SFTP_SUBSYSTEM + " -l VERBOSE");
+            long sftpUmask = thisServer.getSftpUmask();
+            if (sftpUmask != -1) {
+              out.print(" -u ").print(getSftpUmaskString(sftpUmask));
+            }
+          }
+        } else {
+          out.print(line);
+        }
+        out.print('\n');
+      }
+    }
+  }
+
+  /**
+   * Builds the /etc/ssh/sshd_config.d/10-binds.conf file for Rocky 9.
+   */
+  private static void writeBindsRocky9(Collection<? extends Bind> nbs, ChainWriter out) throws SQLException, IOException {
+    out.print("#\n"
+        + "# aoserv-sshd-config - SSH daemon configured by the AOServ Platform.\n"
+        + "# Copyright (C) 2024  AO Industries, Inc.\n"
+        + "#     support@aoindustries.com\n"
+        + "#     7262 Bull Pen Cir\n"
+        + "#     Mobile, AL 36695\n"
+        + "#\n"
+        + "# This file is part of aoserv-sshd-config.\n"
+        + "#\n"
+        + "# aoserv-sshd-config is free software: you can redistribute it and/or modify\n"
+        + "# it under the terms of the GNU Lesser General Public License as published by\n"
+        + "# the Free Software Foundation, either version 3 of the License, or\n"
+        + "# (at your option) any later version.\n"
+        + "#\n"
+        + "# aoserv-sshd-config is distributed in the hope that it will be useful,\n"
+        + "# but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
+        + "# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n"
+        + "# GNU Lesser General Public License for more details.\n"
+        + "#\n"
+        + "# You should have received a copy of the GNU Lesser General Public License\n"
+        + "# along with aoserv-sshd-config.  If not, see <https://www.gnu.org/licenses/>.\n"
+        + "#\n"
+        + "\n"
+        + "#\n"
+        + "# This configuration file is automatically generated by\n"
+        + "# ").print(SshdManager.class.getName()).print("\n"
+        + "#\n"
+        + "#Port " + DEFAULT_PORT + "\n");
+    if (nbs.isEmpty()) {
+      // Restore to default settings before disabling service
+      out.print("#AddressFamily any\n"
+          + "#ListenAddress 0.0.0.0\n"
+          + "#ListenAddress ::#\n");
+    } else {
+      // Determine address family
+      boolean hasIpv4 = false;
+      boolean hasIpv6 = false;
+      for (Bind nb : nbs) {
+        InetAddress ip = nb.getIpAddress().getInetAddress();
+        ProtocolFamily family = ip.getProtocolFamily();
+        if (family.equals(StandardProtocolFamily.INET)) {
+          hasIpv4 = true;
+          if (hasIpv6) {
+            break;
+          }
+        } else if (family.equals(StandardProtocolFamily.INET6)) {
+          hasIpv6 = true;
+          if (hasIpv4) {
+            break;
+          }
+        } else {
+          throw new AssertionError("Unexpected family: " + family);
+        }
+      }
+      out.print("AddressFamily ");
+      if (hasIpv4 && hasIpv6) {
+        out.print("any"); // Both IPv4 and IPv6
+      } else if (hasIpv4) {
+        out.print("inet"); // IPv4 only
+      } else if (hasIpv6) {
+        out.print("inet6"); // IPv6 only
+      } else {
+        throw new AssertionError();
+      }
+      out.print('\n');
+    }
+    writeListenAddresses(nbs, out, MAX_LISTEN_SOCKS);
   }
 
   private static final Object rebuildLock = new Object();
@@ -429,7 +553,8 @@ public final class SshdManager extends BuilderThread {
                   // Enable service after package installation
                   if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                     AoservDaemon.exec("/sbin/chkconfig", "sshd", "on");
-                  } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+                  } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64
+                      || osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
                     AoservDaemon.exec("/usr/bin/systemctl", "enable", "sshd.service");
                   } else {
                     throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
@@ -437,8 +562,10 @@ public final class SshdManager extends BuilderThread {
                   needsRestart[0] = true;
                 }
             );
-            // Install sshd-after-network-online package on CentOS 7 when needed
-            if (hasSpecificAddress && osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+            // Install sshd-after-network-online package when needed
+            if (hasSpecificAddress
+                && (osvId == OperatingSystemVersion.CENTOS_7_X86_64 || osvId == OperatingSystemVersion.ROCKY_9_X86_64)
+            ) {
               PackageManager.installPackage(PackageManager.PackageName.SSHD_AFTER_NETWORK_ONLINE);
             }
           }
@@ -461,6 +588,8 @@ public final class SshdManager extends BuilderThread {
                     writeConfigFileCentos5(thisServer, nbs, out);
                   } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
                     writeConfigFileCentos7(thisServer, nbs, out);
+                  } else if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+                    writeConfigFileRocky9(thisServer, out);
                   } else {
                     throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
                   }
@@ -471,7 +600,7 @@ public final class SshdManager extends BuilderThread {
             // Write the new file only when file changed
             if (
                 DaemonFileUtils.atomicWrite(
-                    new PosixFile("/etc/ssh/sshd_config"),
+                    SSHD_CONFIG,
                     newConfig,
                     0600,
                     PosixFile.ROOT_UID,
@@ -482,6 +611,34 @@ public final class SshdManager extends BuilderThread {
             ) {
               needsRestart[0] = true;
             }
+            if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+              // Install aoserv-sshd-config package before overwriting with specific configuration
+              PackageManager.installPackage(PackageManager.PackageName.AOSERV_SSHD_CONFIG,
+                  () -> needsRestart[0] = true);
+              // Build the new config file to RAM
+              byte[] newBindsConf;
+                {
+                  ByteArrayOutputStream bout = new ByteArrayOutputStream();
+                  try (ChainWriter out = new ChainWriter(bout)) {
+                    writeBindsRocky9(nbs, out);
+                  }
+                  newBindsConf = bout.toByteArray();
+                }
+              // Write the new file only when file changed
+              if (
+                  DaemonFileUtils.atomicWrite(
+                      new PosixFile("/etc/ssh/sshd_config.d/10-binds.conf"),
+                      newBindsConf,
+                      0600,
+                      PosixFile.ROOT_UID,
+                      PosixFile.ROOT_GID,
+                      null,
+                      restorecon
+                  )
+              ) {
+                needsRestart[0] = true;
+              }
+            }
           }
 
           // SELinux before next steps
@@ -491,14 +648,21 @@ public final class SshdManager extends BuilderThread {
           // Manage SELinux:
           if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
             // SELinux left in Permissive state, not configured here
-          } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+          } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64
+              || osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
             // Note: SELinux configuration exists even without the openssh-server package installed.
             //       SELinux policies are provided independent of specific packages.
             //       Thus, we manage this even when the server not installed.
 
             // See https://bugzilla.redhat.com/show_bug.cgi?id=653579
-            // Install /usr/bin/semanage if missing
-            PackageManager.installPackage(PackageManager.PackageName.POLICYCOREUTILS_PYTHON);
+            // Install /usr/sbin/semanage if missing
+            if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+              PackageManager.installPackage(PackageManager.PackageName.POLICYCOREUTILS_PYTHON);
+            } else if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+              PackageManager.installPackage(PackageManager.PackageName.POLICYCOREUTILS_PYTHON_UTILS);
+            } else {
+              throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+            }
             // Find the set of distinct ports used by SSH server
             SortedSet<Port> sshPorts = new TreeSet<>();
             for (Bind nb : nbs) {
@@ -520,7 +684,8 @@ public final class SshdManager extends BuilderThread {
               if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                 AoservDaemon.exec("/sbin/chkconfig", "sshd", "off");
                 AoservDaemon.exec("/etc/rc.d/init.d/sshd", "stop");
-              } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+              } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64
+                  || osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
                 AoservDaemon.exec("/usr/bin/systemctl", "disable", "sshd.service");
                 AoservDaemon.exec("/usr/bin/systemctl", "stop", "sshd.service");
               } else {
@@ -558,7 +723,8 @@ public final class SshdManager extends BuilderThread {
                       "start"
                   );
                 }
-              } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+              } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64
+                  || osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
                 AoservDaemon.exec("/usr/bin/systemctl", "enable", "sshd.service");
                 // TODO: Should this be reload-or-restart?
                 AoservDaemon.exec("/usr/bin/systemctl", "restart", "sshd.service");
@@ -567,10 +733,10 @@ public final class SshdManager extends BuilderThread {
               }
             }
           }
-          // Uninstall sshd-after-network-online package on CentOS 7 when not needed
+          // Uninstall sshd-after-network-online package when not needed
           if (
               !hasSpecificAddress
-                  && osvId == OperatingSystemVersion.CENTOS_7_X86_64
+                  && (osvId == OperatingSystemVersion.CENTOS_7_X86_64 || osvId == OperatingSystemVersion.ROCKY_9_X86_64)
                   && AoservDaemonConfiguration.isPackageManagerUninstallEnabled()
           ) {
             PackageManager.removePackage(PackageManager.PackageName.SSHD_AFTER_NETWORK_ONLINE);
@@ -609,6 +775,7 @@ public final class SshdManager extends BuilderThread {
         if (
             osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                 || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+                || osvId == OperatingSystemVersion.ROCKY_9_X86_64
         ) {
           AoservConnector conn = AoservDaemon.getConnector();
           sshdManager = new SshdManager();

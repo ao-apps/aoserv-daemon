@@ -118,7 +118,7 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
             // SELinux left in Permissive state, not configured here
             break;
           case OperatingSystemVersion.CENTOS_7_X86_64: {
-            // Install /usr/bin/semanage if missing
+            // Install /usr/sbin/semanage if missing
             PackageManager.installPackage(PackageManager.PackageName.POLICYCOREUTILS_PYTHON);
             // Reconfigure SELinux ports
             if (SEManagePort.configure(postgresqlPorts, SELINUX_TYPE)) {
