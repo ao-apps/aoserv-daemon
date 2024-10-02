@@ -61,7 +61,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Handles the building of name server processes and files.
+ * Handles the building of MRTG processes and files.
  *
  * @author  AO Industries, Inc.
  */
