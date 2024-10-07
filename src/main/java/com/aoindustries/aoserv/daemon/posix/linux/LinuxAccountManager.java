@@ -382,6 +382,8 @@ public final class LinuxAccountManager extends BuilderThread {
                 try {
                   if (osvId != OperatingSystemVersion.ROCKY_9_X86_64 && username.equals(User.TSS)) {
                     name = User.Gecos.valueOf("Account used by the trousers package to sandbox the tcsd daemon");
+                  } else if (osvId != OperatingSystemVersion.ROCKY_9_X86_64 && username.equals(User.CHRONY)) {
+                    name = null;
                   } else if (osvId != OperatingSystemVersion.ROCKY_9_X86_64 && username.equals(User.NOBODY)) {
                     name = User.Gecos.valueOf("Nobody");
                   }
