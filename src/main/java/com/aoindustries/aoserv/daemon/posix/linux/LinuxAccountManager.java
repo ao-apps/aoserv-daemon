@@ -373,6 +373,10 @@ public final class LinuxAccountManager extends BuilderThread {
                   //    logger.info("Converting " + shell + " to " + Shell.BASH + " for " + username + " to be compatible with previous Jenkins installations in " + home);
                   //    shell = Shell.BASH;
                   //  }
+                } else if (osvId != OperatingSystemVersion.ROCKY_9_X86_64
+                    && (username.equals(User.TSS) || username.equals(User.SSHD))) {
+                  logger.info("Converting " + shell + " to " + Shell.NOLOGIN + " for " + username);
+                  shell = Shell.NOLOGIN;
                 }
                 // GECOS names changed in Rocky 9
                 // TODO: Unfortunately, in our current schema the GECOS is set on all servers at once.
