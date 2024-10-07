@@ -142,15 +142,6 @@ public final class DNSManager extends BuilderThread {
         }
         List<Bind> netBinds = thisHost.getNetBinds(dns);
         if (!netBinds.isEmpty()) {
-          final int namedGid;
-            {
-              GroupServer lsg = thisServer.getLinuxServerGroup(Group.NAMED);
-              if (lsg == null) {
-                throw new SQLException("Unable to find GroupServer: " + Group.NAMED + " on " + thisServer.getHostname());
-              }
-              namedGid = lsg.getGid().getId();
-            }
-
           // Only restart when needed
           boolean[] needsRestart = {false};
 
@@ -162,6 +153,15 @@ public final class DNSManager extends BuilderThread {
                 needsRestart[0] = true;
               }
           );
+
+          final int namedGid;
+            {
+              GroupServer lsg = thisServer.getLinuxServerGroup(Group.NAMED);
+              if (lsg == null) {
+                throw new SQLException("Unable to find GroupServer: " + Group.NAMED + " on " + thisServer.getHostname());
+              }
+              namedGid = lsg.getGid().getId();
+            }
 
           // Keep track of all files that should NOT be deleted in /var/named
           List<String> files = new ArrayList<>();
