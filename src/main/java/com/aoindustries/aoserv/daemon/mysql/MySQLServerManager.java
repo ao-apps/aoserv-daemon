@@ -106,15 +106,16 @@ public final class MySQLServerManager extends BuilderThread {
           case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64:
             // SELinux left in Permissive state, not configured here
             break;
-          case OperatingSystemVersion.CENTOS_7_X86_64: {
-            // Install /usr/sbin/semanage if missing
-            PackageManager.installPackage(PackageManager.PackageName.POLICYCOREUTILS_PYTHON);
-            // Reconfigure SELinux ports
-            if (SEManagePort.configure(mysqlPorts, SELINUX_TYPE)) {
-              // TODO: serversNeedingReloaded.addAll(...);
+          case OperatingSystemVersion.CENTOS_7_X86_64:
+            {
+              // Install /usr/sbin/semanage if missing
+              PackageManager.installPackage(PackageManager.PackageName.POLICYCOREUTILS_PYTHON);
+              // Reconfigure SELinux ports
+              if (SEManagePort.configure(mysqlPorts, SELINUX_TYPE)) {
+                // TODO: serversNeedingReloaded.addAll(...);
+              }
+              break;
             }
-            break;
-          }
           default:
             throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
         }

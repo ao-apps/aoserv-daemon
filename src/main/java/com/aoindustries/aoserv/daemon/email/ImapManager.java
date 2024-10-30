@@ -116,17 +116,16 @@ import javax.mail.StoreClosedException;
 
 /**
  * Any IMAP/Cyrus-specific features are here.
- * <p>
- * TODO: Once conversion done:
+ *
+ * <p>TODO: Once conversion done:
  *     0) Look for any /home/?/???/MoveToCyrus folders (www2.kc.aoindustries.com:smurphy is one)
  *     1) Set WUIMAP_CONVERSION_ENABLED to false
  *     2) Make sure all gone in /home/?/???/Mail and /home/?/???/.mailboxlist
  *     - Then after a while -
  *     3) rm -rf /opt/imap-2007d
- *     4) rm -rf /var/opt/imap-2007d
- * </p>
- * <p>
- * TODO: Future
+ *     4) rm -rf /var/opt/imap-2007d</p>
+ *
+ * <p>TODO: Future
  *     Control the synchronous mode for ext2/ext3 automatically?
  *         file:///home/orion/temp/cyrus/cyrus-imapd-2.3.7/doc/install-configure.html
  *         cd /var/imap
@@ -147,20 +146,16 @@ import javax.mail.StoreClosedException;
  *           Also, don't back-up Junk folders?
  *     Add smmapd support
  *     Consider https://wikipedia.org/wiki/Application_Configuration_Access_Protocol or https://wikipedia.org/wiki/Application_Configuration_Access_Protocol
- *     Look for any "junk" flags for Cyrus folders - if exists can train off this instead of requiring move to/from Junk
- * </p>
- * <p>
- * TODO: SELinux port management for non-standard ports
+ *     Look for any "junk" flags for Cyrus folders - if exists can train off this instead of requiring move to/from Junk</p>
+ *
+ * <p>TODO: SELinux port management for non-standard ports
  * TODO:   pop_port_t for 110, 143, 993, 995 (and on custom ports)
- * TODO:   sieve_port_t for Sieve on 4190 (and on custom ports)
- * </p>
- * <p>
- * TODO: allow lmtp-only config to support receiving-only server (without any POP3/IMAP)
- * TODO:   This might be a server configured with Sieve port only.
- * </p>
- * <p>
- * TODO: Auto-backup directories in /var/lib/imap and /var/spool/imap before removing inbox.
- * </p>
+ * TODO:   sieve_port_t for Sieve on 4190 (and on custom ports)</p>
+ *
+ * <p>TODO: allow lmtp-only config to support receiving-only server (without any POP3/IMAP)
+ * TODO:   This might be a server configured with Sieve port only.</p>
+ *
+ * <p>TODO: Auto-backup directories in /var/lib/imap and /var/spool/imap before removing inbox.</p>
  *
  * @author  AO Industries, Inc.
  */
@@ -1383,9 +1378,8 @@ public final class ImapManager extends BuilderThread {
 
   /**
    * Rebuild the ACL on a folder, both creating missing and removing extra rights.
-   * <p>
-   * http://www.faqs.org/rfcs/rfc2086.html
-   * </p>
+   *
+   * <p>http://www.faqs.org/rfcs/rfc2086.html</p>
    *
    * @param  folder  the IMAPFolder to verify the ACL on
    * @param  user    the username (without any @ sign)
@@ -2445,23 +2439,19 @@ public final class ImapManager extends BuilderThread {
 
   /**
    * Gets all of the annotations for the provided folder, entry, and attribute.
-   * <p>
-   * This uses ANNOTATEMORE
+   *
+   * <p>This uses ANNOTATEMORE
    *     Current: http://vman.de/cyrus/draft-daboo-imap-annotatemore-07.html
-   *     Newer:   http://vman.de/cyrus/draft-daboo-imap-annotatemore-10.html
-   * </p>
-   * <pre>
-   * ad GETANNOTATION user/cyrus.test/Junk@suspendo.aoindustries.com "/vendor/cmu/cyrus-imapd/size" "value.shared"
+   *     Newer:   http://vman.de/cyrus/draft-daboo-imap-annotatemore-10.html</p>
+   *
+   * <pre>ad GETANNOTATION user/cyrus.test/Junk@suspendo.aoindustries.com "/vendor/cmu/cyrus-imapd/size" "value.shared"
    * ANNOTATION "user/cyrus.test/Junk@suspendo.aoindustries.com" "/vendor/cmu/cyrus-imapd/size" ("value.shared" "33650")
-   * ad OK Completed
-   * </pre>
-   * <p>
-   * http://java.sun.com/products/javamail/javadocs/com/sun/mail/imap/IMAPFolder.html#doCommand(com.sun.mail.imap.IMAPFolder.ProtocolCommand)
-   * </p>
-   * <p>
-   * https://glassfish.dev.java.net/javaee5/mail/
-   * javamail@sun.com
-   * </p>
+   * ad OK Completed</pre>
+   *
+   * <p>http://java.sun.com/products/javamail/javadocs/com/sun/mail/imap/IMAPFolder.html#doCommand(com.sun.mail.imap.IMAPFolder.ProtocolCommand)</p>
+   *
+   * <p>https://glassfish.dev.java.net/javaee5/mail/
+   * javamail@sun.com</p>
    */
   @SuppressWarnings({"unchecked"})
   private static List<Annotation> getAnnotations(IMAPFolder folder, final String entry, final String attribute) throws MessagingException {
@@ -2803,9 +2793,8 @@ ad OK Completed
 
   /**
    * Checks if cyrus-imapd is expected to be enabled on this server.
-   * <p>
-   * This is used to know when to enable saslauthd (See {@link SaslauthdManager}.
-   * </p>
+   *
+   * <p>This is used to know when to enable saslauthd (See {@link SaslauthdManager}.</p>
    *
    * @see AppProtocol#IMAP2
    * @see AppProtocol#SIMAP

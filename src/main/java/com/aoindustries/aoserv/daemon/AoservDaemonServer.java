@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2012, 2013, 2015, 2017, 2018, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2012, 2013, 2015, 2017, 2018, 2020, 2021, 2022, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -43,9 +43,8 @@ import javax.net.ssl.SSLServerSocketFactory;
  * The <code>AoservDaemonServer</code> accepts connections from an <code>SimpleAoservClient</code>.
  * Once the connection is accepted and authenticated, the server carries out all actions requested
  * by the client.
- * <p>
- * This server is completely threaded to handle multiple, simultaneous clients.
- * </p>
+ *
+ * <p>This server is completely threaded to handle multiple, simultaneous clients.</p>
  *
  * @author  AO Industries, Inc.
  */
@@ -140,42 +139,44 @@ public final class AoservDaemonServer extends Thread {
           System.out.println(')');
         }
         switch (protocol) {
-          case AppProtocol.AOSERV_DAEMON: {
-            try (ServerSocket SS = new ServerSocket(serverPort, 50, serverBind.isUnspecified() ? null : address)) {
-              while (!Thread.currentThread().isInterrupted()) {
-                Socket socket = SS.accept();
-                socket.setKeepAlive(true);
-                socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
-                //socket.setTcpNoDelay(true);
-                AoservDaemonServerThread thread = new AoservDaemonServerThread(this, socket);
-                thread.start();
-              }
-            }
-            break;
-          }
-          case AppProtocol.AOSERV_DAEMON_SSL: {
-            SSLServerSocketFactory factory = (SSLServerSocketFactory) SSLServerSocketFactory.getDefault();
-            SSLServerSocket ss = (SSLServerSocket) factory.createServerSocket(serverPort, 50, address);
-            try {
-              while (!Thread.currentThread().isInterrupted()) {
-                Socket socket = ss.accept();
-                try {
+          case AppProtocol.AOSERV_DAEMON:
+            {
+              try (ServerSocket SS = new ServerSocket(serverPort, 50, serverBind.isUnspecified() ? null : address)) {
+                while (!Thread.currentThread().isInterrupted()) {
+                  Socket socket = SS.accept();
                   socket.setKeepAlive(true);
                   socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
                   //socket.setTcpNoDelay(true);
                   AoservDaemonServerThread thread = new AoservDaemonServerThread(this, socket);
                   thread.start();
-                } catch (ThreadDeath td) {
-                  throw td;
-                } catch (Throwable t) {
-                  logger.log(Level.SEVERE, null, t);
                 }
               }
-            } finally {
-              ss.close();
+              break;
             }
-            break;
-          }
+          case AppProtocol.AOSERV_DAEMON_SSL:
+            {
+              SSLServerSocketFactory factory = (SSLServerSocketFactory) SSLServerSocketFactory.getDefault();
+              SSLServerSocket ss = (SSLServerSocket) factory.createServerSocket(serverPort, 50, address);
+              try {
+                while (!Thread.currentThread().isInterrupted()) {
+                  Socket socket = ss.accept();
+                  try {
+                    socket.setKeepAlive(true);
+                    socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
+                    //socket.setTcpNoDelay(true);
+                    AoservDaemonServerThread thread = new AoservDaemonServerThread(this, socket);
+                    thread.start();
+                  } catch (ThreadDeath td) {
+                    throw td;
+                  } catch (Throwable t) {
+                    logger.log(Level.SEVERE, null, t);
+                  }
+                }
+              } finally {
+                ss.close();
+              }
+              break;
+            }
           default:
             throw new IllegalArgumentException("Unsupported protocol: " + protocol);
         }

@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -51,10 +51,9 @@ import java.util.logging.Logger;
 
 /**
  * Manages SharedTomcat version 3.X configurations.
- * <p>
- * TODO: Replace all uses of "replace" with a read file then call replace only if one of the "from" values is found.  Should be faster
- *       be eliminating unnecessary subprocesses.
- * </p>
+ *
+ * <p>TODO: Replace all uses of "replace" with a read file then call replace only if one of the "from" values is found.  Should be faster
+ *       be eliminating unnecessary subprocesses.</p>
  *
  * @author  AO Industries, Inc.
  */

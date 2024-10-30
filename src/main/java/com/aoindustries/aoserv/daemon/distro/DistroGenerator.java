@@ -475,19 +475,16 @@ public final class DistroGenerator {
     private boolean done;
 
     /**
-     * <p>
      * Reads the config file from the distro directory.
      * The filename is based on the distro directory, but with the type added.
      * For example, the file for "prelinks" on CentOS 7, x86_64 is
      * <code>/distro/centos/7/x86_64.prelinks</code>.
-     * </p>
-     * <p>
-     * The file contains one path per line.
+     *
+     * <p>The file contains one path per line.
      * Any line beginning with <code>#</code>,
      * after trimming, is considered a comment.
      * Empty lines, after trimming, are ignored.
-     * Lines containing a path are not trimmed.
-     * </p>
+     * Lines containing a path are not trimmed.</p>
      */
     private void readFileLists(ConfigFile configFile, Map<OsFilename, Boolean> map, int ... osvs) throws IOException {
       for (int osv : osvs) {

@@ -60,11 +60,10 @@ import java.util.logging.Logger;
 
 /**
  * Handles the building of name server processes and files.
- * <p>
- * TODO: Had to put "DISABLE_ZONE_CHECKING="yes"" in /etc/sysconfig/named due
+ *
+ * <p>TODO: Had to put "DISABLE_ZONE_CHECKING="yes"" in /etc/sysconfig/named due
  *       to check finding "has no address records" for MX records.  We should
- *       check for this and enable zone checking.
- * </p>
+ *       check for this and enable zone checking.</p>
  *
  * @author  AO Industries, Inc.
  */

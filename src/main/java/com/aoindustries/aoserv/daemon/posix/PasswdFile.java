@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2017, 2018, 2019, 2020, 2021, 2022, 2023  AO Industries, Inc.
+ * Copyright (C) 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -349,9 +349,8 @@ public final class PasswdFile {
 
   /**
    * Reads the full contents of <code>/etc/passwd</code>.
-   * <p>
-   * Must hold {@link #passwdLock}.
-   * </p>
+   *
+   * <p>Must hold {@link #passwdLock}.</p>
    */
   public static Map<User.Name, Entry> readPasswdFile() throws IOException {
     assert Thread.holdsLock(passwdLock);
@@ -418,9 +417,8 @@ public final class PasswdFile {
 
   /**
    * Builds a new version of the passwd file with necessary adjustments made.
-   * <p>
-   * Must hold {@link #passwdLock}.
-   * </p>
+   *
+   * <p>Must hold {@link #passwdLock}.</p>
    */
   public static byte[] buildPasswdFile(Map<User.Name, Entry> expectedEntries, int uidMin, int uidMax) throws IOException {
     assert Thread.holdsLock(passwdLock);

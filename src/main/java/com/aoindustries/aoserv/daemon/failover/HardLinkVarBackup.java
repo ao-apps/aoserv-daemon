@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2006-2013, 2015, 2017, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2006-2013, 2015, 2017, 2020, 2021, 2022, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -54,19 +54,17 @@ import java.util.Set;
  *   <li>Have matching ownership</li>
  *   <li>Have exactly matching file contents</li>
  * </ol>
- * <p>
- * This is accomplished by iterating through all /var/backup/hostname/####-##-## directories concurrently in a sorted manner such
+ *
+ * <p>This is accomplished by iterating through all /var/backup/hostname/####-##-## directories concurrently in a sorted manner such
  * that each unique path is examined once.  For each unique path, all directories having a file at that path will be compared by
- * the above rules.
- * </p>
- * <p>
- * During a pass, the /var/backup/hostname/####-##-## may be renamed to .partial or .deleted by the backup server.  Should this happen
+ * the above rules.</p>
+ *
+ * <p>During a pass, the /var/backup/hostname/####-##-## may be renamed to .partial or .deleted by the backup server.  Should this happen
  * either a <code>FileNotFoundException</code> will be thrown or a directory listing will be <code>null</code> or empty.  In any of
- * these cases, the system will continue linking the other directories without interruption.
- * </p>
- * <p>
- * Through the complete pass, statistics will be kept.  The statistics will be displayed every <code>DISPLAY_INTERVAL</code> milliseconds.  These will include:
- * </p>
+ * these cases, the system will continue linking the other directories without interruption.</p>
+ *
+ * <p>Through the complete pass, statistics will be kept.  The statistics will be displayed every <code>DISPLAY_INTERVAL</code> milliseconds.  These will include:</p>
+ *
  * <ul>
  *   <li>Total number of filesystem objects (unique paths from /var/backup)</li>
  *   <li>Total number of unique paths</li>

@@ -833,28 +833,29 @@ public final class MrtgManager extends BuilderThread {
         case "/dev/mapper/ao":
           safeName = "aoluks";
           break;
-        default: {
-          if (device.startsWith("/dev/mapper/")) {
-            device = "mapper_" + device.substring(12).replace('-', '_');
-          } else if (device.startsWith("/dev/")) {
-            device = device.substring(5);
-          } // All characters should now be a-z, A-Z, 0-9 or _
-          if (device.isEmpty()) {
-            throw new IOException("Empty device name: " + device);
-          }
-          for (int c = 0; c < device.length(); c++) {
-            char ch = device.charAt(c);
-            if (
-                (ch < 'a' || ch > 'z')
-                    && (ch < 'A' || ch > 'Z')
-                    && (ch < '0' || ch > '9')
-                    && ch != '_'
-            ) {
-              throw new IOException("Invalid character in device.  ch=" + ch + ", device=" + device);
+        default:
+          {
+            if (device.startsWith("/dev/mapper/")) {
+              device = "mapper_" + device.substring(12).replace('-', '_');
+            } else if (device.startsWith("/dev/")) {
+              device = device.substring(5);
+            } // All characters should now be a-z, A-Z, 0-9 or _
+            if (device.isEmpty()) {
+              throw new IOException("Empty device name: " + device);
             }
+            for (int c = 0; c < device.length(); c++) {
+              char ch = device.charAt(c);
+              if (
+                  (ch < 'a' || ch > 'z')
+                      && (ch < 'A' || ch > 'Z')
+                      && (ch < '0' || ch > '9')
+                      && ch != '_'
+              ) {
+                throw new IOException("Invalid character in device.  ch=" + ch + ", device=" + device);
+              }
+            }
+            safeName = device;
           }
-          safeName = device;
-        }
       }
       safeNames.add(safeName);
     }

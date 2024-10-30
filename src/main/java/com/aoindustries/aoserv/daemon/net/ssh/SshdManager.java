@@ -84,19 +84,16 @@ public final class SshdManager extends BuilderThread {
    * Nine years ago we submitted a patch to eliminate the build-time limit on the number
    * of ListenAddress allowed in <code>sshd_config</code>.  We just tested CentOS 7 and
    * this limit still remains.
-   * <p>
-   * Software should just do what it's told without arbitrary compile-time limits, but
-   * this is out of our control.
-   * </p>
-   * <p>
-   * Our use-case has changed as we move away from large shared servers into smaller
+   *
+   * <p>Software should just do what it's told without arbitrary compile-time limits, but
+   * this is out of our control.</p>
+   *
+   * <p>Our use-case has changed as we move away from large shared servers into smaller
    * focused Xen-based virtual servers.  As such, we are no longer packing tons of
-   * different IPs into single servers.
-   * </p>
-   * <p>
-   * Rather than continue building our own customized SSH RPM, we will simply refuse to
-   * build any config file with more than 16 <code>net_binds</code>.
-   * </p>
+   * different IPs into single servers.</p>
+   *
+   * <p>Rather than continue building our own customized SSH RPM, we will simply refuse to
+   * build any config file with more than 16 <code>net_binds</code>.</p>
    */
   private static final int MAX_LISTEN_SOCKS = 16; // Matches the value defined in sshd.c
 

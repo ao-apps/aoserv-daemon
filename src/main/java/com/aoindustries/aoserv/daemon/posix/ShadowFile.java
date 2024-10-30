@@ -405,9 +405,8 @@ public final class ShadowFile {
 
   /**
    * Gets the encrypted password for one user on the system include the {@link Entry#getChangedDate() changeDate}, if known.
-   * <p>
-   * If there is no entry for the user in the shadow file, returns <code>({@link User#NO_PASSWORD_CONFIG_VALUE}, null)</code>.
-   * </p>
+   *
+   * <p>If there is no entry for the user in the shadow file, returns <code>({@link User#NO_PASSWORD_CONFIG_VALUE}, null)</code>.</p>
    */
   public static Tuple2<String, Integer> getEncryptedPassword(User.Name username) throws IOException, SQLException {
     OperatingSystemVersion osv = AoservDaemon.getThisServer().getHost().getOperatingSystemVersion();
@@ -528,9 +527,8 @@ public final class ShadowFile {
 
   /**
    * Builds a new version of the shadow file with necessary adjustments made.
-   * <p>
-   * Must hold {@link #shadowLock}.
-   * </p>
+   *
+   * <p>Must hold {@link #shadowLock}.</p>
    */
   public static byte[] buildShadowFile(Set<User.Name> usernames) throws IOException {
     assert Thread.holdsLock(shadowLock);
@@ -566,10 +564,9 @@ public final class ShadowFile {
   /**
    * Sets the encrypted password for one user on the system.  This password must already
    * be {@link PosixFile#crypt(java.lang.String, com.aoapps.io.posix.PosixFile.CryptAlgorithm) hashed}.
-   * <p>
-   * This method is synchronized with <code>doRebuild</code> to ensure that
-   * passwords are never lost during updates.
-   * </p>
+   *
+   * <p>This method is synchronized with <code>doRebuild</code> to ensure that
+   * passwords are never lost during updates.</p>
    *
    * @param newChangedDate  The new changeDate or {@code null} to not alter
    *

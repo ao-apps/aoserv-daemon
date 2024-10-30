@@ -84,10 +84,9 @@ public abstract class HttpdSiteManager {
 
   /**
    * The directories in /www or /var/www that will never be deleted.
-   * <p>
-   * Note: This matches the check constraint on the httpd_sites table.
-   * Note: This matches isValidSiteName in Site.
-   * </p>
+   *
+   * <p>Note: This matches the check constraint on the httpd_sites table.
+   * Note: This matches isValidSiteName in Site.</p>
    */
   private static final Set<String> keepWwwDirs = new HashSet<>(Arrays.asList(
       "disabled", // Provided by aoserv-httpd-site-disabled package
@@ -144,9 +143,8 @@ public abstract class HttpdSiteManager {
 
   /**
    * Responsible for control of all things in <code>[/var]/www</code>.
-   * <p>
-   * Only called by the already synchronized <code>HttpdManager.doRebuild()</code> method.
-   * </p>
+   *
+   * <p>Only called by the already synchronized <code>HttpdManager.doRebuild()</code> method.</p>
    */
   static void doRebuild(
       List<File> deleteFileList,
@@ -217,13 +215,11 @@ public abstract class HttpdSiteManager {
    * Stops any daemons that should not be running.
    * Restarts any sites that need restarted.
    * Starts any daemons that should be running.
-   * <p>
-   * Makes calls with a one-minute time-out.
-   * Logs errors on calls as warnings, continues to next site.
-   * </p>
-   * <p>
-   * Only called by the already synchronized <code>HttpdManager.doRebuild()</code> method.
-   * </p>
+   *
+   * <p>Makes calls with a one-minute time-out.
+   * Logs errors on calls as warnings, continues to next site.</p>
+   *
+   * <p>Only called by the already synchronized <code>HttpdManager.doRebuild()</code> method.</p>
    */
   @SuppressWarnings("SleepWhileInLoop")
   static void stopStartAndRestart(Set<Site> sitesNeedingRestarted) throws IOException, SQLException {
@@ -487,9 +483,8 @@ public abstract class HttpdSiteManager {
 
   /**
    * Gets any packages that must be installed for this site.
-   * <p>
-   * By default, no specific packages are required.
-   * </p>
+   *
+   * <p>By default, no specific packages are required.</p>
    */
   protected Set<PackageManager.PackageName> getRequiredPackages() throws IOException, SQLException {
     return Collections.emptySet();
@@ -560,10 +555,9 @@ public abstract class HttpdSiteManager {
 
   /**
    * Determines if PHP should be enabled.
-   * <p>
-   * If this is enabled and CGI is disabled, then the HttpdServer for the
-   * site must use mod_php.
-   * </p>
+   *
+   * <p>If this is enabled and CGI is disabled, then the HttpdServer for the
+   * site must use mod_php.</p>
    *
    * @see  Site#getPhpVersion()
    */
@@ -762,10 +756,9 @@ public abstract class HttpdSiteManager {
 
   /**
    * Creates the test index.html file if it is missing.
-   * <p>
-   * TODO: Generate proper disabled page automatically.
-   *       Or, better, put into logic of static site rebuild.
-   * </p>
+   *
+   * <p>TODO: Generate proper disabled page automatically.
+   *       Or, better, put into logic of static site rebuild.</p>
    */
   protected void createTestIndex(PosixFile indexFile) throws IOException, SQLException {
     if (!indexFile.getStat().exists()) {
@@ -1020,9 +1013,8 @@ public abstract class HttpdSiteManager {
 
   /**
    * By default, sites will block all TRACE and TRACK requests.
-   * <p>
-   * Seriously consider security ramifications before enabling TRACK and TRACE.
-   * </p>
+   *
+   * <p>Seriously consider security ramifications before enabling TRACK and TRACE.</p>
    *
    * @see  Site#getBlockTraceTrack()
    */
@@ -1099,9 +1091,8 @@ public abstract class HttpdSiteManager {
 
   /**
    * Gets the JkMount and JkUnmounts for this site.
-   * <p>
-   * This default implementation returns an empty set.
-   * </p>
+   *
+   * <p>This default implementation returns an empty set.</p>
    *
    * @return  An empty set if no Jk enabled.
    */

@@ -78,56 +78,47 @@ import java.util.zip.GZIPInputStream;
 
 /**
  * Handles the replication of data for the failover and backup system.
- * <p>
- * In failover mode, only one replication directory is maintained and it is
+ *
+ * <p>In failover mode, only one replication directory is maintained and it is
  * updated in-place.  No space saving techniques are applied.  A data index is
- * never used in failover mode.
- * </p>
- * <p>
- * In backup mode, multiple directories (on per date) are maintained.  Also,
+ * never used in failover mode.</p>
+ *
+ * <p>In backup mode, multiple directories (on per date) are maintained.  Also,
  * regular files are hard linked between directories (and optionally the data
- * index).
- * </p>
- * <p>
- * Compression may be enabled, which will compare chunks of files by MD5 hash and GZIP compress the upload stream.
+ * index).</p>
+ *
+ * <p>Compression may be enabled, which will compare chunks of files by MD5 hash and GZIP compress the upload stream.
  * This will save networking at the cost of additional CPU cycles.  This is
  * generally a good thing, but when your network is significantly faster than
- * your processor, it may be better to turn off compression.
- * </p>
- * <p>
- * The compression also assumes that if the MD5 matches in the same chunk location,
+ * your processor, it may be better to turn off compression.</p>
+ *
+ * <p>The compression also assumes that if the MD5 matches in the same chunk location,
  * then chunk has not changed.  To be absolutely sure there is no hash collision
- * the compression must be disabled.
- * </p>
- * <p>
- * Files are compared only by modified time and file length.  If both these are
+ * the compression must be disabled.</p>
+ *
+ * <p>Files are compared only by modified time and file length.  If both these are
  * the same, the file is assumed to be the same.  There is currently no facility
- * for full checksumming or copying of data.
- * </p>
- * <p>
- * When the data index is enabled, the underlying filesystem must have the
+ * for full checksumming or copying of data.</p>
+ *
+ * <p>When the data index is enabled, the underlying filesystem must have the
  * capabilities of <code>ext4</code> or better (support 2^16 sub directories
- * and over <code>DataIndex.FILESYSTEM_MAX_LINK_COUNT</code> links to a file).
- * </p>
- * <p>
- * To minimize the amount of meta data updates, old backup trees are recycled
+ * and over <code>DataIndex.FILESYSTEM_MAX_LINK_COUNT</code> links to a file).</p>
+ *
+ * <p>To minimize the amount of meta data updates, old backup trees are recycled
  * and used as the starting point for new backups.  This dramatically improves
- * the throughput in the normal case where most things do not change.
- * </p>
- * <p>
- * The data index may be turned on and off for a partition.  Newly created backup
+ * the throughput in the normal case where most things do not change.</p>
+ *
+ * <p>The data index may be turned on and off for a partition.  Newly created backup
  * directory trees will use the format currently set, but will also recognize the
- * existing data in either format.
- * </p>
- * <p>
- * When data index is off, each file is simply stored, in its entirety, directly
+ * existing data in either format.</p>
+ *
+ * <p>When data index is off, each file is simply stored, in its entirety, directly
  * in-place.  If the file contents (possibly assumed only by length and modified
  * time) and all attributes (ownership, permission, times, ...) match another
- * backup directory, the files will be hard linked together to save space.
- * </p>
- * <p>
- * When the data index is enabled, each file is handled one of three ways:
- * </p>
+ * backup directory, the files will be hard linked together to save space.</p>
+ *
+ * <p>When the data index is enabled, each file is handled one of three ways:</p>
+ *
  * <ol>
  * <li>
  *   If the file is empty, it is stored directly in place not using the
@@ -148,21 +139,18 @@ import java.util.zip.GZIPInputStream;
  *   </ol>
  * </li>
  * </ol>
- * <p>
- * A surrogate file contain all the ownership, mode, and (in the future) will
- * represent the hard link relationships in the original source tree.
- * </p>
- * <p>
- * During an expansion process, the surrogate might not be empty as data is put
+ *
+ * <p>A surrogate file contain all the ownership, mode, and (in the future) will
+ * represent the hard link relationships in the original source tree.</p>
+ *
+ * <p>During an expansion process, the surrogate might not be empty as data is put
  * back in place.  The restore processes resume where they left off, even when
- * interrupted.
- * </p>
- * <p>
- * Data indexes are verified once per day as well as a quick verification on
- * start-up.
- * </p>
- * <p>
- * depending on the length of the filename.
+ * interrupted.</p>
+ *
+ * <p>Data indexes are verified once per day as well as a quick verification on
+ * start-up.</p>
+ *
+ * <p>depending on the length of the filename.
  *
 16 TiB = 2 ^ (10 + 10 + 10 + 10 + 4) = 2 ^ 44
 
@@ -172,30 +160,24 @@ Maximum number of chunks per file: 2 ^ (44 - 20): 2 ^ 24
 
  * TODO: filename&lt;A&lt;O&lt;S&gt;O&gt;A&gt;...
  * TODO: Can't have any regular filename from client with &lt;A&lt;O&lt;CHUNK&gt;O&gt;A&gt; pattern.
- * TODO: Can't have any regular file exactly named "&lt;A&lt;O&lt;SURROGATE&gt;O&gt;A&gt;"
- * </p>
- * <p>
- * TODO: Handle hard links (pertinence space savings), and also meet expectations.  Our ParallelPack/ParallelUnpack are
- *       a good reference.
- * </p>
- * <p>
- * TODO: Need to do mysqldump and postgresql dump on preBackup
- * </p>
- * <p>
- * TODO: Use LVM snapshots within the client layer
- * </p>
- * <p>
- * TODO: Support chunking from either data set: current file or in linkToRoot, also possibly try to guess the last temp file?
+ * TODO: Can't have any regular file exactly named "&lt;A&lt;O&lt;SURROGATE&gt;O&gt;A&gt;"</p>
+ *
+ * <p>TODO: Handle hard links (pertinence space savings), and also meet expectations.  Our ParallelPack/ParallelUnpack are
+ *       a good reference.</p>
+ *
+ * <p>TODO: Need to do mysqldump and postgresql dump on preBackup</p>
+ *
+ * <p>TODO: Use LVM snapshots within the client layer</p>
+ *
+ * <p>TODO: Support chunking from either data set: current file or in linkToRoot, also possibly try to guess the last temp file?
  *       This would allow to not have to resend all data when a chunked transfer is interrupted.  This would have the
  *       cost of additional reads and MD5 CPU, so may not be worth it in the general case; any way to detect when it is
- *       worth it, such as a certain number of chunks transferred?
- * </p>
- * <p>
- * TODO: Support sparse files.  In simplest form, use RandomAccessFile to write new files, and detect sequences of zeros,
+ *       worth it, such as a certain number of chunks transferred?</p>
+ *
+ * <p>TODO: Support sparse files.  In simplest form, use RandomAccessFile to write new files, and detect sequences of zeros,
  *       possibly only when 4k aligned, and use seek instead of writing the zeros.  Could also build the zero detection
  *       into the protocol, which would put more of the work on the client and remove the need for MD5 and compression
- *       of the zeros, at least in the case of full 1 MiB chunks of zeros.
- * </p>
+ *       of the zeros, at least in the case of full 1 MiB chunks of zeros.</p>
  *
  * @see  DedupDataIndex
  *

@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2003-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2003-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -202,163 +202,168 @@ public final class XinetdManager extends BuilderThread {
                 );
               } else */
               switch (protocol) {
-                case AppProtocol.CVSPSERVER: {
-                  List<CvsRepository> repos = linuxServer.getCvsRepositories();
-                  if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-                    StringBuilder server_args = new StringBuilder();
-                    server_args.append("-f");
-                    for (CvsRepository repo : repos) {
-                      server_args.append(" --allow-root=").append(repo.getPath());
+                case AppProtocol.CVSPSERVER:
+                  {
+                    List<CvsRepository> repos = linuxServer.getCvsRepositories();
+                    if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                      StringBuilder server_args = new StringBuilder();
+                      server_args.append("-f");
+                      for (CvsRepository repo : repos) {
+                        server_args.append(" --allow-root=").append(repo.getPath());
+                      }
+                      server_args.append(" pserver");
+                      service = new Service(
+                          portMatches ? null : UNLISTED,
+                          -1,
+                          -1,
+                          "100 30",
+                          null,
+                          "REUSE",
+                          portMatches ? "cvspserver" : "cvspserver-unlisted",
+                          port.getProtocol(),
+                          bind.getIpAddress(),
+                          portMatches ? null : port,
+                          false,
+                          rootUser,
+                          null,
+                          "/usr/bin/cvs",
+                          "HOME=" + CvsRepository.DEFAULT_CVS_DIRECTORY,
+                          server_args.toString(),
+                          "HOST DURATION",
+                          "HOST USERID",
+                          -1,
+                          null,
+                          null
+                      );
+                    } else {
+                      throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
                     }
-                    server_args.append(" pserver");
-                    service = new Service(
-                        portMatches ? null : UNLISTED,
-                        -1,
-                        -1,
-                        "100 30",
-                        null,
-                        "REUSE",
-                        portMatches ? "cvspserver" : "cvspserver-unlisted",
-                        port.getProtocol(),
-                        bind.getIpAddress(),
-                        portMatches ? null : port,
-                        false,
-                        rootUser,
-                        null,
-                        "/usr/bin/cvs",
-                        "HOME=" + CvsRepository.DEFAULT_CVS_DIRECTORY,
-                        server_args.toString(),
-                        "HOST DURATION",
-                        "HOST USERID",
-                        -1,
-                        null,
-                        null
-                    );
-                  } else {
-                    throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+                    break;
                   }
-                  break;
-                }
-                case AppProtocol.FTP: {
-                  if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-                    service = new Service(
-                        portMatches ? null : UNLISTED,
-                        100,
-                        20, // Was 5, but confsys03 on www7.fc.aoindustries.com hit this limit on 2009-07-31
-                        "100 30",
-                        "/etc/vsftpd/busy_banner",
-                        "IPv4",
-                        portMatches ? "ftp" : "ftp-unlisted",
-                        port.getProtocol(),
-                        bind.getIpAddress(),
-                        portMatches ? null : port,
-                        false,
-                        rootUser,
-                        null,
-                        "/usr/sbin/vsftpd",
-                        null,
-                        "/etc/vsftpd/vhosts/vsftpd_" + bind.getIpAddress().getInetAddress().toString() + "_" + port.getPort() + ".conf",
-                        "PID HOST DURATION",
-                        "HOST",
-                        10,
-                        null,
-                        null
-                    );
-                  } else {
-                    throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+                case AppProtocol.FTP:
+                  {
+                    if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                      service = new Service(
+                          portMatches ? null : UNLISTED,
+                          100,
+                          20, // Was 5, but confsys03 on www7.fc.aoindustries.com hit this limit on 2009-07-31
+                          "100 30",
+                          "/etc/vsftpd/busy_banner",
+                          "IPv4",
+                          portMatches ? "ftp" : "ftp-unlisted",
+                          port.getProtocol(),
+                          bind.getIpAddress(),
+                          portMatches ? null : port,
+                          false,
+                          rootUser,
+                          null,
+                          "/usr/sbin/vsftpd",
+                          null,
+                          "/etc/vsftpd/vhosts/vsftpd_" + bind.getIpAddress().getInetAddress().toString() + "_" + port.getPort() + ".conf",
+                          "PID HOST DURATION",
+                          "HOST",
+                          10,
+                          null,
+                          null
+                      );
+                    } else {
+                      throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+                    }
+                    break;
                   }
-                  break;
-                }
-                case AppProtocol.NTALK: {
-                  if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-                    service = new Service(
-                        portMatches ? null : UNLISTED,
-                        -1, // instances
-                        -1, // per_source
-                        null, // cps
-                        null, // banner_fail
-                        "IPv4", // flags
-                        portMatches ? "ntalk" : "ntalk-unlisted",
-                        port.getProtocol(),
-                        bind.getIpAddress(),
-                        portMatches ? null : port,
-                        true,
-                        nobodyUser,
-                        ttyGroup,
-                        "/usr/sbin/in.ntalkd",
-                        null, // env
-                        null, // server_args
-                        "HOST DURATION",
-                        "HOST USERID",
-                        -1,
-                        null,
-                        null
-                    );
-                  } else {
-                    throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+                case AppProtocol.NTALK:
+                  {
+                    if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                      service = new Service(
+                          portMatches ? null : UNLISTED,
+                          -1, // instances
+                          -1, // per_source
+                          null, // cps
+                          null, // banner_fail
+                          "IPv4", // flags
+                          portMatches ? "ntalk" : "ntalk-unlisted",
+                          port.getProtocol(),
+                          bind.getIpAddress(),
+                          portMatches ? null : port,
+                          true,
+                          nobodyUser,
+                          ttyGroup,
+                          "/usr/sbin/in.ntalkd",
+                          null, // env
+                          null, // server_args
+                          "HOST DURATION",
+                          "HOST USERID",
+                          -1,
+                          null,
+                          null
+                      );
+                    } else {
+                      throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+                    }
+                    break;
                   }
-                  break;
-                }
-                case AppProtocol.TALK: {
-                  if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-                    service = new Service(
-                        portMatches ? null : UNLISTED,
-                        -1, // instances
-                        -1, // per_source
-                        null, // cps
-                        null, // banner_fail
-                        "IPv4", // flags
-                        portMatches ? "talk" : "talk-unlisted",
-                        port.getProtocol(),
-                        bind.getIpAddress(),
-                        portMatches ? null : port,
-                        true,
-                        nobodyUser,
-                        ttyGroup,
-                        "/usr/sbin/in.talkd",
-                        null, // env
-                        null, // server_args
-                        "HOST DURATION",
-                        "HOST USERID",
-                        -1,
-                        null,
-                        null
-                    );
-                  } else {
-                    throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+                case AppProtocol.TALK:
+                  {
+                    if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                      service = new Service(
+                          portMatches ? null : UNLISTED,
+                          -1, // instances
+                          -1, // per_source
+                          null, // cps
+                          null, // banner_fail
+                          "IPv4", // flags
+                          portMatches ? "talk" : "talk-unlisted",
+                          port.getProtocol(),
+                          bind.getIpAddress(),
+                          portMatches ? null : port,
+                          true,
+                          nobodyUser,
+                          ttyGroup,
+                          "/usr/sbin/in.talkd",
+                          null, // env
+                          null, // server_args
+                          "HOST DURATION",
+                          "HOST USERID",
+                          -1,
+                          null,
+                          null
+                      );
+                    } else {
+                      throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+                    }
+                    break;
                   }
-                  break;
-                }
-                case AppProtocol.TELNET: {
-                  if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-                    service = new Service(
-                        portMatches ? null : UNLISTED,
-                        -1,
-                        -1,
-                        "100 30",
-                        null,
-                        "REUSE",
-                        portMatches ? "telnet" : "telnet-unlisted",
-                        port.getProtocol(),
-                        bind.getIpAddress(),
-                        portMatches ? null : port,
-                        false,
-                        rootUser,
-                        null,
-                        "/usr/sbin/in.telnetd",
-                        null,
-                        null,
-                        "HOST DURATION",
-                        "HOST USERID",
-                        -1,
-                        null,
-                        null
-                    );
-                  } else {
-                    throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+                case AppProtocol.TELNET:
+                  {
+                    if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                      service = new Service(
+                          portMatches ? null : UNLISTED,
+                          -1,
+                          -1,
+                          "100 30",
+                          null,
+                          "REUSE",
+                          portMatches ? "telnet" : "telnet-unlisted",
+                          port.getProtocol(),
+                          bind.getIpAddress(),
+                          portMatches ? null : port,
+                          false,
+                          rootUser,
+                          null,
+                          "/usr/sbin/in.telnetd",
+                          null,
+                          null,
+                          "HOST DURATION",
+                          "HOST USERID",
+                          -1,
+                          null,
+                          null
+                      );
+                    } else {
+                      throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+                    }
+                    break;
                   }
-                  break;
-                }
                 default:
                   throw new RuntimeException("Unexpected protocol: " + protocol);
               }

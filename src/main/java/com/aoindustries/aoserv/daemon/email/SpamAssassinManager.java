@@ -84,28 +84,23 @@ import java.util.logging.Logger;
  * The primary purpose of the manager is to decouple the IMAP server from the SpamAssassin training.
  * The training process is slow and makes the IMAP server hesitate in ways that interfere with the
  * mail client and user.
- * <p>
- * The SpamAssassin manager looks for emails left in specific directories by the IMAP server.
+ *
+ * <p>The SpamAssassin manager looks for emails left in specific directories by the IMAP server.
  * When these files are found, the SpamAssassin training command (<code>sa-learn</code>) is invoked
  * on these files.  The files start with either <code>ham_</code> or <code>spam_</code> depending on
  * the type of messages.  In order to maintain the expected behavior, the files
  * are processed in chronological order.  That way if a user drags a message to the Junk
- * folder then back to the INBOX, it will not be considered spam.
- * </p>
- * <p>
- * To help avoid any race conditions, only files that are at least 1 minute old (or in the future by 1 or more minutes
+ * folder then back to the INBOX, it will not be considered spam.</p>
+ *
+ * <p>To help avoid any race conditions, only files that are at least 1 minute old (or in the future by 1 or more minutes
  * to handle clock changes) are considered on each pass.  This gives the IMAP server at least one minute to write all of
- * its files.
- * </p>
- * <p>
- * Multiple files from one user are sent to <code>sa-learn</code> at once when possible for efficiency.
- * </p>
- * <p>
- * TODO: SELinux port management for non-standard (other than 783) ports.
- * </p>
- * <p>
- * TODO: Somehow report when users drag from Junk to elsewhere (ham training), perhaps we can tweak our sa_discard_score some
- * </p>
+ * its files.</p>
+ *
+ * <p>Multiple files from one user are sent to <code>sa-learn</code> at once when possible for efficiency.</p>
+ *
+ * <p>TODO: SELinux port management for non-standard (other than 783) ports.</p>
+ *
+ * <p>TODO: Somehow report when users drag from Junk to elsewhere (ham training), perhaps we can tweak our sa_discard_score some</p>
  *
  * @author  AO Industries, Inc.
  */
@@ -130,11 +125,10 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
   /**
    * The minimum number of messages being sent to sa-learn that will use a two step
    * <code>sa-learn --no-sync</code> then <code>sa-learn --sync</code>.
-   * <p>
-   * The choice of 5 here is arbitrary, we have not measured the performance of this versus other values.
+   *
+   * <p>The choice of 5 here is arbitrary, we have not measured the performance of this versus other values.
    * This needs to balance the overhead of the additional exec versus the overhead of the sync.
-   * This balance may consider that CPU is generally more plentiful than disk I/O.
-   * </p>
+   * This balance may consider that CPU is generally more plentiful than disk I/O.</p>
    */
   private static final int SALEARN_NOSYNC_THRESHOLD = 5;
 
@@ -152,11 +146,10 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
    * The number of bytes of RAM reserved per child process.  This is used to scale the maximum number of children
    * based on total system memory (as obtained by "MemTotal" in <code>/proc/meminfo</code>).  The result is then
    * bounded within {@link #MIN_CHILDREN} and {@link #MAX_CHILDREN}.
-   * <p>
-   * We're seeing between 50 MiB and 90 MiB per child in 64-bit CentOS 7, so we're going with 100 MiB per-child.  The
+   *
+   * <p>We're seeing between 50 MiB and 90 MiB per child in 64-bit CentOS 7, so we're going with 100 MiB per-child.  The
    * servers certainly have other processes as well, so this should be sufficient to avoid spamd causing swap
-   * thrashing.
-   * </p>
+   * thrashing.</p>
    */
   private static final long PER_CHILD_MEMORY = 100L * 1024 * 1024; // 100 MiB
 
@@ -536,9 +529,8 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
   /**
    * Gets the {@link Bind} for the <code>spamd</code> process, or {@code null}
    * if SpamAssassin is not enabled.
-   * <p>
-   * Note: CentOS 7 supports more than one bind for spamd, but we have no need for it at this time.
-   * </p>
+   *
+   * <p>Note: CentOS 7 supports more than one bind for spamd, but we have no need for it at this time.</p>
    */
   public static Bind getSpamdBind() throws IOException, SQLException {
     AoservConnector conn = AoservDaemon.getConnector();
@@ -1023,9 +1015,8 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
    * TODO: Make this be a standard Unix-based cron job, outside aoserv-daemon
    * package, so that functionality remains when aoserv-daemon disabled or
    * uninstalled.
-   * <p>
-   * TODO: Check for compatibility with CentOS 7
-   * </p>
+   *
+   * <p>TODO: Check for compatibility with CentOS 7</p>
    */
   public static class RazorLogTrimmer implements CronJob {
 

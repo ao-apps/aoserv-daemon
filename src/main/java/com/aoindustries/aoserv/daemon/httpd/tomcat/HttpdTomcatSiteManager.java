@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2007-2013, 2014, 2015, 2017, 2018, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2007-2013, 2014, 2015, 2017, 2018, 2020, 2021, 2022, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -419,9 +419,8 @@ public abstract class HttpdTomcatSiteManager<T extends TomcatCommon> extends Htt
    * Builds the complete directory tree for a new site.  This should not include
    * the siteDirectory itself, which has already been created.  This should also
    * not include any files that enable/disable the site.
-   * <p>
-   * This doesn't need to create the cgi-bin, cgi-bin/test, or index.html
-   * </p>
+   *
+   * <p>This doesn't need to create the cgi-bin, cgi-bin/test, or index.html</p>
    *
    * @param optSlash  Relative path from the CATALINA_HOME to /opt/, including trailing slash, such as <code>../../opt/</code>.
    */
@@ -457,9 +456,8 @@ public abstract class HttpdTomcatSiteManager<T extends TomcatCommon> extends Htt
 
   /**
    * Generates the README.txt that is used to detect major version changes to rebuild the Tomcat installation.
-   * <p>
-   * TODO: Generate and use these readme.txt files to detect when version changed
-   * </p>
+   *
+   * <p>TODO: Generate and use these readme.txt files to detect when version changed</p>
    *
    * @return  The README.txt file contents or {@code null} if no README.txt used for change detection
    *

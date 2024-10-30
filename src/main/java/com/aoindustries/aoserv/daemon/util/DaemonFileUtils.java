@@ -72,9 +72,8 @@ public final class DaemonFileUtils {
 
   /**
    * Copies a resource to the provided filename, will not overwrite any existing file.
-   * <p>
-   * TODO: Copy to a temp file and rename into place.
-   * </p>
+   *
+   * <p>TODO: Copy to a temp file and rename into place.</p>
    */
   public static void copyResource(Class<?> clazz, String resource, String filename, int uid, int gid, int mode, int uidMin, int gidMin) throws IOException {
     try (OutputStream out = new PosixFile(filename).getSecureOutputStream(uid, gid, mode, false, uidMin, gidMin)) {
@@ -364,15 +363,13 @@ public final class DaemonFileUtils {
   /**
    * Atomically replaces a file.  The file will always exist and will always
    * be either the old of new version.
-   * <p>
-   * Will not overwrite the file if the contents already match,
-   * but the permissions and ownership will still be verified.
-   * </p>
-   * <p>
-   * New file contents, both for the file and its optional backup, are written
+   *
+   * <p>Will not overwrite the file if the contents already match,
+   * but the permissions and ownership will still be verified.</p>
+   *
+   * <p>New file contents, both for the file and its optional backup, are written
    * to temp files and then atomically renamed into place, with the backup
-   * renamed into place first.
-   * </p>
+   * renamed into place first.</p>
    *
    * @param  file  the file to overwrite
    * @param  backupFile  the optional backup file
@@ -530,36 +527,38 @@ public final class DaemonFileUtils {
       switch (osv.getPkey()) {
         case OperatingSystemVersion.CENTOS_5_DOM0_I686:
         case OperatingSystemVersion.CENTOS_5_DOM0_X86_64:
-        case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64: {
-          // Nothing to do
-          break;
-        }
+        case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64:
+          {
+            // Nothing to do
+            break;
+          }
         case OperatingSystemVersion.CENTOS_7_DOM0_X86_64:
         case OperatingSystemVersion.CENTOS_7_X86_64:
-        case OperatingSystemVersion.ROCKY_9_X86_64: {
-          String restoreconCommand = "/usr/sbin/restorecon";
-          if (PackageManager.getInstalledPackage(PackageManager.PackageName.POLICYCOREUTILS) == null) {
-            if (logger.isLoggable(Level.WARNING)) {
-              logger.warning(PackageManager.PackageName.POLICYCOREUTILS + " package not installed, not running " + restoreconCommand + ": " + PackageManager.PackageName.POLICYCOREUTILS);
+        case OperatingSystemVersion.ROCKY_9_X86_64:
+          {
+            String restoreconCommand = "/usr/sbin/restorecon";
+            if (PackageManager.getInstalledPackage(PackageManager.PackageName.POLICYCOREUTILS) == null) {
+              if (logger.isLoggable(Level.WARNING)) {
+                logger.warning(PackageManager.PackageName.POLICYCOREUTILS + " package not installed, not running " + restoreconCommand + ": " + PackageManager.PackageName.POLICYCOREUTILS);
+              }
+            } else {
+              String[] command = new String[2 + size];
+              int i = 0;
+              command[i++] = restoreconCommand;
+              command[i++] = "-R";
+              for (PosixFile uf : restorecon) {
+                command[i++] = uf.getPath();
+              }
+              if (i != command.length) {
+                throw new ConcurrentModificationException();
+              }
+              if (logger.isLoggable(Level.INFO)) {
+                logger.info(AoservDaemon.getCommandString(command));
+              }
+              AoservDaemon.exec(command);
             }
-          } else {
-            String[] command = new String[2 + size];
-            int i = 0;
-            command[i++] = restoreconCommand;
-            command[i++] = "-R";
-            for (PosixFile uf : restorecon) {
-              command[i++] = uf.getPath();
-            }
-            if (i != command.length) {
-              throw new ConcurrentModificationException();
-            }
-            if (logger.isLoggable(Level.INFO)) {
-              logger.info(AoservDaemon.getCommandString(command));
-            }
-            AoservDaemon.exec(command);
+            break;
           }
-          break;
-        }
         default:
           throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
       }

@@ -69,9 +69,8 @@ import java.util.regex.Pattern;
 
 /**
  * Builds the sendmail.mc and sendmail.cf files as necessary.
- * <p>
- * TODO: SELinux to support nonstandard ports.
- * </p>
+ *
+ * <p>TODO: SELinux to support nonstandard ports.</p>
  *
  * @author  AO Industries, Inc.
  */
@@ -1919,9 +1918,8 @@ public final class SendmailCFManager extends BuilderThread {
 
   /**
    * Checks if sendmail is expected to be enabled on this server.
-   * <p>
-   * This is used to know when to enable saslauthd (See {@link SaslauthdManager}.
-   * </p>
+   *
+   * <p>This is used to know when to enable saslauthd (See {@link SaslauthdManager}.</p>
    *
    * @see AppProtocol#SMTP
    * @see AppProtocol#SMTPS

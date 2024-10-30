@@ -100,10 +100,8 @@ public final class SslCertificateManager {
   private static final String ALGORITHM = "SHA-256";
 
   /**
-   * <p>
    * <b>Implementation Note:</b><br />
    * This is 5 minutes less than "NONE_SLEEP_DELAY" in noc-monitor/SslCertificateNodeWorker.java
-   * </p>
    */
   private static final long CERTBOT_CACHE_DURATION = 55L * 60 * 1000; // 55 minutes
 
@@ -122,11 +120,10 @@ public final class SslCertificateManager {
    * There is still a potential race condition as we are not locking.  This
    * reduces, but does not eliminate, the number of times we can a failure
    * about another instance of certbot running.
-   * <p>
-   * Because idempotent AOServ Client commands are retried, and with the
+   *
+   * <p>Because idempotent AOServ Client commands are retried, and with the
    * monitoring having built-in tolerance via incremental alert levels, this
-   * should be sufficient to keep this issue off the radar.
-   * </p>
+   * should be sufficient to keep this issue off the radar.</p>
    */
   private static final PosixFile CERTBOT_LOCK = new PosixFile("/var/lib/letsencrypt/.certbot.lock");
   private static final long CERTBOT_LOCKED_SLEEP = 6000;
@@ -136,10 +133,9 @@ public final class SslCertificateManager {
 
   /**
    * Gets the SHA-256 hashed output from a command, caching results when the file has not changed modified times.
-   * <p>
-   * <b>Implementation Note:</b><br />
-   * This synchronizes on {@link #getHashedCache} which will serialize all commands.  This is OK as results will be cached normally.
-   * </p>
+   *
+   * <p><b>Implementation Note:</b><br />
+   * This synchronizes on {@link #getHashedCache} which will serialize all commands.  This is OK as results will be cached normally.</p>
    */
   private static String getCommandHash(PosixFile file, String type, long modifiedTime, boolean allowCached, String ... command) throws IOException {
     try {

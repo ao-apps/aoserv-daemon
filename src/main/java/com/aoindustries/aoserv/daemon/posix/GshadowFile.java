@@ -346,9 +346,8 @@ public final class GshadowFile {
 
   /**
    * Builds a new version of the gshadow file with necessary adjustments made.
-   * <p>
-   * Must hold {@link #gshadowLock}.
-   * </p>
+   *
+   * <p>Must hold {@link #gshadowLock}.</p>
    */
   public static byte[] buildGshadowFile(Map<Group.Name, Set<User.Name>> groups) throws IOException {
     assert Thread.holdsLock(gshadowLock);

@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -64,10 +64,9 @@ public abstract class HttpdSharedTomcatManager<T extends TomcatCommon> implement
 
   /**
    * The directories in /wwwgroup or /var/opt/apache-tomcat that will never be deleted.
-   * <p>
-   * Note: This matches the check constraint on the httpd_shared_tomcats table.
-   * Note: This matches isValidSharedTomcatName in SharedTomcat.
-   * </p>
+   *
+   * <p>Note: This matches the check constraint on the httpd_shared_tomcats table.
+   * Note: This matches isValidSharedTomcatName in SharedTomcat.</p>
    */
   private static final Set<String> keepWwwgroupDirs = new HashSet<>(Arrays.asList(
       // Other filesystem patterns
@@ -121,9 +120,8 @@ public abstract class HttpdSharedTomcatManager<T extends TomcatCommon> implement
 
   /**
    * Responsible for control of all things in <code>/wwwgroup</code>.
-   * <p>
-   * Only called by the already synchronized <code>HttpdManager.doRebuild()</code> method.
-   * </p>
+   *
+   * <p>Only called by the already synchronized <code>HttpdManager.doRebuild()</code> method.</p>
    */
   public static void doRebuild(
       List<File> deleteFileList,
@@ -194,13 +192,11 @@ public abstract class HttpdSharedTomcatManager<T extends TomcatCommon> implement
    * Stops any daemons that should not be running.
    * Restarts any sites that need restarted.
    * Starts any daemons that should be running.
-   * <p>
-   * Makes calls with a one-minute time-out.
-   * Logs errors on calls as warnings, continues to next site.
-   * </p>
-   * <p>
-   * Only called by the already synchronized <code>HttpdManager.doRebuild()</code> method.
-   * </p>
+   *
+   * <p>Makes calls with a one-minute time-out.
+   * Logs errors on calls as warnings, continues to next site.</p>
+   *
+   * <p>Only called by the already synchronized <code>HttpdManager.doRebuild()</code> method.</p>
    */
   public static void stopStartAndRestart(Set<SharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
     for (SharedTomcat sharedTomcat : AoservDaemon.getThisServer().getHttpdSharedTomcats()) {
@@ -366,9 +362,8 @@ public abstract class HttpdSharedTomcatManager<T extends TomcatCommon> implement
 
   /**
    * Gets any packages that must be installed for this site.
-   * <p>
-   * By default, uses the package required for Tomcat.
-   * </p>
+   *
+   * <p>By default, uses the package required for Tomcat.</p>
    */
   protected Set<PackageManager.PackageName> getRequiredPackages() throws IOException, SQLException {
     return getTomcatCommon().getRequiredPackages();

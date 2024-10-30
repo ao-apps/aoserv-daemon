@@ -66,9 +66,9 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 
   /**
    * {@inheritDoc}
-   * <p>
-   * See:
-   * </p>
+   *
+   * <p>See:</p>
+   *
    * <ol>
    * <li><a href="https://commons.apache.org/proper/commons-dbcp/configuration.html">DBCP – BasicDataSource Configuration</a></li>
    * <li>Tomcat 8.5:

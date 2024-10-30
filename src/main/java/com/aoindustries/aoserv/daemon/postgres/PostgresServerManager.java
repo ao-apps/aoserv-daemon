@@ -117,15 +117,16 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
           case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64:
             // SELinux left in Permissive state, not configured here
             break;
-          case OperatingSystemVersion.CENTOS_7_X86_64: {
-            // Install /usr/sbin/semanage if missing
-            PackageManager.installPackage(PackageManager.PackageName.POLICYCOREUTILS_PYTHON);
-            // Reconfigure SELinux ports
-            if (SEManagePort.configure(postgresqlPorts, SELINUX_TYPE)) {
-              // TODO: serversNeedingReloaded.addAll(...);
+          case OperatingSystemVersion.CENTOS_7_X86_64:
+            {
+              // Install /usr/sbin/semanage if missing
+              PackageManager.installPackage(PackageManager.PackageName.POLICYCOREUTILS_PYTHON);
+              // Reconfigure SELinux ports
+              if (SEManagePort.configure(postgresqlPorts, SELINUX_TYPE)) {
+                // TODO: serversNeedingReloaded.addAll(...);
+              }
+              break;
             }
-            break;
-          }
           default:
             throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
         }
@@ -303,9 +304,8 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
 
   /**
    * Rotates PostgreSQL log files.  Those older than one month are removed.
-   * <p>
-   * TODO: Should use standard log file rotation, so configuration still works if aoserv-daemon disabled or removed.
-   * </p>
+   *
+   * <p>TODO: Should use standard log file rotation, so configuration still works if aoserv-daemon disabled or removed.</p>
    */
   @Override
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})

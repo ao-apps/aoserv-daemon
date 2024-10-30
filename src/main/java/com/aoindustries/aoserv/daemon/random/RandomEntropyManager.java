@@ -80,47 +80,42 @@ public final class RandomEntropyManager implements Runnable {
 
   /**
    * The number of bits available where will provide to master server.
-   * <p>
-   * This is scaled from an expected pool size of <code>4096</code>.
-   * See <code>/proc/sys/kernel/random/poolsize</code>
-   * </p>
+   *
+   * <p>This is scaled from an expected pool size of <code>4096</code>.
+   * See <code>/proc/sys/kernel/random/poolsize</code></p>
    */
   public static final int PROVIDE_THRESHOLD = 3584;
 
   /**
    * The number of bits available after providing to the master server.
-   * <p>
-   * This is scaled from an expected pool size of <code>4096</code>.
-   * See <code>/proc/sys/kernel/random/poolsize</code>
-   * </p>
+   *
+   * <p>This is scaled from an expected pool size of <code>4096</code>.
+   * See <code>/proc/sys/kernel/random/poolsize</code></p>
    */
   public static final int DESIRED_BITS = 3072;
 
   /**
    * The number of bits available where will obtain from master server when haveged is not supported or is not currently installed.
-   * <p>
-   * This is scaled from an expected pool size of <code>4096</code>.
-   * See <code>/proc/sys/kernel/random/poolsize</code>
-   * </p>
+   *
+   * <p>This is scaled from an expected pool size of <code>4096</code>.
+   * See <code>/proc/sys/kernel/random/poolsize</code></p>
    */
   public static final int OBTAIN_THRESHOLD_NO_HAVEGED = 2048;
 
   /**
    * The number of bits below which haveged will be automatically installed.
    * This is an attempt to keep the system non-blocking with good entropy.
-   * <p>
-   * This matches the default number of bits where haveged kicks-in (<code>-w 1024</code>).
-   * </p>
+   *
+   * <p>This matches the default number of bits where haveged kicks-in (<code>-w 1024</code>).</p>
    */
   public static final int HAVEGED_THRESHOLD = 1024;
 
   /**
    * The number of bits available where will obtain from master server when haveged is supported and installed.
    * We try to let haveged take care of things before pulling from the master.
-   * <p>
-   * This is scaled from an expected pool size of <code>4096</code>.
-   * See <code>/proc/sys/kernel/random/poolsize</code>
-   * </p>
+   *
+   * <p>This is scaled from an expected pool size of <code>4096</code>.
+   * See <code>/proc/sys/kernel/random/poolsize</code></p>
    */
   public static final int OBTAIN_THRESHOLD_WITH_HAVEGED = 512;
 

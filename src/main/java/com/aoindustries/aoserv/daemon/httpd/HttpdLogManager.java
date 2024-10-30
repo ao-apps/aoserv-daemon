@@ -90,9 +90,8 @@ final class HttpdLogManager {
 
   /**
    * Responsible for control of all things in <code>/logs</code> and <code>/etc/httpd/conf/logrotate.d</code>.
-   * <p>
-   * Only called by the already synchronized {@link HttpdManager#doRebuild()} method.
-   * </p>
+   *
+   * <p>Only called by the already synchronized {@link HttpdManager#doRebuild()} method.</p>
    */
   static void doRebuild(
       List<File> deleteFileList,

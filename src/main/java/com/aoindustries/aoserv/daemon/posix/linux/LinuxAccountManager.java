@@ -101,9 +101,8 @@ public final class LinuxAccountManager extends BuilderThread {
 
   /**
    * Lockfile for password file updates.
-   * <p>
-   * TODO: Is this sufficient locking, or should we also lock each individual file while updating? (/etc/passwd.lock, ...)
-   * </p>
+   *
+   * <p>TODO: Is this sufficient locking, or should we also lock each individual file while updating? (/etc/passwd.lock, ...)</p>
    */
   private static final File PWD_LOCK = new File("/etc/.pwd.lock");
 

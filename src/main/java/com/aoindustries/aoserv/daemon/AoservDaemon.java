@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2013, 2015, 2017, 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2001-2013, 2015, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -100,9 +100,8 @@ import java.util.logging.Logger;
 
 /**
  * The <code>AoservDaemon</code> starts all of the services that run inside the Java VM.
- * <p>
- * TODO: List AoservDaemon at http://www.firewalld.org/
- * </p>
+ *
+ * <p>TODO: List AoservDaemon at http://www.firewalld.org/</p>
  *
  * @author  AO Industries, Inc.
  */
@@ -121,9 +120,8 @@ public final class AoservDaemon {
 
   /**
    * A single random number generator is shared by all daemon resources.
-   * <p>
-   * Note: This is not a {@linkplain SecureRandom#getInstanceStrong() strong instance} to avoid blocking.
-   * </p>
+   *
+   * <p>Note: This is not a {@linkplain SecureRandom#getInstanceStrong() strong instance} to avoid blocking.</p>
    */
   public static SecureRandom getSecureRandom() {
     return secureRandom;
@@ -354,12 +352,10 @@ public final class AoservDaemon {
    * Command's input is written on the current thread.
    * Command's output is read, and handled, on a different thread.
    * Command's error output is also read on a different thread.
-   * <p>
-   * The command's standard error is logged to {@link System#err}.
-   * </p>
-   * <p>
-   * Any non-zero exit value will result in an exception, including the standard error output when available.
-   * </p>
+   *
+   * <p>The command's standard error is logged to {@link System#err}.</p>
+   *
+   * <p>Any non-zero exit value will result in an exception, including the standard error output when available.</p>
    */
   // TODO: First parameter as PosixPath object?
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch", "UseOfSystemOutOrSystemErr", "overloads"})
@@ -455,12 +451,10 @@ public final class AoservDaemon {
    * Command's input is written on the current thread.
    * Command's output is read, and handled, on a different thread.
    * Command's error output is also read on a different thread.
-   * <p>
-   * The command's standard error is logged to {@link System#err}.
-   * </p>
-   * <p>
-   * Any non-zero exit value will result in an exception, including the standard error output when available.
-   * </p>
+   *
+   * <p>The command's standard error is logged to {@link System#err}.</p>
+   *
+   * <p>Any non-zero exit value will result in an exception, including the standard error output when available.</p>
    */
   @SuppressWarnings("overloads")
   public static <V> V execCall(
@@ -476,12 +470,10 @@ public final class AoservDaemon {
    * Command's input is written on the current thread.
    * Command's output is read, and handled, on a different thread.
    * Command's error output is also read on a different thread.
-   * <p>
-   * The command's standard error is logged to {@link System#err}.
-   * </p>
-   * <p>
-   * Any non-zero exit value will result in an exception, including the standard error output when available.
-   * </p>
+   *
+   * <p>The command's standard error is logged to {@link System#err}.</p>
+   *
+   * <p>Any non-zero exit value will result in an exception, including the standard error output when available.</p>
    */
   @SuppressWarnings("overloads")
   public static void execRun(
@@ -506,12 +498,10 @@ public final class AoservDaemon {
    * Command's input is written on the current thread.
    * Command's output is read, and handled, on a different thread.
    * Command's error output is also read on a different thread.
-   * <p>
-   * The command's standard error is logged to {@link System#err}.
-   * </p>
-   * <p>
-   * Any non-zero exit value will result in an exception, including the standard error output when available.
-   * </p>
+   *
+   * <p>The command's standard error is logged to {@link System#err}.</p>
+   *
+   * <p>Any non-zero exit value will result in an exception, including the standard error output when available.</p>
    */
   @SuppressWarnings("overloads")
   public static void execRun(
@@ -527,12 +517,10 @@ public final class AoservDaemon {
    * Command's input is opened then immediately closed.
    * Command's output is read, and handled, on the current thread.
    * Command's error output is read on a different thread.
-   * <p>
-   * The command's standard error is logged to {@link System#err}.
-   * </p>
-   * <p>
-   * Any non-zero exit value will result in an exception, including the standard error output when available.
-   * </p>
+   *
+   * <p>The command's standard error is logged to {@link System#err}.</p>
+   *
+   * <p>Any non-zero exit value will result in an exception, including the standard error output when available.</p>
    */
   // TODO: First parameter as PosixPath object?
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch", "UseOfSystemOutOrSystemErr", "overloads"})
@@ -617,12 +605,10 @@ public final class AoservDaemon {
    * Command's input is opened then immediately closed.
    * Command's output is read, and handled, on the current thread.
    * Command's error output is read on a different thread.
-   * <p>
-   * The command's standard error is logged to {@link System#err}.
-   * </p>
-   * <p>
-   * Any non-zero exit value will result in an exception, including the standard error output when available.
-   * </p>
+   *
+   * <p>The command's standard error is logged to {@link System#err}.</p>
+   *
+   * <p>Any non-zero exit value will result in an exception, including the standard error output when available.</p>
    */
   @SuppressWarnings("overloads")
   public static <V> V execCall(
@@ -637,12 +623,10 @@ public final class AoservDaemon {
    * Command's input is opened then immediately closed.
    * Command's output is read, and handled, on the current thread.
    * Command's error output is read on a different thread.
-   * <p>
-   * The command's standard error is logged to {@link System#err}.
-   * </p>
-   * <p>
-   * Any non-zero exit value will result in an exception, including the standard error output when available.
-   * </p>
+   *
+   * <p>The command's standard error is logged to {@link System#err}.</p>
+   *
+   * <p>Any non-zero exit value will result in an exception, including the standard error output when available.</p>
    */
   @SuppressWarnings("overloads")
   public static void execRun(
@@ -665,12 +649,10 @@ public final class AoservDaemon {
    * Command's input is opened then immediately closed.
    * Command's output is read, and handled, on the current thread.
    * Command's error output is read on a different thread.
-   * <p>
-   * The command's standard error is logged to {@link System#err}.
-   * </p>
-   * <p>
-   * Any non-zero exit value will result in an exception, including the standard error output when available.
-   * </p>
+   *
+   * <p>The command's standard error is logged to {@link System#err}.</p>
+   *
+   * <p>Any non-zero exit value will result in an exception, including the standard error output when available.</p>
    */
   @SuppressWarnings("overloads")
   public static void execRun(
