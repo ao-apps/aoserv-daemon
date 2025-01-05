@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
+ * Copyright (C) 2001-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -80,6 +80,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -178,7 +179,7 @@ public final class LinuxAccountManager extends BuilderThread {
 
     synchronized (rebuildLock) {
       // Get the lists from the database
-      List<UserServer> lsas = thisServer.getLinuxServerAccounts();
+      List<UserServer> lsas = new ArrayList<>(thisServer.getLinuxServerAccounts());
       boolean hasFtpShell = false;
       boolean hasPasswdShell = false;
       final Set<User.Name> usernames;
@@ -187,9 +188,25 @@ public final class LinuxAccountManager extends BuilderThread {
       final Set<String> homeDirs;
       final Map<User.Name, PasswdFile.Entry> passwdEntries;
 
-      List<GroupServer> lsgs = thisServer.getLinuxServerGroups();
+      List<GroupServer> lsgs = new ArrayList<>(thisServer.getLinuxServerGroups());
       final Map<Group.Name, Set<User.Name>> groups;
       final Map<Group.Name, GroupFile.Entry> groupEntries;
+
+      // Sort by time created to minimim diffs on server upgrade/rebuild
+      Collections.sort(lsas, (lsa1, lsa2) -> {
+        int diff = lsa1.getCreated().compareTo(lsa2.getCreated());
+        if (diff != 0) {
+          return diff;
+        }
+        return lsa1.getLinuxAccount_username_id().compareTo(lsa2.getLinuxAccount_username_id());
+      });
+      Collections.sort(lsgs, (lsg1, lsg2) -> {
+        int diff = lsg1.getCreated().compareTo(lsg2.getCreated());
+        if (diff != 0) {
+          return diff;
+        }
+        return lsg1.getLinuxGroup_name().compareTo(lsg2.getLinuxGroup_name());
+      });
 
       Set<PosixFile> restorecon = new LinkedHashSet<>();
       try {
