@@ -81,6 +81,7 @@ import java.nio.file.StandardOpenOption;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -193,20 +194,12 @@ public final class LinuxAccountManager extends BuilderThread {
       final Map<Group.Name, GroupFile.Entry> groupEntries;
 
       // Sort by time created to minimim diffs on server upgrade/rebuild
-      Collections.sort(lsas, (lsa1, lsa2) -> {
-        int diff = lsa1.getCreated().compareTo(lsa2.getCreated());
-        if (diff != 0) {
-          return diff;
-        }
-        return lsa1.getLinuxAccount_username_id().compareTo(lsa2.getLinuxAccount_username_id());
-      });
-      Collections.sort(lsgs, (lsg1, lsg2) -> {
-        int diff = lsg1.getCreated().compareTo(lsg2.getCreated());
-        if (diff != 0) {
-          return diff;
-        }
-        return lsg1.getLinuxGroup_name().compareTo(lsg2.getLinuxGroup_name());
-      });
+      Collections.sort(lsas, Comparator
+          .comparing(UserServer::getCreated)
+          .thenComparing(UserServer::getLinuxAccount_username_id));
+      Collections.sort(lsgs, Comparator
+          .comparing(GroupServer::getCreated)
+          .thenComparing(GroupServer::getLinuxGroup_name));
 
       Set<PosixFile> restorecon = new LinkedHashSet<>();
       try {
