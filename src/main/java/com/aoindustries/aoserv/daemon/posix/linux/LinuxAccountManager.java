@@ -230,6 +230,7 @@ public final class LinuxAccountManager extends BuilderThread {
                         || groupName.equals(Group.RESELLER)
                         // Amazon EC2 cloud-init
                         || groupName.equals(Group.CENTOS)
+                        || groupName.equals(Group.ROCKY)
                 ) {
                   boolean found = false;
                   for (GroupServer lsg : lsgs) {
@@ -275,6 +276,7 @@ public final class LinuxAccountManager extends BuilderThread {
                         || username.equals(User.RESELLER)
                         // Amazon EC2 cloud-init
                         || username.equals(User.CENTOS)
+                        || username.equals(User.ROCKY)
                 ) {
                   boolean found = false;
                   for (UserServer lsa : lsas) {
@@ -764,16 +766,11 @@ public final class LinuxAccountManager extends BuilderThread {
               String sudoersFilename;
               if (
                   // Amazon EC2 cloud-init
-                  username.equals(User.CENTOS.toString())
+                  (username.equals(User.CENTOS.toString()) || username.equals(User.ROCKY.toString()))
                       && PackageManager.getInstalledPackage(PackageManager.PackageName.CLOUD_INIT) != null
               ) {
-                if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-                  // Overwrite the file that is created by the "cloud-init" package on boot
-                  sudoersFilename = "90-cloud-init-users";
-                } else {
-                  // TODO: ROCKY_9_X86_64: See if uses cloud-init same way as CentOS 7, see all "cloud-init" in aoserv-daemon.
-                  throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-                }
+                // Overwrite the file that is created by the "cloud-init" package on boot
+                sudoersFilename = "90-cloud-init-users";
               } else {
                 sudoersFilename = username;
               }
