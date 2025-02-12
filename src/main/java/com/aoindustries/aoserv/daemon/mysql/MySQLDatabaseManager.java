@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2002-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024  AO Industries, Inc.
+ * Copyright (C) 2002-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -52,7 +52,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
@@ -406,14 +405,10 @@ public final class MySQLDatabaseManager extends BuilderThread {
   }
 
   public static String getJdbcUrl(Port port, Database.Name database) {
-    try {
-      if (port == Server.DEFAULT_PORT) {
-        return "jdbc:mysql://127.0.0.1/" + URLEncoder.encode(database.toString(), StandardCharsets.UTF_8.name()) + "?useSSL=false"; // Java 10: No .name()
-      } else {
-        return "jdbc:mysql://127.0.0.1:" + port.getPort() + "/" + URLEncoder.encode(database.toString(), StandardCharsets.UTF_8.name()) + "?useSSL=false"; // Java 10: No .name()
-      }
-    } catch (UnsupportedEncodingException e) {
-      throw new AssertionError("Standard encoding (" + StandardCharsets.UTF_8 + ") should always exist", e);
+    if (port == Server.DEFAULT_PORT) {
+      return "jdbc:mysql://127.0.0.1/" + URLEncoder.encode(database.toString(), StandardCharsets.UTF_8) + "?useSSL=false";
+    } else {
+      return "jdbc:mysql://127.0.0.1:" + port.getPort() + "/" + URLEncoder.encode(database.toString(), StandardCharsets.UTF_8) + "?useSSL=false";
     }
   }
 

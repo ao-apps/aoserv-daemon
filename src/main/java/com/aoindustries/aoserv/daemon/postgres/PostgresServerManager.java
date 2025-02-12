@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2002-2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
+ * Copyright (C) 2002-2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -205,7 +205,7 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
           }
           jdbcUrlSb
               .append('/')
-              .append(URLEncoder.encode(pd.getName().toString(), StandardCharsets.UTF_8.name())); // Java 10: No .name()
+              .append(URLEncoder.encode(pd.getName().toString(), StandardCharsets.UTF_8));
           jdbcUrl = jdbcUrlSb.toString();
         } else {
           throw new RuntimeException("Unexpected version of PostgreSQL: " + version);

@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
     shortTitle="Changelog"
     tocLevels="1"
     datePublished="2020-04-16T21:06:03-05:00"
-    dateModified="2025-02-06T19:41:21Z"
+    dateModified="2025-02-12T02:29:49Z"
   >
     <c:set var="latestRelease" value="1.91.10" />
     <c:if test="${
@@ -68,6 +68,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
           <li>Updated to <ao:a href="https://checkstyle.org/releasenotes.html#Release_10.21.1">Checkstyle 10.21.1</ao:a>.</li>
           <li><code>named.conf</code> acl is now configured in <code>aoserv-daemon.properties</code> instead of hard-coded.</li>
           <li>Add entries to <code>/etc/passwd</code> and <code>/etc/group</code> in creation order during server upgrade/rebuild.</li>
+          <li>Minimum Java version changed from 1.8 to 11.</li>
         </ul>
       </changelog:release>
     </c:if>
