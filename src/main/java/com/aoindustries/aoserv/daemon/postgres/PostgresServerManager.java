@@ -183,6 +183,8 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
                 || version.startsWith(Version.VERSION_13 + 'R')
                 || version.startsWith(Version.VERSION_14 + '.')
                 || version.startsWith(Version.VERSION_14 + 'R')
+                || version.startsWith(Version.VERSION_15 + '.')
+                || version.startsWith(Version.VERSION_15 + 'R')
         ) {
           // Connect to 127.0.0.1 or ::1
           StringBuilder jdbcUrlSb = new StringBuilder();

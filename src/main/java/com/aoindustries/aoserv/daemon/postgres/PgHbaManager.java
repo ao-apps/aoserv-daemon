@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2003-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
+ * Copyright (C) 2003-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -341,6 +341,8 @@ public final class PgHbaManager extends BuilderThread {
                           || version.startsWith(Version.VERSION_13 + 'R')
                           || version.startsWith(Version.VERSION_14 + '.')
                           || version.startsWith(Version.VERSION_14 + 'R')
+                          || version.startsWith(Version.VERSION_15 + '.')
+                          || version.startsWith(Version.VERSION_15 + 'R')
                   ) {
                     // TODO: PostgreSQL 14 allows multi-line configs with trailing backslash line continuation
                     // scram-sha-256 as of PostgreSQL 10
