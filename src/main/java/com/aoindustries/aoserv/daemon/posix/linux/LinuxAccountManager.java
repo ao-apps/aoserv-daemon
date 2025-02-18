@@ -229,7 +229,6 @@ public final class LinuxAccountManager extends BuilderThread {
                         || groupName.equals(Group.MONITORING)
                         || groupName.equals(Group.RESELLER)
                         // Amazon EC2 cloud-init
-                        || groupName.equals(Group.CENTOS)
                         || groupName.equals(Group.ROCKY)
                 ) {
                   boolean found = false;
@@ -275,7 +274,6 @@ public final class LinuxAccountManager extends BuilderThread {
                         || username.equals(User.MONITORING)
                         || username.equals(User.RESELLER)
                         // Amazon EC2 cloud-init
-                        || username.equals(User.CENTOS)
                         || username.equals(User.ROCKY)
                 ) {
                   boolean found = false;
@@ -766,7 +764,7 @@ public final class LinuxAccountManager extends BuilderThread {
               String sudoersFilename;
               if (
                   // Amazon EC2 cloud-init
-                  (username.equals(User.CENTOS.toString()) || username.equals(User.ROCKY.toString()))
+                  username.equals(User.ROCKY.toString())
                       && PackageManager.getInstalledPackage(PackageManager.PackageName.CLOUD_INIT) != null
               ) {
                 // Overwrite the file that is created by the "cloud-init" package on boot
