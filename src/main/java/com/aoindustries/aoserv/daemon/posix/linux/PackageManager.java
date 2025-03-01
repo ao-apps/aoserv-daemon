@@ -374,7 +374,7 @@ public final class PackageManager {
    */
   private static final String
       RPM_EXE_PATH = "/bin/rpm", // TODO: /usr/bin/rpm once all CentOS 7
-      YUM_EXE_PATH = "/usr/bin/yum";
+      YUM_EXE_PATH = "/usr/bin/yum"; // TODO: dnf once all Rocky 9
 
   /**
    * The directory containing the RPM files.  Used to detect possible changes
