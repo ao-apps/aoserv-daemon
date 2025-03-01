@@ -65,7 +65,6 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-// TODO: ROCKY_9_X86_64
 public final class PostgresServerManager extends BuilderThread implements CronJob {
 
   private static final Logger logger = Logger.getLogger(PostgresServerManager.class.getName());
@@ -93,6 +92,7 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
       if (
           osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
               && osvId != OperatingSystemVersion.CENTOS_7_X86_64
+              && osvId != OperatingSystemVersion.ROCKY_9_X86_64
       ) {
         throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
       }
@@ -118,6 +118,7 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
             // SELinux left in Permissive state, not configured here
             break;
           case OperatingSystemVersion.CENTOS_7_X86_64:
+          case OperatingSystemVersion.ROCKY_9_X86_64:
             {
               // Install /usr/sbin/semanage if missing
               if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
@@ -257,6 +258,7 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
         if (
             osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                 || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+                || osvId == OperatingSystemVersion.ROCKY_9_X86_64
         ) {
           AoservConnector conn = AoservDaemon.getConnector();
           postgresServerManager = new PostgresServerManager();

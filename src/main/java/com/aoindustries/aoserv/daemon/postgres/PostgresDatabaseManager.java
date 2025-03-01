@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
+ * Copyright (C) 2001-2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -71,7 +71,6 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-// TODO: ROCKY_9_X86_64
 public final class PostgresDatabaseManager extends BuilderThread implements CronJob {
 
   private static final Logger logger = Logger.getLogger(PostgresDatabaseManager.class.getName());
@@ -95,6 +94,7 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
       if (
           osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
               && osvId != OperatingSystemVersion.CENTOS_7_X86_64
+              && osvId != OperatingSystemVersion.ROCKY_9_X86_64
       ) {
         throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
       }
@@ -219,6 +219,7 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
                             share = "/opt/postgresql-" + minorVersion + "-i686/share";
                             break;
                           case OperatingSystemVersion.CENTOS_7_X86_64:
+                          case OperatingSystemVersion.ROCKY_9_X86_64:
                             createlang = "/opt/postgresql-" + minorVersion + "/bin/createlang";
                             psql = "/opt/postgresql-" + minorVersion + "/bin/psql";
                             lib = "/opt/postgresql-" + minorVersion + "/lib";
@@ -391,6 +392,7 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
         if (
             osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                 || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+                || osvId == OperatingSystemVersion.ROCKY_9_X86_64
         ) {
           commandPath = "/opt/aoserv-daemon/bin/dump_postgres_database";
         } else {
@@ -443,6 +445,7 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
         if (
             osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                 || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+                || osvId == OperatingSystemVersion.ROCKY_9_X86_64
         ) {
           if (postgresDatabaseManager == null) {
             AoservConnector conn = AoservDaemon.getConnector();
