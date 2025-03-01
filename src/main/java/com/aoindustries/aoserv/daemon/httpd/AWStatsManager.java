@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2005-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
+ * Copyright (C) 2005-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -71,7 +71,6 @@ import java.util.regex.Pattern;
  *
  * @author  AO Industries, Inc.
  */
-// TODO: ROCKY_9_X86_64
 public final class AWStatsManager extends BuilderThread {
 
   private static final Logger logger = Logger.getLogger(AWStatsManager.class.getName());
@@ -389,7 +388,8 @@ public final class AWStatsManager extends BuilderThread {
                       + "color_e=\"CEC2E8\"\n"
                       + "color_x=\"C1B2E2\"\n"
                       + "ExtraTrackedRowsLimit=500\n");
-                } else if (osConfig == HttpdOperatingSystemConfiguration.CENTOS_7_X86_64) {
+                } else if (osConfig == HttpdOperatingSystemConfiguration.CENTOS_7_X86_64
+                    || osConfig == HttpdOperatingSystemConfiguration.ROCKY_9_X86_64) {
                   out.print("#\n"
                       + "# The AWStats configuration for the \"").print(siteName).print("\" site.\n"
                       + "#\n"
@@ -526,7 +526,8 @@ public final class AWStatsManager extends BuilderThread {
                   } else {
                     out.print('\n');
                   }
-                } else if (osConfig == HttpdOperatingSystemConfiguration.CENTOS_7_X86_64) {
+                } else if (osConfig == HttpdOperatingSystemConfiguration.CENTOS_7_X86_64
+                    || osConfig == HttpdOperatingSystemConfiguration.ROCKY_9_X86_64) {
                   out.print("#!/usr/bin/bash\n");
                   out.print(binDirectory).print("/tools/logresolvemerge.pl");
                   usedLogs.clear();
@@ -602,7 +603,8 @@ public final class AWStatsManager extends BuilderThread {
                       + "export SERVER_PROTOCOL='HTTP/1.1'\n"
                       + "export SERVER_SOFTWARE='Apache-AdvancedExtranetServer/1.3.31'\n")
                       .print(binDirectory).print("/wwwroot/cgi-bin/awstats.pl -config='").print(siteName).print("'\n");
-                } else if (osConfig == HttpdOperatingSystemConfiguration.CENTOS_7_X86_64) {
+                } else if (osConfig == HttpdOperatingSystemConfiguration.CENTOS_7_X86_64
+                    || osConfig == HttpdOperatingSystemConfiguration.ROCKY_9_X86_64) {
                   out.print("#!/usr/bin/bash\n"
                       + "cd '").print(binDirectory).print("/wwwroot/cgi-bin'\n"
                       + "export DOCUMENT_ROOT='").print(awstatsVarDirectory).print("'\n"
@@ -661,7 +663,8 @@ public final class AWStatsManager extends BuilderThread {
                   out.print("#!/bin/bash\n"
                       + "cd '").print(hostsDirectory).print('/').print(siteName).print("'\n"
                       + "/usr/bin/perl ").print(binDirectory).print("/wwwroot/cgi-bin/awstats.pl -config='").print(siteName).print("' -update\n");
-                } else if (osConfig == HttpdOperatingSystemConfiguration.CENTOS_7_X86_64) {
+                } else if (osConfig == HttpdOperatingSystemConfiguration.CENTOS_7_X86_64
+                    || osConfig == HttpdOperatingSystemConfiguration.ROCKY_9_X86_64) {
                   out.print("#!/usr/bin/bash\n"
                       + "cd '").print(hostsDirectory).print('/').print(siteName).print("'\n"
                       + "/usr/bin/perl '").print(binDirectory).print("/wwwroot/cgi-bin/awstats.pl' -config='").print(siteName).print("' -update\n");
@@ -754,6 +757,7 @@ public final class AWStatsManager extends BuilderThread {
         if (
             osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                 || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+                || osvId == OperatingSystemVersion.ROCKY_9_X86_64
         ) {
           AoservConnector conn = AoservDaemon.getConnector();
           awstatsManager = new AWStatsManager();
@@ -788,6 +792,7 @@ public final class AWStatsManager extends BuilderThread {
     if (
         osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
             && osvId != OperatingSystemVersion.CENTOS_7_X86_64
+            && osvId != OperatingSystemVersion.ROCKY_9_X86_64
     ) {
       throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
     }
@@ -823,7 +828,8 @@ public final class AWStatsManager extends BuilderThread {
         String runascgi;
         if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
           runascgi = "/var/opt/awstats-6/hosts/" + siteName + "/runascgi.sh";
-        } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+        } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64
+            || osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
           runascgi = "/var/opt/awstats/hosts/" + siteName + "/runascgi.sh";
         } else {
           throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
