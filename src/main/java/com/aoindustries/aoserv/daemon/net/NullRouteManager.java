@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
+ * Copyright (C) 2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -52,7 +52,6 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-// TODO: ROCKY_9_X86_64
 public final class NullRouteManager {
 
   private static final Logger logger = Logger.getLogger(NullRouteManager.class.getName());
@@ -98,6 +97,7 @@ public final class NullRouteManager {
           // Nothing is done for these operating systems
           osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
               && osvId != OperatingSystemVersion.CENTOS_7_X86_64
+              && osvId != OperatingSystemVersion.ROCKY_9_X86_64
               // Check config after OS check so config entry not needed
               && AoservDaemonConfiguration.isManagerEnabled(NullRouteManager.class)
               && instance == null
