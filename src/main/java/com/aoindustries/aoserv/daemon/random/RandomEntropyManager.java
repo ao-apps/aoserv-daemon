@@ -92,7 +92,7 @@ public final class RandomEntropyManager implements Runnable {
   /**
    * The number of bits available where will provide to master server.
    *
-   * See <code>/proc/sys/kernel/random/poolsize</code></p>
+   * <p>See <code>/proc/sys/kernel/random/poolsize</code></p>
    */
   private static final int PROVIDE_THRESHOLD_NUMERATOR = 7;
   private static final int PROVIDE_THRESHOLD_DENOMINATOR = 8;
@@ -100,7 +100,7 @@ public final class RandomEntropyManager implements Runnable {
   /**
    * The number of bits available after providing to the master server.
    *
-   * See <code>/proc/sys/kernel/random/poolsize</code></p>
+   * <p>See <code>/proc/sys/kernel/random/poolsize</code></p>
    */
   private static final int DESIRED_BITS_NUMERATOR = 6;
   private static final int DESIRED_BITS_DENONINATOR = 8;
@@ -108,7 +108,7 @@ public final class RandomEntropyManager implements Runnable {
   /**
    * The number of bits available where will obtain from master server when haveged is not supported or is not currently installed.
    *
-   * See <code>/proc/sys/kernel/random/poolsize</code></p>
+   * <p>See <code>/proc/sys/kernel/random/poolsize</code></p>
    */
   private static final int OBTAIN_THRESHOLD_NO_HAVEGED_NUMERATOR = 1;
   private static final int OBTAIN_THRESHOLD_NO_HAVEGED_DENOMINATOR = 2;
@@ -117,7 +117,7 @@ public final class RandomEntropyManager implements Runnable {
    * The number of bits below which haveged will be automatically installed.
    * This is an attempt to keep the system non-blocking with good entropy.
    *
-   * See <code>/proc/sys/kernel/random/poolsize</code></p>
+   * <p>See <code>/proc/sys/kernel/random/poolsize</code></p>
    */
   private static final int HAVEGED_THRESHOLD_NUMERATOR = 1;
   private static final int HAVEGED_THRESHOLD_DENOMINATOR = 4;
@@ -126,7 +126,7 @@ public final class RandomEntropyManager implements Runnable {
    * The number of bits available where will obtain from master server when haveged is supported and installed.
    * We try to let haveged take care of things before pulling from the master.
    *
-   * See <code>/proc/sys/kernel/random/poolsize</code></p>
+   * <p>See <code>/proc/sys/kernel/random/poolsize</code></p>
    */
   private static final int OBTAIN_THRESHOLD_WITH_HAVEGED_NUMERATOR = 1;
   private static final int OBTAIN_THRESHOLD_WITH_HAVEGED_DENOMINATOR = 8;
