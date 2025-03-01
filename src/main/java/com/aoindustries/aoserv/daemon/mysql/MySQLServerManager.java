@@ -54,7 +54,6 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-// TODO: ROCKY_9_X86_64
 public final class MySQLServerManager extends BuilderThread {
 
   private static final Logger logger = Logger.getLogger(MySQLServerManager.class.getName());
@@ -82,6 +81,7 @@ public final class MySQLServerManager extends BuilderThread {
       if (
           osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
               && osvId != OperatingSystemVersion.CENTOS_7_X86_64
+              && osvId != OperatingSystemVersion.ROCKY_9_X86_64
       ) {
         throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
       }
@@ -107,6 +107,7 @@ public final class MySQLServerManager extends BuilderThread {
             // SELinux left in Permissive state, not configured here
             break;
           case OperatingSystemVersion.CENTOS_7_X86_64:
+          case OperatingSystemVersion.ROCKY_9_X86_64:
             {
               // Install /usr/sbin/semanage if missing
               if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
@@ -194,6 +195,7 @@ public final class MySQLServerManager extends BuilderThread {
         if (
             osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                 || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+                || osvId == OperatingSystemVersion.ROCKY_9_X86_64
         ) {
           AoservConnector conn = AoservDaemon.getConnector();
           mysqlServerManager = new MySQLServerManager();
@@ -259,7 +261,8 @@ public final class MySQLServerManager extends BuilderThread {
       String path;
       if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
         path = "/opt/mysql-" + mysqlServer.getMinorVersion() + "-i686/bin/mysqladmin";
-      } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+      } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64
+          || osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
         path = "/opt/mysql-" + mysqlServer.getMinorVersion() + "/bin/mysqladmin";
       } else {
         throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);

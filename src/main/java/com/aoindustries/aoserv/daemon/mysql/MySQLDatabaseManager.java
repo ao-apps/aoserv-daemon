@@ -79,7 +79,6 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-// TODO: ROCKY_9_X86_64
 public final class MySQLDatabaseManager extends BuilderThread {
 
   private static final Logger logger = Logger.getLogger(MySQLDatabaseManager.class.getName());
@@ -103,6 +102,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
       if (
           osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
               && osvId != OperatingSystemVersion.CENTOS_7_X86_64
+              && osvId != OperatingSystemVersion.ROCKY_9_X86_64
       ) {
         throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
       }
@@ -300,6 +300,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
         if (
             osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                 || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+                || osvId == OperatingSystemVersion.ROCKY_9_X86_64
         ) {
           commandPath = "/opt/aoserv-daemon/bin/dump_mysql_database";
         } else {
@@ -349,6 +350,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
         if (
             osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                 || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+                || osvId == OperatingSystemVersion.ROCKY_9_X86_64
         ) {
           AoservConnector conn = AoservDaemon.getConnector();
           mysqlDatabaseManager = new MySQLDatabaseManager();
