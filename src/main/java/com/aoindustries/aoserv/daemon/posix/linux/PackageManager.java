@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024  AO Industries, Inc.
+ * Copyright (C) 2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -331,8 +331,8 @@ public final class PackageManager {
     PHP_8_2_EXT_RAPHF("php-8.2-ext-raphf"),
     PHP_8_2_EXT_REDIS("php-8.2-ext-redis"),
     POLICYCOREUTILS("policycoreutils"),
-    POLICYCOREUTILS_PYTHON("policycoreutils-python"),
-    POLICYCOREUTILS_PYTHON_UTILS("policycoreutils-python-utils"),
+    POLICYCOREUTILS_PYTHON("policycoreutils-python"), // CentOS 7
+    POLICYCOREUTILS_PYTHON_UTILS("policycoreutils-python-utils"), // Rocky 9
     PROCMAIL("procmail"),
     PSMISC("psmisc"),
     SED("sed"),

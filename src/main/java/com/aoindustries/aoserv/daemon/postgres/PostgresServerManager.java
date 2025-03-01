@@ -120,7 +120,13 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
           case OperatingSystemVersion.CENTOS_7_X86_64:
             {
               // Install /usr/sbin/semanage if missing
-              PackageManager.installPackage(PackageManager.PackageName.POLICYCOREUTILS_PYTHON);
+              if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+                PackageManager.installPackage(PackageManager.PackageName.POLICYCOREUTILS_PYTHON);
+              } else if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+                PackageManager.installPackage(PackageManager.PackageName.POLICYCOREUTILS_PYTHON_UTILS);
+              } else {
+                throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+              }
               // Reconfigure SELinux ports
               if (SEManagePort.configure(postgresqlPorts, SELINUX_TYPE)) {
                 // TODO: serversNeedingReloaded.addAll(...);

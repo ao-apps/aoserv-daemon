@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024  AO Industries, Inc.
+ * Copyright (C) 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -3729,7 +3729,13 @@ public final class HttpdServerManager {
       case OperatingSystemVersion.CENTOS_7_X86_64:
         {
           // Install /usr/sbin/semanage if missing
-          PackageManager.installPackage(PackageManager.PackageName.POLICYCOREUTILS_PYTHON);
+          if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+            PackageManager.installPackage(PackageManager.PackageName.POLICYCOREUTILS_PYTHON);
+          } else if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+            PackageManager.installPackage(PackageManager.PackageName.POLICYCOREUTILS_PYTHON_UTILS);
+          } else {
+            throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+          }
           // Find the set of distinct ports used by Apache
           SortedSet<Port> httpdPorts = new TreeSet<>();
           List<HttpdServer> hss = linuxServer.getHttpdServers();
