@@ -103,7 +103,8 @@ import org.apache.commons.lang3.NotImplementedException;
  * <p>TODO: Should we enable brotli in Rocky 9?  Make sure server prioritizes brotli over gzip.  Always enable or
  * configurable?  Is gzip compression currently configurable?</p>
  *
- * <p>TODO: Rocky 9 defaults to mpm_event_module instead of mpm_prefork_module, should we?  PHP compatibility?</p>
+ * <p>TODO: Rocky 9 defaults to mpm_event_module instead of mpm_prefork_module, should we?  PHP compatibility?
+ * Note: prefork severely limits mod_http2, so prioritize this.</p>
  *
  * <p>TODO: StrictHostCheck ON?  https://httpd.apache.org/docs/2.4/mod/core.html
  * Would this eliminate need for httpd_servers.list_first?</p>
@@ -2290,6 +2291,19 @@ public final class HttpdServerManager {
       out.print("# LoadModule data_module modules/mod_data.so\n"
           + "# LoadModule dbd_module modules/mod_dbd.so\n");
 
+      final boolean modBrotli;
+      if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+        modBrotli = Objects.requireNonNullElse(
+            hs.getModBrotli(),
+            // Enabled by default (unless explicitly disabled)
+            true
+        );
+      } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+        // Not supported in CentOS 7
+        modBrotli = false;
+      } else {
+        throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+      }
 
       final boolean modDeflate = Objects.requireNonNullElse(
           hs.getModDeflate(),
@@ -2319,7 +2333,8 @@ public final class HttpdServerManager {
       final boolean modFilter = Objects.requireNonNullElse(
           hs.getModFilter(),
           // Enabled when mod_deflate is enabled (for AddOutputFilterByType in aoserv.conf.d/mod_deflate.conf)
-          modDeflate
+          // Enabled when mod_brotli is enabled (for AddOutputFilterByType in aoserv.conf.d/mod_brotli.conf)
+          modDeflate | modBrotli
       );
       if (!modFilter) {
         out.print("# ");
@@ -2570,8 +2585,11 @@ public final class HttpdServerManager {
       if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
         out.print("#\n"
             + "# From conf.modules.d/00-brotli.conf\n"
-            + "#\n"
-            + "# LoadModule brotli_module modules/mod_brotli.so\n");
+            + "#\n");
+        if (!modBrotli) {
+          out.print("# ");
+        }
+        out.print("LoadModule brotli_module modules/mod_brotli.so\n");
       }
       out.print("#\n"
           + "# From conf.modules.d/00-dav.conf\n"
@@ -2612,10 +2630,16 @@ public final class HttpdServerManager {
           false
       );
 
+      final boolean modProxyHttp2 = Objects.requireNonNullElse(
+          hs.getModProxyHttp2(),
+          // Disabled by default (unless explicitly enabled)
+          false
+      );
+
       final boolean modProxy = Objects.requireNonNullElse(
           hs.getModProxy(),
-          // Enabled when mod_proxy_http is enabled
-          modProxyHttp
+          // Enabled when either mod_proxy_http or mod_proxy_http2 is enabled
+          modProxyHttp | modProxyHttp2
       );
       if (!modProxy) {
         out.print("# ");
@@ -2737,12 +2761,23 @@ public final class HttpdServerManager {
       if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
         out.print("#\n"
             + "# From conf.modules.d/10-h2.conf\n"
-            + "#\n"
-            + "# LoadModule http2_module modules/mod_http2.so\n"
+            + "#\n");
+        final boolean modHttp2 = Objects.requireNonNullElse(
+            hs.getModHttp2(),
+            // Enabled by default (unless explicitly disabled)
+            true
+        );
+        if (!modHttp2) {
+          out.print("# ");
+        }
+        out.print("LoadModule http2_module modules/mod_http2.so\n"
             + "#\n"
             + "# From conf.modules.d/10-proxy_h2.conf\n"
-            + "#\n"
-            + "# LoadModule proxy_http2_module modules/mod_proxy_http2.so\n");
+            + "#\n");
+        if (!modProxyHttp2) {
+          out.print("# ");
+        }
+        out.print("LoadModule proxy_http2_module modules/mod_proxy_http2.so\n");
       }
 
       final boolean modWsgi = Objects.requireNonNullElse(
@@ -3232,7 +3267,7 @@ public final class HttpdServerManager {
    * Builds the contents of a VirtualHost file.
    */
   private static byte[] buildHttpdSiteBindFile(HttpdSiteManager manager, VirtualHost bind, String siteInclude, ByteArrayOutputStream bout) throws IOException, SQLException {
-    OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
+    HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
     // OperatingSystemVersion osv = manager.httpdSite.getLinuxServer().getHost().getOperatingSystemVersion();
     HttpdBind httpdBind = bind.getHttpdBind();
     Bind netBind = httpdBind.getNetBind();
@@ -3365,12 +3400,14 @@ public final class HttpdServerManager {
             final Certificate sslCert;
             final String protocol;
             final boolean isDefaultPort;
+            final String protocolsDirective;
               {
                 String appProtocol = netBind.getAppProtocol().getProtocol();
                 if (AppProtocol.HTTP.equals(appProtocol)) {
                   sslCert = null;
                   protocol = "http";
                   isDefaultPort = port == 80;
+                  protocolsDirective = "h2c http/1.1";
                 } else if (AppProtocol.HTTPS.equals(appProtocol)) {
                   sslCert = bind.getCertificate();
                   if (sslCert == null) {
@@ -3378,6 +3415,7 @@ public final class HttpdServerManager {
                   }
                   protocol = "https";
                   isDefaultPort = port == 443;
+                  protocolsDirective = "h2 http/1.1";
                 } else {
                   throw new SQLException("Unsupported protocol: " + appProtocol);
                 }
@@ -3399,8 +3437,11 @@ public final class HttpdServerManager {
                 .print(CERTBOT_COMPAT ? escape(dollarVariable, ipString) : "${bind.ip_address}")
                 .print(':')
                 .print(CERTBOT_COMPAT ? port : "${bind.port}")
-                .print(">\n"
-                    + "    ServerName \\\n"
+                .print(">\n");
+            if (osConfig.isApacheProtocolsSupported()) {
+              out.print("    Protocols ").print(protocolsDirective).print('\n');
+            }
+            out.print("    ServerName \\\n"
                     + "        ")
                 .print(CERTBOT_COMPAT ? escape(dollarVariable, primaryHostname) : "${bind.primary_hostname}")
                 .print('\n');

@@ -126,6 +126,11 @@ public enum HttpdOperatingSystemConfiguration {
     public PackageManager.PackageName getModJkPackageName() {
       return null;
     }
+
+    @Override
+    public boolean isApacheProtocolsSupported() {
+      return false;
+    }
   },
   CENTOS_7_X86_64 {
     @Override
@@ -215,6 +220,11 @@ public enum HttpdOperatingSystemConfiguration {
     @Override
     public PackageManager.PackageName getModJkPackageName() {
       return PackageManager.PackageName.TOMCAT_CONNECTORS;
+    }
+
+    @Override
+    public boolean isApacheProtocolsSupported() {
+      return false;
     }
   },
   ROCKY_9_X86_64 {
@@ -307,6 +317,11 @@ public enum HttpdOperatingSystemConfiguration {
     @Override
     public PackageManager.PackageName getModJkPackageName() {
       return PackageManager.PackageName.MOD_JK;
+    }
+
+    @Override
+    public boolean isApacheProtocolsSupported() {
+      return true;
     }
   };
 
@@ -435,4 +450,9 @@ public enum HttpdOperatingSystemConfiguration {
    * Gets the package to install for mod_jk or {@code null} for none required.
    */
   public abstract PackageManager.PackageName getModJkPackageName();
+
+  /**
+   * Is the <a href="https://httpd.apache.org/docs/2.4/mod/core.html#protocols">Apache Protocols directive</a> supported?
+   */
+  public abstract boolean isApacheProtocolsSupported();
 }
