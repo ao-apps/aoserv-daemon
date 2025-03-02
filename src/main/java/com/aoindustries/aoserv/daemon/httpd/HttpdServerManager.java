@@ -3484,21 +3484,6 @@ public final class HttpdServerManager {
               if (sslChain != null) {
                 out.print("        SSLCertificateChainFile ").print(getEscapedSslPath(dollarVariable, sslChain, primaryHostname)).print('\n');
               }
-              boolean enableCgi = manager.enableCgi();
-              boolean enableSsi = manager.httpdSite.getEnableSsi();
-              if (enableCgi && enableSsi) {
-                out.print("        <Files ~ \\.(cgi|shtml)$>\n"
-                    + "            SSLOptions +StdEnvVars\n"
-                    + "        </Files>\n");
-              } else if (enableCgi) {
-                out.print("        <Files ~ \\.cgi$>\n"
-                    + "            SSLOptions +StdEnvVars\n"
-                    + "        </Files>\n");
-              } else if (enableSsi) {
-                out.print("        <Files ~ \\.shtml$>\n"
-                    + "            SSLOptions +StdEnvVars\n"
-                    + "        </Files>\n");
-              }
               // See https://unix.stackexchange.com/questions/162478/how-to-disable-sslv3-in-apache
               // TODO: Test with: https://www.tinfoilsecurity.com/poodle (make a routine task to test this site yearly?)
               // Is set in aoserv-httpd-config, no need to put here:
