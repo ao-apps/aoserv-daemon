@@ -3500,10 +3500,10 @@ public final class HttpdServerManager {
                     + "        </Files>\n");
               }
               // See https://unix.stackexchange.com/questions/162478/how-to-disable-sslv3-in-apache
-              // TODO: Test if required in our Apache 2.4
-              // TODO:     Test with: https://www.tinfoilsecurity.com/poodle (make a routine task to test this site yearly?)
-              out.print("        SSLProtocol all -SSLv2 -SSLv3\n"
-                  + "        SSLEngine On\n"
+              // TODO: Test with: https://www.tinfoilsecurity.com/poodle (make a routine task to test this site yearly?)
+              // Is set in aoserv-httpd-config, no need to put here:
+              // out.print("        SSLProtocol all -SSLv2 -SSLv3\n"
+              out.print("        SSLEngine On\n"
                   + "    </IfModule>\n"
               );
             }
