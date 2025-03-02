@@ -315,6 +315,9 @@ public final class HttpdServerManager {
     ByteArrayOutputStream bout = new ByteArrayOutputStream();
     Server thisServer = AoservDaemon.getThisServer();
 
+    // Prepare before rebuild of configs
+    doRebuildPrep(thisServer);
+
     // Rebuild /etc/httpd/conf/hosts/ or /etc/httpd/sites-available and /etc/httpd/sites-enabled files
     doRebuildConfHosts(thisServer, bout, deleteFileList, serversNeedingReloaded, restorecon);
 
@@ -332,6 +335,29 @@ public final class HttpdServerManager {
 
     // Other filesystem fixes related to logging
     fixFilesystem(deleteFileList);
+  }
+
+  /**
+   * Prepare before rebuild of configs.
+   */
+  private static void doRebuildPrep(Server thisServer) throws IOException, SQLException {
+    OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
+    int osvId = osv.getPkey();
+    switch (osvId) {
+      case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64:
+        // Nothing to do
+        break;
+      case OperatingSystemVersion.CENTOS_7_X86_64:
+      case OperatingSystemVersion.ROCKY_9_X86_64:
+        // Install packages so configuration directories are available
+        PackageManager.installPackages(
+            PackageManager.PackageName.HTTPD,
+            PackageManager.PackageName.AOSERV_HTTPD_CONFIG
+        );
+        break;
+      default:
+        throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+    }
   }
 
   /**
@@ -1992,10 +2018,6 @@ public final class HttpdServerManager {
     final OperatingSystemVersion osv = hs.getLinuxServer().getHost().getOperatingSystemVersion();
     final int osvId = osv.getPkey();
     assert osvId == OperatingSystemVersion.CENTOS_7_X86_64 || osvId == OperatingSystemVersion.ROCKY_9_X86_64;
-    PackageManager.installPackages(
-        PackageManager.PackageName.HTTPD,
-        PackageManager.PackageName.AOSERV_HTTPD_CONFIG
-    );
     final String escapedName = hs.getSystemdEscapedName();
     bout.reset();
     try (ChainWriter out = new ChainWriter(bout)) {
