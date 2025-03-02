@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
+ * Copyright (C) 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -55,7 +55,6 @@ import java.util.regex.Pattern;
  *
  * @author  AO Industries, Inc.
  */
-// TODO: ROCKY_9_X86_64
 final class HttpdLogManager {
 
   /** Make no instances. */
@@ -277,7 +276,8 @@ final class HttpdLogManager {
         serverLogRotationDir = SERVER_LOG_ROTATION_DIR_CENTOS_5;
         break;
       case CENTOS_7_X86_64:
-        // Nothing done for CentOS 7, we now use wildcard patterns in static /etc/logrotate.d/httpd-(n|sites) files.
+      case ROCKY_9_X86_64:
+        // Nothing done, we now use wildcard patterns in static /etc/logrotate.d/httpd-(n|sites) files.
         return;
       default:
         throw new AssertionError("Unexpected value for osConfig: " + osConfig);
@@ -480,7 +480,8 @@ final class HttpdLogManager {
           }
         }
       }
-    } else if (osConfig == HttpdOperatingSystemConfiguration.CENTOS_7_X86_64) {
+    } else if (osConfig == HttpdOperatingSystemConfiguration.CENTOS_7_X86_64
+        || osConfig == HttpdOperatingSystemConfiguration.ROCKY_9_X86_64) {
       // Create all /var/log/httpd[@<name>] directories
       List<HttpdServer> hss = thisServer.getHttpdServers();
       Set<String> keepFilenames = AoCollections.newHashSet(hss.size());

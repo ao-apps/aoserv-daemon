@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2007-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
+ * Copyright (C) 2007-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -77,7 +77,6 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-// TODO: ROCKY_9_X86_64
 public abstract class HttpdSiteManager {
 
   private static final Logger logger = Logger.getLogger(HttpdSiteManager.class.getName());
@@ -95,7 +94,7 @@ public abstract class HttpdSiteManager {
       "fastcgi",
       "error",
       "icons",
-      // CentOS 7
+      // CentOS 7 and Rocky 9
       "cgi-bin",
       "html",
       "mrtg",
@@ -627,7 +626,8 @@ public abstract class HttpdSiteManager {
           varDir = null; // No per-site PHP data
           varPhpDir = null; // No per-site PHP data
           sessionDir = null; // No per-site PHP sessions
-        } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+        } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64
+            || osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
           if (phpVersion.startsWith("5.3.")) {
             phpMinorVersion = "5.3";
             requiredPackage = PackageManager.PackageName.PHP_5_3;
@@ -936,7 +936,8 @@ public abstract class HttpdSiteManager {
         // TODO: nano .save files? https://askubuntu.com/questions/601985/what-are-save-files
       }
       return Collections.unmodifiableMap(rejectedLocations);
-    } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+    } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64
+        || osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
       // Protection has been moved to include files in aoserv-httpd-config package.
       return Collections.emptyMap();
     } else {

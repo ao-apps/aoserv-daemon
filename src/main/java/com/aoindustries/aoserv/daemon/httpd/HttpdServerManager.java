@@ -90,14 +90,25 @@ import org.apache.commons.lang3.NotImplementedException;
 /**
  * Manages HttpdServer configurations and control.
  *
- * <p>TODO: Install PHP packages as-needed on CentOS 7, including extensions and shared built-ins.</p>
+ * <p>TODO: Install PHP packages as-needed on CentOS 7 and Rocky 9, including extensions and shared built-ins.</p>
  *
  * <p>TODO: Write/update /etc/system/system/httpd[@name}.service.d/php.conf for PHP 7+
  *       Or, could this be somehow added by the php-7.* packages?</p>
  *
+ * <p>TODO: http/2 support:
+ * See Protocols directive: https://httpd.apache.org/docs/2.4/mod/core.html
+ * Enable mod_proxy_http2 where have mod_proxy_http: https://httpd.apache.org/docs/2.4/mod/mod_proxy_http2.html</p>
+ *
+ * <p>TODO: Should we enable brotli in Rocky 9?  Make sure server prioritizes brotli over gzip.  Always enable or
+ * configurable?  Is gzip compression currently configurable?</p>
+ *
+ * <p>TODO: Rocky 9 defaults to mpm_event_module instead of mpm_prefork_module, should we?  PHP compatibility?</p>
+ *
+ * <p>TODO: StrictHostCheck ON?  https://httpd.apache.org/docs/2.4/mod/core.html
+ * Would this eliminate need for httpd_servers.list_first?</p>
+ *
  * @author  AO Industries, Inc.
  */
-// TODO: ROCKY_9_X86_64
 public final class HttpdServerManager {
 
   /** Make no instances. */
@@ -178,12 +189,12 @@ public final class HttpdServerManager {
   private static final String CONF_HOSTS = CONF_DIRECTORY + "/hosts";
 
   /**
-   * The directory that individual host and bind configurations are for CentOS 7.
+   * The directory that individual host and bind configurations are for CentOS 7 and Rocky 9.
    */
   private static final String SITES_AVAILABLE = SERVER_ROOT + "/sites-available";
 
   /**
-   * The directory that individual host and bind configurations are for CentOS 7.
+   * The directory that individual host and bind configurations are for CentOS 7 and Rocky 9.
    */
   private static final String SITES_ENABLED = SERVER_ROOT + "/sites-enabled";
 
@@ -246,7 +257,7 @@ public final class HttpdServerManager {
    * Dollar escape as variable named "$" is set in the aoserv-httpd-config package
    * as <code>Define $ $</code> in <code>core.inc</code>, escaped as <code>${$}</code>.
    */
-  private static final String CENTOS_7_DOLLAR_VARIABLE = ApacheEscape.DEFAULT_DOLLAR_VARIABLE;
+  private static final String DOLLAR_VARIABLE = ApacheEscape.DEFAULT_DOLLAR_VARIABLE;
 
   /**
    * Gets the workers#.properties or workers[@&lt;name&gt;].properties file path.
@@ -260,6 +271,7 @@ public final class HttpdServerManager {
         int num = (name == null) ? 1 : Integer.parseInt(name);
         return "workers" + num + ".properties";
       case OperatingSystemVersion.CENTOS_7_X86_64:
+      case OperatingSystemVersion.ROCKY_9_X86_64:
         String escapedName = hs.getSystemdEscapedName();
         return (escapedName == null) ? "workers.properties" : ("workers@" + escapedName + ".properties");
       default:
@@ -268,21 +280,26 @@ public final class HttpdServerManager {
   }
 
   /**
-   * Gets the httpd#.conf or httpd[@&lt;name&gt;].conf file name.
+   * Gets the httpd#.conf, httpd[@&lt;name&gt;].conf, or [&lt;name&gt;].conf file name.
    */
-  private static String getHttpdConfFile(HttpdServer hs) throws IOException, SQLException {
-    OperatingSystemVersion osv = hs.getLinuxServer().getHost().getOperatingSystemVersion();
-    int osvId = osv.getPkey();
+  private static String getHttpdConfFile(HttpdServer hs, int osvId) throws IOException, SQLException {
     switch (osvId) {
       case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64:
         String name = hs.getName();
         int num = (name == null) ? 1 : Integer.parseInt(name);
         return "httpd" + num + ".conf";
       case OperatingSystemVersion.CENTOS_7_X86_64:
-        String escapedName = hs.getSystemdEscapedName();
-        return (escapedName == null) ? "httpd.conf" : ("httpd@" + escapedName + ".conf");
+        {
+          String escapedName = hs.getSystemdEscapedName();
+          return (escapedName == null) ? "httpd.conf" : ("httpd@" + escapedName + ".conf");
+        }
+      case OperatingSystemVersion.ROCKY_9_X86_64:
+        {
+          String escapedName = hs.getSystemdEscapedName();
+          return (escapedName == null) ? "httpd.conf" : (escapedName + ".conf");
+        }
       default:
-        throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+        throw new AssertionError("Unsupported OperatingSystemVersion: #" + osvId);
     }
   }
 
@@ -457,6 +474,7 @@ public final class HttpdServerManager {
           break;
         }
       case OperatingSystemVersion.CENTOS_7_X86_64:
+      case OperatingSystemVersion.ROCKY_9_X86_64:
         {
           // The config directory should only contain files referenced in the database, or "disabled.inc", README, or README.txt (1.0.0~snapshot only)
           Set<String> extraFiles = new HashSet<>();
@@ -875,8 +893,9 @@ public final class HttpdServerManager {
             break;
           }
         case OperatingSystemVersion.CENTOS_7_X86_64:
+        case OperatingSystemVersion.ROCKY_9_X86_64:
           {
-            final String dollarVariable = CENTOS_7_DOLLAR_VARIABLE;
+            final String dollarVariable = DOLLAR_VARIABLE;
             out.print("ServerAdmin ${site.server_admin}\n");
 
             // Find all versions of mod_php on any Apache server that runs this site
@@ -885,10 +904,8 @@ public final class HttpdServerManager {
               SoftwareVersion modPhpVersion = hsb.getHttpdBind().getHttpdServer().getModPhpVersion();
               if (modPhpVersion != null) {
                 modPhpMajorVersions.add(
-                    Integer.parseInt(
-                        getMajorPhpVersion(
-                            modPhpVersion.getVersion()
-                        )
+                    getMajorPhpVersion(
+                        modPhpVersion.getVersion()
                     )
                 );
               }
@@ -905,7 +922,7 @@ public final class HttpdServerManager {
               String indent = "";
               Set<String> phpModules = new HashSet<>();
               for (int modPhpMajorVersion : modPhpMajorVersions) {
-                String phpModule = getPhpModule(Integer.toString(modPhpMajorVersion));
+                String phpModule = getPhpModule(modPhpMajorVersion);
                 if (phpModules.add(phpModule)) {
                   out.print(indent).print("<IfModule ").print(escape(dollarVariable, "!" + phpModule)).print(">\n");
                   indent += "    ";
@@ -929,14 +946,16 @@ public final class HttpdServerManager {
 
             // Configure per-site PHP sessions for mod_php
             if (!modPhpMajorVersions.isEmpty()) {
-              PosixFile varDir = new PosixFile(HttpdOperatingSystemConfiguration.CENTOS_7_X86_64.getHttpdSitesDirectory().toString() + "/" + httpdSite.getName() + "/" + HttpdSiteManager.VAR);
+              PosixFile varDir = new PosixFile(
+                  HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory().toString()
+                      + "/" + httpdSite.getName() + "/" + HttpdSiteManager.VAR);
               PosixFile varPhpDir = new PosixFile(varDir, HttpdSiteManager.VAR_PHP, true);
               PosixFile sessionDir = new PosixFile(varPhpDir, PHP_SESSION, true);
               out.print("\n"
                   + "# Use per-site PHP session directory when using mod_php\n");
               Set<String> phpModules = new HashSet<>();
               for (int modPhpMajorVersion : modPhpMajorVersions) {
-                String phpModule = getPhpModule(Integer.toString(modPhpMajorVersion));
+                String phpModule = getPhpModule(modPhpMajorVersion);
                 if (phpModules.add(phpModule)) {
                   out.print("<IfModule ").print(escape(dollarVariable, phpModule)).print(">\n"
                       + "    php_value session.save_path ").print(escape(dollarVariable, sessionDir.toString())).print("\n"
@@ -1347,7 +1366,7 @@ public final class HttpdServerManager {
     // Rebuild per-server files
     for (HttpdServer hs : hss) {
       List<Site> sites = hs.getHttpdSites();
-      String httpdConfFilename = getHttpdConfFile(hs);
+      String httpdConfFilename = getHttpdConfFile(hs, osvId);
       PosixFile httpdConf = new PosixFile(CONF_DIRECTORY, httpdConfFilename);
       httpdConfFilenames.add(httpdConfFilename);
       // Rebuild the httpd.conf file
@@ -1363,6 +1382,16 @@ public final class HttpdServerManager {
           )
       ) {
         serversNeedingReloaded.add(hs);
+      }
+      if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+        // Configuration filename for instantiated services has changed from CentOS 7 to Rocky 9, remove old file.
+        String centos7ConfFilename = getHttpdConfFile(hs, OperatingSystemVersion.CENTOS_7_X86_64);
+        if (!httpdConfFilename.equals(centos7ConfFilename)) {
+          PosixFile centos7Conf = new PosixFile(CONF_DIRECTORY, centos7ConfFilename);
+          if (centos7Conf.getStat().exists()) {
+            centos7Conf.delete();
+          }
+        }
       }
       if (hs.getName() == null) {
         for (HttpdBind hb : hs.getHttpdBinds()) {
@@ -1404,7 +1433,8 @@ public final class HttpdServerManager {
           serversNeedingReloaded.add(hs);
         }
       }
-      if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+      if (osvId == OperatingSystemVersion.CENTOS_7_X86_64
+          || osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
         final String escapedName = hs.getSystemdEscapedName();
         final UserServer lsa = hs.getLinuxServerAccount();
         final GroupServer lsg = hs.getLinuxServerGroup();
@@ -1499,7 +1529,8 @@ public final class HttpdServerManager {
             httpdConfPattern = HTTPD_N_CONF_REGEXP;
             phpPattern = PHP_N_REGEXP;
             workersPattern = WORKERS_N_PROPERTIES_REGEXP;
-          } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+          } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64
+              || osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
             phpDefault = "php";
             workersDefault = "workers.properties";
             httpdConfPattern = HTTPD_NAME_CONF_REGEXP;
@@ -1550,7 +1581,8 @@ public final class HttpdServerManager {
           }
         }
       }
-    if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+    if (osvId == OperatingSystemVersion.CENTOS_7_X86_64
+        || osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
       // Schedule remove extra /etc/tmpfiles.d/httpd[@<name>].conf
       String[] list = new File(ETC_TMPFILES_D).list();
       if (list != null) {
@@ -1588,17 +1620,23 @@ public final class HttpdServerManager {
         }
       }
     }
-    if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+    HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
+    // Manage httpd-after-network-online package
+    PackageManager.PackageName httpdAfterNetworkOnlinePackageName = osConfig.getHttpdAfterNetworkOnlinePackageName();
+    if (httpdAfterNetworkOnlinePackageName != null) {
       if (hasSpecificAddress) {
-        // Install httpd-after-network-online package on CentOS 7 when needed
-        PackageManager.installPackage(PackageManager.PackageName.HTTPD_AFTER_NETWORK_ONLINE);
+        // Install when needed
+        PackageManager.installPackage(httpdAfterNetworkOnlinePackageName);
       } else if (AoservDaemonConfiguration.isPackageManagerUninstallEnabled()) {
-        // Uninstall httpd-after-network-online package on CentOS 7 when not needed
-        PackageManager.removePackage(PackageManager.PackageName.HTTPD_AFTER_NETWORK_ONLINE);
+        // Uninstall when not needed
+        PackageManager.removePackage(httpdAfterNetworkOnlinePackageName);
       }
-      // Install httpd-n package on CentOS 7 when needed
-      if (hasAlternateInstance) {
-        PackageManager.installPackage(PackageManager.PackageName.HTTPD_N);
+    }
+    // Install httpd-n package when needed
+    if (hasAlternateInstance) {
+      PackageManager.PackageName alternateInstancePackageName = osConfig.getAlternateInstancePackageName();
+      if (alternateInstancePackageName != null) {
+        PackageManager.installPackage(alternateInstancePackageName);
       }
     }
   }
@@ -1606,11 +1644,8 @@ public final class HttpdServerManager {
   /**
    * Gets the PHP module name, which is per-major version for php &lt;= 7, or just "php_module" for PHP 8.
    */
-  private static String getPhpModule(String phpMajorVersion) {
-    if (
-        "5".equals(phpMajorVersion)
-            || "7".equals(phpMajorVersion)
-    ) {
+  private static String getPhpModule(int phpMajorVersion) {
+    if (phpMajorVersion == 5 || phpMajorVersion == 7) {
       return "php" + phpMajorVersion + "_module";
     } else {
       return "php_module";
@@ -1620,11 +1655,8 @@ public final class HttpdServerManager {
   /**
    * Gets the libphp.so filename, which is per-major version for php &lt;= 7, or just "libphp.so" for PHP 8.
    */
-  private static String getLibPhpSo(String phpMajorVersion) {
-    if (
-        "5".equals(phpMajorVersion)
-            || "7".equals(phpMajorVersion)
-    ) {
+  private static String getLibPhpSo(int phpMajorVersion) {
+    if (phpMajorVersion == 5 || phpMajorVersion == 7) {
       return "libphp" + phpMajorVersion + ".so";
     } else {
       return "libphp.so";
@@ -1812,13 +1844,13 @@ public final class HttpdServerManager {
       }
       Boolean modWsgi = hs.getModWsgi();
       if (modWsgi != null && modWsgi) {
-        throw new NotImplementedException("mod_wsdl support is not implemented on CentOS 5");
+        throw new NotImplementedException("mod_wsgi support is not implemented on CentOS 5");
       }
       if (isEnabled && phpVersion != null) {
         hasAnyModPhp[0] = true;
         String version = phpVersion.getVersion();
         String phpMinorVersion = getMinorPhpVersion(version);
-        String phpMajorVersion = getMajorPhpVersion(version);
+        int phpMajorVersion = getMajorPhpVersion(version);
         out.print("\n"
             + "# Enable mod_php\n"
             + "LoadModule ").print(escape(dollarVariable, getPhpModule(phpMajorVersion))).print(" ")
@@ -1905,7 +1937,7 @@ public final class HttpdServerManager {
         Bind nb = hb.getNetBind();
         InetAddress ip = nb.getIpAddress().getInetAddress();
         int port = nb.getPort().getPort();
-        out.print("Listen ").print(escape(dollarVariable, ip.toBracketedString() + ":" + port)).print("\n"
+        out.print(osConfig.getListenDirective()).print(' ').print(escape(dollarVariable, ip.toBracketedString() + ":" + port)).print("\n"
             + "NameVirtualHost ").print(escape(dollarVariable, ip.toBracketedString() + ":" + port)).print('\n');
       }
 
@@ -1938,10 +1970,10 @@ public final class HttpdServerManager {
   }
 
   /**
-   * Builds the httpd[@&lt;name&gt;].conf file for CentOS 7
+   * Builds the httpd[@&lt;name&gt;].conf file for CentOS 7 and Rocky 9
    */
   @SuppressWarnings("UnnecessaryLabelOnBreakStatement")
-  private static byte[] buildHttpdConfCentOs7(
+  private static byte[] buildHttpdConfCentOs7Rocky9(
       HttpdServer hs,
       List<Site> sites,
       Set<String> httpdConfFilenames,
@@ -1951,13 +1983,15 @@ public final class HttpdServerManager {
       boolean[] hasAnyCgi,
       boolean[] hasAnyModPhp
   ) throws IOException, SQLException {
-    final String dollarVariable = CENTOS_7_DOLLAR_VARIABLE;
+    final String dollarVariable = DOLLAR_VARIABLE;
     final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
-    if (osConfig != HttpdOperatingSystemConfiguration.CENTOS_7_X86_64) {
-      throw new AssertionError("This method is for CentOS 7 only");
+    if (osConfig != HttpdOperatingSystemConfiguration.CENTOS_7_X86_64
+        && osConfig != HttpdOperatingSystemConfiguration.ROCKY_9_X86_64) {
+      throw new AssertionError("This method is for CentOS 7 and Rocky 9 only");
     }
-    OperatingSystemVersion osv = hs.getLinuxServer().getHost().getOperatingSystemVersion();
-    assert osv.getPkey() == OperatingSystemVersion.CENTOS_7_X86_64;
+    final OperatingSystemVersion osv = hs.getLinuxServer().getHost().getOperatingSystemVersion();
+    final int osvId = osv.getPkey();
+    assert osvId == OperatingSystemVersion.CENTOS_7_X86_64 || osvId == OperatingSystemVersion.ROCKY_9_X86_64;
     PackageManager.installPackages(
         PackageManager.PackageName.HTTPD,
         PackageManager.PackageName.AOSERV_HTTPD_CONFIG
@@ -1988,9 +2022,11 @@ public final class HttpdServerManager {
           + "#\n"
           + "# mpm\n"
           + "#\n"
-          + "# LoadModule mpm_event_module modules/mod_mpm_event.so\n"
+          + "# From conf.modules.d/00-mpm.conf\n"
+          + "#\n"
           + "LoadModule mpm_prefork_module modules/mod_mpm_prefork.so\n"
           + "# LoadModule mpm_worker_module modules/mod_mpm_worker.so\n"
+          + "# LoadModule mpm_event_module modules/mod_mpm_event.so\n"
           + "Include aoserv.conf.d/mpm_*.conf\n");
       final String coreDumpDirectory;
       if (escapedName != null) {
@@ -2036,6 +2072,8 @@ public final class HttpdServerManager {
           + "\n"
           + "#\n"
           + "# Load Modules\n"
+          + "#\n"
+          + "# From conf.modules.d/00-base.conf\n"
           + "#\n");
 
       Boolean modAccessCompat = hs.getModAccessCompat();
@@ -2105,8 +2143,7 @@ public final class HttpdServerManager {
         out.print("# ");
       }
       out.print("LoadModule alias_module modules/mod_alias.so\n"
-          + "# LoadModule allowmethods_module modules/mod_allowmethods.so\n"
-          + "# LoadModule asis_module modules/mod_asis.so\n");
+          + "# LoadModule allowmethods_module modules/mod_allowmethods.so\n");
 
       boolean hasUserFile = false;
       boolean hasGroupFile = false;
@@ -2213,61 +2250,12 @@ public final class HttpdServerManager {
         out.print("# ");
       }
       out.print("LoadModule autoindex_module modules/mod_autoindex.so\n"
-          + "# LoadModule buffer_module modules/mod_buffer.so\n"
           + "# LoadModule cache_module modules/mod_cache.so\n"
-          + "# LoadModule cache_disk_module modules/mod_cache_disk.so\n"
-          + "# LoadModule cache_socache_module modules/mod_cache_socache.so\n");
-      // Comment-out cgi_module when no CGI enabled
-      boolean hasCgi = false;
-      for (Site site : sites) {
-        HttpdSiteManager manager = HttpdSiteManager.getInstance(site);
-        if (manager.enableCgi()) {
-          hasCgi = true;
-          hasAnyCgi[0] = true;
-          break;
-        }
+          + "# LoadModule cache_disk_module modules/mod_cache_disk.so\n");
+      if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+        out.print("# LoadModule cache_socache_module modules/mod_cache_socache.so\n");
       }
-      if (!hasCgi) {
-        out.print("# ");
-      }
-      out.print("<IfModule mpm_event_module>\n");
-      if (!hasCgi) {
-        out.print("# ");
-      }
-      out.print("    LoadModule cgid_module modules/mod_cgid.so\n");
-      if (!hasCgi) {
-        out.print("# ");
-      }
-      out.print("</IfModule>\n");
-      if (!hasCgi) {
-        out.print("# ");
-      }
-      out.print("<IfModule mpm_prefork_module>\n");
-      if (!hasCgi) {
-        out.print("# ");
-      }
-      out.print("    LoadModule cgi_module modules/mod_cgi.so\n");
-      if (!hasCgi) {
-        out.print("# ");
-      }
-      out.print("</IfModule>\n");
-      if (!hasCgi) {
-        out.print("# ");
-      }
-      out.print("<IfModule mpm_worker_module>\n");
-      if (!hasCgi) {
-        out.print("# ");
-      }
-      out.print("    LoadModule cgid_module modules/mod_cgid.so\n");
-      if (!hasCgi) {
-        out.print("# ");
-      }
-      out.print("</IfModule>\n"
-          + "# LoadModule charset_lite_module modules/mod_charset_lite.so\n"
-          + "# LoadModule data_module modules/mod_data.so\n"
-          + "# LoadModule dav_module modules/mod_dav.so\n"
-          + "# LoadModule dav_fs_module modules/mod_dav_fs.so\n"
-          + "# LoadModule dav_lock_module modules/mod_dav_lock.so\n"
+      out.print("# LoadModule data_module modules/mod_data.so\n"
           + "# LoadModule dbd_module modules/mod_dbd.so\n");
 
       Boolean modDeflate = hs.getModDeflate();
@@ -2278,8 +2266,7 @@ public final class HttpdServerManager {
       if (!modDeflate) {
         out.print("# ");
       }
-      out.print("LoadModule deflate_module modules/mod_deflate.so\n"
-          + "# LoadModule dialup_module modules/mod_dialup.so\n");
+      out.print("LoadModule deflate_module modules/mod_deflate.so\n");
 
       Boolean modDir = hs.getModDir();
       if (modDir == null) {
@@ -2294,8 +2281,7 @@ public final class HttpdServerManager {
           + "# LoadModule echo_module modules/mod_echo.so\n"
           + "# LoadModule env_module modules/mod_env.so\n"
           + "# LoadModule expires_module modules/mod_expires.so\n"
-          + "# LoadModule ext_filter_module modules/mod_ext_filter.so\n"
-          + "# LoadModule file_cache_module modules/mod_file_cache.so\n");
+          + "# LoadModule ext_filter_module modules/mod_ext_filter.so\n");
 
       Boolean modFilter = hs.getModFilter();
       if (modFilter == null) {
@@ -2324,9 +2310,7 @@ public final class HttpdServerManager {
       if (!modHeaders) {
         out.print("# ");
       }
-      out.print("LoadModule headers_module modules/mod_headers.so\n"
-          + "# LoadModule heartbeat_module modules/mod_heartbeat.so\n"
-          + "# LoadModule heartmonitor_module modules/mod_heartmonitor.so\n");
+      out.print("LoadModule headers_module modules/mod_headers.so\n");
 
       Boolean modInclude = hs.getModInclude();
       if (modInclude == null) {
@@ -2346,38 +2330,6 @@ public final class HttpdServerManager {
       out.print("LoadModule include_module modules/mod_include.so\n"
           + "# LoadModule info_module modules/mod_info.so\n");
 
-      Boolean modJk = hs.getModJk();
-      if (modJk == null) {
-        // Enabled when any site has a JkMount or JkUnMount
-        boolean hasJkSettings = false;
-        for (Site site : sites) {
-          HttpdSiteManager manager = HttpdSiteManager.getInstance(site);
-          if (!manager.getJkSettings().isEmpty()) {
-            hasJkSettings = true;
-            break;
-          }
-        }
-        modJk = hasJkSettings;
-      }
-      final boolean modJkInstalled;
-      if (modJk) {
-        // TODO: Uninstall tomcat_connectors when no longer needed
-        PackageManager.installPackage(PackageManager.PackageName.TOMCAT_CONNECTORS);
-        modJkInstalled = true;
-      } else {
-        modJkInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.TOMCAT_CONNECTORS) != null;
-      }
-      if (modJkInstalled) {
-        if (!modJk) {
-          out.print("# ");
-        }
-        out.print("LoadModule jk_module modules/mod_jk.so\n");
-      }
-      out.print("# LoadModule lbmethod_bybusyness_module modules/mod_lbmethod_bybusyness.so\n"
-          + "# LoadModule lbmethod_byrequests_module modules/mod_lbmethod_byrequests.so\n"
-          + "# LoadModule lbmethod_bytraffic_module modules/mod_lbmethod_bytraffic.so\n"
-          + "# LoadModule lbmethod_heartbeat_module modules/mod_lbmethod_heartbeat.so\n");
-
       Boolean modLogConfig = hs.getModLogConfig();
       if (modLogConfig == null) {
         // Enabled by default (unless explicitly disabled)
@@ -2387,11 +2339,20 @@ public final class HttpdServerManager {
         out.print("# ");
       }
       out.print("LoadModule log_config_module modules/mod_log_config.so\n"
-          + "# LoadModule log_debug_module modules/mod_log_debug.so\n"
-          + "# LoadModule log_forensic_module modules/mod_log_forensic.so\n"
-          + "# LoadModule logio_module modules/mod_logio.so\n"
-          + "# LoadModule lua_module modules/mod_lua.so\n"
-          + "# LoadModule macro_module modules/mod_macro.so\n");
+          + "# LoadModule logio_module modules/mod_logio.so\n");
+      if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+        out.print("# LoadModule macro_module modules/mod_macro.so\n");
+      }
+
+      Boolean modMimeMagic = hs.getModMimeMagic();
+      if (modMimeMagic == null) {
+        // Enabled by default (unless explicitly disabled)
+        modMimeMagic = true;
+      }
+      if (!modMimeMagic) {
+        out.print("# ");
+      }
+      out.print("LoadModule mime_magic_module modules/mod_mime_magic.so\n");
 
       Boolean modMime = hs.getModMime();
       if (modMime == null) {
@@ -2405,16 +2366,6 @@ public final class HttpdServerManager {
       }
       out.print("LoadModule mime_module modules/mod_mime.so\n");
 
-      Boolean modMimeMagic = hs.getModMimeMagic();
-      if (modMimeMagic == null) {
-        // Enabled by default (unless explicitly disabled)
-        modMimeMagic = true;
-      }
-      if (!modMimeMagic) {
-        out.print("# ");
-      }
-      out.print("LoadModule mime_magic_module modules/mod_mime_magic.so\n");
-
       Boolean modNegotiation = hs.getModNegotiation();
       if (modNegotiation == null) {
         // Disabled by default (unless explicitly enabled)
@@ -2423,39 +2374,7 @@ public final class HttpdServerManager {
       if (!modNegotiation) {
         out.print("# ");
       }
-      out.print("LoadModule negotiation_module modules/mod_negotiation.so\n");
-
-      Boolean modProxyHttp = hs.getModProxyHttp();
-      if (modProxyHttp == null) {
-        // Disabled by default (unless explicitly enabled)
-        modProxyHttp = false;
-      }
-
-      Boolean modProxy = hs.getModProxy();
-      if (modProxy == null) {
-        // Enabled when mod_proxy_http is enabled
-        modProxy = modProxyHttp;
-      }
-      if (!modProxy) {
-        out.print("# ");
-      }
-      out.print("LoadModule proxy_module modules/mod_proxy.so\n"
-          + "# LoadModule proxy_ajp_module modules/mod_proxy_ajp.so\n"
-          + "# LoadModule proxy_balancer_module modules/mod_proxy_balancer.so\n"
-          + "# LoadModule proxy_connect_module modules/mod_proxy_connect.so\n"
-          + "# LoadModule proxy_express_module modules/mod_proxy_express.so\n"
-          + "# LoadModule proxy_fcgi_module modules/mod_proxy_fcgi.so\n"
-          + "# LoadModule proxy_fdpass_module modules/mod_proxy_fdpass.so\n"
-          + "# LoadModule proxy_ftp_module modules/mod_proxy_ftp.so\n");
-
-      if (!modProxyHttp) {
-        out.print("# ");
-      }
-      out.print("LoadModule proxy_http_module modules/mod_proxy_http.so\n"
-          + "# LoadModule proxy_scgi_module modules/mod_proxy_scgi.so\n"
-          + "# LoadModule proxy_wstunnel_module modules/mod_proxy_wstunnel.so\n"
-          + "# LoadModule ratelimit_module modules/mod_ratelimit.so\n"
-          + "# LoadModule reflector_module modules/mod_reflector.so\n"
+      out.print("LoadModule negotiation_module modules/mod_negotiation.so\n"
           + "# LoadModule remoteip_module modules/mod_remoteip.so\n");
 
       Boolean modReqtimeout = hs.getModReqtimeout();
@@ -2466,8 +2385,10 @@ public final class HttpdServerManager {
       if (!modReqtimeout) {
         out.print("# ");
       }
-      out.print("LoadModule reqtimeout_module modules/mod_reqtimeout.so\n"
-          + "# LoadModule request_module modules/mod_request.so\n");
+      out.print("LoadModule reqtimeout_module modules/mod_reqtimeout.so\n");
+      if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+        out.print("# LoadModule request_module modules/mod_request.so\n");
+      }
 
       Boolean modRewrite = hs.getModRewrite();
       if (modRewrite == null) {
@@ -2502,8 +2423,7 @@ public final class HttpdServerManager {
       if (!modRewrite) {
         out.print("# ");
       }
-      out.print("LoadModule rewrite_module modules/mod_rewrite.so\n"
-          + "# LoadModule sed_module modules/mod_sed.so\n");
+      out.print("LoadModule rewrite_module modules/mod_rewrite.so\n");
 
       Boolean modSsl = hs.getModSsl();
       if (modSsl == null) {
@@ -2534,6 +2454,9 @@ public final class HttpdServerManager {
           + "# LoadModule slotmem_shm_module modules/mod_slotmem_shm.so\n"
           + "# LoadModule socache_dbm_module modules/mod_socache_dbm.so\n"
           + "# LoadModule socache_memcache_module modules/mod_socache_memcache.so\n");
+      if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+        out.print("# LoadModule socache_redis_module modules/mod_socache_redis.so\n");
+      }
 
       Boolean modSocacheShmcb = hs.getModSocacheShmcb();
       if (modSocacheShmcb == null) {
@@ -2543,23 +2466,7 @@ public final class HttpdServerManager {
       if (!modSocacheShmcb) {
         out.print("# ");
       }
-      out.print("LoadModule socache_shmcb_module modules/mod_socache_shmcb.so\n"
-          + "# LoadModule speling_module modules/mod_speling.so\n");
-
-      final boolean modSslInstalled;
-      if (modSsl) {
-        // TODO: Uninstall mod_ssl when no longer needed
-        PackageManager.installPackage(PackageManager.PackageName.MOD_SSL);
-        modSslInstalled = true;
-      } else {
-        modSslInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.MOD_SSL) != null;
-      }
-      if (modSslInstalled) {
-        if (!modSsl) {
-          out.print("# ");
-        }
-        out.print("LoadModule ssl_module modules/mod_ssl.so\n");
-      }
+      out.print("LoadModule socache_shmcb_module modules/mod_socache_shmcb.so\n");
 
       Boolean modStatus = hs.getModStatus();
       if (modStatus == null) {
@@ -2581,41 +2488,301 @@ public final class HttpdServerManager {
       }
       out.print("LoadModule status_module modules/mod_status.so\n"
           + "# LoadModule substitute_module modules/mod_substitute.so\n");
-      if (!hs.useSuexec()) {
+
+      boolean modSuexec = hs.useSuexec();
+      if (!modSuexec) {
         out.print("# ");
       }
       out.print("LoadModule suexec_module modules/mod_suexec.so\n"
-          + "LoadModule systemd_module modules/mod_systemd.so\n"
           + "# LoadModule unique_id_module modules/mod_unique_id.so\n"
           + "LoadModule unixd_module modules/mod_unixd.so\n"
           + "# LoadModule userdir_module modules/mod_userdir.so\n"
-          + "# LoadModule usertrack_module modules/mod_usertrack.so\n"
           + "# LoadModule version_module modules/mod_version.so\n"
-          + "# LoadModule vhost_alias_module modules/mod_vhost_alias.so\n"
-          + "# LoadModule watchdog_module modules/mod_watchdog.so\n");
+          + "# LoadModule vhost_alias_module modules/mod_vhost_alias.so\n");
+      if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+        out.print("# LoadModule watchdog_module modules/mod_watchdog.so\n");
+      }
+      if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+        out.print("# LoadModule buffer_module modules/mod_buffer.so\n"
+            + "# LoadModule watchdog_module modules/mod_watchdog.so\n"
+            + "# LoadModule heartbeat_module modules/mod_heartbeat.so\n"
+            + "# LoadModule heartmonitor_module modules/mod_heartmonitor.so\n"
+            + "# LoadModule usertrack_module modules/mod_usertrack.so\n"
+            + "# LoadModule dialup_module modules/mod_dialup.so\n"
+            + "# LoadModule charset_lite_module modules/mod_charset_lite.so\n"
+            + "# LoadModule log_debug_module modules/mod_log_debug.so\n"
+            + "# LoadModule ratelimit_module modules/mod_ratelimit.so\n"
+            + "# LoadModule reflector_module modules/mod_reflector.so\n"
+            + "# LoadModule request_module modules/mod_request.so\n"
+            + "# LoadModule sed_module modules/mod_sed.so\n"
+            + "# LoadModule speling_module modules/mod_speling.so");
+      }
+      if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+        out.print("#\n"
+            + "# From conf.modules.d/00-brotli.conf\n"
+            + "#\n"
+            + "# LoadModule brotli_module modules/mod_brotli.so\n");
+      }
+      out.print("#\n"
+          + "# From conf.modules.d/00-dav.conf\n"
+          + "#\n"
+          + "# LoadModule dav_module modules/mod_dav.so\n"
+          + "# LoadModule dav_fs_module modules/mod_dav_fs.so\n"
+          + "# LoadModule dav_lock_module modules/mod_dav_lock.so\n"
+          + "#\n"
+          + "# From conf.modules.d/00-lua.conf\n"
+          + "#\n"
+          + "# LoadModule lua_module modules/mod_lua.so\n");
+      if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+        out.print("#\n"
+            + "# From conf.modules.d/00-optional.conf\n"
+            + "#\n"
+            + "# LoadModule asis_module modules/mod_asis.so\n"
+            + "# LoadModule authnz_fcgi_module modules/mod_authnz_fcgi.so\n"
+            + "# LoadModule buffer_module modules/mod_buffer.so\n"
+            + "# LoadModule heartbeat_module modules/mod_heartbeat.so\n"
+            + "# LoadModule heartmonitor_module modules/mod_heartmonitor.so\n"
+            + "# LoadModule usertrack_module modules/mod_usertrack.so\n"
+            + "# LoadModule dialup_module modules/mod_dialup.so\n"
+            + "# LoadModule charset_lite_module modules/mod_charset_lite.so\n"
+            + "# LoadModule log_debug_module modules/mod_log_debug.so\n"
+            + "# LoadModule log_forensic_module modules/mod_log_forensic.so\n"
+            + "# LoadModule ratelimit_module modules/mod_ratelimit.so\n"
+            + "# LoadModule reflector_module modules/mod_reflector.so\n"
+            + "# LoadModule sed_module modules/mod_sed.so\n"
+            + "# LoadModule speling_module modules/mod_speling.so\n");
+      }
+      out.print("#\n"
+          + "# From conf.modules.d/00-proxy.conf\n"
+          + "#\n");
+
+      Boolean modProxyHttp = hs.getModProxyHttp();
+      if (modProxyHttp == null) {
+        // Disabled by default (unless explicitly enabled)
+        modProxyHttp = false;
+      }
+
+      Boolean modProxy = hs.getModProxy();
+      if (modProxy == null) {
+        // Enabled when mod_proxy_http is enabled
+        modProxy = modProxyHttp;
+      }
+      if (!modProxy) {
+        out.print("# ");
+      }
+      out.print("LoadModule proxy_module modules/mod_proxy.so\n"
+          + "# LoadModule lbmethod_bybusyness_module modules/mod_lbmethod_bybusyness.so\n"
+          + "# LoadModule lbmethod_byrequests_module modules/mod_lbmethod_byrequests.so\n"
+          + "# LoadModule lbmethod_bytraffic_module modules/mod_lbmethod_bytraffic.so\n"
+          + "# LoadModule lbmethod_heartbeat_module modules/mod_lbmethod_heartbeat.so\n"
+          + "# LoadModule proxy_ajp_module modules/mod_proxy_ajp.so\n"
+          + "# LoadModule proxy_balancer_module modules/mod_proxy_balancer.so\n"
+          + "# LoadModule proxy_connect_module modules/mod_proxy_connect.so\n"
+          + "# LoadModule proxy_express_module modules/mod_proxy_express.so\n"
+          + "# LoadModule proxy_fcgi_module modules/mod_proxy_fcgi.so\n"
+          + "# LoadModule proxy_fdpass_module modules/mod_proxy_fdpass.so\n"
+          + "# LoadModule proxy_ftp_module modules/mod_proxy_ftp.so\n");
+
+      if (!modProxyHttp) {
+        out.print("# ");
+      }
+      out.print("LoadModule proxy_http_module modules/mod_proxy_http.so\n");
+      if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+        out.print("# LoadModule proxy_hcheck_module modules/mod_proxy_hcheck.so\n");
+      }
+      out.print("# LoadModule proxy_scgi_module modules/mod_proxy_scgi.so\n");
+      if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+        out.print("# LoadModule proxy_uwsgi_module modules/mod_proxy_uwsgi.so\n");
+      }
+      out.print("# LoadModule proxy_wstunnel_module modules/mod_proxy_wstunnel.so\n");
+
+      final boolean modSslInstalled;
+      if (modSsl) {
+        // TODO: Uninstall mod_ssl when no longer needed
+        PackageManager.installPackage(PackageManager.PackageName.MOD_SSL);
+        modSslInstalled = true;
+      } else {
+        modSslInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.MOD_SSL) != null;
+      }
+      if (modSslInstalled) {
+        out.print("#\n"
+            + "# From conf.modules.d/00-ssl.conf\n"
+            + "#\n");
+        if (!modSsl) {
+          out.print("# ");
+        }
+        out.print("LoadModule ssl_module modules/mod_ssl.so\n");
+      }
+      out.print("#\n"
+          + "# From conf.modules.d/00-systemd.conf\n"
+          + "#\n"
+          + "LoadModule systemd_module modules/mod_systemd.so\n"
+          + "#\n"
+          + "# From conf.modules.d/01-cgi.conf\n"
+          + "#\n");
+
+      // Comment-out cgi_module when no CGI enabled
+      boolean hasCgi = false;
+      for (Site site : sites) {
+        HttpdSiteManager manager = HttpdSiteManager.getInstance(site);
+        if (manager.enableCgi()) {
+          hasCgi = true;
+          hasAnyCgi[0] = true;
+          break;
+        }
+      }
+      if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+        if (!hasCgi) {
+          out.print("# ");
+        }
+        out.print("<IfModule mpm_worker_module>\n");
+        if (!hasCgi) {
+          out.print("# ");
+        }
+        out.print("    LoadModule cgid_module modules/mod_cgid.so\n");
+        if (!hasCgi) {
+          out.print("# ");
+        }
+        out.print("</IfModule>\n");
+        if (!hasCgi) {
+          out.print("# ");
+        }
+        out.print("<IfModule mpm_event_module>\n");
+        if (!hasCgi) {
+          out.print("# ");
+        }
+        out.print("    LoadModule cgid_module modules/mod_cgid.so\n");
+        if (!hasCgi) {
+          out.print("# ");
+        }
+        out.print("</IfModule>\n");
+      } else if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+        if (!hasCgi) {
+          out.print("# ");
+        }
+        out.print("<IfModule !mpm_prefork_module>\n");
+        if (!hasCgi) {
+          out.print("# ");
+        }
+        out.print("    LoadModule cgid_module modules/mod_cgid.so\n");
+        if (!hasCgi) {
+          out.print("# ");
+        }
+        out.print("</IfModule>\n");
+      } else {
+        throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+      }
+      if (!hasCgi) {
+        out.print("# ");
+      }
+      out.print("<IfModule mpm_prefork_module>\n");
+      if (!hasCgi) {
+        out.print("# ");
+      }
+      out.print("    LoadModule cgi_module modules/mod_cgi.so\n");
+      if (!hasCgi) {
+        out.print("# ");
+      }
+      out.print("</IfModule>\n");
+      if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+        out.print("#\n"
+            + "# From conf.modules.d/10-h2.conf\n"
+            + "#\n"
+            + "# LoadModule http2_module modules/mod_http2.so\n"
+            + "#\n"
+            + "# From conf.modules.d/10-proxy_h2.conf\n"
+            + "#\n"
+            + "# LoadModule proxy_http2_module modules/mod_proxy_http2.so\n");
+      }
+
       final boolean modWsgiEnabled;
         {
           Boolean modWsgi = hs.getModWsgi();
           modWsgiEnabled = modWsgi != null && modWsgi;
         }
       final boolean modWsgiInstalled;
-      if (modWsgiEnabled) {
-        PackageManager.installPackage(PackageManager.PackageName.MOD_WSGI);
-        modWsgiInstalled = true;
+      if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+        if (modWsgiEnabled) {
+          PackageManager.installPackage(PackageManager.PackageName.MOD_WSGI);
+          modWsgiInstalled = true;
+        } else {
+          modWsgiInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.MOD_WSGI) != null;
+        }
+      } else if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+        if (modWsgiEnabled) {
+          throw new NotImplementedException("TODO: Support mod_wsgi in Rocky 9");
+        } else {
+          modWsgiInstalled = false; // TODO: Support mod_wsgi in Rocky 9
+        }
       } else {
-        modWsgiInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.MOD_WSGI) != null;
+        throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
       }
       if (modWsgiInstalled) {
+        out.print("#\n"
+            + "# From conf.modules.d/10-wsgi.conf\n"
+            + "#\n");
         if (!modWsgiEnabled) {
           out.print("# ");
         }
         out.print("LoadModule wsgi_module modules/mod_wsgi.so\n");
       }
+
+      Boolean modJk = hs.getModJk();
+      if (modJk == null) {
+        // Enabled when any site has a JkMount or JkUnMount
+        boolean hasJkSettings = false;
+        for (Site site : sites) {
+          HttpdSiteManager manager = HttpdSiteManager.getInstance(site);
+          if (!manager.getJkSettings().isEmpty()) {
+            hasJkSettings = true;
+            break;
+          }
+        }
+        modJk = hasJkSettings;
+      }
+      final boolean modJkInstalled;
+      PackageManager.PackageName modJkPackageName = osConfig.getModJkPackageName();
+      if (modJkPackageName == null) {
+        // Treat as installed
+        modJkInstalled = true;
+      } else if (modJk) {
+        // TODO: Uninstall package when no longer needed
+        PackageManager.installPackage(modJkPackageName);
+        modJkInstalled = true;
+      } else {
+        modJkInstalled = PackageManager.getInstalledPackage(modJkPackageName) != null;
+      }
+      if (modJkInstalled) {
+        out.print("#\n"
+            + "# From conf.d/mod_jk.conf.sample\n"
+            + "#\n");
+        if (!modJk) {
+          out.print("# ");
+        }
+        out.print("LoadModule jk_module modules/mod_jk.so\n");
+      }
       out.print("\n"
           + "#\n"
           + "# Configure Modules\n"
           + "#\n"
-          + "Include aoserv.conf.d/mod_*.conf\n"
+          + "Include aoserv.conf.d/mod_*.conf\n");
+      if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+        out.print("#\n"
+            + "# From aoserv.conf.d/mod_cache.conf\n"
+            + "#\n"
+            + "<IfModule cache_module>\n");
+        final String cacheLockPath;
+        if (escapedName != null) {
+          cacheLockPath = "/tmp/mod_cache-lock@" + escapedName;
+        } else {
+          cacheLockPath = "/tmp/mod_cache-lock";
+        }
+        out.print("    CacheLockPath ").print(escape(dollarVariable, cacheLockPath)).print("\n"
+            + "</IfModule>\n");
+      }
+      out.print("#\n"
+          + "# From aoserv.conf.d/mod_dav_fs.conf\n"
+          + "#\n"
           + "<IfModule dav_fs_module>\n");
       final String davLockDb;
       if (escapedName != null) {
@@ -2626,7 +2793,10 @@ public final class HttpdServerManager {
       out.print("    DavLockDB ").print(escape(dollarVariable, davLockDb)).print("\n"
           + "</IfModule>\n");
       if (modJk || modJkInstalled) {
-        out.print("<IfModule jk_module>\n");
+        out.print("#\n"
+            + "# From aoserv.conf.d/mod_jk.conf\n"
+            + "#\n"
+            + "<IfModule jk_module>\n");
         final String jkWorkersFile;
         if (escapedName != null) {
           jkWorkersFile = "conf/workers@" + escapedName + ".properties";
@@ -2650,7 +2820,10 @@ public final class HttpdServerManager {
         out.print("    JkLogFile ").print(escape(dollarVariable, jkLogFile)).print("\n"
             + "</IfModule>\n");
       }
-      out.print("<IfModule log_config_module>\n");
+      out.print("#\n"
+          + "# From aoserv.conf.d/mod_log_config.conf\n"
+          + "#\n"
+          + "<IfModule log_config_module>\n");
       final String customLog;
       if (escapedName != null) {
         customLog = "/var/log/httpd@" + escapedName + "/access_log";
@@ -2660,7 +2833,10 @@ public final class HttpdServerManager {
       out.print("    CustomLog ").print(escape(dollarVariable, customLog)).print(" combined\n"
           + "</IfModule>\n");
       if (modSsl || modSslInstalled) {
-        out.print("<IfModule ssl_module>\n");
+        out.print("#\n"
+            + "# From aoserv.conf.d/mod_ssl.conf\n"
+            + "#\n"
+            + "<IfModule ssl_module>\n");
         final String sslSessionCache;
         if (escapedName != null) {
           sslSessionCache = "shmcb:/run/httpd@" + escapedName + "/sslcache(512000)";
@@ -2671,7 +2847,10 @@ public final class HttpdServerManager {
             + "</IfModule>\n");
       }
       // Use apache if the account is disabled
-      out.print("<IfModule unixd_module>\n");
+      out.print("#\n"
+          + "# From aoserv.conf.d/mod_unixd.conf\n"
+          + "#\n"
+          + "<IfModule unixd_module>\n");
       if (isEnabled) {
         out.print("    User ").print(escape(dollarVariable, lsa.getLinuxAccount().getUsername().getUsername().toString())).print("\n"
             + "    Group ").print(escape(dollarVariable, hs.getLinuxServerGroup().getLinuxGroup().getName().toString())).print('\n');
@@ -2760,7 +2939,7 @@ public final class HttpdServerManager {
         }
         if (isEnabled) {
           hasAnyModPhp[0] = true;
-          String phpMajorVersion = getMajorPhpVersion(version);
+          int phpMajorVersion = getMajorPhpVersion(version);
           out.print("\n"
               + "#\n"
               + "# Enable mod_php\n"
@@ -2799,11 +2978,10 @@ public final class HttpdServerManager {
           + "#\n");
       for (HttpdBind hb : hs.getHttpdBinds()) {
         Bind nb = hb.getNetBind();
+        // TODO: assert nb.getNetProtocol is TCP once in aoserv-client
         InetAddress ip = nb.getIpAddress().getInetAddress();
         int port = nb.getPort().getPort();
-        // TODO: Rocky 9: ListenFree for anything other than wildcard or loopback
-        //                See how "hasSpecificAddress" is determined, share logic
-        out.print("Listen ").print(escape(dollarVariable, ip.toBracketedString() + ":" + port));
+        out.print(osConfig.getListenDirective()).print(' ').print(escape(dollarVariable, ip.toBracketedString() + ":" + port));
         String appProtocol = nb.getAppProtocol().getProtocol();
         if (appProtocol.equals(AppProtocol.HTTP)) {
           if (port != 80) {
@@ -2850,7 +3028,7 @@ public final class HttpdServerManager {
   }
 
   /**
-   * Builds the httpd[[-]#].conf file contents for the provided HttpdServer.
+   * Builds the (httpd(<var>#</var>|-<var>name</var>)|<var>name</var>).conf file contents for the provided HttpdServer.
    */
   private static byte[] buildHttpdConf(
       HttpdServer hs,
@@ -2867,7 +3045,8 @@ public final class HttpdServerManager {
       case CENTOS_5_I686_AND_X86_64:
         return buildHttpdConfCentOs5(hs, sites, httpdConfFilenames, bout, hasAnyCgi, hasAnyModPhp);
       case CENTOS_7_X86_64:
-        return buildHttpdConfCentOs7(hs, sites, httpdConfFilenames, varLibPhpFilenames, bout, restorecon, hasAnyCgi, hasAnyModPhp);
+      case ROCKY_9_X86_64:
+        return buildHttpdConfCentOs7Rocky9(hs, sites, httpdConfFilenames, varLibPhpFilenames, bout, restorecon, hasAnyCgi, hasAnyModPhp);
       default:
         throw new AssertionError("Unexpected value for osConfig: " + osConfig);
     }
@@ -2922,7 +3101,7 @@ public final class HttpdServerManager {
           Port port = worker.getBind().getPort();
           out.print("\n"
               + "worker.").print(code).print(".type=").print(worker.getHttpdJkProtocol(conn).getProtocol(conn).getProtocol()).print("\n"
-              + "worker.").print(code).print(".host=127.0.0.1\n" // For use IPv4 on CentOS 7
+              + "worker.").print(code).print(".host=127.0.0.1\n" // For use IPv4 on CentOS 7 and Rocky 9
               + "worker.").print(code).print(".port=").print(port.getPort()).print('\n');
           enabledAjpPorts.add(port);
         }
@@ -2953,7 +3132,7 @@ public final class HttpdServerManager {
           }
         }
       }
-    // CentOS 7:
+    // CentOS 7 and Rocky 9:
     if (sslCertStr.equals("/etc/pki/tls/private/" + primaryHostname + ".key")) {
       return "/etc/pki/tls/private/${bind.primary_hostname}.key";
     }
@@ -3126,9 +3305,10 @@ public final class HttpdServerManager {
             break;
           }
         case CENTOS_7_X86_64:
+        case ROCKY_9_X86_64:
           {
             final String bindEscapedName = bind.getSystemdEscapedName();
-            final String dollarVariable = CENTOS_7_DOLLAR_VARIABLE;
+            final String dollarVariable = DOLLAR_VARIABLE;
             final Certificate sslCert;
             final String protocol;
             final boolean isDefaultPort;
@@ -3349,6 +3529,7 @@ public final class HttpdServerManager {
             break;
           }
         case OperatingSystemVersion.CENTOS_7_X86_64:
+        case OperatingSystemVersion.ROCKY_9_X86_64:
           {
             String escapedName = hs.getSystemdEscapedName();
             AoservDaemon.exec(
@@ -3385,6 +3566,7 @@ public final class HttpdServerManager {
             break;
           }
         case OperatingSystemVersion.CENTOS_7_X86_64:
+        case OperatingSystemVersion.ROCKY_9_X86_64:
           {
             for (HttpdServer hs : AoservDaemon.getThisServer().getHttpdServers()) {
               String escapedName = hs.getSystemdEscapedName();
@@ -3426,9 +3608,9 @@ public final class HttpdServerManager {
   /**
    * Gets the major (first number only) form of a PHP version.
    */
-  static String getMajorPhpVersion(String version) {
+  private static int getMajorPhpVersion(String version) {
     int pos = version.indexOf('.');
-    return pos == -1 ? version : version.substring(0, pos);
+    return Integer.parseInt(pos == -1 ? version : version.substring(0, pos));
   }
 
   /**
@@ -3639,6 +3821,7 @@ public final class HttpdServerManager {
           break;
         }
       case OperatingSystemVersion.CENTOS_7_X86_64:
+      case OperatingSystemVersion.ROCKY_9_X86_64:
         {
           boolean hasAlternateInstance = false;
           Set<String> dontDeleteFilenames = AoCollections.newHashSet(hss.size());
@@ -3699,9 +3882,13 @@ public final class HttpdServerManager {
               }
             }
           }
-          // Uninstall httpd-n package on CentOS 7 when not needed
+          // Uninstall httpd-n package when not needed
           if (!hasAlternateInstance && AoservDaemonConfiguration.isPackageManagerUninstallEnabled()) {
-            PackageManager.removePackage(PackageManager.PackageName.HTTPD_N);
+            HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
+            PackageManager.PackageName alternateInstancePackageName = osConfig.getAlternateInstancePackageName();
+            if (alternateInstancePackageName != null) {
+              PackageManager.removePackage(alternateInstancePackageName);
+            }
           }
           break;
         }
@@ -3727,6 +3914,7 @@ public final class HttpdServerManager {
         // SELinux left in Permissive state, not configured here
         break;
       case OperatingSystemVersion.CENTOS_7_X86_64:
+      case OperatingSystemVersion.ROCKY_9_X86_64:
         {
           // Install /usr/sbin/semanage if missing
           if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
@@ -3830,7 +4018,8 @@ public final class HttpdServerManager {
                         new File("/var/run/httpd" + num + ".pid")
                     ).trim()
                 );
-              } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+              } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64
+                  || osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
                 String serviceName;
                   {
                     String systemdName = hs.getSystemdEscapedName();

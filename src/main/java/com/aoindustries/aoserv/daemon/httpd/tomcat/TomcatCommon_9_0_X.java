@@ -46,7 +46,6 @@ import java.util.Set;
  *
  * @author  AO Industries, Inc.
  */
-// TODO: ROCKY_9_X86_64
 final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 
   private static final TomcatCommon_9_0_X instance = new TomcatCommon_9_0_X();
@@ -170,7 +169,8 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
     // TODO: This might be able to simply use the same lnAll as used to initially create the lib/ directory
     boolean needsRestart = false;
     OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
-    if (osConfig == OperatingSystemConfiguration.CENTOS_7_X86_64) {
+    if (osConfig == OperatingSystemConfiguration.CENTOS_7_X86_64
+        || osConfig == OperatingSystemConfiguration.ROCKY_9_X86_64) {
       final Version version = getRpmVersion(PackageManager.PackageName.APACHE_TOMCAT_9_0,
           PackageManager.PackageName.OLD_APACHE_TOMCAT_9_0);
       final String suffix = osConfig.getPackageReleaseSuffix();

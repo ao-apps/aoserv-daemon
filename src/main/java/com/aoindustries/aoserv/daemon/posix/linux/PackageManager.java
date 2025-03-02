@@ -118,7 +118,7 @@ public final class PackageManager {
     HAVEGED("haveged"),
     HDDTEMP("hddtemp"),
     HTTPD("httpd"),
-    HTTPD_AFTER_NETWORK_ONLINE("httpd-after-network-online"),
+    HTTPD_AFTER_NETWORK_ONLINE("httpd-after-network-online"), // CentOS 7 only, Rocky 9 uses ListenFree
     HTTPD_N("httpd-n"),
     HTTPD_TOOLS("httpd-tools"),
     JBOSS_2_2_2("jboss-2.2.2"),
@@ -129,6 +129,7 @@ public final class PackageManager {
     LIBPCAP("libpcap"),
     LSOF("lsof"),
     MAJORDOMO("majordomo"),
+    MOD_JK("mod_jk"), // Rocky 9
     MOD_SSL("mod_ssl"),
     MOD_WSGI("mod_wsgi"),
     MRTG("mrtg"),
@@ -348,7 +349,7 @@ public final class PackageManager {
     SUDO("sudo"),
     SYSSTAT("sysstat"),
     TAR("tar"),
-    TOMCAT_CONNECTORS("tomcat-connectors"),
+    TOMCAT_CONNECTORS("tomcat-connectors"), // CentOS 7
     UTIL_LINUX("util-linux");
 
     private final String rpmName;

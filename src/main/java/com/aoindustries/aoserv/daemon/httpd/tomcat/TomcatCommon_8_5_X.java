@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2018, 2019, 2020, 2021, 2022, 2023, 2024  AO Industries, Inc.
+ * Copyright (C) 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -46,7 +46,6 @@ import java.util.Set;
  *
  * @author  AO Industries, Inc.
  */
-// TODO: ROCKY_9_X86_64
 final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 
   private static final TomcatCommon_8_5_X instance = new TomcatCommon_8_5_X();
@@ -170,7 +169,8 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
     // TODO: This might be able to simply use the same lnAll as used to initially create the lib/ directory
     boolean needsRestart = false;
     OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
-    if (osConfig == OperatingSystemConfiguration.CENTOS_7_X86_64) {
+    if (osConfig == OperatingSystemConfiguration.CENTOS_7_X86_64
+        || osConfig == OperatingSystemConfiguration.ROCKY_9_X86_64) {
       final Version version = getRpmVersion(PackageManager.PackageName.APACHE_TOMCAT_8_5,
           PackageManager.PackageName.OLD_APACHE_TOMCAT_8_5);
       final String suffix = osConfig.getPackageReleaseSuffix();

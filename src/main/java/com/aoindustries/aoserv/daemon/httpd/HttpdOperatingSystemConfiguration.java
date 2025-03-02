@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2008-2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
+ * Copyright (C) 2008-2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -106,6 +106,26 @@ public enum HttpdOperatingSystemConfiguration {
         throw new WrappedException(e);
       }
     }
+
+    @Override
+    public String getListenDirective() {
+      return "Listen";
+    }
+
+    @Override
+    public PackageManager.PackageName getHttpdAfterNetworkOnlinePackageName() {
+      return null;
+    }
+
+    @Override
+    public PackageManager.PackageName getAlternateInstancePackageName() {
+      return null;
+    }
+
+    @Override
+    public PackageManager.PackageName getModJkPackageName() {
+      return null;
+    }
   },
   CENTOS_7_X86_64 {
     @Override
@@ -176,6 +196,26 @@ public enum HttpdOperatingSystemConfiguration {
         throw new WrappedException(e);
       }
     }
+
+    @Override
+    public String getListenDirective() {
+      return "Listen";
+    }
+
+    @Override
+    public PackageManager.PackageName getHttpdAfterNetworkOnlinePackageName() {
+      return PackageManager.PackageName.HTTPD_AFTER_NETWORK_ONLINE;
+    }
+
+    @Override
+    public PackageManager.PackageName getAlternateInstancePackageName() {
+      return PackageManager.PackageName.HTTPD_N;
+    }
+
+    @Override
+    public PackageManager.PackageName getModJkPackageName() {
+      return PackageManager.PackageName.TOMCAT_CONNECTORS;
+    }
   },
   ROCKY_9_X86_64 {
     @Override
@@ -241,6 +281,32 @@ public enum HttpdOperatingSystemConfiguration {
       } catch (ValidationException e) {
         throw new WrappedException(e);
       }
+    }
+
+    @Override
+    public String getListenDirective() {
+      return "ListenFree";
+    }
+
+    /**
+     * Rocky 9 uses ListenFree instead of Listen, it's okay for Apache instances to start before networking is fully up.
+     */
+    @Override
+    public PackageManager.PackageName getHttpdAfterNetworkOnlinePackageName() {
+      return null;
+    }
+
+    /**
+     * The httpd package in Rocky 9 includes its own <code>httpd@.service</code>.
+     */
+    @Override
+    public PackageManager.PackageName getAlternateInstancePackageName() {
+      return null;
+    }
+
+    @Override
+    public PackageManager.PackageName getModJkPackageName() {
+      return PackageManager.PackageName.MOD_JK;
     }
   };
 
@@ -349,4 +415,24 @@ public enum HttpdOperatingSystemConfiguration {
       throw new WrappedException(e);
     }
   }
+
+  /**
+   * Gets the type of Listen directive to use for Apache.
+   */
+  public abstract String getListenDirective();
+
+  /**
+   * Gets the package to install when there is a non-loopback and non-wildcard bind or {@code null} for none required.
+   */
+  public abstract PackageManager.PackageName getHttpdAfterNetworkOnlinePackageName();
+
+  /**
+   * Gets the package to install when there is an alternate Aapche instance or {@code null} for none required.
+   */
+  public abstract PackageManager.PackageName getAlternateInstancePackageName();
+
+  /**
+   * Gets the package to install for mod_jk or {@code null} for none required.
+   */
+  public abstract PackageManager.PackageName getModJkPackageName();
 }
