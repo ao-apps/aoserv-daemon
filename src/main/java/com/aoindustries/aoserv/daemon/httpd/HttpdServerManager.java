@@ -77,6 +77,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -1868,8 +1869,8 @@ public final class HttpdServerManager {
         }
         out.print("LoadModule ssl_module modules/mod_ssl.so\n");
       }
-      Boolean modWsgi = hs.getModWsgi();
-      if (modWsgi != null && modWsgi) {
+      final boolean modWsgi = Objects.requireNonNullElse(hs.getModWsgi(), false);
+      if (modWsgi) {
         throw new NotImplementedException("mod_wsgi support is not implemented on CentOS 5");
       }
       if (isEnabled && phpVersion != null) {
@@ -2098,14 +2099,15 @@ public final class HttpdServerManager {
           + "# From conf.modules.d/00-base.conf\n"
           + "#\n");
 
-      Boolean modAccessCompat = hs.getModAccessCompat();
-      if (modAccessCompat == null || !modAccessCompat) {
+      final boolean modAccessCompat = Objects.requireNonNullElse(hs.getModAccessCompat(), false);
+      if (!modAccessCompat) {
         out.print("# ");
       }
       out.print("LoadModule access_compat_module modules/mod_access_compat.so\n");
 
-      Boolean modActions = hs.getModActions();
-      if (modActions == null) {
+      final Boolean modActionsO = hs.getModActions();
+      final boolean modActions;
+      if (modActionsO == null) {
         // Enabled when cgi-based PHP on a site and mod_php is not used
         if (isEnabled && phpVersion != null) {
           modActions = false;
@@ -2119,14 +2121,17 @@ public final class HttpdServerManager {
           }
           modActions = hasCgiPhp;
         }
+      } else {
+        modActions = modActionsO;
       }
       if (!modActions) {
         out.print("# ");
       }
       out.print("LoadModule actions_module modules/mod_actions.so\n");
 
-      Boolean modAutoindex = hs.getModAutoindex();
-      if (modAutoindex == null) {
+      final Boolean modAutoindexO = hs.getModAutoindex();
+      final boolean modAutoindex;
+      if (modAutoindexO == null) {
         // Enabled when has any httpd_sites.enable_indexes
         boolean hasIndexes = false;
         for (Site site : sites) {
@@ -2136,10 +2141,13 @@ public final class HttpdServerManager {
           }
         }
         modAutoindex = hasIndexes;
+      } else {
+        modAutoindex = modAutoindexO;
       }
 
-      Boolean modAlias = hs.getModAlias();
-      if (modAlias == null) {
+      final Boolean modAliasO = hs.getModAlias();
+      final boolean modAlias;
+      if (modAliasO == null) {
         if (modAutoindex) {
           // Enabled when mod_autoindex enabled (for /icons/ alias)
           modAlias = true;
@@ -2160,6 +2168,8 @@ public final class HttpdServerManager {
           }
           modAlias = hasSecondaryContext;
         }
+      } else {
+        modAlias = modAliasO;
       }
       if (!modAlias) {
         out.print("# ");
@@ -2188,11 +2198,11 @@ public final class HttpdServerManager {
         }
       }
 
-      Boolean modAuthBasic = hs.getModAuthBasic();
-      if (modAuthBasic == null) {
-        // Enabled when has any httpd_site_authenticated_locations.auth_user_file (for AuthType Basic)
-        modAuthBasic = hasUserFile;
-      }
+      final boolean modAuthBasic = Objects.requireNonNullElse(
+          hs.getModAuthBasic(),
+          // Enabled when has any httpd_site_authenticated_locations.auth_user_file (for AuthType Basic)
+          hasUserFile
+      );
       if (!modAuthBasic) {
         out.print("# ");
       }
@@ -2200,12 +2210,12 @@ public final class HttpdServerManager {
           + "# LoadModule auth_digest_module modules/mod_auth_digest.so\n"
           + "# LoadModule authn_anon_module modules/mod_authn_anon.so\n");
 
-      Boolean modAuthnCore = hs.getModAuthnCore();
-      if (modAuthnCore == null) {
-        // Enabled when has any httpd_site_authenticated_locations.auth_user_file (for AuthType Basic)
-        // Enabled when has any httpd_site_authenticated_locations.auth_name (for AuthName)
-        modAuthnCore = hasUserFile || hasAuthName;
-      }
+      final boolean modAuthnCore = Objects.requireNonNullElse(
+          hs.getModAuthnCore(),
+          // Enabled when has any httpd_site_authenticated_locations.auth_user_file (for AuthType Basic)
+          // Enabled when has any httpd_site_authenticated_locations.auth_name (for AuthName)
+          hasUserFile | hasAuthName
+      );
       if (!modAuthnCore) {
         out.print("# ");
       }
@@ -2213,22 +2223,22 @@ public final class HttpdServerManager {
           + "# LoadModule authn_dbd_module modules/mod_authn_dbd.so\n"
           + "# LoadModule authn_dbm_module modules/mod_authn_dbm.so\n");
 
-      Boolean modAuthnFile = hs.getModAuthnFile();
-      if (modAuthnFile == null) {
-        // Enabled when has any httpd_site_authenticated_locations.auth_user_file (for AuthUserFile)
-        modAuthnFile = hasUserFile;
-      }
+      final boolean modAuthnFile = Objects.requireNonNullElse(
+          hs.getModAuthnFile(),
+          // Enabled when has any httpd_site_authenticated_locations.auth_user_file (for AuthUserFile)
+          hasUserFile
+      );
       if (!modAuthnFile) {
         out.print("# ");
       }
       out.print("LoadModule authn_file_module modules/mod_authn_file.so\n"
           + "# LoadModule authn_socache_module modules/mod_authn_socache.so\n");
 
-      Boolean modAuthzCore = hs.getModAuthzCore();
-      if (modAuthzCore == null) {
-        // Enabled by default (for Require all denied, Require all granted in aoserv.conf.d/*.conf and per-site/bind configs)
-        modAuthzCore = true;
-      }
+      final boolean modAuthzCore = Objects.requireNonNullElse(
+          hs.getModAuthzCore(),
+          // Enabled by default (for Require all denied, Require all granted in aoserv.conf.d/*.conf and per-site/bind configs)
+          true
+      );
       if (!modAuthzCore) {
         out.print("# ");
       }
@@ -2236,33 +2246,33 @@ public final class HttpdServerManager {
           + "# LoadModule authz_dbd_module modules/mod_authz_dbd.so\n"
           + "# LoadModule authz_dbm_module modules/mod_authz_dbm.so\n");
 
-      Boolean modAuthzGroupfile = hs.getModAuthzGroupfile();
-      if (modAuthzGroupfile == null) {
-        // Enabled when has any httpd_site_authenticated_locations.auth_group_file (for AuthGroupFile)
-        modAuthzGroupfile = hasGroupFile;
-      }
+      final boolean modAuthzGroupfile = Objects.requireNonNullElse(
+          hs.getModAuthzGroupfile(),
+          // Enabled when has any httpd_site_authenticated_locations.auth_group_file (for AuthGroupFile)
+          hasGroupFile
+      );
       if (!modAuthzGroupfile) {
         out.print("# ");
       }
       out.print("LoadModule authz_groupfile_module modules/mod_authz_groupfile.so\n");
 
-      Boolean modAuthzHost = hs.getModAuthzHost();
-      if (modAuthzHost == null) {
-        // Disabled, no auto condition currently to turn it on
-        //   Might be needed for .htaccess or manual Require ip, Require host, Require local
-        modAuthzHost = false;
-      }
+      final boolean modAuthzHost = Objects.requireNonNullElse(
+          hs.getModAuthzHost(),
+          // Disabled, no auto condition currently to turn it on
+          //   Might be needed for .htaccess or manual Require ip, Require host, Require local
+          false
+      );
       if (!modAuthzHost) {
         out.print("# ");
       }
       out.print("LoadModule authz_host_module modules/mod_authz_host.so\n"
           + "# LoadModule authz_owner_module modules/mod_authz_owner.so\n");
 
-      Boolean modAuthzUser = hs.getModAuthzUser();
-      if (modAuthzUser == null) {
-        // Enabled when has any httpd_site_authenticated_locations.require (for Require user, Requre valid-user)
-        modAuthzUser = hasRequire;
-      }
+      final boolean modAuthzUser = Objects.requireNonNullElse(
+          hs.getModAuthzUser(),
+          // Enabled when has any httpd_site_authenticated_locations.require (for Require user, Requre valid-user)
+          hasRequire
+      );
       if (!modAuthzUser) {
         out.print("# ");
       }
@@ -2280,21 +2290,22 @@ public final class HttpdServerManager {
       out.print("# LoadModule data_module modules/mod_data.so\n"
           + "# LoadModule dbd_module modules/mod_dbd.so\n");
 
-      Boolean modDeflate = hs.getModDeflate();
-      if (modDeflate == null) {
-        // Enabled by default (unless explicitly disabled)
-        modDeflate = true;
-      }
+
+      final boolean modDeflate = Objects.requireNonNullElse(
+          hs.getModDeflate(),
+          // Enabled by default (unless explicitly disabled)
+          true
+      );
       if (!modDeflate) {
         out.print("# ");
       }
       out.print("LoadModule deflate_module modules/mod_deflate.so\n");
 
-      Boolean modDir = hs.getModDir();
-      if (modDir == null) {
-        // Enabled by default (unless explicitly disabled)
-        modDir = true;
-      }
+      final boolean modDir = Objects.requireNonNullElse(
+          hs.getModDir(),
+          // Enabled by default (unless explicitly disabled)
+          true
+      );
       if (!modDir) {
         out.print("# ");
       }
@@ -2305,37 +2316,42 @@ public final class HttpdServerManager {
           + "# LoadModule expires_module modules/mod_expires.so\n"
           + "# LoadModule ext_filter_module modules/mod_ext_filter.so\n");
 
-      Boolean modFilter = hs.getModFilter();
-      if (modFilter == null) {
-        // Enabled when mod_deflate is enabled (for AddOutputFilterByType in aoserv.conf.d/mod_deflate.conf)
-        modFilter = modDeflate;
-      }
+      final boolean modFilter = Objects.requireNonNullElse(
+          hs.getModFilter(),
+          // Enabled when mod_deflate is enabled (for AddOutputFilterByType in aoserv.conf.d/mod_deflate.conf)
+          modDeflate
+      );
       if (!modFilter) {
         out.print("# ");
       }
       out.print("LoadModule filter_module modules/mod_filter.so\n");
 
-      Boolean modHeaders = hs.getModHeaders();
-      if (modHeaders == null) {
-        modHeaders = false;
+      final Boolean modHeadersO = hs.getModHeaders();
+      final boolean modHeaders;
+      if (modHeadersO == null) {
+        boolean foundHeaders = false;
         HTTPD_SITES:
         for (Site site : sites) {
           for (VirtualHost bind : site.getHttpdSiteBinds(hs)) {
             // Enabled when has any httpd_site_bind_headers
             if (!bind.getHttpdSiteBindHeaders().isEmpty()) {
-              modHeaders = true;
+              foundHeaders = true;
               break HTTPD_SITES;
             }
           }
         }
+        modHeaders = foundHeaders;
+      } else {
+        modHeaders = modHeadersO;
       }
       if (!modHeaders) {
         out.print("# ");
       }
       out.print("LoadModule headers_module modules/mod_headers.so\n");
 
-      Boolean modInclude = hs.getModInclude();
-      if (modInclude == null) {
+      final Boolean modIncludeO = hs.getModInclude();
+      final boolean modInclude;
+      if (modIncludeO == null) {
         // Enabled when has any httpd_sites.enable_ssi
         boolean hasSsi = false;
         for (Site site : sites) {
@@ -2345,6 +2361,8 @@ public final class HttpdServerManager {
           }
         }
         modInclude = hasSsi;
+      } else {
+        modInclude = modIncludeO;
       }
       if (!modInclude) {
         out.print("# ");
@@ -2352,11 +2370,11 @@ public final class HttpdServerManager {
       out.print("LoadModule include_module modules/mod_include.so\n"
           + "# LoadModule info_module modules/mod_info.so\n");
 
-      Boolean modLogConfig = hs.getModLogConfig();
-      if (modLogConfig == null) {
-        // Enabled by default (unless explicitly disabled)
-        modLogConfig = true;
-      }
+      final boolean modLogConfig = Objects.requireNonNullElse(
+          hs.getModLogConfig(),
+          // Enabled by default (unless explicitly disabled)
+          true
+      );
       if (!modLogConfig) {
         out.print("# ");
       }
@@ -2366,44 +2384,44 @@ public final class HttpdServerManager {
         out.print("# LoadModule macro_module modules/mod_macro.so\n");
       }
 
-      Boolean modMimeMagic = hs.getModMimeMagic();
-      if (modMimeMagic == null) {
-        // Enabled by default (unless explicitly disabled)
-        modMimeMagic = true;
-      }
+      final boolean modMimeMagic = Objects.requireNonNullElse(
+          hs.getModMimeMagic(),
+          // Enabled by default (unless explicitly disabled)
+          true
+      );
       if (!modMimeMagic) {
         out.print("# ");
       }
       out.print("LoadModule mime_magic_module modules/mod_mime_magic.so\n");
 
-      Boolean modMime = hs.getModMime();
-      if (modMime == null) {
-        // Enabled by default (unless explicitly disabled)
-        // Enabled when has mod_php (for AddType .php and AddType .phps)
-        // Enabled when mod_negotiation is enabled (for AddHandler .var)
-        modMime = true;
-      }
+      final boolean modMime = Objects.requireNonNullElse(
+          hs.getModMime(),
+          // Enabled by default (unless explicitly disabled)
+          // Enabled when has mod_php (for AddType .php and AddType .phps)
+          // Enabled when mod_negotiation is enabled (for AddHandler .var)
+          true
+      );
       if (!modMime) {
         out.print("# ");
       }
       out.print("LoadModule mime_module modules/mod_mime.so\n");
 
-      Boolean modNegotiation = hs.getModNegotiation();
-      if (modNegotiation == null) {
-        // Disabled by default (unless explicitly enabled)
-        modNegotiation = false;
-      }
+      final boolean modNegotiation = Objects.requireNonNullElse(
+          hs.getModNegotiation(),
+          // Disabled by default (unless explicitly enabled)
+          false
+      );
       if (!modNegotiation) {
         out.print("# ");
       }
       out.print("LoadModule negotiation_module modules/mod_negotiation.so\n"
           + "# LoadModule remoteip_module modules/mod_remoteip.so\n");
 
-      Boolean modReqtimeout = hs.getModReqtimeout();
-      if (modReqtimeout == null) {
-        // Enabled by default (unless explicitly disabled)
-        modReqtimeout = true;
-      }
+      final boolean modReqtimeout = Objects.requireNonNullElse(
+          hs.getModReqtimeout(),
+          // Enabled by default (unless explicitly disabled)
+          true
+      );
       if (!modReqtimeout) {
         out.print("# ");
       }
@@ -2412,43 +2430,48 @@ public final class HttpdServerManager {
         out.print("# LoadModule request_module modules/mod_request.so\n");
       }
 
-      Boolean modRewrite = hs.getModRewrite();
-      if (modRewrite == null) {
-        modRewrite = false;
+      final Boolean modRewriteO = hs.getModRewrite();
+      final boolean modRewrite;
+      if (modRewriteO == null) {
+        boolean foundRewrite = false;
         HTTPD_SITES:
         for (Site site : sites) {
           final HttpdSiteManager manager = HttpdSiteManager.getInstance(site);
           // Enabled when has any httpd_sites.block_trace_track
           if (manager.blockAllTraceAndTrackRequests()) {
-            modRewrite = true;
+            foundRewrite = true;
             break HTTPD_SITES;
           }
           // Enabled when has any permanent rewrites
           if (!manager.getPermanentRewriteRules().isEmpty()) {
-            modRewrite = true;
+            foundRewrite = true;
             break HTTPD_SITES;
           }
           for (VirtualHost bind : site.getHttpdSiteBinds(hs)) {
             // Enabled when has any httpd_site_binds.redirect_to_primary_hostname
             if (bind.getRedirectToPrimaryHostname()) {
-              modRewrite = true;
+              foundRewrite = true;
               break HTTPD_SITES;
             }
             // Enabled when has any RewriteRule
             if (!bind.getRewriteRules().isEmpty()) {
-              modRewrite = true;
+              foundRewrite = true;
               break HTTPD_SITES;
             }
           }
         }
+        modRewrite = foundRewrite;
+      } else {
+        modRewrite = modRewriteO;
       }
       if (!modRewrite) {
         out.print("# ");
       }
       out.print("LoadModule rewrite_module modules/mod_rewrite.so\n");
 
-      Boolean modSsl = hs.getModSsl();
-      if (modSsl == null) {
+      final Boolean modSslO = hs.getModSsl();
+      final boolean modSsl;
+      if (modSslO == null) {
         // Enabled when has any httpd_site_binds.ssl_cert_file
         boolean hasSsl = false;
         HAS_SSL:
@@ -2461,13 +2484,15 @@ public final class HttpdServerManager {
           }
         }
         modSsl = hasSsl;
+      } else {
+        modSsl = modSslO;
       }
 
-      Boolean modSetenvif = hs.getModSetenvif();
-      if (modSetenvif == null) {
-        // Enabled when mod_ssl is enabled (for BrowserMatch SSL downgrade)
-        modSetenvif = modSsl;
-      }
+      final boolean modSetenvif = Objects.requireNonNullElse(
+          hs.getModSetenvif(),
+          // Enabled when mod_ssl is enabled (for BrowserMatch SSL downgrade)
+          modSsl
+      );
       if (!modSetenvif) {
         out.print("# ");
       }
@@ -2480,18 +2505,19 @@ public final class HttpdServerManager {
         out.print("# LoadModule socache_redis_module modules/mod_socache_redis.so\n");
       }
 
-      Boolean modSocacheShmcb = hs.getModSocacheShmcb();
-      if (modSocacheShmcb == null) {
-        // Enabled when mod_ssl is enabled (for SSLSessionCache shmcb:/run/httpd)
-        modSocacheShmcb = modSsl;
-      }
+      final boolean modSocacheShmcb = Objects.requireNonNullElse(
+          hs.getModSocacheShmcb(),
+          // Enabled when mod_ssl is enabled (for SSLSessionCache shmcb:/run/httpd)
+          modSsl
+      );
       if (!modSocacheShmcb) {
         out.print("# ");
       }
       out.print("LoadModule socache_shmcb_module modules/mod_socache_shmcb.so\n");
 
-      Boolean modStatus = hs.getModStatus();
-      if (modStatus == null) {
+      final Boolean modStatusO = hs.getModStatus();
+      final boolean modStatus;
+      if (modStatusO == null) {
         // Enabled when used by any "server-status" handler
         boolean hasStatusHandler = false;
         HAS_HANDLER:
@@ -2504,6 +2530,8 @@ public final class HttpdServerManager {
           }
         }
         modStatus = hasStatusHandler;
+      } else {
+        modStatus = modStatusO;
       }
       if (!modStatus) {
         out.print("# ");
@@ -2511,7 +2539,7 @@ public final class HttpdServerManager {
       out.print("LoadModule status_module modules/mod_status.so\n"
           + "# LoadModule substitute_module modules/mod_substitute.so\n");
 
-      boolean modSuexec = hs.useSuexec();
+      final boolean modSuexec = hs.useSuexec();
       if (!modSuexec) {
         out.print("# ");
       }
@@ -2578,17 +2606,17 @@ public final class HttpdServerManager {
           + "# From conf.modules.d/00-proxy.conf\n"
           + "#\n");
 
-      Boolean modProxyHttp = hs.getModProxyHttp();
-      if (modProxyHttp == null) {
-        // Disabled by default (unless explicitly enabled)
-        modProxyHttp = false;
-      }
+      final boolean modProxyHttp = Objects.requireNonNullElse(
+          hs.getModProxyHttp(),
+          // Disabled by default (unless explicitly enabled)
+          false
+      );
 
-      Boolean modProxy = hs.getModProxy();
-      if (modProxy == null) {
-        // Enabled when mod_proxy_http is enabled
-        modProxy = modProxyHttp;
-      }
+      final boolean modProxy = Objects.requireNonNullElse(
+          hs.getModProxy(),
+          // Enabled when mod_proxy_http is enabled
+          modProxyHttp
+      );
       if (!modProxy) {
         out.print("# ");
       }
@@ -2717,21 +2745,21 @@ public final class HttpdServerManager {
             + "# LoadModule proxy_http2_module modules/mod_proxy_http2.so\n");
       }
 
-      final boolean modWsgiEnabled;
-        {
-          Boolean modWsgi = hs.getModWsgi();
-          modWsgiEnabled = modWsgi != null && modWsgi;
-        }
+      final boolean modWsgi = Objects.requireNonNullElse(
+          hs.getModWsgi(),
+          // Disabled by default (unless explicitly enabled)
+          false
+      );
       final boolean modWsgiInstalled;
       if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-        if (modWsgiEnabled) {
+        if (modWsgi) {
           PackageManager.installPackage(PackageManager.PackageName.MOD_WSGI);
           modWsgiInstalled = true;
         } else {
           modWsgiInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.MOD_WSGI) != null;
         }
       } else if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
-        if (modWsgiEnabled) {
+        if (modWsgi) {
           throw new NotImplementedException("TODO: Support mod_wsgi in Rocky 9");
         } else {
           modWsgiInstalled = false; // TODO: Support mod_wsgi in Rocky 9
@@ -2743,14 +2771,15 @@ public final class HttpdServerManager {
         out.print("#\n"
             + "# From conf.modules.d/10-wsgi.conf\n"
             + "#\n");
-        if (!modWsgiEnabled) {
+        if (!modWsgi) {
           out.print("# ");
         }
         out.print("LoadModule wsgi_module modules/mod_wsgi.so\n");
       }
 
-      Boolean modJk = hs.getModJk();
-      if (modJk == null) {
+      final Boolean modJkO = hs.getModJk();
+      final boolean modJk;
+      if (modJkO == null) {
         // Enabled when any site has a JkMount or JkUnMount
         boolean hasJkSettings = false;
         for (Site site : sites) {
@@ -2761,6 +2790,8 @@ public final class HttpdServerManager {
           }
         }
         modJk = hasJkSettings;
+      } else {
+        modJk = modJkO;
       }
       final boolean modJkInstalled;
       PackageManager.PackageName modJkPackageName = osConfig.getModJkPackageName();
