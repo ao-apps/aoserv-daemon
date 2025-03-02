@@ -95,8 +95,7 @@ import org.apache.commons.lang3.NotImplementedException;
  * <p>TODO: Write/update /etc/system/system/httpd[@name}.service.d/php.conf for PHP 7+
  *       Or, could this be somehow added by the php-7.* packages?</p>
  *
- * <p>TODO: Rocky 9 defaults to mpm_event_module instead of mpm_prefork_module, should we?  PHP compatibility?
- * Note: prefork severely limits mod_http2, so prioritize this.</p>
+ * <p>TODO: Note: prefork severely limits mod_http2, so consider switching to fpm.</p>
  *
  * <p>TODO: StrictHostCheck ON?  https://httpd.apache.org/docs/2.4/mod/core.html
  * Would this eliminate need for httpd_servers.list_first?</p>
@@ -2039,10 +2038,17 @@ public final class HttpdServerManager {
           + "# mpm\n"
           + "#\n"
           + "# From conf.modules.d/00-mpm.conf\n"
-          + "#\n"
-          + "LoadModule mpm_prefork_module modules/mod_mpm_prefork.so\n"
-          + "# LoadModule mpm_worker_module modules/mod_mpm_worker.so\n"
-          + "# LoadModule mpm_event_module modules/mod_mpm_event.so\n"
+          + "#\n");
+      final boolean usePrefork = osConfig.isApacheDefaultPrefork() || (phpVersion != null);
+      if (!usePrefork) {
+        out.print("# ");
+      }
+      out.print("LoadModule mpm_prefork_module modules/mod_mpm_prefork.so\n"
+          + "# LoadModule mpm_worker_module modules/mod_mpm_worker.so\n");
+      if (usePrefork) {
+        out.print("# ");
+      }
+      out.print("LoadModule mpm_event_module modules/mod_mpm_event.so\n"
           + "Include aoserv.conf.d/mpm_*.conf\n");
       final String coreDumpDirectory;
       if (escapedName != null) {

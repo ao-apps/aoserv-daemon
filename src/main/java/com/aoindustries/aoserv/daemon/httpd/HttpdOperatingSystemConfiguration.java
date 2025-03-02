@@ -128,6 +128,11 @@ public enum HttpdOperatingSystemConfiguration {
     }
 
     @Override
+    public boolean isApacheDefaultPrefork() {
+      return true;
+    }
+
+    @Override
     public boolean isApacheProtocolsSupported() {
       return false;
     }
@@ -220,6 +225,11 @@ public enum HttpdOperatingSystemConfiguration {
     @Override
     public PackageManager.PackageName getModJkPackageName() {
       return PackageManager.PackageName.TOMCAT_CONNECTORS;
+    }
+
+    @Override
+    public boolean isApacheDefaultPrefork() {
+      return true;
     }
 
     @Override
@@ -317,6 +327,11 @@ public enum HttpdOperatingSystemConfiguration {
     @Override
     public PackageManager.PackageName getModJkPackageName() {
       return PackageManager.PackageName.MOD_JK;
+    }
+
+    @Override
+    public boolean isApacheDefaultPrefork() {
+      return false;
     }
 
     @Override
@@ -452,7 +467,13 @@ public enum HttpdOperatingSystemConfiguration {
   public abstract PackageManager.PackageName getModJkPackageName();
 
   /**
-   * Is the <a href="https://httpd.apache.org/docs/2.4/mod/core.html#protocols">Apache Protocols directive</a> supported?
+   * Default to Apache prefork MPM (for older versions).
+   * When not the default, prefork is still selected when mod_php is enabled.
+   */
+  public abstract boolean isApacheDefaultPrefork();
+
+  /**
+   * Is the <a href="https://httpd.apache.org/docs/2.4/mod/core.html#protocols">Apache Protocols directive</a> supported.
    */
   public abstract boolean isApacheProtocolsSupported();
 }

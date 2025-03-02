@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
     shortTitle="Changelog"
     tocLevels="1"
     datePublished="2020-04-16T21:06:03-05:00"
-    dateModified="2025-03-02T18:54:19Z"
+    dateModified="2025-03-02T22:58:50Z"
   >
     <c:set var="latestRelease" value="1.91.10" />
     <c:if test="${
@@ -76,6 +76,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
             the <ao:a href="https://cloud-init.io/">cloud-init</ao:a> package.
           </li>
           <li>Added support for HTTP/2 and Brotli compression in Rocky 9.</li>
+          <li>For Rocky 9, default to event MPM unless running mod_php.</li>
         </ul>
       </changelog:release>
     </c:if>
