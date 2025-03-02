@@ -95,13 +95,6 @@ import org.apache.commons.lang3.NotImplementedException;
  * <p>TODO: Write/update /etc/system/system/httpd[@name}.service.d/php.conf for PHP 7+
  *       Or, could this be somehow added by the php-7.* packages?</p>
  *
- * <p>TODO: http/2 support:
- * See Protocols directive: https://httpd.apache.org/docs/2.4/mod/core.html
- * Enable mod_proxy_http2 where have mod_proxy_http: https://httpd.apache.org/docs/2.4/mod/mod_proxy_http2.html</p>
- *
- * <p>TODO: Should we enable brotli in Rocky 9?  Make sure server prioritizes brotli over gzip.  Always enable or
- * configurable?  Is gzip compression currently configurable?</p>
- *
  * <p>TODO: Rocky 9 defaults to mpm_event_module instead of mpm_prefork_module, should we?  PHP compatibility?
  * Note: prefork severely limits mod_http2, so prioritize this.</p>
  *
