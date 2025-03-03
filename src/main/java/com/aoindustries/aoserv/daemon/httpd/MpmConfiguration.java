@@ -50,6 +50,12 @@ public final class MpmConfiguration {
 
   /**
    * The maximum value used for max spare concurrency in prefork.
+   * Matches the <a href="https://httpd.apache.org/docs/2.4/mod/mpm_common.html#maxsparethreads">Apache default of 250</a>.
+   */
+  private static final int MAX_WORKER_MAX_SPARE_THREADS = 250;
+
+  /**
+   * The maximum value used for max spare concurrency in worker or event.
    * Matches the <a href="https://httpd.apache.org/docs/2.4/mod/prefork.html#maxspareservers">Apache default of 10</a>.
    */
   private static final int MAX_PREFORK_MAX_SPARE_CONCURRENCY = 10;
@@ -197,10 +203,9 @@ public final class MpmConfiguration {
     // Use the constant recommended value
     listenCoresBucketsRatio = LISTEN_CORES_BUCKETS_RATIO;
 
-    // Scale maxSpare from maxConcurrency
-    int mpmMaxSpareThreads = maxConcurrency / MAX_SPARE_CONCURRENCY_DIVISOR;
-    // Prefix will not have more than MAX_PREFORK_MAX_SPARE_CONCURRENCY
-    int preMaxSpareServers = Math.min(mpmMaxSpareThreads, MAX_PREFORK_MAX_SPARE_CONCURRENCY);
+    // Scale maxSpare from maxConcurrency, but capped to a maximum
+    int mpmMaxSpareThreads = Math.min(maxConcurrency / MAX_SPARE_CONCURRENCY_DIVISOR, MAX_WORKER_MAX_SPARE_THREADS);
+    int preMaxSpareServers = Math.min(maxConcurrency / MAX_SPARE_CONCURRENCY_DIVISOR, MAX_PREFORK_MAX_SPARE_CONCURRENCY);
     // Scale minSpare from maxConcurrency, but not less than MIN_SPARE_CONCURRENCY
     int mpmMinSpareConcurrency = Math.max(mpmMaxSpareThreads / MIN_SPARE_CONCURRENCY_DIVISOR, MIN_SPARE_CONCURRENCY);
     int preMinSpareServers = Math.max(preMaxSpareServers / MIN_SPARE_CONCURRENCY_DIVISOR, MIN_SPARE_CONCURRENCY);
