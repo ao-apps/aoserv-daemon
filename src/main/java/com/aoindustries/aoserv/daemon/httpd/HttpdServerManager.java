@@ -2035,21 +2035,31 @@ public final class HttpdServerManager {
           + "TimeOut ").print(hs.getTimeOut()).print("\n"
           + "\n"
           + "#\n"
-          + "# mpm\n"
+          + "# Load mpm\n"
           + "#\n"
           + "# From conf.modules.d/00-mpm.conf\n"
           + "#\n");
-      final boolean usePrefork = osConfig.isApacheDefaultPrefork() || (phpVersion != null);
-      if (!usePrefork) {
+      MpmConfiguration mpmConfig = new MpmConfiguration(hs);
+      if (mpmConfig.type != MpmConfiguration.MpmType.PREFORK) {
         out.print("# ");
       }
-      out.print("LoadModule mpm_prefork_module modules/mod_mpm_prefork.so\n"
-          + "# LoadModule mpm_worker_module modules/mod_mpm_worker.so\n");
-      if (usePrefork) {
+      out.print("LoadModule mpm_prefork_module modules/mod_mpm_prefork.so\n");
+      if (mpmConfig.type != MpmConfiguration.MpmType.WORKER) {
+        out.print("# ");
+      }
+      out.print("LoadModule mpm_worker_module modules/mod_mpm_worker.so\n");
+      if (mpmConfig.type != MpmConfiguration.MpmType.EVENT) {
         out.print("# ");
       }
       out.print("LoadModule mpm_event_module modules/mod_mpm_event.so\n"
-          + "Include aoserv.conf.d/mpm_*.conf\n");
+          + "\n"
+          + "#\n"
+          + "# Configure mpm\n"
+          + "#\n"
+          + "Include aoserv.conf.d/mpm_*.conf\n"
+          + "#\n"
+          + "# From aoserv.conf.d/mpm_common.conf\n"
+          + "#\n");
       final String coreDumpDirectory;
       if (escapedName != null) {
         coreDumpDirectory = "/var/log/httpd@" + escapedName;
@@ -2058,38 +2068,38 @@ public final class HttpdServerManager {
       }
       out.print("CoreDumpDirectory ").print(escape(dollarVariable, coreDumpDirectory)).print("\n"
           + "# ListenBacklog 511\n");
+
+      if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+        out.print("ListenCoresBucketsRatio ").print(mpmConfig.listenCoresBucketsRatio).print("\n");
+      }
+
       final String pidFile;
       if (escapedName != null) {
         pidFile = "/run/httpd@" + escapedName + "/httpd.pid";
       } else {
         pidFile = "/run/httpd/httpd.pid";
       }
-      int maxConcurrency = hs.getMaxConcurrency();
-      // Scale maxSpare to 10 percent of maxConcurrency, but capped to Apache default of 10
-      int maxSpareServers = maxConcurrency / 10;
-      if (maxSpareServers > 10) {
-        maxSpareServers = 10;
-      }
-      // Scale minSpare to half of maxSpare, but capped to Apache default of 10
-      int minSpareServers = maxSpareServers / 2;
-      if (minSpareServers > 5) {
-        // This will not happen since max is capped to 10, but keeping as it shows we will not exceed default Apache settings
-        minSpareServers = 5;
-      }
-      // Make sure there is at least one minSpare
-      if (minSpareServers < 1) {
-        minSpareServers = 1;
-      }
-      // Make sure maxSpace is greater than minSpare
-      if (maxSpareServers <= minSpareServers) {
-        maxSpareServers = minSpareServers + 1;
-      }
       out.print("PidFile ").print(escape(dollarVariable, pidFile)).print("\n"
+          + "#\n"
+          + "# From aoserv.conf.d/mpm_prefork.conf\n"
+          + "#\n"
           + "<IfModule mpm_prefork_module>\n"
-          + "    MaxSpareServers ").print(maxSpareServers).print("\n"
-          + "    MinSpareServers ").print(minSpareServers).print("\n"
-          + "    MaxRequestWorkers ").print(maxConcurrency).print("\n"
-          + "    ServerLimit ").print(maxConcurrency).print("\n"
+          + "    MaxSpareServers ").print(mpmConfig.preforkMaxSpareServers).print("\n"
+          + "    MinSpareServers ").print(mpmConfig.preforkMinSpareServers).print("\n"
+          + "    MaxRequestWorkers ").print(mpmConfig.preforkMaxRequestWorkers).print("\n"
+          + "    ServerLimit ").print(mpmConfig.preforkServerLimit).print("\n"
+          + "</IfModule>\n"
+          + "#\n"
+          + "# From aoserv.conf.d/mpm_worker.conf\n"
+          + "# From aoserv.conf.d/mpm_event.conf\n"
+          + "#\n"
+          + "<IfModule !mpm_prefork_module>\n"
+          + "    MaxRequestWorkers ").print(mpmConfig.workerMaxRequestWorkers).print("\n"
+          + "    MaxSpareThreads ").print(mpmConfig.workerMaxSpareThreads).print("\n"
+          + "    MinSpareThreads ").print(mpmConfig.workerMinSpareThreads).print("\n"
+          + "    ServerLimit ").print(mpmConfig.workerServerLimit).print("\n"
+          + "    ThreadLimit ").print(mpmConfig.workerThreadLimit).print("\n"
+          + "    ThreadsPerChild ").print(mpmConfig.workerThreadsPerChild).print("\n"
           + "</IfModule>\n"
           + "\n"
           + "#\n"
@@ -4168,7 +4178,9 @@ public final class HttpdServerManager {
                 }
               }
             }
-            return count;
+            // Scale by MPM configuration
+            MpmConfiguration mpmConfig = new MpmConfiguration(hs);
+            return mpmConfig.getConcurrencyForChildProcessCount(count);
           }
       );
     } catch (InterruptedException e) {
