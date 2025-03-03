@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2006-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
+ * Copyright (C) 2006-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -38,6 +38,7 @@ import com.aoindustries.aoserv.client.web.HttpdServer;
 import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.client.AoservDaemonProtocol;
+import com.aoindustries.aoserv.daemon.httpd.MpmConfiguration;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import java.io.BufferedReader;
@@ -50,7 +51,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -413,7 +413,11 @@ public final class MrtgManager extends BuilderThread {
                 String systemdName = httpdServer.getSystemdEscapedName();
                 out.print("\n"
                     + "Target[").print(safeName).print("]: `").print(aoservMrtgBin).print("/mrtg_httpd_concurrency '")
-                    .print(systemdName == null ? "" : systemdName).print("'`\n" // TODO: Which quoting and escaping needed here?
+                    .print(systemdName == null ? "" : systemdName) // TODO: Which quoting and escaping needed here?
+                    .print("' ");
+                MpmConfiguration mpmConfig = new MpmConfiguration(httpdServer);
+                out.print(mpmConfig.getConcurrencyPerChildProcess());
+                out.print("`\n"
                     + "Options[").print(safeName).print("]: gauge, noinfo, growright, transparent, integer\n"
                     + "MaxBytes[").print(safeName).print("]: ").print(httpdServer.getMaxConcurrency()).print("\n"
                     + "YLegend[").print(safeName).print("]: Number of Workers\n"

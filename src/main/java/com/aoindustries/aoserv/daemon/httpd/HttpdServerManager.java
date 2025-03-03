@@ -4180,7 +4180,7 @@ public final class HttpdServerManager {
             }
             // Scale by MPM configuration
             MpmConfiguration mpmConfig = new MpmConfiguration(hs);
-            return mpmConfig.getConcurrencyForChildProcessCount(count);
+            return count * mpmConfig.getConcurrencyPerChildProcess();
           }
       );
     } catch (InterruptedException e) {

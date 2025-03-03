@@ -35,7 +35,7 @@ import java.sql.SQLException;
  *
  * @author  AO Industries, Inc.
  */
-final class MpmConfiguration {
+public final class MpmConfiguration {
 
   /**
    * MPM tuning: The number of listeners' buckets.
@@ -189,7 +189,7 @@ final class MpmConfiguration {
    */
   final MpmType type;
 
-  MpmConfiguration(HttpdServer hs) throws IOException, SQLException {
+  public MpmConfiguration(HttpdServer hs) throws IOException, SQLException {
     final int maxConcurrency = hs.getMaxConcurrency();
     final int availableProcessors = Runtime.getRuntime().availableProcessors();
     final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
@@ -251,13 +251,13 @@ final class MpmConfiguration {
     }
   }
 
-  int getConcurrencyForChildProcessCount(int count) {
+  public int getConcurrencyPerChildProcess() {
     switch (type) {
       case PREFORK:
-        return count;
+        return 1;
       case WORKER:
       case EVENT:
-        return count * workerThreadsPerChild;
+        return workerThreadsPerChild;
       default:
         throw new AssertionError("Unexected type: " + type);
     }
