@@ -95,7 +95,7 @@ import org.apache.commons.lang3.NotImplementedException;
  * <p>TODO: Write/update /etc/system/system/httpd[@name}.service.d/php.conf for PHP 7+
  *       Or, could this be somehow added by the php-7.* packages?</p>
  *
- * <p>TODO: Note: prefork severely limits mod_http2, so consider switching to fpm.</p>
+ * <p>TODO: Note: prefork severely limits mod_http2, so consider switching to fpm for PHP on Rocky 9.</p>
  *
  * <p>TODO: StrictHostCheck ON?  https://httpd.apache.org/docs/2.4/mod/core.html
  * Would this eliminate need for httpd_servers.list_first?</p>
