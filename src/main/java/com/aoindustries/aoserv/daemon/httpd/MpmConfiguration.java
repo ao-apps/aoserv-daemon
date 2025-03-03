@@ -221,7 +221,7 @@ final class MpmConfiguration {
     preforkMaxRequestWorkers = maxConcurrency;
 
     // Scale by number of CPU cores, with a minimum
-    int mpmServerLimit = Math.min(availableProcessors * MPM_SERVERS_PER_CPU, MPM_MIN_SERVERS);
+    int mpmServerLimit = Math.max(availableProcessors * MPM_SERVERS_PER_CPU, MPM_MIN_SERVERS);
     // Compute the number of threads per server to achieve the max concurrency
     int mpmThreadsPerChild = ceilDiv(maxConcurrency, mpmServerLimit);
     if (mpmThreadsPerChild < MPM_MIN_THREADS_PER_CHILD) {
