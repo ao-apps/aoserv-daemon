@@ -38,10 +38,10 @@ import java.sql.SQLException;
 final class MpmConfiguration {
 
   /**
-   * MPM tuning: The maximum number of listeners' buckets.
+   * MPM tuning: The number of listeners' buckets.
    * Note, Apache <a href="https://httpd.apache.org/docs/2.4/mod/mpm_common.html#listencoresbucketsratio">recommends a ratio of 8</a>.
    */
-  private static final int MAX_LISTEN_CORES_BUCKETS_RATIO = 8;
+  private static final int LISTEN_CORES_BUCKETS_RATIO = 8;
 
   /**
    * MPM tuning: The divisor from maximum concurrency to calculate maximum spare concurrency.
@@ -194,11 +194,8 @@ final class MpmConfiguration {
     final int availableProcessors = Runtime.getRuntime().availableProcessors();
     final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 
-    // Scale the listen cores by processors
-    // https://httpd.apache.org/docs/2.4/mod/mpm_common.html#listencoresbucketsratio -
-    // "There must be at least twice the number of CPU cores than the configured ratio for this to be active."
-    // Truncating down to zero is okay, since a value of 0 disables the feature.
-    listenCoresBucketsRatio = Math.min(availableProcessors / 2, MAX_LISTEN_CORES_BUCKETS_RATIO);
+    // Use the constant recommended value
+    listenCoresBucketsRatio = LISTEN_CORES_BUCKETS_RATIO;
 
     // Scale maxSpare from maxConcurrency
     int mpmMaxSpareThreads = maxConcurrency / MAX_SPARE_CONCURRENCY_DIVISOR;
