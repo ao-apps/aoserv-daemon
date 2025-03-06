@@ -307,18 +307,20 @@ public final class HttpdServerManager {
     // Used below
     ByteArrayOutputStream bout = new ByteArrayOutputStream();
     Server thisServer = AoservDaemon.getThisServer();
+    List<HttpdServer> hss = thisServer.getHttpdServers();
+    List<Site> sites = thisServer.getHttpdSites();
 
     // Prepare before rebuild of configs
-    doRebuildPrep(thisServer);
+    doRebuildPrep(thisServer, hss, sites);
 
     // Rebuild /etc/httpd/conf/hosts/ or /etc/httpd/sites-available and /etc/httpd/sites-enabled files
-    doRebuildConfHosts(thisServer, bout, deleteFileList, serversNeedingReloaded, restorecon);
+    doRebuildConfHosts(thisServer, sites, bout, deleteFileList, serversNeedingReloaded, restorecon);
 
     // Rebuild /etc/httpd/conf/ files
     Set<Port> enabledAjpPorts = new HashSet<>();
     boolean[] hasAnyCgi = {false};
     boolean[] hasAnyModPhp = {false};
-    doRebuildConf(thisServer, bout, deleteFileList, serversNeedingReloaded, enabledAjpPorts, restorecon, hasAnyCgi, hasAnyModPhp);
+    doRebuildConf(thisServer, hss, bout, deleteFileList, serversNeedingReloaded, enabledAjpPorts, restorecon, hasAnyCgi, hasAnyModPhp);
 
     // Control the /etc/rc.d/init.d/httpd# files or /etc/systemd/system/multi-user.target.wants/httpd[@<name>].service links
     doRebuildInitScripts(thisServer, bout, deleteFileList, serversNeedingReloaded, restorecon);
@@ -333,7 +335,8 @@ public final class HttpdServerManager {
   /**
    * Prepare before rebuild of configs.
    */
-  private static void doRebuildPrep(Server thisServer) throws IOException, SQLException {
+  private static void doRebuildPrep(Server thisServer, List<HttpdServer> hss, List<Site> sites)
+      throws IOException, SQLException {
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
     switch (osvId) {
@@ -343,10 +346,12 @@ public final class HttpdServerManager {
       case OperatingSystemVersion.CENTOS_7_X86_64:
       case OperatingSystemVersion.ROCKY_9_X86_64:
         // Install packages so configuration directories are available
-        PackageManager.installPackages(
-            PackageManager.PackageName.HTTPD,
-            PackageManager.PackageName.AOSERV_HTTPD_CONFIG
-        );
+        if (!hss.isEmpty() || !sites.isEmpty()) {
+          PackageManager.installPackages(
+              PackageManager.PackageName.HTTPD,
+              PackageManager.PackageName.AOSERV_HTTPD_CONFIG
+          );
+        }
         break;
       default:
         throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
@@ -359,6 +364,7 @@ public final class HttpdServerManager {
    */
   private static void doRebuildConfHosts(
       Server thisServer,
+      List<Site> sites,
       ByteArrayOutputStream bout,
       List<File> deleteFileList,
       Set<HttpdServer> serversNeedingReloaded,
@@ -375,7 +381,7 @@ public final class HttpdServerManager {
           extraFiles.addAll(Arrays.asList(list));
 
           // Iterate through each site
-          for (Site httpdSite : thisServer.getHttpdSites()) {
+          for (Site httpdSite : sites) {
             // Some values used below
             final String siteName = httpdSite.getName();
             final HttpdSiteManager manager = HttpdSiteManager.getInstance(httpdSite);
@@ -505,7 +511,7 @@ public final class HttpdServerManager {
             }
 
           // Iterate through each site
-          for (Site httpdSite : thisServer.getHttpdSites()) {
+          for (Site httpdSite : sites) {
             // Some values used below
             final String siteName = httpdSite.getName();
             final HttpdSiteManager manager = HttpdSiteManager.getInstance(httpdSite);
@@ -637,7 +643,7 @@ public final class HttpdServerManager {
             }
 
           // Iterate through each site
-          for (Site httpdSite : thisServer.getHttpdSites()) {
+          for (Site httpdSite : sites) {
             // Some values used below
             final String siteName = httpdSite.getName();
             // Each of the binds
@@ -1359,6 +1365,7 @@ public final class HttpdServerManager {
    */
   private static void doRebuildConf(
       Server thisServer,
+      List<HttpdServer> hss,
       ByteArrayOutputStream bout,
       List<File> deleteFileList,
       Set<HttpdServer> serversNeedingReloaded,
@@ -1369,7 +1376,6 @@ public final class HttpdServerManager {
   ) throws IOException, SQLException {
     OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
     int osvId = osv.getPkey();
-    List<HttpdServer> hss = thisServer.getHttpdServers();
     // The files that should exist in /etc/httpd/conf
     Set<String> httpdConfFilenames = AoCollections.newHashSet(hss.size());
     // The files that whould exist in /var/lib/php
