@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2006-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
+ * Copyright (C) 2006-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -45,7 +45,6 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-// TODO: ROCKY_9_X86_64
 public final class TimeZoneManager extends BuilderThread {
 
   private static final Logger logger = Logger.getLogger(TimeZoneManager.class.getName());
@@ -79,6 +78,7 @@ public final class TimeZoneManager extends BuilderThread {
         if (
             osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                 || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+                || osvId == OperatingSystemVersion.ROCKY_9_X86_64
         ) {
           AoservConnector conn = AoservDaemon.getConnector();
           timeZoneManager = new TimeZoneManager();
@@ -159,7 +159,8 @@ public final class TimeZoneManager extends BuilderThread {
             // Atomically move into place
             newClockConfig.renameTo(clockConfig);
           }
-        } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+        } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64
+            || osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
           // Check symlink at /etc/localtime, use systemd to set timezone
           String correctTarget = "../usr/share/zoneinfo/" + timeZone;
           Stat localtimeStat = ETC_LOCALTIME.getStat();
