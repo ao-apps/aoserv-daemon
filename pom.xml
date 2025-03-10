@@ -49,6 +49,8 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
     <description.html><![CDATA[Server management daemon for the <a target="${javadoc.target}" href="https://aoindustries.com/aoserv/">AOServ Platform</a>.]]></description.html>
     <!-- SonarQube -->
     <sonar.projectKey>com.aoapps.platform:aoapps-daemon<!-- TODO: ${project.groupId}:${project.artifactId} --></sonar.projectKey>
+    <!-- Do not use SonarQube for the *.c file -->
+    <sonar.c.file.suffixes>-</sonar.c.file.suffixes>
     <!-- com.aoindustries is on original Sonatype Nexus Repository Manager -->
     <nexusServerId>ossrh-aoindustries</nexusServerId>
     <nexusUrl>https://oss.sonatype.org/</nexusUrl>
