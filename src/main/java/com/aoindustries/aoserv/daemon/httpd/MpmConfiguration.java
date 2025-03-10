@@ -33,6 +33,8 @@ import java.sql.SQLException;
  *
  * <p>TODO: Watch number of available processors and rebuild configs when changed.</p>
  *
+ * <p>TODO: AH00513: WARNING: MaxRequestWorkers of 200 is not an integer multiple of ThreadsPerChild of 13, decreasing to nearest multiple 195, for a maximum of 15 servers.</p>
+ *
  * @author  AO Industries, Inc.
  */
 public final class MpmConfiguration {
