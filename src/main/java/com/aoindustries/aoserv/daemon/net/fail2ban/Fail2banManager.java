@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
+ * Copyright (C) 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -60,7 +60,6 @@ import java.util.logging.Logger;
 /**
  * Handles the configuration of Fail2ban.
  */
-// TODO: ROCKY_9_X86_64
 public final class Fail2banManager extends BuilderThread {
 
   private static final Logger logger = Logger.getLogger(Fail2banManager.class.getName());
@@ -202,7 +201,8 @@ public final class Fail2banManager extends BuilderThread {
       synchronized (rebuildLock) {
         Set<PosixFile> restorecon = new LinkedHashSet<>();
         try {
-          if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+          if (osvId == OperatingSystemVersion.CENTOS_7_X86_64
+              || osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
             boolean firewalldInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.FIREWALLD) != null;
 
             Jail[] jails = Jail.values();
@@ -237,11 +237,9 @@ public final class Fail2banManager extends BuilderThread {
                       fail2ban = true;
                     }
                     if (fail2ban) {
-                      SortedSet<Integer> ports = jailPorts.get(jail);
-                      if (ports == null) {
-                        jailPorts.put(jail, ports = new TreeSet<>());
-                      }
-                      ports.add(nb.getPort().getPort());
+                      jailPorts
+                          .computeIfAbsent(jail, j -> new TreeSet<>())
+                          .add(nb.getPort().getPort());
                     }
                   }
                 }
@@ -415,7 +413,8 @@ public final class Fail2banManager extends BuilderThread {
       ) {
         System.out.print("Starting Fail2banManager: ");
         // Must be a supported operating system
-        if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+        if (osvId == OperatingSystemVersion.CENTOS_7_X86_64
+            || osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
           AoservConnector conn = AoservDaemon.getConnector();
           fail2banManager = new Fail2banManager();
           conn.getNet().getFirewallZone().addTableListener(fail2banManager, 0);
