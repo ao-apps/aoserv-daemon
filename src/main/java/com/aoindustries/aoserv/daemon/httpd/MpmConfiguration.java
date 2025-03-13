@@ -209,8 +209,8 @@ public final class MpmConfiguration {
     int mpmMaxSpareThreads = Math.min(maxConcurrency / MAX_SPARE_CONCURRENCY_DIVISOR, MAX_WORKER_MAX_SPARE_THREADS);
     int preMaxSpareServers = Math.min(maxConcurrency / MAX_SPARE_CONCURRENCY_DIVISOR, MAX_PREFORK_MAX_SPARE_CONCURRENCY);
     // Scale minSpare from maxConcurrency, but not less than MIN_SPARE_CONCURRENCY
-    int mpmMinSpareConcurrency = Math.max(mpmMaxSpareThreads / MIN_SPARE_CONCURRENCY_DIVISOR, MIN_SPARE_CONCURRENCY);
-    int preMinSpareServers = Math.max(preMaxSpareServers / MIN_SPARE_CONCURRENCY_DIVISOR, MIN_SPARE_CONCURRENCY);
+    int mpmMinSpareConcurrency = Math.max(ceilDiv(mpmMaxSpareThreads, MIN_SPARE_CONCURRENCY_DIVISOR), MIN_SPARE_CONCURRENCY);
+    int preMinSpareServers = Math.max(ceilDiv(preMaxSpareServers, MIN_SPARE_CONCURRENCY_DIVISOR), MIN_SPARE_CONCURRENCY);
     // Make sure maxSpare is greater than minSpare
     if (mpmMaxSpareThreads <= mpmMinSpareConcurrency) {
       mpmMaxSpareThreads = mpmMinSpareConcurrency + 1;
