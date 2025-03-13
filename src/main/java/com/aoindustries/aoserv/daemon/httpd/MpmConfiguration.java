@@ -51,13 +51,13 @@ public final class MpmConfiguration {
   private static final int MAX_SPARE_CONCURRENCY_DIVISOR = 10;
 
   /**
-   * The maximum value used for max spare concurrency in prefork.
+   * The maximum value used for max spare concurrency in worker or event.
    * Matches the <a href="https://httpd.apache.org/docs/2.4/mod/mpm_common.html#maxsparethreads">Apache default of 250</a>.
    */
   private static final int MAX_WORKER_MAX_SPARE_THREADS = 250;
 
   /**
-   * The maximum value used for max spare concurrency in worker or event.
+   * The maximum value used for max spare concurrency in prefork.
    * Matches the <a href="https://httpd.apache.org/docs/2.4/mod/prefork.html#maxspareservers">Apache default of 10</a>.
    */
   private static final int MAX_PREFORK_MAX_SPARE_CONCURRENCY = 10;
