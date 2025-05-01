@@ -294,19 +294,19 @@ public final class MySQLDatabaseManager extends BuilderThread {
       boolean gzip
   ) throws IOException, SQLException {
     String commandPath;
-      {
-        OperatingSystemVersion osv = AoservDaemon.getThisServer().getHost().getOperatingSystemVersion();
-        int osvId = osv.getPkey();
-        if (
-            osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-                || osvId == OperatingSystemVersion.CENTOS_7_X86_64
-                || osvId == OperatingSystemVersion.ROCKY_9_X86_64
-        ) {
-          commandPath = "/opt/aoserv-daemon/bin/dump_mysql_database";
-        } else {
-          throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-        }
+    {
+      OperatingSystemVersion osv = AoservDaemon.getThisServer().getHost().getOperatingSystemVersion();
+      int osvId = osv.getPkey();
+      if (
+          osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+              || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+              || osvId == OperatingSystemVersion.ROCKY_9_X86_64
+      ) {
+        commandPath = "/opt/aoserv-daemon/bin/dump_mysql_database";
+      } else {
+        throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
       }
+    }
     // Make sure perl is installed as required by dump_mysql_database
     PackageManager.installPackage(OperatingSystemConfiguration.getOperatingSystemConfiguration().getPerlPackageName());
     if (gzip) {

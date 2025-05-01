@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
+ * Copyright (C) 2001-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -500,20 +500,20 @@ public final class ShadowFile {
     assert Thread.holdsLock(shadowLock);
     // Determine permissions
     long mode;
-      {
-        OperatingSystemVersion osv = AoservDaemon.getThisServer().getHost().getOperatingSystemVersion();
-        int osvId = osv.getPkey();
-        if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-          // Set to 0400
-          mode = 0400;
-        } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64
-            || osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
-          // Set to 0000
-          mode = 0000;
-        } else {
-          throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-        }
+    {
+      OperatingSystemVersion osv = AoservDaemon.getThisServer().getHost().getOperatingSystemVersion();
+      int osvId = osv.getPkey();
+      if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+        // Set to 0400
+        mode = 0400;
+      } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64
+          || osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+        // Set to 0000
+        mode = 0000;
+      } else {
+        throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
       }
+    }
     DaemonFileUtils.atomicWrite(
         shadowFile,
         newContents,

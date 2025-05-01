@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2001-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -493,33 +493,33 @@ public final class DistroManager implements Runnable {
     }
     // Find the matching DistroFile
     DistroFile distroFile;
-      {
-        // First look for exact match
-        String filename = file.getPath();
-        int index = Collections.binarySearch(distroFiles, new Object[]{PosixPath.valueOf(filename), osVersionPkey}, pathComparator);
-        if (index >= 0) {
-          distroFile = distroFiles.get(index);
-          // Flag as found
-          foundFiles[index] = true;
-        } else {
-          // Check for hostname substitution
-          String hostname = thisServer.getHostname().toString();
-          int pos = filename.indexOf(hostname);
-          if (pos >= 0) {
-            filename = filename.substring(0, pos) + "$h" + filename.substring(pos + hostname.length());
-            index = Collections.binarySearch(distroFiles, new Object[]{PosixPath.valueOf(filename), osVersionPkey}, pathComparator);
-            if (index >= 0) {
-              distroFile = distroFiles.get(index);
-              // Flag as found
-              foundFiles[index] = true;
-            } else {
-              distroFile = null;
-            }
+    {
+      // First look for exact match
+      String filename = file.getPath();
+      int index = Collections.binarySearch(distroFiles, new Object[]{PosixPath.valueOf(filename), osVersionPkey}, pathComparator);
+      if (index >= 0) {
+        distroFile = distroFiles.get(index);
+        // Flag as found
+        foundFiles[index] = true;
+      } else {
+        // Check for hostname substitution
+        String hostname = thisServer.getHostname().toString();
+        int pos = filename.indexOf(hostname);
+        if (pos >= 0) {
+          filename = filename.substring(0, pos) + "$h" + filename.substring(pos + hostname.length());
+          index = Collections.binarySearch(distroFiles, new Object[]{PosixPath.valueOf(filename), osVersionPkey}, pathComparator);
+          if (index >= 0) {
+            distroFile = distroFiles.get(index);
+            // Flag as found
+            foundFiles[index] = true;
           } else {
             distroFile = null;
           }
+        } else {
+          distroFile = null;
         }
       }
+    }
 
     // Stat here for use below
     Stat fileStat = file.getStat();
@@ -641,27 +641,27 @@ public final class DistroManager implements Runnable {
                 // Use prelink --verify to get original file length and digest
                 byte[] sha256;
                 long fileLen;
-                  {
-                    Tuple2<byte[], Long> result = AoservDaemon.execCall(
-                        stdout -> {
-                          try (ByteCountInputStream countIn = new ByteCountInputStream(stdout)) {
-                            return new Tuple2<>(
-                                MessageDigestUtils.hashInput(digest, countIn),
-                                // Use length of unprelinked file
-                                countIn.getCount()
-                            );
-                          }
-                        },
-                        "/usr/sbin/prelink",
-                        "--verify",
-                        file.getPath()
-                    );
-                    sha256 = result.getElement1();
-                    fileLen = result.getElement2();
-                    if (sha256.length != 32) {
-                      throw new AssertionError();
-                    }
+                {
+                  Tuple2<byte[], Long> result = AoservDaemon.execCall(
+                      stdout -> {
+                        try (ByteCountInputStream countIn = new ByteCountInputStream(stdout)) {
+                          return new Tuple2<>(
+                              MessageDigestUtils.hashInput(digest, countIn),
+                              // Use length of unprelinked file
+                              countIn.getCount()
+                          );
+                        }
+                      },
+                      "/usr/sbin/prelink",
+                      "--verify",
+                      file.getPath()
+                  );
+                  sha256 = result.getElement1();
+                  fileLen = result.getElement2();
+                  if (sha256.length != 32) {
+                    throw new AssertionError();
                   }
+                }
 
                 // Prelink MD5
                 stats.prelinkFiles++;

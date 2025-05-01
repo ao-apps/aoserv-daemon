@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023  AO Industries, Inc.
+ * Copyright (C) 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -252,50 +252,50 @@ class HttpdSharedTomcatManager_8_0_X extends HttpdSharedTomcatManager<TomcatComm
       DaemonFileUtils.mkdir(wwwGroupDir + "/lib", 0770, lsaUid, lsgGid);
       DaemonFileUtils.lnAll("../" + optSlash + "apache-tomcat-8.0/lib/", wwwGroupDir + "/lib/", lsaUid, lsgGid);
 
-        //if (postgresServerMinorVersion != null) {
-        //  String postgresPath = osConfig.getPostgresPath(postgresServerMinorVersion);
-        //  if (postgresPath != null) {
-        //    FileUtils.ln("../../.."+postgresPath+"/share/java/postgresql.jar", wwwGroupDir+"/lib/postgresql.jar", lsaUid, lsgGid);
-        //  }
-        //}
-        //String mysqlConnectorPath = osConfig.getMySQLConnectorJavaJarPath();
-        //if (mysqlConnectorPath != null) {
-        //  String filename = new PosixFile(mysqlConnectorPath).getFile().getName();
-        //  FileUtils.ln("../../.."+mysqlConnectorPath, wwwGroupDir+"/lib/"+filename, lsaUid, lsgGid);
-        //}
+      //if (postgresServerMinorVersion != null) {
+      //  String postgresPath = osConfig.getPostgresPath(postgresServerMinorVersion);
+      //  if (postgresPath != null) {
+      //    FileUtils.ln("../../.."+postgresPath+"/share/java/postgresql.jar", wwwGroupDir+"/lib/postgresql.jar", lsaUid, lsgGid);
+      //  }
+      //}
+      //String mysqlConnectorPath = osConfig.getMySQLConnectorJavaJarPath();
+      //if (mysqlConnectorPath != null) {
+      //  String filename = new PosixFile(mysqlConnectorPath).getFile().getName();
+      //  FileUtils.ln("../../.."+mysqlConnectorPath, wwwGroupDir+"/lib/"+filename, lsaUid, lsgGid);
+      //}
 
-        // Write the conf/ files
-        {
-          PosixFile cp = new PosixFile(conf, "catalina.policy", false);
-          new PosixFile("/opt/apache-tomcat-8.0/conf/catalina.policy").copyTo(cp, false);
-          cp.chown(lsaUid, lsgGid).setMode(0660);
-        }
-        {
-          PosixFile cp = new PosixFile(conf, "catalina.properties", false);
-          new PosixFile("/opt/apache-tomcat-8.0/conf/catalina.properties").copyTo(cp, false);
-          cp.chown(lsaUid, lsgGid).setMode(0660);
-        }
-        {
-          PosixFile cp = new PosixFile(conf, "context.xml", false);
-          new PosixFile("/opt/apache-tomcat-8.0/conf/context.xml").copyTo(cp, false);
-          cp.chown(lsaUid, lsgGid).setMode(0660);
-        }
-        {
-          PosixFile cp = new PosixFile(conf, "logging.properties", false);
-          new PosixFile("/opt/apache-tomcat-8.0/conf/logging.properties").copyTo(cp, false);
-          cp.chown(lsaUid, lsgGid).setMode(0660);
-        }
-        {
-          PosixFile tomcatUsers = new PosixFile(conf, "tomcat-users.xml", false);
-          new PosixFile("/opt/apache-tomcat-8.0/conf/tomcat-users.xml").copyTo(tomcatUsers, false);
-          tomcatUsers.chown(lsaUid, lsgGid).setMode(0660);
-        }
+      // Write the conf/ files
+      {
+        PosixFile cp = new PosixFile(conf, "catalina.policy", false);
+        new PosixFile("/opt/apache-tomcat-8.0/conf/catalina.policy").copyTo(cp, false);
+        cp.chown(lsaUid, lsgGid).setMode(0660);
+      }
+      {
+        PosixFile cp = new PosixFile(conf, "catalina.properties", false);
+        new PosixFile("/opt/apache-tomcat-8.0/conf/catalina.properties").copyTo(cp, false);
+        cp.chown(lsaUid, lsgGid).setMode(0660);
+      }
+      {
+        PosixFile cp = new PosixFile(conf, "context.xml", false);
+        new PosixFile("/opt/apache-tomcat-8.0/conf/context.xml").copyTo(cp, false);
+        cp.chown(lsaUid, lsgGid).setMode(0660);
+      }
+      {
+        PosixFile cp = new PosixFile(conf, "logging.properties", false);
+        new PosixFile("/opt/apache-tomcat-8.0/conf/logging.properties").copyTo(cp, false);
+        cp.chown(lsaUid, lsgGid).setMode(0660);
+      }
+      {
+        PosixFile tomcatUsers = new PosixFile(conf, "tomcat-users.xml", false);
+        new PosixFile("/opt/apache-tomcat-8.0/conf/tomcat-users.xml").copyTo(tomcatUsers, false);
+        tomcatUsers.chown(lsaUid, lsgGid).setMode(0660);
+      }
       DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-8.0/conf/tomcat-users.xsd", wwwGroupDir + "/conf/tomcat-users.xsd", lsaUid, lsgGid);
-        {
-          PosixFile webXmlPosixFile = new PosixFile(conf, "web.xml", false);
-          new PosixFile("/opt/apache-tomcat-8.0/conf/web.xml").copyTo(webXmlPosixFile, false);
-          webXmlPosixFile.chown(lsaUid, lsgGid).setMode(0660);
-        }
+      {
+        PosixFile webXmlPosixFile = new PosixFile(conf, "web.xml", false);
+        new PosixFile("/opt/apache-tomcat-8.0/conf/web.xml").copyTo(webXmlPosixFile, false);
+        webXmlPosixFile.chown(lsaUid, lsgGid).setMode(0660);
+      }
 
       // Set the ownership to avoid future rebuilds of this directory
       sharedTomcatDirectory.chown(lsaUid, lsgGid);

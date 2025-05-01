@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
+ * Copyright (C) 2001-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -518,25 +518,25 @@ public final class SshdManager extends BuilderThread {
           // Find all the ports that should be bound to
           List<Bind> nbs = new ArrayList<>();
           boolean hasSpecificAddress = false;
-            {
-              AppProtocol sshProtocol = conn.getNet().getAppProtocol().get(AppProtocol.SSH);
-              if (sshProtocol == null) {
-                throw new SQLException("AppProtocol not found: " + AppProtocol.SSH);
-              }
-              for (Bind nb : thisServer.getHost().getNetBinds(sshProtocol)) {
-                if (nb.getNetTcpRedirect() == null) {
-                  com.aoapps.net.Protocol netProtocol = nb.getPort().getProtocol();
-                  if (netProtocol != com.aoapps.net.Protocol.TCP) {
-                    throw new IOException("Unsupported protocol for SSH: " + netProtocol);
-                  }
-                  nbs.add(nb);
-                  InetAddress ia = nb.getIpAddress().getInetAddress();
-                  if (!ia.isLoopback() && !ia.isUnspecified()) {
-                    hasSpecificAddress = true;
-                  }
+          {
+            AppProtocol sshProtocol = conn.getNet().getAppProtocol().get(AppProtocol.SSH);
+            if (sshProtocol == null) {
+              throw new SQLException("AppProtocol not found: " + AppProtocol.SSH);
+            }
+            for (Bind nb : thisServer.getHost().getNetBinds(sshProtocol)) {
+              if (nb.getNetTcpRedirect() == null) {
+                com.aoapps.net.Protocol netProtocol = nb.getPort().getProtocol();
+                if (netProtocol != com.aoapps.net.Protocol.TCP) {
+                  throw new IOException("Unsupported protocol for SSH: " + netProtocol);
+                }
+                nbs.add(nb);
+                InetAddress ia = nb.getIpAddress().getInetAddress();
+                if (!ia.isLoopback() && !ia.isUnspecified()) {
+                  hasSpecificAddress = true;
                 }
               }
             }
+          }
           //if (nbs.size() > MAX_LISTEN_SOCKS) {
           //  throw new IOException("Refusing to build sshd_config with more than MAX_LISTEN_SOCKS(" + MAX_LISTEN_SOCKS + ") ListenAddress directives: " + nbs.size());
           //}
@@ -578,21 +578,21 @@ public final class SshdManager extends BuilderThread {
 
             // Build the new config file to RAM
             byte[] newConfig;
-              {
-                ByteArrayOutputStream bout = new ByteArrayOutputStream();
-                try (ChainWriter out = new ChainWriter(bout)) {
-                  if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-                    writeConfigFileCentos5(thisServer, nbs, out);
-                  } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-                    writeConfigFileCentos7(thisServer, nbs, out);
-                  } else if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
-                    writeConfigFileRocky9(thisServer, out);
-                  } else {
-                    throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-                  }
+            {
+              ByteArrayOutputStream bout = new ByteArrayOutputStream();
+              try (ChainWriter out = new ChainWriter(bout)) {
+                if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                  writeConfigFileCentos5(thisServer, nbs, out);
+                } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+                  writeConfigFileCentos7(thisServer, nbs, out);
+                } else if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+                  writeConfigFileRocky9(thisServer, out);
+                } else {
+                  throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
                 }
-                newConfig = bout.toByteArray();
               }
+              newConfig = bout.toByteArray();
+            }
 
             // Write the new file only when file changed
             if (
@@ -614,13 +614,13 @@ public final class SshdManager extends BuilderThread {
                   () -> needsRestart[0] = true);
               // Build the new config file to RAM
               byte[] newBindsConf;
-                {
-                  ByteArrayOutputStream bout = new ByteArrayOutputStream();
-                  try (ChainWriter out = new ChainWriter(bout)) {
-                    writeBindsRocky9(nbs, out);
-                  }
-                  newBindsConf = bout.toByteArray();
+              {
+                ByteArrayOutputStream bout = new ByteArrayOutputStream();
+                try (ChainWriter out = new ChainWriter(bout)) {
+                  writeBindsRocky9(nbs, out);
                 }
+                newBindsConf = bout.toByteArray();
+              }
               // Write the new file only when file changed
               if (
                   DaemonFileUtils.atomicWrite(

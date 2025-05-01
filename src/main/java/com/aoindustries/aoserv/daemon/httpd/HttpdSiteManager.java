@@ -161,13 +161,13 @@ public abstract class HttpdSiteManager {
       // The www directories that exist but are not used will be removed
       PosixFile wwwDirectory = new PosixFile(osConfig.getHttpdSitesDirectory().toString());
       Set<String> wwwRemoveList = new HashSet<>();
-        {
-          String[] list = wwwDirectory.list();
-          if (list != null) {
-            wwwRemoveList.addAll(Arrays.asList(list));
-            wwwRemoveList.removeAll(keepWwwDirs);
-          }
+      {
+        String[] list = wwwDirectory.list();
+        if (list != null) {
+          wwwRemoveList.addAll(Arrays.asList(list));
+          wwwRemoveList.removeAll(keepWwwDirs);
         }
+      }
 
       // Iterate through each site
       for (Site httpdSite : thisServer.getHttpdSites()) {

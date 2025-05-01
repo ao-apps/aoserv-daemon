@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2006-2013, 2017, 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2006-2013, 2017, 2018, 2019, 2020, 2021, 2022, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -63,19 +63,19 @@ public final class DhcpManager implements Runnable {
       // Make sure /sbin/ifconfig is installed as required by get_dhcp_address
       PackageManager.installPackage(PackageManager.PackageName.NET_TOOLS);
       String ip;
-        {
-          ip = AoservDaemon.execCall(
-              stdout -> {
-                try (BufferedReader in = new BufferedReader(new InputStreamReader(stdout))) {
-                  return in.readLine();
-                }
-              },
-              cmd
-          );
-          if (ip == null || (ip = ip.trim()).length() == 0) {
-            throw new IOException("Unable to find IP address for device: " + device);
-          }
+      {
+        ip = AoservDaemon.execCall(
+            stdout -> {
+              try (BufferedReader in = new BufferedReader(new InputStreamReader(stdout))) {
+                return in.readLine();
+              }
+            },
+            cmd
+        );
+        if (ip == null || (ip = ip.trim()).length() == 0) {
+          throw new IOException("Unable to find IP address for device: " + device);
         }
+      }
       return InetAddress.valueOf(ip);
     } catch (ValidationException e) {
       throw new IOException(e.getLocalizedMessage(), e);

@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2018, 2019, 2020, 2021, 2022, 2023, 2024  AO Industries, Inc.
+ * Copyright (C) 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -305,17 +305,17 @@ public abstract class VersionedSharedTomcatManager<T extends VersionedTomcatComm
     final byte[] readmeTxtContent = generateReadmeTxt(optSlash, apacheTomcatDir, sharedTomcatDirectory);
     final PosixFile readmeTxt = new PosixFile(sharedTomcatDirectory, README_TXT, false);
     final boolean isUpgrade;
-      {
-        final Stat readmeTxtStat;
-        isUpgrade =
-            !isInstall
-                && !sharedTomcat.isManual()
-                && !(
-                (readmeTxtStat = readmeTxt.getStat()).exists()
-                    && readmeTxtStat.isRegularFile()
-                    && readmeTxt.contentEquals(readmeTxtContent)
-            );
-      }
+    {
+      final Stat readmeTxtStat;
+      isUpgrade =
+          !isInstall
+              && !sharedTomcat.isManual()
+              && !(
+              (readmeTxtStat = readmeTxt.getStat()).exists()
+                  && readmeTxtStat.isRegularFile()
+                  && readmeTxt.contentEquals(readmeTxtContent)
+          );
+    }
     assert !(isInstall && isUpgrade);
     if (isInstall || isUpgrade) {
 

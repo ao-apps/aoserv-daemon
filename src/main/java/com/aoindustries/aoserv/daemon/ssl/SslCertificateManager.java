@@ -284,50 +284,50 @@ public final class SslCertificateManager {
         }
       }
       String commonName = null;
-        {
-          // See https://stackoverflow.com/questions/7933468/parsing-the-cn-out-of-a-certificate-dn
-          String x509Name = certificate.getSubjectX500Principal().getName();
-          LdapName ln;
-          try {
-            ln = new LdapName(x509Name); // Compatible: both getName() and new LdapName(...) are RFC 2253
-          } catch (InvalidNameException e) {
-            throw new IOException(FACTORY_TYPE + ": Unable to parse common name \"" + x509Name + "\": " + e.toString(), e);
-          }
-          for (Rdn rdn : ln.getRdns()) {
-            if ("CN".equalsIgnoreCase(rdn.getType())) {
-              commonName = rdn.getValue().toString();
-              break;
-            }
-          }
-          if (commonName == null) {
-            throw new IOException(FACTORY_TYPE + ": No common name found: " + x509Name);
+      {
+        // See https://stackoverflow.com/questions/7933468/parsing-the-cn-out-of-a-certificate-dn
+        String x509Name = certificate.getSubjectX500Principal().getName();
+        LdapName ln;
+        try {
+          ln = new LdapName(x509Name); // Compatible: both getName() and new LdapName(...) are RFC 2253
+        } catch (InvalidNameException e) {
+          throw new IOException(FACTORY_TYPE + ": Unable to parse common name \"" + x509Name + "\": " + e.toString(), e);
+        }
+        for (Rdn rdn : ln.getRdns()) {
+          if ("CN".equalsIgnoreCase(rdn.getType())) {
+            commonName = rdn.getValue().toString();
+            break;
           }
         }
+        if (commonName == null) {
+          throw new IOException(FACTORY_TYPE + ": No common name found: " + x509Name);
+        }
+      }
       Set<String> altNames;
-        {
-          Collection<List<?>> sans;
-          try {
-            sans = certificate.getSubjectAlternativeNames();
-          } catch (CertificateParsingException e) {
-            throw new IOException(FACTORY_TYPE + ": Unable to parse certificate subject alt names: " + e.toString(), e);
-          }
-          if (sans == null) {
-            altNames = Collections.emptySet();
-          } else {
-            altNames = AoCollections.newLinkedHashSet(sans.size());
-            for (List<?> san : sans) {
-              int type = (Integer) san.get(0);
-              if (type == 2 /* dNSName */) {
-                String altName = (String) san.get(1);
-                if (!altNames.add(altName)) {
-                  throw new IOException(FACTORY_TYPE + ": Duplicate subject alt name: " + altName);
-                }
-              } else {
-                throw new IOException(FACTORY_TYPE + ": Unexpected subject alt name type code: " + type);
+      {
+        Collection<List<?>> sans;
+        try {
+          sans = certificate.getSubjectAlternativeNames();
+        } catch (CertificateParsingException e) {
+          throw new IOException(FACTORY_TYPE + ": Unable to parse certificate subject alt names: " + e.toString(), e);
+        }
+        if (sans == null) {
+          altNames = Collections.emptySet();
+        } else {
+          altNames = AoCollections.newLinkedHashSet(sans.size());
+          for (List<?> san : sans) {
+            int type = (Integer) san.get(0);
+            if (type == 2 /* dNSName */) {
+              String altName = (String) san.get(1);
+              if (!altNames.add(altName)) {
+                throw new IOException(FACTORY_TYPE + ": Duplicate subject alt name: " + altName);
               }
+            } else {
+              throw new IOException(FACTORY_TYPE + ": Unexpected subject alt name type code: " + type);
             }
           }
         }
+      }
       X509Status result = new X509Status(
           certModifyTime,
           certificate.getNotBefore(),
@@ -442,25 +442,25 @@ public final class SslCertificateManager {
       Set<String> domains = Collections.emptySet();
       String status = "UNKNOWN";
       int days = -1;
-        // Wait until lock file removed
-        {
-          int failures = 0;
-          while (CERTBOT_LOCK.getStat().exists()) {
-            failures++;
-            if (failures >= CERTBOT_LOCKED_ATTEMPTS) {
-              throw new IOException("certbot locked by " + CERTBOT_LOCK);
-            }
-            try {
-              Thread.sleep(CERTBOT_LOCKED_SLEEP);
-            } catch (InterruptedException e) {
-              InterruptedIOException ioErr = new InterruptedIOException("Interrupted waiting on " + CERTBOT_LOCK);
-              ioErr.initCause(e);
-              // Restore the interrupted status
-              Thread.currentThread().interrupt();
-              throw ioErr;
-            }
+      // Wait until lock file removed
+      {
+        int failures = 0;
+        while (CERTBOT_LOCK.getStat().exists()) {
+          failures++;
+          if (failures >= CERTBOT_LOCKED_ATTEMPTS) {
+            throw new IOException("certbot locked by " + CERTBOT_LOCK);
+          }
+          try {
+            Thread.sleep(CERTBOT_LOCKED_SLEEP);
+          } catch (InterruptedException e) {
+            InterruptedIOException ioErr = new InterruptedIOException("Interrupted waiting on " + CERTBOT_LOCK);
+            ioErr.initCause(e);
+            // Restore the interrupted status
+            Thread.currentThread().interrupt();
+            throw ioErr;
           }
         }
+      }
       try (
           BufferedReader in = new BufferedReader(
               new StringReader(

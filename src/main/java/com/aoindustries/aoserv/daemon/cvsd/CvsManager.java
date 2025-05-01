@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2002-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
+ * Copyright (C) 2002-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -108,18 +108,18 @@ public final class CvsManager extends BuilderThread {
         }
         // Get a list of all the directories in /var/cvs
         Set<String> existing;
-          {
-            String[] list = cvsDir.list();
-            if (list != null) {
-              int listLen = list.length;
-              existing = AoCollections.newHashSet(listLen);
-              for (int c = 0; c < listLen; c++) {
-                existing.add(CvsRepository.DEFAULT_CVS_DIRECTORY + "/" + list[c]);
-              }
-            } else {
-              existing = new HashSet<>();
+        {
+          String[] list = cvsDir.list();
+          if (list != null) {
+            int listLen = list.length;
+            existing = AoCollections.newHashSet(listLen);
+            for (int c = 0; c < listLen; c++) {
+              existing.add(CvsRepository.DEFAULT_CVS_DIRECTORY + "/" + list[c]);
             }
+          } else {
+            existing = new HashSet<>();
           }
+        }
 
         // Add each directory that doesn't exist, fix permissions and ownerships, too
         // while removing existing directories from existing
@@ -127,27 +127,27 @@ public final class CvsManager extends BuilderThread {
           PosixPath cvsPath = cvs.getPath();
           PosixFile cvsDirectory = new PosixFile(cvsPath.toString());
           UserServer lsa = cvs.getLinuxServerAccount();
-            {
-              Stat cvsDirectoryStat = cvsDirectory.getStat();
-              long cvsMode = cvs.getMode();
-              // Make the directory
-              if (!cvsDirectoryStat.exists()) {
-                cvsDirectory.mkdir(true, cvsMode);
-                cvsDirectoryStat = cvsDirectory.getStat();
-              }
-              // Set the mode
-              if (cvsDirectoryStat.getMode() != cvsMode) {
-                cvsDirectory.setMode(cvsMode);
-                cvsDirectoryStat = cvsDirectory.getStat();
-              }
-              // Set the owner and group
-              int uid = lsa.getUid().getId();
-              int gid = cvs.getLinuxServerGroup().getGid().getId();
-              if (uid != cvsDirectoryStat.getUid() || gid != cvsDirectoryStat.getGid()) {
-                cvsDirectory.chown(uid, gid);
-                // Unused here, no need to re-stat: cvsStat = cvsUF.getStat();
-              }
+          {
+            Stat cvsDirectoryStat = cvsDirectory.getStat();
+            long cvsMode = cvs.getMode();
+            // Make the directory
+            if (!cvsDirectoryStat.exists()) {
+              cvsDirectory.mkdir(true, cvsMode);
+              cvsDirectoryStat = cvsDirectory.getStat();
             }
+            // Set the mode
+            if (cvsDirectoryStat.getMode() != cvsMode) {
+              cvsDirectory.setMode(cvsMode);
+              cvsDirectoryStat = cvsDirectory.getStat();
+            }
+            // Set the owner and group
+            int uid = lsa.getUid().getId();
+            int gid = cvs.getLinuxServerGroup().getGid().getId();
+            if (uid != cvsDirectoryStat.getUid() || gid != cvsDirectoryStat.getGid()) {
+              cvsDirectory.chown(uid, gid);
+              // Unused here, no need to re-stat: cvsStat = cvsUF.getStat();
+            }
+          }
           // Init if needed
           PosixFile cvsRoot = new PosixFile(cvsDirectory, "CVSROOT", false);
           if (!cvsRoot.getStat().exists()) {

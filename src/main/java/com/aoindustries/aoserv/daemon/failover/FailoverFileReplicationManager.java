@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2003-2013, 2015, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
+ * Copyright (C) 2003-2013, 2015, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -775,23 +775,23 @@ public final class FailoverFileReplicationManager {
           }
         }
 
-          // Create the server root if it doesn't exist
-          {
-            PosixFile toPathPosixFile = new PosixFile(toPath);
-            Stat dirStat = stat(activity, toPathPosixFile);
-            if (!dirStat.exists()) {
-              mkdir(
-                  activity,
-                  toPathPosixFile,
-                  true,
-                  quotaGid == -1 ? 0700 : 0750,
-                  PosixFile.ROOT_UID,
-                  quotaGid == -1 ? PosixFile.ROOT_GID : quotaGid
-              );
-            } else if (!dirStat.isDirectory()) {
-              throw new IOException("toPath exists but is not a directory: " + toPath);
-            }
+        // Create the server root if it doesn't exist
+        {
+          PosixFile toPathPosixFile = new PosixFile(toPath);
+          Stat dirStat = stat(activity, toPathPosixFile);
+          if (!dirStat.exists()) {
+            mkdir(
+                activity,
+                toPathPosixFile,
+                true,
+                quotaGid == -1 ? 0700 : 0750,
+                PosixFile.ROOT_UID,
+                quotaGid == -1 ? PosixFile.ROOT_GID : quotaGid
+            );
+          } else if (!dirStat.isDirectory()) {
+            throw new IOException("toPath exists but is not a directory: " + toPath);
           }
+        }
 
         // Tell the client it is OK to continue
         activity.update("socket: write: AoservDaemonProtocol.NEXT");
@@ -874,126 +874,126 @@ public final class FailoverFileReplicationManager {
             linkToRoot = null;
             isRecycling = false;
           } else {
-              {
-                PosixFile recycledPartial = new PosixFile(recycledPartialMirrorRoot);
-                if (stat(activity, recycledPartial).exists()) {
-                  // See (2) above
-                  isRecycling = true;
+            {
+              PosixFile recycledPartial = new PosixFile(recycledPartialMirrorRoot);
+              if (stat(activity, recycledPartial).exists()) {
+                // See (2) above
+                isRecycling = true;
+              } else {
+                PosixFile partial = new PosixFile(partialMirrorRoot);
+                if (stat(activity, partial).exists()) {
+                  // See (3) above
+                  isRecycling = false;
                 } else {
-                  PosixFile partial = new PosixFile(partialMirrorRoot);
-                  if (stat(activity, partial).exists()) {
-                    // See (3) above
-                    isRecycling = false;
-                  } else {
-                    // See (4) above
-                    boolean foundPartial = false;
-                    isRecycling = false;
+                  // See (4) above
+                  boolean foundPartial = false;
+                  isRecycling = false;
 
-                    String[] list = list(activity, perDateRoot);
-                    if (list != null && list.length > 0) {
-                      // This is not y10k compliant - this is assuming lexical order is the same as chronological order.
-                      Arrays.sort(list);
-                      // Find most recent partial
+                  String[] list = list(activity, perDateRoot);
+                  if (list != null && list.length > 0) {
+                    // This is not y10k compliant - this is assuming lexical order is the same as chronological order.
+                    Arrays.sort(list);
+                    // Find most recent partial
+                    for (int c = list.length - 1; c >= 0; c--) {
+                      String filename = list[c];
+                      if (filename.endsWith(PARTIAL_EXTENSION)) {
+                        isRecycling = filename.endsWith(RECYCLED_PARTIAL_EXTENSION);
+                        renameToNoExists(
+                            logger,
+                            activity,
+                            new PosixFile(perDateRoot, filename, false),
+                            isRecycling ? recycledPartial : partial
+                        );
+                        foundPartial = true;
+                        break;
+                      }
+                    }
+
+                    if (!foundPartial) {
+                      // Find most recent recycled pass
                       for (int c = list.length - 1; c >= 0; c--) {
                         String filename = list[c];
-                        if (filename.endsWith(PARTIAL_EXTENSION)) {
-                          isRecycling = filename.endsWith(RECYCLED_PARTIAL_EXTENSION);
+                        if (filename.endsWith(RECYCLED_EXTENSION)) {
                           renameToNoExists(
                               logger,
                               activity,
                               new PosixFile(perDateRoot, filename, false),
-                              isRecycling ? recycledPartial : partial
+                              recycledPartial
                           );
-                          foundPartial = true;
+                          isRecycling = true;
                           break;
                         }
                       }
-
-                      if (!foundPartial) {
-                        // Find most recent recycled pass
-                        for (int c = list.length - 1; c >= 0; c--) {
-                          String filename = list[c];
-                          if (filename.endsWith(RECYCLED_EXTENSION)) {
-                            renameToNoExists(
-                                logger,
-                                activity,
-                                new PosixFile(perDateRoot, filename, false),
-                                recycledPartial
-                            );
-                            isRecycling = true;
-                            break;
-                          }
-                        }
-                      }
                     }
-                    if (!foundPartial && !isRecycling) {
-                      // Neither found, create new directory
-                      mkdir(activity, partial);
-                    }
+                  }
+                  if (!foundPartial && !isRecycling) {
+                    // Neither found, create new directory
+                    mkdir(activity, partial);
                   }
                 }
               }
+            }
             // Finds the path that will be linked-to.
             // Find the most recent complete pass that is not today's directory (which should not exist anyways because renamed above)
             linkToRoot = null;
-              {
-                String[] list = list(activity, perDateRoot);
-                if (list != null && list.length > 0) {
-                  // This is not y10k compliant - this is assuming lexical order is the same as chronological order.
-                  Arrays.sort(list);
-                  // Find most recent complete pass
-                  for (int c = list.length - 1; c >= 0; c--) {
+            {
+              String[] list = list(activity, perDateRoot);
+              if (list != null && list.length > 0) {
+                // This is not y10k compliant - this is assuming lexical order is the same as chronological order.
+                Arrays.sort(list);
+                // Find most recent complete pass
+                for (int c = list.length - 1; c >= 0; c--) {
+                  String filename = list[c];
+                  String fullFilename = toPath + "/" + filename;
+                  if (fullFilename.equals(finalMirrorRoot)) {
+                    throw new AssertionError("finalMirrorRoot exists, but should have already been renamed to .partial");
+                  }
+                  if (
+                      filename.length() == 10
+                          // && !fullFilename.equals(partialMirrorRoot)
+                          // && !fullFilename.equals(recycledPartialMirrorRoot);
+                          && !filename.endsWith(PARTIAL_EXTENSION)
+                          && !filename.endsWith(SAFE_DELETE_EXTENSION)
+                          && !filename.endsWith(RECYCLED_EXTENSION)
+                  // && !filename.endsWith(RECYCLED_PARTIAL_EXTENSION)
+                  ) {
+                    linkToRoot = fullFilename;
+                    break;
+                  }
+                }
+                /* Update activity if this code is uncommented
+                if (linkToRoot == null) {
+                  // When no complete pass is available, find the most recent recycling partial pass
+                  for (int c=list.length-1;c >= 0;c--) {
                     String filename = list[c];
-                    String fullFilename = toPath + "/" + filename;
-                    if (fullFilename.equals(finalMirrorRoot)) {
-                      throw new AssertionError("finalMirrorRoot exists, but should have already been renamed to .partial");
-                    }
+                    String fullFilename = serverRoot+"/"+filename;
                     if (
-                        filename.length() == 10
-                            // && !fullFilename.equals(partialMirrorRoot)
-                            // && !fullFilename.equals(recycledPartialMirrorRoot);
-                            && !filename.endsWith(PARTIAL_EXTENSION)
-                            && !filename.endsWith(SAFE_DELETE_EXTENSION)
-                            && !filename.endsWith(RECYCLED_EXTENSION)
-                    // && !filename.endsWith(RECYCLED_PARTIAL_EXTENSION)
+                      !fullFilename.equals(recycledPartialMirrorRoot)
+                      && filename.endsWith(RECYCLED_PARTIAL_EXTENSION)
                     ) {
                       linkToRoot = fullFilename;
                       break;
                     }
                   }
-                  /* Update activity if this code is uncommented
-                  if (linkToRoot == null) {
-                    // When no complete pass is available, find the most recent recycling partial pass
-                    for (int c=list.length-1;c >= 0;c--) {
-                      String filename = list[c];
-                      String fullFilename = serverRoot+"/"+filename;
-                      if (
-                        !fullFilename.equals(recycledPartialMirrorRoot)
-                        && filename.endsWith(RECYCLED_PARTIAL_EXTENSION)
-                      ) {
-                        linkToRoot = fullFilename;
-                        break;
-                      }
+                }*/
+                /*if (linkToRoot == null) {
+                  // When no complete pass or recycling partial is available, find the most recent non-recycling partial pass
+                  for (int c=list.length-1;c >= 0;c--) {
+                    String filename = list[c];
+                    String fullFilename = serverRoot+"/"+filename;
+                    if (
+                      !fullFilename.equals(recycledPartialMirrorRoot)
+                      && !fullFilename.equals(partialMirrorRoot)
+                      && filename.endsWith(PARTIAL_EXTENSION)
+                      // && !filename.endsWith(RECYCLED_PARTIAL_EXTENSION)
+                    ) {
+                      linkToRoot = fullFilename;
+                      break;
                     }
-                  }*/
-                  /*if (linkToRoot == null) {
-                    // When no complete pass or recycling partial is available, find the most recent non-recycling partial pass
-                    for (int c=list.length-1;c >= 0;c--) {
-                      String filename = list[c];
-                      String fullFilename = serverRoot+"/"+filename;
-                      if (
-                        !fullFilename.equals(recycledPartialMirrorRoot)
-                        && !fullFilename.equals(partialMirrorRoot)
-                        && filename.endsWith(PARTIAL_EXTENSION)
-                        // && !filename.endsWith(RECYCLED_PARTIAL_EXTENSION)
-                      ) {
-                        linkToRoot = fullFilename;
-                        break;
-                      }
-                    }
-                  }*/
-                }
+                  }
+                }*/
               }
+            }
           }
         }
         if (isFine) {
@@ -1587,13 +1587,13 @@ public final class FailoverFileReplicationManager {
                           // Build the list of MD5 hashes per chunk
                           final long chunkingSize = Math.min(length, chunkingFromStat.getSize());
                           final int numChunks;
-                            {
-                              long numChunksL = chunkingSize >> AoservDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE_BITS;
-                              if ((chunkingSize & (AoservDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE - 1)) != 0) {
-                                numChunksL++;
-                              }
-                              numChunks = SafeMath.castInt(numChunksL);
+                          {
+                            long numChunksL = chunkingSize >> AoservDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE_BITS;
+                            if ((chunkingSize & (AoservDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE - 1)) != 0) {
+                              numChunksL++;
                             }
+                            numChunks = SafeMath.castInt(numChunksL);
+                          }
                           final long[] md5His = new long[numChunks];
                           final long[] md5Los = new long[numChunks];
                           // Generate the MD5 hashes for the current file
@@ -1911,18 +1911,18 @@ public final class FailoverFileReplicationManager {
                           if (partialChunkPos != 0) {
                             throw new IOException("Chunk matched after partial chunk");
                           }
-                            // Get the values from the old file (chunk matches)
-                            {
-                              long chunkSizeL = chunkingSize - filePos;
-                              if (chunkSizeL < 0) {
-                                throw new IOException("Client sent chunk beyond end of server chunks");
-                              }
-                              if (chunkSizeL >= AoservDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE) {
-                                partialChunkPos = AoservDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE;
-                              } else {
-                                partialChunkPos = (int) chunkSizeL;
-                              }
+                          // Get the values from the old file (chunk matches)
+                          {
+                            long chunkSizeL = chunkingSize - filePos;
+                            if (chunkSizeL < 0) {
+                              throw new IOException("Client sent chunk beyond end of server chunks");
                             }
+                            if (chunkSizeL >= AoservDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE) {
+                              partialChunkPos = AoservDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE;
+                            } else {
+                              partialChunkPos = (int) chunkSizeL;
+                            }
+                          }
                           activity.update("file: read: ", chunkingFrom, " at ", filePos);
                           chunkingFromRaf.seek(filePos);
                           chunkingFromRaf.readFully(chunkBuffer, 0, partialChunkPos);
@@ -2168,32 +2168,32 @@ public final class FailoverFileReplicationManager {
             }
 
             String[] command;
-              {
-                String serviceName = fromServer + "-mysql-" + mysqlServer + ".service";
-                File serviceFile = new File("/etc/systemd/system/" + serviceName);
-                if (serviceFile.exists()) {
-                  // Run via systemctl
+            {
+              String serviceName = fromServer + "-mysql-" + mysqlServer + ".service";
+              File serviceFile = new File("/etc/systemd/system/" + serviceName);
+              if (serviceFile.exists()) {
+                // Run via systemctl
+                command = new String[]{
+                    "/usr/bin/systemctl",
+                    "try-restart", // Do not start if not currently running
+                    serviceName
+                };
+              } else {
+                String initPath = "/etc/rc.d/init.d/mysql-" + mysqlServer;
+                File initFile = new File(toPath + initPath);
+                if (initFile.exists()) {
+                  // Run via chroot /etc/rc.d/init.d
                   command = new String[]{
-                      "/usr/bin/systemctl",
-                      "try-restart", // Do not start if not currently running
-                      serviceName
+                      "/usr/sbin/chroot",
+                      toPath,
+                      initPath,
+                      "restart"
                   };
                 } else {
-                  String initPath = "/etc/rc.d/init.d/mysql-" + mysqlServer;
-                  File initFile = new File(toPath + initPath);
-                  if (initFile.exists()) {
-                    // Run via chroot /etc/rc.d/init.d
-                    command = new String[]{
-                        "/usr/sbin/chroot",
-                        toPath,
-                        initPath,
-                        "restart"
-                    };
-                  } else {
-                    throw new IOException("Unable to restart MySQL via either \"" + serviceFile + "\" or \"" + initFile + "\"");
-                  }
+                  throw new IOException("Unable to restart MySQL via either \"" + serviceFile + "\" or \"" + initFile + "\"");
                 }
               }
+            }
             try {
               AoservDaemon.exec(command);
             } catch (IOException err) {
@@ -2547,73 +2547,73 @@ public final class FailoverFileReplicationManager {
       gcal.set(Calendar.MILLISECOND, 0);
       long fromServerDate = gcal.getTimeInMillis();
       Map<Integer, List<String>> directoriesByAge;
-        {
-          String[] list = list(activity, serverRoot);
-          directoriesByAge = AoCollections.newHashMap((list == null) ? -1 : list.length);
-          if (list != null) {
-            for (String filename : list) {
-              if (!filename.endsWith(SAFE_DELETE_EXTENSION) && !filename.endsWith(RECYCLED_EXTENSION)) {
-                // Not y10k compatible
-                if (filename.length() >= 10) {
-                  try {
-                    int year = Integer.parseInt(filename.substring(0, 4));
-                    if (filename.charAt(4) == '-') {
-                      int month = Integer.parseInt(filename.substring(5, 7));
-                      if (filename.charAt(7) == '-') {
-                        int day = Integer.parseInt(filename.substring(8, 10));
-                        gcal.set(Calendar.YEAR, year);
-                        gcal.set(Calendar.MONTH, month - 1);
-                        gcal.set(Calendar.DAY_OF_MONTH, day);
-                        gcal.set(Calendar.HOUR_OF_DAY, 0);
-                        gcal.set(Calendar.MINUTE, 0);
-                        gcal.set(Calendar.SECOND, 0);
-                        gcal.set(Calendar.MILLISECOND, 0);
-                        int age = SafeMath.castInt(
-                            (fromServerDate - gcal.getTimeInMillis())
-                                / (24L * 60 * 60 * 1000)
-                        );
-                        if (age >= 0) {
-                          // Must also be a date directory with no extension, or one of the expected extensions to delete:
-                          if (
-                              // Is a date only
-                              filename.length() == 10
-                                  || (
-                                  // Is date + partial
-                                  filename.length() == (10 + PARTIAL_EXTENSION.length())
-                                      && filename.endsWith(PARTIAL_EXTENSION)
-                              ) || (
-                                  // Is date + recycled + partial
-                                  filename.length() == (10 + RECYCLED_PARTIAL_EXTENSION.length())
-                                      && filename.endsWith(RECYCLED_PARTIAL_EXTENSION)
-                              )
-                          ) {
-                            List<String> directories = directoriesByAge.get(age);
-                            if (directories == null) {
-                              directoriesByAge.put(age, directories = new ArrayList<>());
-                            }
-                            directories.add(filename);
-                          } else {
-                            logger.log(Level.WARNING, null, new IOException("Skipping unexpected directory: " + filename));
+      {
+        String[] list = list(activity, serverRoot);
+        directoriesByAge = AoCollections.newHashMap((list == null) ? -1 : list.length);
+        if (list != null) {
+          for (String filename : list) {
+            if (!filename.endsWith(SAFE_DELETE_EXTENSION) && !filename.endsWith(RECYCLED_EXTENSION)) {
+              // Not y10k compatible
+              if (filename.length() >= 10) {
+                try {
+                  int year = Integer.parseInt(filename.substring(0, 4));
+                  if (filename.charAt(4) == '-') {
+                    int month = Integer.parseInt(filename.substring(5, 7));
+                    if (filename.charAt(7) == '-') {
+                      int day = Integer.parseInt(filename.substring(8, 10));
+                      gcal.set(Calendar.YEAR, year);
+                      gcal.set(Calendar.MONTH, month - 1);
+                      gcal.set(Calendar.DAY_OF_MONTH, day);
+                      gcal.set(Calendar.HOUR_OF_DAY, 0);
+                      gcal.set(Calendar.MINUTE, 0);
+                      gcal.set(Calendar.SECOND, 0);
+                      gcal.set(Calendar.MILLISECOND, 0);
+                      int age = SafeMath.castInt(
+                          (fromServerDate - gcal.getTimeInMillis())
+                              / (24L * 60 * 60 * 1000)
+                      );
+                      if (age >= 0) {
+                        // Must also be a date directory with no extension, or one of the expected extensions to delete:
+                        if (
+                            // Is a date only
+                            filename.length() == 10
+                                || (
+                                // Is date + partial
+                                filename.length() == (10 + PARTIAL_EXTENSION.length())
+                                    && filename.endsWith(PARTIAL_EXTENSION)
+                            ) || (
+                                // Is date + recycled + partial
+                                filename.length() == (10 + RECYCLED_PARTIAL_EXTENSION.length())
+                                    && filename.endsWith(RECYCLED_PARTIAL_EXTENSION)
+                            )
+                        ) {
+                          List<String> directories = directoriesByAge.get(age);
+                          if (directories == null) {
+                            directoriesByAge.put(age, directories = new ArrayList<>());
                           }
+                          directories.add(filename);
                         } else {
-                          logger.log(Level.WARNING, null, new IOException("Directory date in future: " + filename));
+                          logger.log(Level.WARNING, null, new IOException("Skipping unexpected directory: " + filename));
                         }
                       } else {
-                        logger.log(Level.WARNING, null, new IOException("Unable to parse filename: " + filename));
+                        logger.log(Level.WARNING, null, new IOException("Directory date in future: " + filename));
                       }
                     } else {
                       logger.log(Level.WARNING, null, new IOException("Unable to parse filename: " + filename));
                     }
-                  } catch (NumberFormatException err) {
+                  } else {
                     logger.log(Level.WARNING, null, new IOException("Unable to parse filename: " + filename));
                   }
-                } else {
-                  logger.log(Level.WARNING, null, new IOException("Filename too short: " + filename));
+                } catch (NumberFormatException err) {
+                  logger.log(Level.WARNING, null, new IOException("Unable to parse filename: " + filename));
                 }
+              } else {
+                logger.log(Level.WARNING, null, new IOException("Filename too short: " + filename));
               }
             }
           }
         }
+      }
 
       if (isFine) {
         List<Integer> ages = new ArrayList<>(directoriesByAge.keySet());
@@ -2735,30 +2735,30 @@ public final class FailoverFileReplicationManager {
         }
       }
 
-        // 3) Keep X most recent .recycled directories (not partials, though)
-        // 4) Rename older .recycled directories to .deleted
-        {
-          final int numRecycle = getNumberRecycleDirectories(retention);
-          String[] list = list(activity, serverRoot);
-          if (list != null && list.length > 0) {
-            Arrays.sort(list);
-            int recycledFoundCount = 0;
-            for (int c = list.length - 1; c >= 0; c--) {
-              String directory = list[c];
-              if (directory.endsWith(RECYCLED_EXTENSION)) {
-                if (recycledFoundCount < numRecycle) {
-                  recycledFoundCount++;
-                } else {
-                  // Rename to .deleted
-                  String newFilename = directory.substring(0, directory.length() - RECYCLED_EXTENSION.length()) + SAFE_DELETE_EXTENSION;
-                  final PosixFile currentPosixFile = new PosixFile(serverRoot, directory, false);
-                  final PosixFile newPosixFile = new PosixFile(serverRoot, newFilename, false);
-                  renameToNoExists(logger, activity, currentPosixFile, newPosixFile);
-                }
+      // 3) Keep X most recent .recycled directories (not partials, though)
+      // 4) Rename older .recycled directories to .deleted
+      {
+        final int numRecycle = getNumberRecycleDirectories(retention);
+        String[] list = list(activity, serverRoot);
+        if (list != null && list.length > 0) {
+          Arrays.sort(list);
+          int recycledFoundCount = 0;
+          for (int c = list.length - 1; c >= 0; c--) {
+            String directory = list[c];
+            if (directory.endsWith(RECYCLED_EXTENSION)) {
+              if (recycledFoundCount < numRecycle) {
+                recycledFoundCount++;
+              } else {
+                // Rename to .deleted
+                String newFilename = directory.substring(0, directory.length() - RECYCLED_EXTENSION.length()) + SAFE_DELETE_EXTENSION;
+                final PosixFile currentPosixFile = new PosixFile(serverRoot, directory, false);
+                final PosixFile newPosixFile = new PosixFile(serverRoot, newFilename, false);
+                renameToNoExists(logger, activity, currentPosixFile, newPosixFile);
               }
             }
           }
         }
+      }
 
       // 5) Delete all those that end in .deleted, from oldest to newest
       if (!SAFE_DELETE) {

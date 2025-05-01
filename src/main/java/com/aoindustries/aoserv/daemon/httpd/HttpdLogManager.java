@@ -121,26 +121,26 @@ final class HttpdLogManager {
   ) throws IOException, SQLException {
     // Values used below
     final int logfileUid;
-      {
-        final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
-        final UserServer awstatsUserServer = thisServer.getLinuxServerAccount(User.AWSTATS);
-        // awstats user is required when RPM is installed
-        PackageManager.PackageName awstatsPackageName = osConfig.getAwstatsPackageName();
-        if (
-            awstatsPackageName != null
-                && PackageManager.getInstalledPackage(awstatsPackageName) != null
-                && awstatsUserServer == null
-        ) {
-          throw new SQLException("Unable to find UserServer: " + User.AWSTATS);
-        }
-        if (awstatsUserServer != null) {
-          // Allow access to AWStats user, if it exists
-          logfileUid = awstatsUserServer.getUid().getId();
-        } else {
-          // Allow access to root otherwise
-          logfileUid = PosixFile.ROOT_UID;
-        }
+    {
+      final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
+      final UserServer awstatsUserServer = thisServer.getLinuxServerAccount(User.AWSTATS);
+      // awstats user is required when RPM is installed
+      PackageManager.PackageName awstatsPackageName = osConfig.getAwstatsPackageName();
+      if (
+          awstatsPackageName != null
+              && PackageManager.getInstalledPackage(awstatsPackageName) != null
+              && awstatsUserServer == null
+      ) {
+        throw new SQLException("Unable to find UserServer: " + User.AWSTATS);
       }
+      if (awstatsUserServer != null) {
+        // Allow access to AWStats user, if it exists
+        logfileUid = awstatsUserServer.getUid().getId();
+      } else {
+        // Allow access to root otherwise
+        logfileUid = PosixFile.ROOT_UID;
+      }
+    }
 
     // The log directories that exist but are not used will be removed
     PosixPath logDir = thisServer.getHost().getOperatingSystemVersion().getHttpdSiteLogsDirectory();
@@ -152,19 +152,19 @@ final class HttpdLogManager {
       }
 
       Set<String> logDirectories;
-        {
-          String[] list = logDirPosixFile.list();
-          logDirectories = AoCollections.newHashSet(list.length);
-          for (String dirname : list) {
-            if (
-                !"lost+found".equals(dirname)
-                    && !"aquota.group".equals(dirname)
-                    && !"aquota.user".equals(dirname)
-            ) {
-              logDirectories.add(dirname);
-            }
+      {
+        String[] list = logDirPosixFile.list();
+        logDirectories = AoCollections.newHashSet(list.length);
+        for (String dirname : list) {
+          if (
+              !"lost+found".equals(dirname)
+                  && !"aquota.group".equals(dirname)
+                  && !"aquota.user".equals(dirname)
+          ) {
+            logDirectories.add(dirname);
           }
         }
+      }
 
       for (Site httpdSite : thisServer.getHttpdSites()) {
         int lsgGid = httpdSite.getLinuxServerGroup().getGid().getId();

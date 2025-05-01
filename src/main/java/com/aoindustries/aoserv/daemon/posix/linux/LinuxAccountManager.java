@@ -207,106 +207,106 @@ public final class LinuxAccountManager extends BuilderThread {
             FileChannel fileChannel = FileChannel.open(PWD_LOCK.toPath(), StandardOpenOption.WRITE, StandardOpenOption.CREATE);
             FileLock fileLock = fileChannel.lock();
             ) {
-            // Add any system groups found, updating lsgs
-            {
-              Map<Group.Name, GroupFile.Entry> groupFile;
-              synchronized (GroupFile.groupLock) {
-                groupFile = GroupFile.readGroupFile();
-              }
-              boolean modified = false;
-              for (GroupFile.Entry entry : groupFile.values()) {
-                Group.Name groupName = entry.getGroupName();
-                if (
-                    entry.getGid() < gidMin
-                        || entry.getGid() > gidMax
-                        || groupName.equals(Group.AOADMIN)
-                        // AOServ Schema:
-                        || groupName.equals(Group.ACCOUNTING)
-                        || groupName.equals(Group.BILLING)
-                        || groupName.equals(Group.DISTRIBUTION)
-                        || groupName.equals(Group.INFRASTRUCTURE)
-                        || groupName.equals(Group.MANAGEMENT)
-                        || groupName.equals(Group.MONITORING)
-                        || groupName.equals(Group.RESELLER)
-                        // Amazon EC2 cloud-init
-                        || groupName.equals(Group.ROCKY)
-                ) {
-                  boolean found = false;
-                  for (GroupServer lsg : lsgs) {
-                    if (lsg.getLinuxGroup().getName().equals(groupName)) {
-                      found = true;
-                      break;
-                    }
-                  }
-                  if (!found) {
-                    int gid = entry.getGid();
-                    if (logger.isLoggable(Level.FINE)) {
-                      logger.fine("Adding system group: " + groupName + " #" + gid);
-                    }
-                    thisServer.addSystemGroup(groupName, gid);
-                    modified = true;
+          // Add any system groups found, updating lsgs
+          {
+            Map<Group.Name, GroupFile.Entry> groupFile;
+            synchronized (GroupFile.groupLock) {
+              groupFile = GroupFile.readGroupFile();
+            }
+            boolean modified = false;
+            for (GroupFile.Entry entry : groupFile.values()) {
+              Group.Name groupName = entry.getGroupName();
+              if (
+                  entry.getGid() < gidMin
+                      || entry.getGid() > gidMax
+                      || groupName.equals(Group.AOADMIN)
+                      // AOServ Schema:
+                      || groupName.equals(Group.ACCOUNTING)
+                      || groupName.equals(Group.BILLING)
+                      || groupName.equals(Group.DISTRIBUTION)
+                      || groupName.equals(Group.INFRASTRUCTURE)
+                      || groupName.equals(Group.MANAGEMENT)
+                      || groupName.equals(Group.MONITORING)
+                      || groupName.equals(Group.RESELLER)
+                      // Amazon EC2 cloud-init
+                      || groupName.equals(Group.ROCKY)
+              ) {
+                boolean found = false;
+                for (GroupServer lsg : lsgs) {
+                  if (lsg.getLinuxGroup().getName().equals(groupName)) {
+                    found = true;
+                    break;
                   }
                 }
-              }
-              if (modified) {
-                lsgs = thisServer.getLinuxServerGroups();
-              }
-            }
-            // Add any system users found, updating lsas
-            {
-              Map<User.Name, PasswdFile.Entry> passwdFile;
-              synchronized (PasswdFile.passwdLock) {
-                passwdFile = PasswdFile.readPasswdFile();
-              }
-              boolean modified = false;
-              for (PasswdFile.Entry entry : passwdFile.values()) {
-                User.Name username = entry.getUsername();
-                if (
-                    entry.getUid() < uidMin
-                        || entry.getUid() > uidMax
-                        || username.equals(User.AOADMIN)
-                        // AOServ Schema:
-                        || username.equals(User.ACCOUNTING)
-                        || username.equals(User.BILLING)
-                        || username.equals(User.DISTRIBUTION)
-                        || username.equals(User.INFRASTRUCTURE)
-                        || username.equals(User.MANAGEMENT)
-                        || username.equals(User.MONITORING)
-                        || username.equals(User.RESELLER)
-                        // Amazon EC2 cloud-init
-                        || username.equals(User.ROCKY)
-                ) {
-                  boolean found = false;
-                  for (UserServer lsa : lsas) {
-                    if (lsa.getLinuxAccount().getUsername().getUsername().equals(username)) {
-                      found = true;
-                      break;
-                    }
+                if (!found) {
+                  int gid = entry.getGid();
+                  if (logger.isLoggable(Level.FINE)) {
+                    logger.fine("Adding system group: " + groupName + " #" + gid);
                   }
-                  if (!found) {
-                    int uid = entry.getUid();
-                    if (logger.isLoggable(Level.FINE)) {
-                      logger.fine("Adding system user: " + username + " #" + uid);
-                    }
-                    thisServer.addSystemUser(
-                        username,
-                        uid,
-                        entry.getGid(),
-                        entry.getFullName(),
-                        entry.getOfficeLocation(),
-                        entry.getOfficePhone(),
-                        entry.getHomePhone(),
-                        entry.getHome(),
-                        entry.getShell()
-                    );
-                    modified = true;
-                  }
+                  thisServer.addSystemGroup(groupName, gid);
+                  modified = true;
                 }
               }
-              if (modified) {
-                lsas = thisServer.getLinuxServerAccounts();
+            }
+            if (modified) {
+              lsgs = thisServer.getLinuxServerGroups();
+            }
+          }
+          // Add any system users found, updating lsas
+          {
+            Map<User.Name, PasswdFile.Entry> passwdFile;
+            synchronized (PasswdFile.passwdLock) {
+              passwdFile = PasswdFile.readPasswdFile();
+            }
+            boolean modified = false;
+            for (PasswdFile.Entry entry : passwdFile.values()) {
+              User.Name username = entry.getUsername();
+              if (
+                  entry.getUid() < uidMin
+                      || entry.getUid() > uidMax
+                      || username.equals(User.AOADMIN)
+                      // AOServ Schema:
+                      || username.equals(User.ACCOUNTING)
+                      || username.equals(User.BILLING)
+                      || username.equals(User.DISTRIBUTION)
+                      || username.equals(User.INFRASTRUCTURE)
+                      || username.equals(User.MANAGEMENT)
+                      || username.equals(User.MONITORING)
+                      || username.equals(User.RESELLER)
+                      // Amazon EC2 cloud-init
+                      || username.equals(User.ROCKY)
+              ) {
+                boolean found = false;
+                for (UserServer lsa : lsas) {
+                  if (lsa.getLinuxAccount().getUsername().getUsername().equals(username)) {
+                    found = true;
+                    break;
+                  }
+                }
+                if (!found) {
+                  int uid = entry.getUid();
+                  if (logger.isLoggable(Level.FINE)) {
+                    logger.fine("Adding system user: " + username + " #" + uid);
+                  }
+                  thisServer.addSystemUser(
+                      username,
+                      uid,
+                      entry.getGid(),
+                      entry.getFullName(),
+                      entry.getOfficeLocation(),
+                      entry.getOfficePhone(),
+                      entry.getHomePhone(),
+                      entry.getHome(),
+                      entry.getShell()
+                  );
+                  modified = true;
+                }
               }
             }
+            if (modified) {
+              lsas = thisServer.getLinuxServerAccounts();
+            }
+          }
 
           // Install /usr/bin/ftppasswd and /usr/bin/ftponly if required by any UserServer
           for (UserServer lsa : lsas) {
@@ -334,142 +334,142 @@ public final class LinuxAccountManager extends BuilderThread {
             PackageManager.installPackage(PackageManager.PackageName.AOSERV_PASSWD_SHELL);
           }
 
-            // Build passwd data
-            {
-              int size = lsas.size();
-              usernames     = AoCollections.newLinkedHashSet(size);
-              usernameStrs  = AoCollections.newLinkedHashSet(size);
-              uids          = AoCollections.newLinkedHashSet(size);
-              homeDirs      = AoCollections.newLinkedHashSet(size);
-              passwdEntries = AoCollections.newLinkedHashMap(size);
-              boolean hasRoot = false;
-              for (UserServer lsa : lsas) {
-                User la = lsa.getLinuxAccount();
-                User.Name username = la.getUsername_id();
-                if (!usernames.add(username)) {
-                  throw new SQLException("Duplicate username: " + username);
-                }
-                if (!usernameStrs.add(username.toString())) {
-                  throw new AssertionError();
-                }
-                uids.add(lsa.getUid().getId());
-                PosixPath home = lsa.getHome();
-                homeDirs.add(home.toString());
-                GroupServer primaryGroup = lsa.getPrimaryLinuxServerGroup();
-                if (primaryGroup == null) {
-                  throw new SQLException("Unable to find primary GroupServer for username=" + username + " on " + lsa.getServer());
-                }
-                PosixPath shell = la.getShell().getPath();
-                // TODO: CentOS 5 requires /bin/bash, but CentOS 7 ships with /sbin/nologin.
-                // Unfortunately, in our current schema the shell is set on all servers at once.
-                // This ugly hack allows us to store the new version, and it will be converted
-                // for compatibility with CentOS 5 on-the-fly.
-                if (
-                    osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-                        && username.equals(User.CYRUS)
-                        && shell.equals(Shell.NOLOGIN)
-                ) {
-                  if (logger.isLoggable(Level.INFO)) {
-                    logger.info("Converting " + shell + " to " + Shell.BASH + " for " + username);
-                    shell = Shell.BASH;
-                  }
-                  //} else if (
-                  //  username.equals(User.JENKINS)
-                  //  && home.toString().equals("/home/jenkins")
-                  //) {
-                  //  // TODO: Remove this once JCA's Jenkins moved to newer version on separate virtual server:
-                  //  if (logger.isLoggable(Level.INFO)) {
-                  //    logger.info("Converting " + shell + " to " + Shell.BASH + " for " + username + " to be compatible with previous Jenkins installations in " + home);
-                  //    shell = Shell.BASH;
-                  //  }
-                } else if (osvId != OperatingSystemVersion.ROCKY_9_X86_64
-                    && (username.equals(User.TSS) || username.equals(User.SSHD))) {
-                  logger.info("Converting " + shell + " to " + Shell.NOLOGIN + " for " + username);
-                  shell = Shell.NOLOGIN;
-                }
-                // GECOS names changed in Rocky 9
-                // TODO: Unfortunately, in our current schema the GECOS is set on all servers at once.
-                // This ugly hack allows us to store the new version, and it will be converted
-                // for compatibility with CentOS 7 on-the-fly.
-                User.Gecos name = la.getName();
-                try {
-                  if (osvId != OperatingSystemVersion.ROCKY_9_X86_64 && username.equals(User.TSS)) {
-                    name = User.Gecos.valueOf("Account used by the trousers package to sandbox the tcsd daemon");
-                  } else if (osvId != OperatingSystemVersion.ROCKY_9_X86_64 && username.equals(User.CHRONY)) {
-                    name = null;
-                  } else if (osvId != OperatingSystemVersion.ROCKY_9_X86_64 && username.equals(User.NOBODY)) {
-                    name = User.Gecos.valueOf("Nobody");
-                  }
-                } catch (ValidationException e) {
-                  throw new AssertionError(e);
-                }
-                if (
-                    passwdEntries.put(
-                        username,
-                        new PasswdFile.Entry(
-                            username,
-                            lsa.getUid().getId(),
-                            primaryGroup.getGid().getId(),
-                            name,
-                            la.getOfficeLocation(),
-                            la.getOfficePhone(),
-                            la.getHomePhone(),
-                            home,
-                            shell
-                        )
-                    ) != null
-                ) {
-                  throw new SQLException("Duplicate username: " + username);
-                }
-                if (username.equals(User.ROOT)) {
-                  hasRoot = true;
-                }
+          // Build passwd data
+          {
+            int size = lsas.size();
+            usernames     = AoCollections.newLinkedHashSet(size);
+            usernameStrs  = AoCollections.newLinkedHashSet(size);
+            uids          = AoCollections.newLinkedHashSet(size);
+            homeDirs      = AoCollections.newLinkedHashSet(size);
+            passwdEntries = AoCollections.newLinkedHashMap(size);
+            boolean hasRoot = false;
+            for (UserServer lsa : lsas) {
+              User la = lsa.getLinuxAccount();
+              User.Name username = la.getUsername_id();
+              if (!usernames.add(username)) {
+                throw new SQLException("Duplicate username: " + username);
               }
-              if (!hasRoot) {
-                throw new SQLException(User.ROOT + " user not found");
+              if (!usernameStrs.add(username.toString())) {
+                throw new AssertionError();
+              }
+              uids.add(lsa.getUid().getId());
+              PosixPath home = lsa.getHome();
+              homeDirs.add(home.toString());
+              GroupServer primaryGroup = lsa.getPrimaryLinuxServerGroup();
+              if (primaryGroup == null) {
+                throw new SQLException("Unable to find primary GroupServer for username=" + username + " on " + lsa.getServer());
+              }
+              PosixPath shell = la.getShell().getPath();
+              // TODO: CentOS 5 requires /bin/bash, but CentOS 7 ships with /sbin/nologin.
+              // Unfortunately, in our current schema the shell is set on all servers at once.
+              // This ugly hack allows us to store the new version, and it will be converted
+              // for compatibility with CentOS 5 on-the-fly.
+              if (
+                  osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                      && username.equals(User.CYRUS)
+                      && shell.equals(Shell.NOLOGIN)
+              ) {
+                if (logger.isLoggable(Level.INFO)) {
+                  logger.info("Converting " + shell + " to " + Shell.BASH + " for " + username);
+                  shell = Shell.BASH;
+                }
+                //} else if (
+                //  username.equals(User.JENKINS)
+                //  && home.toString().equals("/home/jenkins")
+                //) {
+                //  // TODO: Remove this once JCA's Jenkins moved to newer version on separate virtual server:
+                //  if (logger.isLoggable(Level.INFO)) {
+                //    logger.info("Converting " + shell + " to " + Shell.BASH + " for " + username + " to be compatible with previous Jenkins installations in " + home);
+                //    shell = Shell.BASH;
+                //  }
+              } else if (osvId != OperatingSystemVersion.ROCKY_9_X86_64
+                  && (username.equals(User.TSS) || username.equals(User.SSHD))) {
+                logger.info("Converting " + shell + " to " + Shell.NOLOGIN + " for " + username);
+                shell = Shell.NOLOGIN;
+              }
+              // GECOS names changed in Rocky 9
+              // TODO: Unfortunately, in our current schema the GECOS is set on all servers at once.
+              // This ugly hack allows us to store the new version, and it will be converted
+              // for compatibility with CentOS 7 on-the-fly.
+              User.Gecos name = la.getName();
+              try {
+                if (osvId != OperatingSystemVersion.ROCKY_9_X86_64 && username.equals(User.TSS)) {
+                  name = User.Gecos.valueOf("Account used by the trousers package to sandbox the tcsd daemon");
+                } else if (osvId != OperatingSystemVersion.ROCKY_9_X86_64 && username.equals(User.CHRONY)) {
+                  name = null;
+                } else if (osvId != OperatingSystemVersion.ROCKY_9_X86_64 && username.equals(User.NOBODY)) {
+                  name = User.Gecos.valueOf("Nobody");
+                }
+              } catch (ValidationException e) {
+                throw new AssertionError(e);
+              }
+              if (
+                  passwdEntries.put(
+                      username,
+                      new PasswdFile.Entry(
+                          username,
+                          lsa.getUid().getId(),
+                          primaryGroup.getGid().getId(),
+                          name,
+                          la.getOfficeLocation(),
+                          la.getOfficePhone(),
+                          la.getHomePhone(),
+                          home,
+                          shell
+                      )
+                  ) != null
+              ) {
+                throw new SQLException("Duplicate username: " + username);
+              }
+              if (username.equals(User.ROOT)) {
+                hasRoot = true;
               }
             }
+            if (!hasRoot) {
+              throw new SQLException(User.ROOT + " user not found");
+            }
+          }
 
-            // Build group data
-            {
-              int size = lsgs.size();
-              groups = AoCollections.newLinkedHashMap(size);
-              groupEntries = AoCollections.newLinkedHashMap(size);
-              boolean hasRoot = false;
-              for (GroupServer lsg : lsgs) {
-                Group.Name groupName = lsg.getLinuxGroup().getName();
-                Set<User.Name> groupMembers = new LinkedHashSet<>();
-                {
-                  for (UserServer altAccount : lsg.getAlternateLinuxServerAccounts()) {
-                    User.Name userId = altAccount.getLinuxAccount_username_id();
-                    if (!groupMembers.add(userId)) {
-                      throw new SQLException("Duplicate group member: " + userId);
-                    }
+          // Build group data
+          {
+            int size = lsgs.size();
+            groups = AoCollections.newLinkedHashMap(size);
+            groupEntries = AoCollections.newLinkedHashMap(size);
+            boolean hasRoot = false;
+            for (GroupServer lsg : lsgs) {
+              Group.Name groupName = lsg.getLinuxGroup().getName();
+              Set<User.Name> groupMembers = new LinkedHashSet<>();
+              {
+                for (UserServer altAccount : lsg.getAlternateLinuxServerAccounts()) {
+                  User.Name userId = altAccount.getLinuxAccount_username_id();
+                  if (!groupMembers.add(userId)) {
+                    throw new SQLException("Duplicate group member: " + userId);
                   }
                 }
-                if (groups.put(groupName, groupMembers) != null) {
-                  throw new SQLException("Duplicate group name: " + groupName);
-                }
-                if (
-                    groupEntries.put(
-                        groupName,
-                        new GroupFile.Entry(
-                            groupName,
-                            lsg.getGid().getId(),
-                            groupMembers
-                        )
-                    ) != null
-                ) {
-                  throw new SQLException("Duplicate group name: " + groupName);
-                }
-                if (groupName.equals(Group.ROOT)) {
-                  hasRoot = true;
-                }
               }
-              if (!hasRoot) {
-                throw new SQLException(Group.ROOT + " group not found");
+              if (groups.put(groupName, groupMembers) != null) {
+                throw new SQLException("Duplicate group name: " + groupName);
+              }
+              if (
+                  groupEntries.put(
+                      groupName,
+                      new GroupFile.Entry(
+                          groupName,
+                          lsg.getGid().getId(),
+                          groupMembers
+                      )
+                  ) != null
+              ) {
+                throw new SQLException("Duplicate group name: " + groupName);
+              }
+              if (groupName.equals(Group.ROOT)) {
+                hasRoot = true;
               }
             }
+            if (!hasRoot) {
+              throw new SQLException(Group.ROOT + " group not found");
+            }
+          }
 
           synchronized (PasswdFile.passwdLock) {
             synchronized (ShadowFile.shadowLock) {
@@ -521,17 +521,17 @@ public final class LinuxAccountManager extends BuilderThread {
             }
             // Look for home directory being moved
             PosixFile oldHome;
-              {
-                PosixPath defaultHome = UserServer.getDefaultHomeDirectory(username);
-                PosixPath hashedHome = UserServer.getHashedHomeDirectory(username);
-                if (homePath.equals(defaultHome)) {
-                  oldHome = new PosixFile(hashedHome.toString());
-                } else if (homePath.equals(hashedHome)) {
-                  oldHome = new PosixFile(defaultHome.toString());
-                } else {
-                  oldHome = null;
-                }
+            {
+              PosixPath defaultHome = UserServer.getDefaultHomeDirectory(username);
+              PosixPath hashedHome = UserServer.getHashedHomeDirectory(username);
+              if (homePath.equals(defaultHome)) {
+                oldHome = new PosixFile(hashedHome.toString());
+              } else if (homePath.equals(hashedHome)) {
+                oldHome = new PosixFile(defaultHome.toString());
+              } else {
+                oldHome = null;
               }
+            }
             if (
                 oldHome != null
                     // Don't move a home directory still being used
@@ -568,19 +568,19 @@ public final class LinuxAccountManager extends BuilderThread {
                   || homeStr.startsWith("/home/")
           ) {
             boolean chownHome;
-              {
-                Stat homeDirStat = homeDir.getStat();
-                chownHome = !isWwwAndUser
-                    && (
-                    homeDirStat.getUid() == PosixFile.ROOT_UID
-                        || homeDirStat.getGid() == PosixFile.ROOT_GID
+            {
+              Stat homeDirStat = homeDir.getStat();
+              chownHome = !isWwwAndUser
+                  && (
+                  homeDirStat.getUid() == PosixFile.ROOT_UID
+                      || homeDirStat.getGid() == PosixFile.ROOT_GID
                 )
-                    // Do not set permissions for encrypted home directories
-                    && !(new PosixFile(homeStr + ".aes256.img").getStat().exists());
-                if (chownHome) {
-                  copySkel = true;
-                }
+                  // Do not set permissions for encrypted home directories
+                  && !(new PosixFile(homeStr + ".aes256.img").getStat().exists());
+              if (chownHome) {
+                copySkel = true;
               }
+            }
             // Copy the /etc/skel directory
             if (
                 copySkel

@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2000-2013, 2014, 2015, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024  AO Industries, Inc.
+ * Copyright (C) 2000-2013, 2014, 2015, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -146,92 +146,92 @@ public final class AoservDaemonServerThread extends Thread {
 
       final AoservDaemonProtocol.Version protocolVersion;
       final Key daemonKey;
-        {
-          // Read the most preferred version
-          String preferredVersion;
-          try {
-            preferredVersion = in.readUTF();
-          } catch (SSLHandshakeException err) {
-            String message = err.getMessage();
-            Level level;
-            if (
-                // Do not routinely log messages that are normal due to monitoring simply connecting only
-                !(
-                    // Java 11
-                    "Remote host terminated the handshake".equals(message)
-                        // Java 8
-                        || "Remote host closed connection during handshake".equals(message)
-                )
-            ) {
-              level = Level.SEVERE;
-            } else {
-              level = Level.FINE;
-            }
-            logger.log(level, null, err);
-            return;
-          }
-          // Then connector key
+      {
+        // Read the most preferred version
+        String preferredVersion;
+        try {
+          preferredVersion = in.readUTF();
+        } catch (SSLHandshakeException err) {
+          String message = err.getMessage();
+          Level level;
           if (
-              preferredVersion.equals(AoservDaemonProtocol.Version.VERSION_1_77.getVersion())
-                  || preferredVersion.equals(AoservDaemonProtocol.Version.VERSION_1_80_0.getVersion())
-                  || preferredVersion.equals(AoservDaemonProtocol.Version.VERSION_1_80_1.getVersion())
-                  || preferredVersion.equals(AoservDaemonProtocol.Version.VERSION_1_81_10.getVersion())
-                  || preferredVersion.equals(AoservDaemonProtocol.Version.VERSION_1_83_0.getVersion())
-                  || preferredVersion.equals(AoservDaemonProtocol.Version.VERSION_1_84_11.getVersion())
+              // Do not routinely log messages that are normal due to monitoring simply connecting only
+              !(
+                  // Java 11
+                  "Remote host terminated the handshake".equals(message)
+                      // Java 8
+                      || "Remote host closed connection during handshake".equals(message)
+              )
           ) {
-            // Clients 1.84.11 and before send String
-            String str = in.readNullUTF();
-            daemonKey = (str == null) ? null : new Key(Base64.getDecoder().decode(str));
+            level = Level.SEVERE;
           } else {
-            // Clients 1.84.13 and above send byte[]
-            int len = in.readUnsignedShort();
-            if (len == 0) {
-              daemonKey = null;
-            } else {
-              byte[] bytes = new byte[len];
-              in.readFully(bytes);
-              daemonKey = new Key(bytes);
-            }
+            level = Level.FINE;
           }
-          // Now additional versions.
-          String[] versions;
-          if (preferredVersion.equals(AoservDaemonProtocol.Version.VERSION_1_77.getVersion())) {
-            // Client 1.77 only sends the single preferred version
-            versions = new String[]{preferredVersion};
-          } else {
-            versions = new String[1 + in.readCompressedInt()];
-            versions[0] = preferredVersion;
-            for (int i = 1; i < versions.length; i++) {
-              versions[i] = in.readUTF();
-            }
-          }
-          // Select the first supported version
-          AoservDaemonProtocol.Version selectedVersion = null;
-          SELECT_VERSION:
-          for (String version : versions) {
-            for (AoservDaemonProtocol.Version supportedVersion : SUPPORTED_VERSIONS) {
-              if (supportedVersion.getVersion().equals(version)) {
-                selectedVersion = supportedVersion;
-                break SELECT_VERSION;
-              }
-            }
-          }
-          if (selectedVersion == null) {
-            out.writeBoolean(false);
-            out.writeUTF(SUPPORTED_VERSIONS[0].getVersion());
-            if (!preferredVersion.equals(AoservDaemonProtocol.Version.VERSION_1_77.getVersion())) {
-              // Client 1.77 only expects the single preferred version
-              out.writeCompressedInt(SUPPORTED_VERSIONS.length - 1);
-              for (int i = 1; i < SUPPORTED_VERSIONS.length; i++) {
-                out.writeUTF(SUPPORTED_VERSIONS[i].getVersion());
-              }
-            }
-            out.flush();
-            return;
-          }
-          out.writeBoolean(true);
-          protocolVersion = selectedVersion;
+          logger.log(level, null, err);
+          return;
         }
+        // Then connector key
+        if (
+            preferredVersion.equals(AoservDaemonProtocol.Version.VERSION_1_77.getVersion())
+                || preferredVersion.equals(AoservDaemonProtocol.Version.VERSION_1_80_0.getVersion())
+                || preferredVersion.equals(AoservDaemonProtocol.Version.VERSION_1_80_1.getVersion())
+                || preferredVersion.equals(AoservDaemonProtocol.Version.VERSION_1_81_10.getVersion())
+                || preferredVersion.equals(AoservDaemonProtocol.Version.VERSION_1_83_0.getVersion())
+                || preferredVersion.equals(AoservDaemonProtocol.Version.VERSION_1_84_11.getVersion())
+        ) {
+          // Clients 1.84.11 and before send String
+          String str = in.readNullUTF();
+          daemonKey = (str == null) ? null : new Key(Base64.getDecoder().decode(str));
+        } else {
+          // Clients 1.84.13 and above send byte[]
+          int len = in.readUnsignedShort();
+          if (len == 0) {
+            daemonKey = null;
+          } else {
+            byte[] bytes = new byte[len];
+            in.readFully(bytes);
+            daemonKey = new Key(bytes);
+          }
+        }
+        // Now additional versions.
+        String[] versions;
+        if (preferredVersion.equals(AoservDaemonProtocol.Version.VERSION_1_77.getVersion())) {
+          // Client 1.77 only sends the single preferred version
+          versions = new String[]{preferredVersion};
+        } else {
+          versions = new String[1 + in.readCompressedInt()];
+          versions[0] = preferredVersion;
+          for (int i = 1; i < versions.length; i++) {
+            versions[i] = in.readUTF();
+          }
+        }
+        // Select the first supported version
+        AoservDaemonProtocol.Version selectedVersion = null;
+        SELECT_VERSION:
+        for (String version : versions) {
+          for (AoservDaemonProtocol.Version supportedVersion : SUPPORTED_VERSIONS) {
+            if (supportedVersion.getVersion().equals(version)) {
+              selectedVersion = supportedVersion;
+              break SELECT_VERSION;
+            }
+          }
+        }
+        if (selectedVersion == null) {
+          out.writeBoolean(false);
+          out.writeUTF(SUPPORTED_VERSIONS[0].getVersion());
+          if (!preferredVersion.equals(AoservDaemonProtocol.Version.VERSION_1_77.getVersion())) {
+            // Client 1.77 only expects the single preferred version
+            out.writeCompressedInt(SUPPORTED_VERSIONS.length - 1);
+            for (int i = 1; i < SUPPORTED_VERSIONS.length; i++) {
+              out.writeUTF(SUPPORTED_VERSIONS[i].getVersion());
+            }
+          }
+          out.flush();
+          return;
+        }
+        out.writeBoolean(true);
+        protocolVersion = selectedVersion;
+      }
       if (daemonKey != null) {
         // Must come from one of the hosts listed in the database
         String hostAddress = socket.getInetAddress().getHostAddress();
@@ -654,17 +654,17 @@ public final class AoservDaemonServerThread extends Thread {
                 }
                 com.aoapps.net.InetAddress ipAddress = com.aoapps.net.InetAddress.valueOf(in.readUTF());
                 Port port;
-                  {
-                    int portNum = in.readCompressedInt();
-                    Protocol protocol;
-                    if (protocolVersion.compareTo(AoservDaemonProtocol.Version.VERSION_1_80_0) < 0) {
-                      // Old protocol transferred lowercase
-                      protocol = Protocol.valueOf(in.readUTF().toUpperCase(Locale.ROOT));
-                    } else {
-                      protocol = in.readEnum(Protocol.class);
-                    }
-                    port = Port.valueOf(portNum, protocol);
+                {
+                  int portNum = in.readCompressedInt();
+                  Protocol protocol;
+                  if (protocolVersion.compareTo(AoservDaemonProtocol.Version.VERSION_1_80_0) < 0) {
+                    // Old protocol transferred lowercase
+                    protocol = Protocol.valueOf(in.readUTF().toUpperCase(Locale.ROOT));
+                  } else {
+                    protocol = in.readEnum(Protocol.class);
                   }
+                  port = Port.valueOf(portNum, protocol);
+                }
                 String appProtocol = in.readUTF();
                 String monitoringParameters = in.readUTF();
                 PortMonitor portMonitor = PortMonitor.getPortMonitor(
@@ -934,10 +934,10 @@ public final class AoservDaemonServerThread extends Thread {
                   System.out.println("DEBUG: AoservDaemonServerThread performing GET_MYSQL_SLAVE_STATUS, Thread=" + toString());
                 }
                 PosixPath failoverRoot;
-                  {
-                    String failoverRootStr = in.readUTF();
-                    failoverRoot = failoverRootStr.isEmpty() ? null : PosixPath.valueOf(failoverRootStr);
-                  }
+                {
+                  String failoverRootStr = in.readUTF();
+                  failoverRoot = failoverRootStr.isEmpty() ? null : PosixPath.valueOf(failoverRootStr);
+                }
                 int nestedOperatingSystemVersion = in.readCompressedInt();
                 com.aoindustries.aoserv.client.mysql.Server.Name serverName;
                 if (protocolVersion.compareTo(AoservDaemonProtocol.Version.VERSION_1_84_11) < 0) {
@@ -961,10 +961,10 @@ public final class AoservDaemonServerThread extends Thread {
                   System.out.println("DEBUG: AoservDaemonServerThread performing GET_MYSQL_TABLE_STATUS, Thread=" + toString());
                 }
                 PosixPath failoverRoot;
-                  {
-                    String failoverRootStr = in.readUTF();
-                    failoverRoot = failoverRootStr.isEmpty() ? null : PosixPath.valueOf(failoverRootStr);
-                  }
+                {
+                  String failoverRootStr = in.readUTF();
+                  failoverRoot = failoverRootStr.isEmpty() ? null : PosixPath.valueOf(failoverRootStr);
+                }
                 int nestedOperatingSystemVersion = in.readCompressedInt();
                 com.aoindustries.aoserv.client.mysql.Server.Name serverName;
                 if (protocolVersion.compareTo(AoservDaemonProtocol.Version.VERSION_1_84_11) < 0) {
@@ -989,10 +989,10 @@ public final class AoservDaemonServerThread extends Thread {
                   System.out.println("DEBUG: AoservDaemonServerThread performing CHECK_MYSQL_TABLES, Thread=" + toString());
                 }
                 PosixPath failoverRoot;
-                  {
-                    String failoverRootStr = in.readUTF();
-                    failoverRoot = failoverRootStr.isEmpty() ? null : PosixPath.valueOf(failoverRootStr);
-                  }
+                {
+                  String failoverRootStr = in.readUTF();
+                  failoverRoot = failoverRootStr.isEmpty() ? null : PosixPath.valueOf(failoverRootStr);
+                }
                 final int nestedOperatingSystemVersion = in.readCompressedInt();
                 com.aoindustries.aoserv.client.mysql.Server.Name serverName;
                 if (protocolVersion.compareTo(AoservDaemonProtocol.Version.VERSION_1_84_11) < 0) {

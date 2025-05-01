@@ -105,20 +105,20 @@ public final class AWStatsManager extends BuilderThread {
           final List<File> deleteFileList = new ArrayList<>();
           // Get the list of all files and directories under /etc/awstats
           Set<String> existingConfigFiles = new HashSet<>();
-            {
-              String[] list = configDirectory.list();
-              if (list != null) {
-                existingConfigFiles.addAll(Arrays.asList(list));
-              }
+          {
+            String[] list = configDirectory.list();
+            if (list != null) {
+              existingConfigFiles.addAll(Arrays.asList(list));
             }
+          }
           // Get the list of all files and directories under /var/opt/awstats[-6]/hosts
           Set<String> existingHostDirectories = new HashSet<>();
-            {
-              String[] list = hostsDirectory.list();
-              if (list != null) {
-                existingHostDirectories.addAll(Arrays.asList(list));
-              }
+          {
+            String[] list = hostsDirectory.list();
+            if (list != null) {
+              existingHostDirectories.addAll(Arrays.asList(list));
             }
+          }
           final List<Site> sites = thisServer.getHttpdSites();
           if (!sites.isEmpty()) {
             // Install awstats[_6] package when first needed
@@ -127,21 +127,21 @@ public final class AWStatsManager extends BuilderThread {
             }
             // User and group required
             final int awstatsUid;
-              {
-                UserServer awstatsUserServer = thisServer.getLinuxServerAccount(User.AWSTATS);
-                if (awstatsUserServer == null) {
-                  throw new SQLException("Unable to find UserServer: " + User.AWSTATS);
-                }
-                awstatsUid = awstatsUserServer.getUid().getId();
+            {
+              UserServer awstatsUserServer = thisServer.getLinuxServerAccount(User.AWSTATS);
+              if (awstatsUserServer == null) {
+                throw new SQLException("Unable to find UserServer: " + User.AWSTATS);
               }
+              awstatsUid = awstatsUserServer.getUid().getId();
+            }
             final int awstatsGid;
-              {
-                GroupServer awstatsGroupServer = thisServer.getLinuxServerGroup(Group.AWSTATS);
-                if (awstatsGroupServer == null) {
-                  throw new SQLException("Unable to find GroupServer: " + Group.AWSTATS);
-                }
-                awstatsGid = awstatsGroupServer.getGid().getId();
+            {
+              GroupServer awstatsGroupServer = thisServer.getLinuxServerGroup(Group.AWSTATS);
+              if (awstatsGroupServer == null) {
+                throw new SQLException("Unable to find GroupServer: " + Group.AWSTATS);
               }
+              awstatsGid = awstatsGroupServer.getGid().getId();
+            }
             // Some more values used within the loop
             final File awstatsVarDirectory = new File(osConfig.getAwstatsVarDirectory().toString());
             final File binDirectory        = new File(osConfig.getAwstatsBinDirectory().toString());

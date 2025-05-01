@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2007-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023  AO Industries, Inc.
+ * Copyright (C) 2007-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -230,44 +230,44 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
     DaemonFileUtils.mkdir(siteDir + "/common/lib", 0775, uid, gid);
     DaemonFileUtils.lnAll("../../" + optSlash + "apache-tomcat-5.5/common/lib/", siteDir + "/common/lib/", uid, gid);
 
-      //if (postgresServerMinorVersion != null) {
-      //  String postgresPath = osConfig.getPostgresPath(postgresServerMinorVersion);
-      //  if (postgresPath != null) {
-      //    FileUtils.ln("../../../.."+postgresPath+"/share/java/postgresql.jar", siteDir+"/common/lib/postgresql.jar", uid, gid);
-      //  }
-      //}
-      //String mysqlConnectorPath = osConfig.getMySQLConnectorJavaJarPath();
-      //if (mysqlConnectorPath != null) {
-      //  String filename = new PosixFile(mysqlConnectorPath).getFile().getName();
-      //  FileUtils.ln("../../../.."+mysqlConnectorPath, siteDir+"/common/lib/"+filename, uid, gid);
-      //}
+    //if (postgresServerMinorVersion != null) {
+    //  String postgresPath = osConfig.getPostgresPath(postgresServerMinorVersion);
+    //  if (postgresPath != null) {
+    //    FileUtils.ln("../../../.."+postgresPath+"/share/java/postgresql.jar", siteDir+"/common/lib/postgresql.jar", uid, gid);
+    //  }
+    //}
+    //String mysqlConnectorPath = osConfig.getMySQLConnectorJavaJarPath();
+    //if (mysqlConnectorPath != null) {
+    //  String filename = new PosixFile(mysqlConnectorPath).getFile().getName();
+    //  FileUtils.ln("../../../.."+mysqlConnectorPath, siteDir+"/common/lib/"+filename, uid, gid);
+    //}
 
-      /*
-       * Write the conf/catalina.policy file
-       */
-      {
-        PosixFile cp = new PosixFile(siteDir + "/conf/catalina.policy");
-        new PosixFile("/opt/apache-tomcat-5.5/conf/catalina.policy").copyTo(cp, false);
-        cp.chown(uid, gid).setMode(0660);
-      }
+    /*
+     * Write the conf/catalina.policy file
+     */
+    {
+      PosixFile cp = new PosixFile(siteDir + "/conf/catalina.policy");
+      new PosixFile("/opt/apache-tomcat-5.5/conf/catalina.policy").copyTo(cp, false);
+      cp.chown(uid, gid).setMode(0660);
+    }
 
-      {
-        PosixFile cp = new PosixFile(siteDir + "/conf/catalina.properties");
-        new PosixFile("/opt/apache-tomcat-5.5/conf/catalina.properties").copyTo(cp, false);
-        cp.chown(uid, gid).setMode(0660);
-      }
+    {
+      PosixFile cp = new PosixFile(siteDir + "/conf/catalina.properties");
+      new PosixFile("/opt/apache-tomcat-5.5/conf/catalina.properties").copyTo(cp, false);
+      cp.chown(uid, gid).setMode(0660);
+    }
 
-      {
-        PosixFile cp = new PosixFile(siteDir + "/conf/context.xml");
-        new PosixFile("/opt/apache-tomcat-5.5/conf/context.xml").copyTo(cp, false);
-        cp.chown(uid, gid).setMode(0660);
-      }
+    {
+      PosixFile cp = new PosixFile(siteDir + "/conf/context.xml");
+      new PosixFile("/opt/apache-tomcat-5.5/conf/context.xml").copyTo(cp, false);
+      cp.chown(uid, gid).setMode(0660);
+    }
 
-      {
-        PosixFile cp = new PosixFile(siteDir + "/conf/logging.properties");
-        new PosixFile("/opt/apache-tomcat-5.5/conf/logging.properties").copyTo(cp, false);
-        cp.chown(uid, gid).setMode(0660);
-      }
+    {
+      PosixFile cp = new PosixFile(siteDir + "/conf/logging.properties");
+      new PosixFile("/opt/apache-tomcat-5.5/conf/logging.properties").copyTo(cp, false);
+      cp.chown(uid, gid).setMode(0660);
+    }
 
     /*
      * Create the tomcat-users.xml file

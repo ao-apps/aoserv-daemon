@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2018, 2019, 2020, 2021, 2022, 2023, 2024  AO Industries, Inc.
+ * Copyright (C) 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -86,26 +86,26 @@ abstract class VersionedTomcatStdSiteManager<T extends VersionedTomcatCommon> ex
       installFile.install(optSlash, apacheTomcatDir, siteDirectory, uid, gid, backupSuffix);
     }
 
-      // daemon/
-      {
-        // TODO: Is this link updated elsewhere, thus this not needed here?
-        PosixFile bin = new PosixFile(siteDirectory, "bin", false);
-        PosixFile tomcat = new PosixFile(bin, "tomcat", false);
-        PosixFile daemon = new PosixFile(siteDirectory, "daemon", false);
-        if (
-            !httpdSite.isDisabled()
-                && (
-                !httpdSite.isManual()
-                    // Script may not exist while in manual mode
-                    || tomcat.getStat().exists()
-            )
-        ) {
-          DaemonFileUtils.ln(
-              "../bin/tomcat",
-              new PosixFile(daemon, "tomcat", false), uid, gid
-          );
-        }
+    // daemon/
+    {
+      // TODO: Is this link updated elsewhere, thus this not needed here?
+      PosixFile bin = new PosixFile(siteDirectory, "bin", false);
+      PosixFile tomcat = new PosixFile(bin, "tomcat", false);
+      PosixFile daemon = new PosixFile(siteDirectory, "daemon", false);
+      if (
+          !httpdSite.isDisabled()
+              && (
+              !httpdSite.isManual()
+                  // Script may not exist while in manual mode
+                  || tomcat.getStat().exists()
+          )
+      ) {
+        DaemonFileUtils.ln(
+            "../bin/tomcat",
+            new PosixFile(daemon, "tomcat", false), uid, gid
+        );
       }
+    }
   }
 
   @Override
@@ -117,17 +117,17 @@ abstract class VersionedTomcatStdSiteManager<T extends VersionedTomcatCommon> ex
     ByteArrayOutputStream bout = new ByteArrayOutputStream();
     try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
       Worker hw;
-        {
-          List<Worker> hws = tomcatSite.getHttpdWorkers();
-          if (hws.size() != 1) {
-            throw new SQLException("Expected to only find one Worker for PrivateTomcatSite #" + httpdSite.getPkey() + ", found " + hws.size());
-          }
-          hw = hws.get(0);
-          String hwProtocol = hw.getHttpdJkProtocol(conn).getProtocol(conn).getProtocol();
-          if (!hwProtocol.equals(JkProtocol.AJP13)) {
-            throw new SQLException("Worker #" + hw.getPkey() + " for PrivateTomcatSite #" + httpdSite.getPkey() + " must be AJP13 but it is " + hwProtocol);
-          }
+      {
+        List<Worker> hws = tomcatSite.getHttpdWorkers();
+        if (hws.size() != 1) {
+          throw new SQLException("Expected to only find one Worker for PrivateTomcatSite #" + httpdSite.getPkey() + ", found " + hws.size());
         }
+        hw = hws.get(0);
+        String hwProtocol = hw.getHttpdJkProtocol(conn).getProtocol(conn).getProtocol();
+        if (!hwProtocol.equals(JkProtocol.AJP13)) {
+          throw new SQLException("Worker #" + hw.getPkey() + " for PrivateTomcatSite #" + httpdSite.getPkey() + " must be AJP13 but it is " + hwProtocol);
+        }
+      }
       Bind shutdownPort = tomcatStdSite.getTomcat4ShutdownPort();
       if (shutdownPort == null) {
         throw new SQLException("Unable to find shutdown port for PrivateTomcatSite=" + tomcatStdSite);

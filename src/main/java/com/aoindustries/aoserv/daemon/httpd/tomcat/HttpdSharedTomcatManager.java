@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
+ * Copyright (C) 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -137,13 +137,13 @@ public abstract class HttpdSharedTomcatManager<T extends TomcatCommon> implement
       // The www group directories that exist but are not used will be removed
       PosixFile wwwgroupDirectory = new PosixFile(osConfig.getHttpdSharedTomcatsDirectory().toString());
       Set<String> wwwgroupRemoveList = new HashSet<>();
-        {
-          String[] list = wwwgroupDirectory.list();
-          if (list != null) {
-            wwwgroupRemoveList.addAll(Arrays.asList(list));
-            wwwgroupRemoveList.removeAll(keepWwwgroupDirs);
-          }
+      {
+        String[] list = wwwgroupDirectory.list();
+        if (list != null) {
+          wwwgroupRemoveList.addAll(Arrays.asList(list));
+          wwwgroupRemoveList.removeAll(keepWwwgroupDirs);
         }
+      }
 
       // Iterate through each shared Tomcat
       for (SharedTomcat sharedTomcat : thisServer.getHttpdSharedTomcats()) {

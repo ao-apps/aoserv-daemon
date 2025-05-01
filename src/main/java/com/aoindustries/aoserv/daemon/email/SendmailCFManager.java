@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2003-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
+ * Copyright (C) 2003-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -232,56 +232,56 @@ public final class SendmailCFManager extends BuilderThread {
     String serverCert;
     String serverKey;
     String cacert;
-      {
-        if (sendmailServer == null) {
-          serverCert = "/etc/ssl/sendmail/MYcert.pem";
-          serverKey = "/etc/ssl/sendmail/MYkey.pem";
-          cacert = "/etc/ssl/sendmail/CAcert.pem";
-        } else {
-          Certificate certificate = sendmailServer.getServerCertificate();
-          if (certificate.getCertbotName() != null) {
-            throw new SQLException("Certbot not supported on CentOS 5");
-          }
-          serverCert = certificate.getCertFile().toString();
-          serverKey = certificate.getKeyFile().toString();
-          cacert = Objects.toString(certificate.getChainFile(), null);
-          if (cacert == null) {
-            // Use operating system default
-            cacert = ImapManager.DEFAULT_CA_FILE;
-          }
+    {
+      if (sendmailServer == null) {
+        serverCert = "/etc/ssl/sendmail/MYcert.pem";
+        serverKey = "/etc/ssl/sendmail/MYkey.pem";
+        cacert = "/etc/ssl/sendmail/CAcert.pem";
+      } else {
+        Certificate certificate = sendmailServer.getServerCertificate();
+        if (certificate.getCertbotName() != null) {
+          throw new SQLException("Certbot not supported on CentOS 5");
+        }
+        serverCert = certificate.getCertFile().toString();
+        serverKey = certificate.getKeyFile().toString();
+        cacert = Objects.toString(certificate.getChainFile(), null);
+        if (cacert == null) {
+          // Use operating system default
+          cacert = ImapManager.DEFAULT_CA_FILE;
         }
       }
+    }
     String cacertPath;
-      {
-        int slashPos = cacert.lastIndexOf('/');
-        if (slashPos == -1) {
-          throw new SQLException("Unable to find slash (/) in cacert: " + cacert);
-        }
-        cacertPath = cacert.substring(0, slashPos);
-        if (cacertPath.isEmpty()) {
-          throw new SQLException("cacertPath is empty");
-        }
+    {
+      int slashPos = cacert.lastIndexOf('/');
+      if (slashPos == -1) {
+        throw new SQLException("Unable to find slash (/) in cacert: " + cacert);
       }
+      cacertPath = cacert.substring(0, slashPos);
+      if (cacertPath.isEmpty()) {
+        throw new SQLException("cacertPath is empty");
+      }
+    }
     out.print("define(`confCACERT_PATH', `").print(cacertPath).print("')dnl\n"
         + "define(`confCACERT', `").print(cacert).print("')dnl\n"
         + "define(`confSERVER_CERT', `").print(serverCert).print("')dnl\n"
         + "define(`confSERVER_KEY', `").print(serverKey).print("')dnl\n");
     String clientCert;
     String clientKey;
-      {
-        if (sendmailServer == null) {
-          clientCert = "/etc/ssl/sendmail/MYcert.pem";
-          clientKey = "/etc/ssl/sendmail/MYkey.pem";
-        } else {
-          Certificate certificate = sendmailServer.getClientCertificate();
-          if (certificate.getCertbotName() != null) {
-            throw new SQLException("Certbot not supported on CentOS 5");
-          }
-          String certbotName = certificate.getCertbotName();
-          clientCert = certificate.getCertFile().toString();
-          clientKey = certificate.getKeyFile().toString();
+    {
+      if (sendmailServer == null) {
+        clientCert = "/etc/ssl/sendmail/MYcert.pem";
+        clientKey = "/etc/ssl/sendmail/MYkey.pem";
+      } else {
+        Certificate certificate = sendmailServer.getClientCertificate();
+        if (certificate.getCertbotName() != null) {
+          throw new SQLException("Certbot not supported on CentOS 5");
         }
+        String certbotName = certificate.getCertbotName();
+        clientCert = certificate.getCertFile().toString();
+        clientKey = certificate.getKeyFile().toString();
       }
+    }
 
     out.print("define(`confCLIENT_CERT', `").print(clientCert).print("')dnl\n"
         + "define(`confCLIENT_KEY', `").print(clientKey).print("')dnl\n"
@@ -628,68 +628,68 @@ public final class SendmailCFManager extends BuilderThread {
     String serverCert;
     String serverKey;
     String cacert;
-      {
-        if (sendmailServer == null) {
-          serverCert = "/etc/pki/sendmail/sendmail.pem";
-          serverKey = "/etc/pki/sendmail/sendmail.pem";
-          cacert = ImapManager.DEFAULT_CA_FILE;
+    {
+      if (sendmailServer == null) {
+        serverCert = "/etc/pki/sendmail/sendmail.pem";
+        serverKey = "/etc/pki/sendmail/sendmail.pem";
+        cacert = ImapManager.DEFAULT_CA_FILE;
+      } else {
+        Certificate certificate = sendmailServer.getServerCertificate();
+        String certbotName = certificate.getCertbotName();
+        if (certbotName != null) {
+          PosixFile dir = new PosixFile(CERTIFICATE_COPY_DIRECTORY, certbotName, true);
+          serverCert = new PosixFile(dir, ImapManager.CERTIFICATE_COPY_CERT,  true).getPath();
+          serverKey  = new PosixFile(dir, ImapManager.CERTIFICATE_COPY_KEY,   true).getPath();
+          cacert     = new PosixFile(dir, ImapManager.CERTIFICATE_COPY_CHAIN, true).getPath();
         } else {
-          Certificate certificate = sendmailServer.getServerCertificate();
-          String certbotName = certificate.getCertbotName();
-          if (certbotName != null) {
-            PosixFile dir = new PosixFile(CERTIFICATE_COPY_DIRECTORY, certbotName, true);
-            serverCert = new PosixFile(dir, ImapManager.CERTIFICATE_COPY_CERT,  true).getPath();
-            serverKey  = new PosixFile(dir, ImapManager.CERTIFICATE_COPY_KEY,   true).getPath();
-            cacert     = new PosixFile(dir, ImapManager.CERTIFICATE_COPY_CHAIN, true).getPath();
-          } else {
-            serverCert = certificate.getCertFile().toString();
-            serverKey = certificate.getKeyFile().toString();
-            cacert = Objects.toString(certificate.getChainFile(), null);
-            if (cacert == null) {
-              // Use operating system default
-              cacert = ImapManager.DEFAULT_CA_FILE;
-            }
+          serverCert = certificate.getCertFile().toString();
+          serverKey = certificate.getKeyFile().toString();
+          cacert = Objects.toString(certificate.getChainFile(), null);
+          if (cacert == null) {
+            // Use operating system default
+            cacert = ImapManager.DEFAULT_CA_FILE;
           }
         }
       }
+    }
     String cacertPath;
-      {
-        if (cacert.equals(ImapManager.DEFAULT_CA_FILE)) {
-          int slashPos = cacert.lastIndexOf('/');
-          if (slashPos == -1) {
-            throw new SQLException("Unable to find slash (/) in cacert: " + cacert);
-          }
-          cacertPath = cacert.substring(0, slashPos);
-          if (cacertPath.isEmpty()) {
-            throw new SQLException("cacertPath is empty");
-          }
-        } else {
-          cacertPath = "/etc/pki/ca-trust-hash/hash";
+    {
+      if (cacert.equals(ImapManager.DEFAULT_CA_FILE)) {
+        int slashPos = cacert.lastIndexOf('/');
+        if (slashPos == -1) {
+          throw new SQLException("Unable to find slash (/) in cacert: " + cacert);
         }
+        cacertPath = cacert.substring(0, slashPos);
+        if (cacertPath.isEmpty()) {
+          throw new SQLException("cacertPath is empty");
+        }
+      } else {
+        cacertPath = "/etc/pki/ca-trust-hash/hash";
       }
+    }
     out.print("define(`confCACERT_PATH', `").print(cacertPath).print("')dnl\n"
         + "define(`confCACERT', `").print(cacert).print("')dnl\n"
         + "define(`confSERVER_CERT', `").print(serverCert).print("')dnl\n"
         + "define(`confSERVER_KEY', `").print(serverKey).print("')dnl\n");
     String clientCert;
     String clientKey;
-      {
-        if (sendmailServer == null) {
-          clientCert = "/etc/pki/sendmail/sendmail.pem";
-          clientKey = "/etc/pki/sendmail/sendmail.pem";
+    {
+      if (sendmailServer == null) {
+        clientCert = "/etc/pki/sendmail/sendmail.pem";
+        clientKey = "/etc/pki/sendmail/sendmail.pem";
+      } else {
+        Certificate certificate = sendmailServer.getClientCertificate();
+        String certbotName = certificate.getCertbotName();
+        if (certbotName != null) {
+          PosixFile dir = new PosixFile(CERTIFICATE_COPY_DIRECTORY, certbotName, true);
+          clientCert = new PosixFile(dir, ImapManager.CERTIFICATE_COPY_CERT,  true).getPath();
+          clientKey  = new PosixFile(dir, ImapManager.CERTIFICATE_COPY_KEY,   true).getPath();
         } else {
-          Certificate certificate = sendmailServer.getClientCertificate();
-          String certbotName = certificate.getCertbotName();
-          if (certbotName != null) {
-            PosixFile dir = new PosixFile(CERTIFICATE_COPY_DIRECTORY, certbotName, true);
-            clientCert = new PosixFile(dir, ImapManager.CERTIFICATE_COPY_CERT,  true).getPath();
-            clientKey  = new PosixFile(dir, ImapManager.CERTIFICATE_COPY_KEY,   true).getPath();
-          } else {
-            clientCert = certificate.getCertFile().toString();
-            clientKey = certificate.getKeyFile().toString();
-          }
+          clientCert = certificate.getCertFile().toString();
+          clientKey = certificate.getKeyFile().toString();
         }
       }
+    }
     out.print("define(`confCLIENT_CERT', `").print(clientCert).print("')dnl\n"
         + "define(`confCLIENT_KEY', `").print(clientKey).print("')dnl\n"
         + "dnl #\n"
@@ -951,61 +951,61 @@ public final class SendmailCFManager extends BuilderThread {
         + "dnl #\n"
         + "dnl DAEMON_OPTIONS(`Name=MTA-v4, Family=inet, Name=MTA-v6, Family=inet6')\n");
     InetAddress clientAddrInet;
-      {
-        if (sendmailServer == null) {
-          clientAddrInet = null;
+    {
+      if (sendmailServer == null) {
+        clientAddrInet = null;
+      } else {
+        IpAddress clientIp = sendmailServer.getClientAddrInet();
+        if (clientIp != null) {
+          clientAddrInet = clientIp.getInetAddress();
         } else {
-          IpAddress clientIp = sendmailServer.getClientAddrInet();
-          if (clientIp != null) {
-            clientAddrInet = clientIp.getInetAddress();
-          } else {
-            // Automatic client inet address, based on port SMTP, Submission, then SMTPS
-            InetAddress primaryAddress = primaryIpAddress.getInetAddress();
-            if (!primaryAddress.getProtocolFamily().equals(StandardProtocolFamily.INET)) {
-              primaryAddress = null;
-            }
-            clientAddrInet = findSmtpAddress(StandardProtocolFamily.INET, primaryAddress, smtpNetBinds, null);
-            if (clientAddrInet == null) {
-              findSmtpAddress(StandardProtocolFamily.INET, primaryAddress, submissionNetBinds, null);
-            }
-            if (clientAddrInet == null) {
-              findSmtpAddress(StandardProtocolFamily.INET, primaryAddress, smtpsNetBinds, null);
-            }
-            // Don't specify client when matches primary IP on this family
-            if (clientAddrInet != null && clientAddrInet.equals(primaryAddress)) {
-              clientAddrInet = null;
-            }
+          // Automatic client inet address, based on port SMTP, Submission, then SMTPS
+          InetAddress primaryAddress = primaryIpAddress.getInetAddress();
+          if (!primaryAddress.getProtocolFamily().equals(StandardProtocolFamily.INET)) {
+            primaryAddress = null;
+          }
+          clientAddrInet = findSmtpAddress(StandardProtocolFamily.INET, primaryAddress, smtpNetBinds, null);
+          if (clientAddrInet == null) {
+            findSmtpAddress(StandardProtocolFamily.INET, primaryAddress, submissionNetBinds, null);
+          }
+          if (clientAddrInet == null) {
+            findSmtpAddress(StandardProtocolFamily.INET, primaryAddress, smtpsNetBinds, null);
+          }
+          // Don't specify client when matches primary IP on this family
+          if (clientAddrInet != null && clientAddrInet.equals(primaryAddress)) {
+            clientAddrInet = null;
           }
         }
       }
+    }
     InetAddress clientAddrInet6;
-      {
-        if (sendmailServer == null) {
-          clientAddrInet6 = null;
+    {
+      if (sendmailServer == null) {
+        clientAddrInet6 = null;
+      } else {
+        IpAddress clientIp = sendmailServer.getClientAddrInet6();
+        if (clientIp != null) {
+          clientAddrInet6 = clientIp.getInetAddress();
         } else {
-          IpAddress clientIp = sendmailServer.getClientAddrInet6();
-          if (clientIp != null) {
-            clientAddrInet6 = clientIp.getInetAddress();
-          } else {
-            // Automatic client inet6 address, based on port SMTP, Submission, then SMTPS
-            InetAddress primaryAddress = primaryIpAddress.getInetAddress();
-            if (!primaryAddress.getProtocolFamily().equals(StandardProtocolFamily.INET6)) {
-              primaryAddress = null;
-            }
-            clientAddrInet6 = findSmtpAddress(StandardProtocolFamily.INET6, primaryAddress, smtpNetBinds, null);
-            if (clientAddrInet6 == null) {
-              findSmtpAddress(StandardProtocolFamily.INET6, primaryAddress, submissionNetBinds, null);
-            }
-            if (clientAddrInet6 == null) {
-              findSmtpAddress(StandardProtocolFamily.INET6, primaryAddress, smtpsNetBinds, null);
-            }
-            // Don't specify client when matches primary IP on this family
-            if (clientAddrInet6 != null && clientAddrInet6.equals(primaryAddress)) {
-              clientAddrInet6 = null;
-            }
+          // Automatic client inet6 address, based on port SMTP, Submission, then SMTPS
+          InetAddress primaryAddress = primaryIpAddress.getInetAddress();
+          if (!primaryAddress.getProtocolFamily().equals(StandardProtocolFamily.INET6)) {
+            primaryAddress = null;
+          }
+          clientAddrInet6 = findSmtpAddress(StandardProtocolFamily.INET6, primaryAddress, smtpNetBinds, null);
+          if (clientAddrInet6 == null) {
+            findSmtpAddress(StandardProtocolFamily.INET6, primaryAddress, submissionNetBinds, null);
+          }
+          if (clientAddrInet6 == null) {
+            findSmtpAddress(StandardProtocolFamily.INET6, primaryAddress, smtpsNetBinds, null);
+          }
+          // Don't specify client when matches primary IP on this family
+          if (clientAddrInet6 != null && clientAddrInet6.equals(primaryAddress)) {
+            clientAddrInet6 = null;
           }
         }
       }
+    }
     if (clientAddrInet != null || clientAddrInet6 != null) {
       out.print("dnl #\n"
           + "dnl # Configure outgoing connections:\n"
@@ -1397,42 +1397,42 @@ public final class SendmailCFManager extends BuilderThread {
               // Build the new version of /etc/mail/sendmail[@*].mc in RAM
               PosixFile sendmailMc = getSendmailMc(sendmailServer);
               boolean sendmailMcUpdated;
-                {
-                  bout.reset();
-                  try (ChainWriter out = new ChainWriter(bout)) {
-                    if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-                      buildSendmailMcCentos5(
-                          out,
-                          thisServer,
-                          sendmailServer,
-                          (smtpBinds       == null) ? Collections.emptyList() : smtpBinds.get(sendmailServer),
-                          (smtpsBinds      == null) ? Collections.emptyList() : smtpsBinds.get(sendmailServer),
-                          (submissionBinds == null) ? Collections.emptyList() : submissionBinds.get(sendmailServer)
-                      );
-                    } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-                      buildSendmailMcCentos7(
-                          out,
-                          thisServer,
-                          sendmailServer,
-                          (smtpBinds       == null) ? Collections.emptyList() : smtpBinds.get(sendmailServer),
-                          (smtpsBinds      == null) ? Collections.emptyList() : smtpsBinds.get(sendmailServer),
-                          (submissionBinds == null) ? Collections.emptyList() : submissionBinds.get(sendmailServer)
-                      );
-                    } else {
-                      throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-                    }
+              {
+                bout.reset();
+                try (ChainWriter out = new ChainWriter(bout)) {
+                  if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                    buildSendmailMcCentos5(
+                        out,
+                        thisServer,
+                        sendmailServer,
+                        (smtpBinds       == null) ? Collections.emptyList() : smtpBinds.get(sendmailServer),
+                        (smtpsBinds      == null) ? Collections.emptyList() : smtpsBinds.get(sendmailServer),
+                        (submissionBinds == null) ? Collections.emptyList() : submissionBinds.get(sendmailServer)
+                    );
+                  } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+                    buildSendmailMcCentos7(
+                        out,
+                        thisServer,
+                        sendmailServer,
+                        (smtpBinds       == null) ? Collections.emptyList() : smtpBinds.get(sendmailServer),
+                        (smtpsBinds      == null) ? Collections.emptyList() : smtpsBinds.get(sendmailServer),
+                        (submissionBinds == null) ? Collections.emptyList() : submissionBinds.get(sendmailServer)
+                    );
+                  } else {
+                    throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
                   }
-                  // Write the new file if it is different than the old
-                  sendmailMcUpdated = DaemonFileUtils.atomicWrite(
-                      sendmailMc,
-                      bout.toByteArray(),
-                      0644,
-                      PosixFile.ROOT_UID,
-                      PosixFile.ROOT_GID,
-                      null,
-                      restorecon
-                  );
                 }
+                // Write the new file if it is different than the old
+                sendmailMcUpdated = DaemonFileUtils.atomicWrite(
+                    sendmailMc,
+                    bout.toByteArray(),
+                    0644,
+                    PosixFile.ROOT_UID,
+                    PosixFile.ROOT_GID,
+                    null,
+                    restorecon
+                );
+              }
 
               // Rebuild the /etc/sendmail.cf file if doesn't exist or modified time is before sendmail.mc
               if (sendmailCfInstalled) {
@@ -1468,100 +1468,100 @@ public final class SendmailCFManager extends BuilderThread {
 
             // Build the new version of /etc/mail/submit.mc in RAM
             boolean submitMcUpdated;
-              {
-                bout.reset();
-                try (ChainWriter out = new ChainWriter(bout)) {
-                  if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-                    // Submit will always be on the primary IP address
-                    out.print("divert(-1)\n"
-                        + "#\n"
-                        + "# Generated by ").print(SendmailCFManager.class.getName()).print("\n"
-                        + "#\n"
-                        + "divert(0)dnl\n"
-                        + "include(`/usr/share/sendmail-cf/m4/cf.m4')dnl\n"
-                        + "VERSIONID(`linux setup')dnl\n"
-                        + "define(`confCF_VERSION', `Submit')dnl\n"
-                        + "define(`__OSTYPE__',`')dnl dirty hack to keep proto.m4 from complaining\n"
-                        + "define(`_USE_DECNET_SYNTAX_', `1')dnl support DECnet\n"
-                        + "define(`confTIME_ZONE', `USE_TZ')dnl\n"
-                        + "define(`confDONT_INIT_GROUPS', `True')dnl\n"
-                        + "define(`confPID_FILE', `/var/run/sm-client.pid')dnl\n"
-                        + "dnl define(`confDIRECT_SUBMISSION_MODIFIERS',`C')dnl\n"
-                        + "FEATURE(`use_ct_file')dnl\n"
-                        + "FEATURE(`msp', `[").print(primaryIpAddress.getInetAddress().toString()).print("]')dnl\n"
-                        + "define(`confPROCESS_TITLE_PREFIX',`").print(thisServer.getHostname()).print("')dnl\n");
-                  } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-                    InetAddress submitAddress;
-                    if (defaultServer == null) {
-                      submitAddress = null;
-                    } else {
-                      // Find Bind listing on SMTP on port 25, preferring primaryIpAddress
-                      // TODO: Prefer 127.0.0.1 over primary?
-                      final int mspPort = 25;
-                      InetAddress primaryAddress = primaryIpAddress.getInetAddress();
-                      assert smtpBinds != null;
-                      submitAddress = findSmtpAddress(
-                          primaryAddress.getProtocolFamily(),
-                          primaryAddress,
-                          smtpBinds.get(defaultServer),
-                          mspPort
-                      );
-                      if (submitAddress == null) {
-                        // TODO: Could look for smtp on ports other than 25?
-                        // TODO: Could then try port 587?  Possibly not since it requires authentication?
-                        // TODO: Could then try port 465?  SSL requirements a problem?
-                        throw new SQLException("Unable to find any SMTP on port " + mspPort + " for submit.mc");
-                      }
-                    }
-                    out.print("divert(-1)\n"
-                        + "#\n"
-                        + "# Generated by ").print(SendmailCFManager.class.getName()).print("\n"
-                        + "#\n"
-                        + "# Copyright (c) 2001-2003 Sendmail, Inc. and its suppliers.\n"
-                        + "#\tAll rights reserved.\n"
-                        + "#\n"
-                        + "# By using this file, you agree to the terms and conditions set\n"
-                        + "# forth in the LICENSE file which can be found at the top level of\n"
-                        + "# the sendmail distribution.\n"
-                        + "#\n"
-                        + "#\n"
-                        + "\n"
-                        + "#\n"
-                        + "#  This is the prototype file for a set-group-ID sm-msp sendmail that\n"
-                        + "#  acts as a initial mail submission program.\n"
-                        + "#\n"
-                        + "\n"
-                        + "divert(0)dnl\n"
-                        + "sinclude(`/usr/share/sendmail-cf/m4/cf.m4')dnl\n"
-                        + "VERSIONID(`AOServ Platform')dnl\n" // AO added
-                        + "define(`confCF_VERSION', `Submit')dnl\n"
-                        + "define(`__OSTYPE__',`')dnl dirty hack to keep proto.m4 from complaining\n"
-                        + "define(`_USE_DECNET_SYNTAX_', `1')dnl support DECnet\n"
-                        + "define(`confTIME_ZONE', `USE_TZ')dnl\n"
-                        + "define(`confDONT_INIT_GROUPS', `True')dnl\n"
-                        + "dnl # If you're operating in a DSCP/RFC-4594 environment with QoS\n"
-                        + "dnl define(`confINET_QOS', `AF11')dnl\n"
-                        + "define(`confPID_FILE', `/run/sm-client.pid')dnl\n"
-                        + "dnl define(`confDIRECT_SUBMISSION_MODIFIERS',`C')dnl\n"
-                        + "FEATURE(`use_ct_file')dnl\n"
-                        + "dnl\n"
-                        + "dnl If you use IPv6 only, change [127.0.0.1] to [IPv6:::1]\n"
-                        + "FEATURE(`msp', `[").print((submitAddress == null) ? "127.0.0.1" : submitAddress.toString()).print("]')dnl\n");
+            {
+              bout.reset();
+              try (ChainWriter out = new ChainWriter(bout)) {
+                if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                  // Submit will always be on the primary IP address
+                  out.print("divert(-1)\n"
+                      + "#\n"
+                      + "# Generated by ").print(SendmailCFManager.class.getName()).print("\n"
+                      + "#\n"
+                      + "divert(0)dnl\n"
+                      + "include(`/usr/share/sendmail-cf/m4/cf.m4')dnl\n"
+                      + "VERSIONID(`linux setup')dnl\n"
+                      + "define(`confCF_VERSION', `Submit')dnl\n"
+                      + "define(`__OSTYPE__',`')dnl dirty hack to keep proto.m4 from complaining\n"
+                      + "define(`_USE_DECNET_SYNTAX_', `1')dnl support DECnet\n"
+                      + "define(`confTIME_ZONE', `USE_TZ')dnl\n"
+                      + "define(`confDONT_INIT_GROUPS', `True')dnl\n"
+                      + "define(`confPID_FILE', `/var/run/sm-client.pid')dnl\n"
+                      + "dnl define(`confDIRECT_SUBMISSION_MODIFIERS',`C')dnl\n"
+                      + "FEATURE(`use_ct_file')dnl\n"
+                      + "FEATURE(`msp', `[").print(primaryIpAddress.getInetAddress().toString()).print("]')dnl\n"
+                      + "define(`confPROCESS_TITLE_PREFIX',`").print(thisServer.getHostname()).print("')dnl\n");
+                } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+                  InetAddress submitAddress;
+                  if (defaultServer == null) {
+                    submitAddress = null;
                   } else {
-                    throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+                    // Find Bind listing on SMTP on port 25, preferring primaryIpAddress
+                    // TODO: Prefer 127.0.0.1 over primary?
+                    final int mspPort = 25;
+                    InetAddress primaryAddress = primaryIpAddress.getInetAddress();
+                    assert smtpBinds != null;
+                    submitAddress = findSmtpAddress(
+                        primaryAddress.getProtocolFamily(),
+                        primaryAddress,
+                        smtpBinds.get(defaultServer),
+                        mspPort
+                    );
+                    if (submitAddress == null) {
+                      // TODO: Could look for smtp on ports other than 25?
+                      // TODO: Could then try port 587?  Possibly not since it requires authentication?
+                      // TODO: Could then try port 465?  SSL requirements a problem?
+                      throw new SQLException("Unable to find any SMTP on port " + mspPort + " for submit.mc");
+                    }
                   }
+                  out.print("divert(-1)\n"
+                      + "#\n"
+                      + "# Generated by ").print(SendmailCFManager.class.getName()).print("\n"
+                      + "#\n"
+                      + "# Copyright (c) 2001-2003 Sendmail, Inc. and its suppliers.\n"
+                      + "#\tAll rights reserved.\n"
+                      + "#\n"
+                      + "# By using this file, you agree to the terms and conditions set\n"
+                      + "# forth in the LICENSE file which can be found at the top level of\n"
+                      + "# the sendmail distribution.\n"
+                      + "#\n"
+                      + "#\n"
+                      + "\n"
+                      + "#\n"
+                      + "#  This is the prototype file for a set-group-ID sm-msp sendmail that\n"
+                      + "#  acts as a initial mail submission program.\n"
+                      + "#\n"
+                      + "\n"
+                      + "divert(0)dnl\n"
+                      + "sinclude(`/usr/share/sendmail-cf/m4/cf.m4')dnl\n"
+                      + "VERSIONID(`AOServ Platform')dnl\n" // AO added
+                      + "define(`confCF_VERSION', `Submit')dnl\n"
+                      + "define(`__OSTYPE__',`')dnl dirty hack to keep proto.m4 from complaining\n"
+                      + "define(`_USE_DECNET_SYNTAX_', `1')dnl support DECnet\n"
+                      + "define(`confTIME_ZONE', `USE_TZ')dnl\n"
+                      + "define(`confDONT_INIT_GROUPS', `True')dnl\n"
+                      + "dnl # If you're operating in a DSCP/RFC-4594 environment with QoS\n"
+                      + "dnl define(`confINET_QOS', `AF11')dnl\n"
+                      + "define(`confPID_FILE', `/run/sm-client.pid')dnl\n"
+                      + "dnl define(`confDIRECT_SUBMISSION_MODIFIERS',`C')dnl\n"
+                      + "FEATURE(`use_ct_file')dnl\n"
+                      + "dnl\n"
+                      + "dnl If you use IPv6 only, change [127.0.0.1] to [IPv6:::1]\n"
+                      + "FEATURE(`msp', `[").print((submitAddress == null) ? "127.0.0.1" : submitAddress.toString()).print("]')dnl\n");
+                } else {
+                  throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
                 }
-                // Write the new file if it is different than the old
-                submitMcUpdated = DaemonFileUtils.atomicWrite(
-                    submitMc,
-                    bout.toByteArray(),
-                    0644,
-                    PosixFile.ROOT_UID,
-                    PosixFile.ROOT_GID,
-                    null,
-                    restorecon
-                );
               }
+              // Write the new file if it is different than the old
+              submitMcUpdated = DaemonFileUtils.atomicWrite(
+                  submitMc,
+                  bout.toByteArray(),
+                  0644,
+                  PosixFile.ROOT_UID,
+                  PosixFile.ROOT_GID,
+                  null,
+                  restorecon
+              );
+            }
 
             // Rebuild the /etc/submit.cf file if doesn't exist or modified time is before submit.mc
             if (sendmailCfInstalled) {

@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2003-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2003-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -100,17 +100,17 @@ public final class MajordomoManager extends BuilderThread {
 
         // Resolve the GID for "mail"
         int mailGid;
-          {
-            Group mailGroup = AoservDaemon.getConnector().getLinux().getGroup().get(Group.MAIL);
-            if (mailGroup == null) {
-              throw new SQLException("Unable to find Group: " + Group.MAIL);
-            }
-            GroupServer mailGroupServer = mailGroup.getLinuxServerGroup(thisServer);
-            if (mailGroupServer == null) {
-              throw new SQLException("Unable to find GroupServer: " + Group.MAIL + " on " + thisServer.getHostname());
-            }
-            mailGid = mailGroupServer.getGid().getId();
+        {
+          Group mailGroup = AoservDaemon.getConnector().getLinux().getGroup().get(Group.MAIL);
+          if (mailGroup == null) {
+            throw new SQLException("Unable to find Group: " + Group.MAIL);
           }
+          GroupServer mailGroupServer = mailGroup.getLinuxServerGroup(thisServer);
+          if (mailGroupServer == null) {
+            throw new SQLException("Unable to find GroupServer: " + Group.MAIL + " on " + thisServer.getHostname());
+          }
+          mailGid = mailGroupServer.getGid().getId();
+        }
 
         // A list of things to be deleted is maintained
         List<File> deleteFileList = new ArrayList<>();

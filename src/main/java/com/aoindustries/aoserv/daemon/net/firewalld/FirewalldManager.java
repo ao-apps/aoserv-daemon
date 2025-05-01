@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
+ * Copyright (C) 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -157,556 +157,556 @@ public final class FirewalldManager extends BuilderThread {
 
           // Gather the set of firewalld zones per service name
           List<Tuple2<ServiceSet, Set<FirewallZone.Name>>> serviceSets = new ArrayList<>();
-            // SSH
-            {
-              List<Target> targets = new ArrayList<>();
-              Set<FirewallZone.Name> zones = new LinkedHashSet<>();
-              List<Bind> firewalldNetBinds = new ArrayList<>();
-              for (Bind nb : netBinds) {
-                if (nb.getAppProtocol().getProtocol().equals(AppProtocol.SSH)) {
-                  addTarget(nb, targets, zones, firewalldNetBinds);
-                }
-              }
-              if (logger.isLoggable(Level.FINE)) {
-                logger.fine("ssh targets: " + targets + ", zones: " + zones);
-              }
-              ServiceSet serviceSet = ServiceSet.createOptimizedServiceSet("ssh", targets);
-              // TODO: Include rate-limiting from public zone, as well as a zone for monitoring
-              if (zones.isEmpty()) {
-                // The zones for SSH, used as a fail-safe if SSH not added to any zone.
-                // Obtained from <code>grep -l -r ssh /usr/lib/firewalld/zones | sort</code>
-                Set<FirewallZone.Name> sshFailsafeZones = new LinkedHashSet<>();
-                sshFailsafeZones.add(FirewallZone.DMZ);
-                sshFailsafeZones.add(FirewallZone.EXTERNAL);
-                sshFailsafeZones.add(FirewallZone.HOME);
-                sshFailsafeZones.add(FirewallZone.INTERNAL);
-                if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
-                  sshFailsafeZones.add(FirewallZone.NM_SHARED);
-                }
-                sshFailsafeZones.add(FirewallZone.PUBLIC);
-                sshFailsafeZones.add(FirewallZone.WORK);
-                if (logger.isLoggable(Level.WARNING)) {
-                  logger.warning("ssh does not have any zones, using fail-safe zones: " + sshFailsafeZones);
-                }
-                serviceSets.add(
-                    new Tuple2<>(
-                        serviceSet,
-                        sshFailsafeZones
-                    )
-                );
-              } else {
-                warnZoneMismatch(zones, firewalldNetBinds);
-                serviceSets.add(
-                    new Tuple2<>(
-                        serviceSet,
-                        zones
-                    )
-                );
+          // SSH
+          {
+            List<Target> targets = new ArrayList<>();
+            Set<FirewallZone.Name> zones = new LinkedHashSet<>();
+            List<Bind> firewalldNetBinds = new ArrayList<>();
+            for (Bind nb : netBinds) {
+              if (nb.getAppProtocol().getProtocol().equals(AppProtocol.SSH)) {
+                addTarget(nb, targets, zones, firewalldNetBinds);
               }
             }
-            // AOServ Daemon
-            {
-              List<Target> targets = new ArrayList<>();
-              Set<FirewallZone.Name> zones = new LinkedHashSet<>();
-              List<Bind> firewalldNetBinds = new ArrayList<>();
-              for (Bind nb : netBinds) {
-                String appProtocol = nb.getAppProtocol().getProtocol();
-                if (
-                    appProtocol.equals(AppProtocol.AOSERV_DAEMON)
-                        || appProtocol.equals(AppProtocol.AOSERV_DAEMON_SSL)
-                ) {
-                  addTarget(nb, targets, zones, firewalldNetBinds);
-                }
+            if (logger.isLoggable(Level.FINE)) {
+              logger.fine("ssh targets: " + targets + ", zones: " + zones);
+            }
+            ServiceSet serviceSet = ServiceSet.createOptimizedServiceSet("ssh", targets);
+            // TODO: Include rate-limiting from public zone, as well as a zone for monitoring
+            if (zones.isEmpty()) {
+              // The zones for SSH, used as a fail-safe if SSH not added to any zone.
+              // Obtained from <code>grep -l -r ssh /usr/lib/firewalld/zones | sort</code>
+              Set<FirewallZone.Name> sshFailsafeZones = new LinkedHashSet<>();
+              sshFailsafeZones.add(FirewallZone.DMZ);
+              sshFailsafeZones.add(FirewallZone.EXTERNAL);
+              sshFailsafeZones.add(FirewallZone.HOME);
+              sshFailsafeZones.add(FirewallZone.INTERNAL);
+              if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
+                sshFailsafeZones.add(FirewallZone.NM_SHARED);
               }
-              if (logger.isLoggable(Level.FINE)) {
-                logger.fine("aoserv-daemon targets: " + targets + ", zones: " + zones);
+              sshFailsafeZones.add(FirewallZone.PUBLIC);
+              sshFailsafeZones.add(FirewallZone.WORK);
+              if (logger.isLoggable(Level.WARNING)) {
+                logger.warning("ssh does not have any zones, using fail-safe zones: " + sshFailsafeZones);
               }
+              serviceSets.add(
+                  new Tuple2<>(
+                      serviceSet,
+                      sshFailsafeZones
+                  )
+              );
+            } else {
               warnZoneMismatch(zones, firewalldNetBinds);
               serviceSets.add(
                   new Tuple2<>(
-                      ServiceSet.createOptimizedServiceSet("aoserv-daemon", targets),
+                      serviceSet,
                       zones
                   )
               );
             }
-            // AOServ Master
-            {
-              List<Target> targets = new ArrayList<>();
-              Set<FirewallZone.Name> zones = new LinkedHashSet<>();
-              List<Bind> firewalldNetBinds = new ArrayList<>();
-              for (Bind nb : netBinds) {
-                String appProtocol = nb.getAppProtocol().getProtocol();
-                if (
-                    appProtocol.equals(AppProtocol.AOSERV_MASTER)
-                        || appProtocol.equals(AppProtocol.AOSERV_MASTER_SSL)
-                ) {
-                  addTarget(nb, targets, zones, firewalldNetBinds);
-                }
-              }
-              // Only configure when either non-empty targets or system service exists
-              if (logger.isLoggable(Level.FINE)) {
-                logger.fine("aoserv-master targets: " + targets + ", zones: " + zones);
-              }
-              warnZoneMismatch(zones, firewalldNetBinds);
-              Service template = Service.loadSystemService("aoserv-master");
-              if (template != null) {
-                serviceSets.add(
-                    new Tuple2<>(
-                        ServiceSet.createOptimizedServiceSet(template, targets),
-                        zones
-                    )
-                );
-              } else if (!targets.isEmpty()) {
-                // Has net binds but no firewalld system service
-                throw new SQLException("System service not found: aoserv-master");
+          }
+          // AOServ Daemon
+          {
+            List<Target> targets = new ArrayList<>();
+            Set<FirewallZone.Name> zones = new LinkedHashSet<>();
+            List<Bind> firewalldNetBinds = new ArrayList<>();
+            for (Bind nb : netBinds) {
+              String appProtocol = nb.getAppProtocol().getProtocol();
+              if (
+                  appProtocol.equals(AppProtocol.AOSERV_DAEMON)
+                      || appProtocol.equals(AppProtocol.AOSERV_DAEMON_SSL)
+              ) {
+                addTarget(nb, targets, zones, firewalldNetBinds);
               }
             }
-            // DNS
-            {
-              List<Target> targets = new ArrayList<>();
-              Set<FirewallZone.Name> zones = new LinkedHashSet<>();
-              List<Bind> firewalldNetBinds = new ArrayList<>();
-              for (Bind nb : netBinds) {
-                if (nb.getAppProtocol().getProtocol().equals(AppProtocol.DNS)) {
-                  addTarget(nb, targets, zones, firewalldNetBinds);
-                }
+            if (logger.isLoggable(Level.FINE)) {
+              logger.fine("aoserv-daemon targets: " + targets + ", zones: " + zones);
+            }
+            warnZoneMismatch(zones, firewalldNetBinds);
+            serviceSets.add(
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet("aoserv-daemon", targets),
+                    zones
+                )
+            );
+          }
+          // AOServ Master
+          {
+            List<Target> targets = new ArrayList<>();
+            Set<FirewallZone.Name> zones = new LinkedHashSet<>();
+            List<Bind> firewalldNetBinds = new ArrayList<>();
+            for (Bind nb : netBinds) {
+              String appProtocol = nb.getAppProtocol().getProtocol();
+              if (
+                  appProtocol.equals(AppProtocol.AOSERV_MASTER)
+                      || appProtocol.equals(AppProtocol.AOSERV_MASTER_SSL)
+              ) {
+                addTarget(nb, targets, zones, firewalldNetBinds);
               }
-              if (logger.isLoggable(Level.FINE)) {
-                logger.fine("named targets: " + targets + ", zones: " + zones);
-              }
-              warnZoneMismatch(zones, firewalldNetBinds);
+            }
+            // Only configure when either non-empty targets or system service exists
+            if (logger.isLoggable(Level.FINE)) {
+              logger.fine("aoserv-master targets: " + targets + ", zones: " + zones);
+            }
+            warnZoneMismatch(zones, firewalldNetBinds);
+            Service template = Service.loadSystemService("aoserv-master");
+            if (template != null) {
               serviceSets.add(
                   new Tuple2<>(
-                      ServiceSet.createOptimizedServiceSet(
-                          new Service(
-                              "named",
-                              null,
-                              "named",
-                              "Berkeley Internet Name Domain (DNS)",
-                              Arrays.asList(
-                                  Port.valueOf(53, Protocol.TCP),
-                                  Port.valueOf(53, Protocol.UDP)
-                              ),
-                              Collections.emptySet(), // protocols
-                              Collections.emptySet(), // sourcePorts
-                              Collections.emptySet(), // modules
-                              InetAddressPrefixes.UNSPECIFIED_IPV4,
-                              InetAddressPrefixes.UNSPECIFIED_IPV6
-                          ),
-                          targets
-                      ),
+                      ServiceSet.createOptimizedServiceSet(template, targets),
                       zones
                   )
               );
+            } else if (!targets.isEmpty()) {
+              // Has net binds but no firewalld system service
+              throw new SQLException("System service not found: aoserv-master");
             }
-            // HTTP
-            {
-              List<Target> targets = new ArrayList<>();
-              Set<FirewallZone.Name> zones = new LinkedHashSet<>();
-              List<Bind> firewalldNetBinds = new ArrayList<>();
-              for (Bind nb : netBinds) {
-                if (nb.getAppProtocol().getProtocol().equals(AppProtocol.HTTP)) {
-                  addTarget(nb, targets, zones, firewalldNetBinds);
-                }
+          }
+          // DNS
+          {
+            List<Target> targets = new ArrayList<>();
+            Set<FirewallZone.Name> zones = new LinkedHashSet<>();
+            List<Bind> firewalldNetBinds = new ArrayList<>();
+            for (Bind nb : netBinds) {
+              if (nb.getAppProtocol().getProtocol().equals(AppProtocol.DNS)) {
+                addTarget(nb, targets, zones, firewalldNetBinds);
               }
-              if (logger.isLoggable(Level.FINE)) {
-                logger.fine("http targets: " + targets + ", zones: " + zones);
+            }
+            if (logger.isLoggable(Level.FINE)) {
+              logger.fine("named targets: " + targets + ", zones: " + zones);
+            }
+            warnZoneMismatch(zones, firewalldNetBinds);
+            serviceSets.add(
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet(
+                        new Service(
+                            "named",
+                            null,
+                            "named",
+                            "Berkeley Internet Name Domain (DNS)",
+                            Arrays.asList(
+                                Port.valueOf(53, Protocol.TCP),
+                                Port.valueOf(53, Protocol.UDP)
+                            ),
+                            Collections.emptySet(), // protocols
+                            Collections.emptySet(), // sourcePorts
+                            Collections.emptySet(), // modules
+                            InetAddressPrefixes.UNSPECIFIED_IPV4,
+                            InetAddressPrefixes.UNSPECIFIED_IPV6
+                        ),
+                        targets
+                    ),
+                    zones
+                )
+            );
+          }
+          // HTTP
+          {
+            List<Target> targets = new ArrayList<>();
+            Set<FirewallZone.Name> zones = new LinkedHashSet<>();
+            List<Bind> firewalldNetBinds = new ArrayList<>();
+            for (Bind nb : netBinds) {
+              if (nb.getAppProtocol().getProtocol().equals(AppProtocol.HTTP)) {
+                addTarget(nb, targets, zones, firewalldNetBinds);
               }
-              warnZoneMismatch(zones, firewalldNetBinds);
+            }
+            if (logger.isLoggable(Level.FINE)) {
+              logger.fine("http targets: " + targets + ", zones: " + zones);
+            }
+            warnZoneMismatch(zones, firewalldNetBinds);
+            serviceSets.add(
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet("http", targets),
+                    zones
+                )
+            );
+          }
+          // HTTPS
+          {
+            List<Target> targets = new ArrayList<>();
+            Set<FirewallZone.Name> zones = new LinkedHashSet<>();
+            List<Bind> firewalldNetBinds = new ArrayList<>();
+            for (Bind nb : netBinds) {
+              if (nb.getAppProtocol().getProtocol().equals(AppProtocol.HTTPS)) {
+                addTarget(nb, targets, zones, firewalldNetBinds);
+              }
+            }
+            if (logger.isLoggable(Level.FINE)) {
+              logger.fine("https targets: " + targets + ", zones: " + zones);
+            }
+            warnZoneMismatch(zones, firewalldNetBinds);
+            serviceSets.add(
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet("https", targets),
+                    zones
+                )
+            );
+          }
+          // IMAP
+          {
+            List<Target> targets = new ArrayList<>();
+            Set<FirewallZone.Name> zones = new LinkedHashSet<>();
+            List<Bind> firewalldNetBinds = new ArrayList<>();
+            for (Bind nb : netBinds) {
+              if (nb.getAppProtocol().getProtocol().equals(AppProtocol.IMAP2)) {
+                addTarget(nb, targets, zones, firewalldNetBinds);
+              }
+            }
+            if (logger.isLoggable(Level.FINE)) {
+              logger.fine("imap targets: " + targets + ", zones: " + zones);
+            }
+            warnZoneMismatch(zones, firewalldNetBinds);
+            serviceSets.add(
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet("imap", targets),
+                    zones
+                )
+            );
+          }
+          // IMAPS
+          {
+            List<Target> targets = new ArrayList<>();
+            Set<FirewallZone.Name> zones = new LinkedHashSet<>();
+            List<Bind> firewalldNetBinds = new ArrayList<>();
+            for (Bind nb : netBinds) {
+              if (nb.getAppProtocol().getProtocol().equals(AppProtocol.SIMAP)) {
+                addTarget(nb, targets, zones, firewalldNetBinds);
+              }
+            }
+            if (logger.isLoggable(Level.FINE)) {
+              logger.fine("imaps targets: " + targets + ", zones: " + zones);
+            }
+            warnZoneMismatch(zones, firewalldNetBinds);
+            serviceSets.add(
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet("imaps", targets),
+                    zones
+                )
+            );
+          }
+          // Memcached
+          {
+            List<Target> targets = new ArrayList<>();
+            Set<FirewallZone.Name> zones = new LinkedHashSet<>();
+            List<Bind> firewalldNetBinds = new ArrayList<>();
+            for (Bind nb : netBinds) {
+              if (nb.getAppProtocol().getProtocol().equals(AppProtocol.MEMCACHED)) {
+                addTarget(nb, targets, zones, firewalldNetBinds);
+              }
+            }
+            if (logger.isLoggable(Level.FINE)) {
+              logger.fine("memcached targets: " + targets + ", zones: " + zones);
+            }
+            warnZoneMismatch(zones, firewalldNetBinds);
+            Service template = Service.loadSystemService("memcached");
+            if (template != null) {
               serviceSets.add(
                   new Tuple2<>(
-                      ServiceSet.createOptimizedServiceSet("http", targets),
+                      ServiceSet.createOptimizedServiceSet(template, targets),
                       zones
                   )
               );
+            } else if (!targets.isEmpty()) {
+              // Has net binds but no firewalld system service
+              throw new SQLException("System service not found: memcached");
             }
-            // HTTPS
-            {
-              List<Target> targets = new ArrayList<>();
-              Set<FirewallZone.Name> zones = new LinkedHashSet<>();
-              List<Bind> firewalldNetBinds = new ArrayList<>();
-              for (Bind nb : netBinds) {
-                if (nb.getAppProtocol().getProtocol().equals(AppProtocol.HTTPS)) {
-                  addTarget(nb, targets, zones, firewalldNetBinds);
-                }
-              }
-              if (logger.isLoggable(Level.FINE)) {
-                logger.fine("https targets: " + targets + ", zones: " + zones);
-              }
-              warnZoneMismatch(zones, firewalldNetBinds);
-              serviceSets.add(
-                  new Tuple2<>(
-                      ServiceSet.createOptimizedServiceSet("https", targets),
-                      zones
-                  )
-              );
-            }
-            // IMAP
-            {
-              List<Target> targets = new ArrayList<>();
-              Set<FirewallZone.Name> zones = new LinkedHashSet<>();
-              List<Bind> firewalldNetBinds = new ArrayList<>();
-              for (Bind nb : netBinds) {
-                if (nb.getAppProtocol().getProtocol().equals(AppProtocol.IMAP2)) {
-                  addTarget(nb, targets, zones, firewalldNetBinds);
-                }
-              }
-              if (logger.isLoggable(Level.FINE)) {
-                logger.fine("imap targets: " + targets + ", zones: " + zones);
-              }
-              warnZoneMismatch(zones, firewalldNetBinds);
-              serviceSets.add(
-                  new Tuple2<>(
-                      ServiceSet.createOptimizedServiceSet("imap", targets),
-                      zones
-                  )
-              );
-            }
-            // IMAPS
-            {
-              List<Target> targets = new ArrayList<>();
-              Set<FirewallZone.Name> zones = new LinkedHashSet<>();
-              List<Bind> firewalldNetBinds = new ArrayList<>();
-              for (Bind nb : netBinds) {
-                if (nb.getAppProtocol().getProtocol().equals(AppProtocol.SIMAP)) {
-                  addTarget(nb, targets, zones, firewalldNetBinds);
-                }
-              }
-              if (logger.isLoggable(Level.FINE)) {
-                logger.fine("imaps targets: " + targets + ", zones: " + zones);
-              }
-              warnZoneMismatch(zones, firewalldNetBinds);
-              serviceSets.add(
-                  new Tuple2<>(
-                      ServiceSet.createOptimizedServiceSet("imaps", targets),
-                      zones
-                  )
-              );
-            }
-            // Memcached
-            {
-              List<Target> targets = new ArrayList<>();
-              Set<FirewallZone.Name> zones = new LinkedHashSet<>();
-              List<Bind> firewalldNetBinds = new ArrayList<>();
-              for (Bind nb : netBinds) {
-                if (nb.getAppProtocol().getProtocol().equals(AppProtocol.MEMCACHED)) {
-                  addTarget(nb, targets, zones, firewalldNetBinds);
-                }
-              }
-              if (logger.isLoggable(Level.FINE)) {
-                logger.fine("memcached targets: " + targets + ", zones: " + zones);
-              }
-              warnZoneMismatch(zones, firewalldNetBinds);
-              Service template = Service.loadSystemService("memcached");
-              if (template != null) {
-                serviceSets.add(
-                    new Tuple2<>(
-                        ServiceSet.createOptimizedServiceSet(template, targets),
-                        zones
-                    )
-                );
-              } else if (!targets.isEmpty()) {
-                // Has net binds but no firewalld system service
-                throw new SQLException("System service not found: memcached");
+          }
+          // MySQL
+          {
+            List<Target> targets = new ArrayList<>();
+            Set<FirewallZone.Name> zones = new LinkedHashSet<>();
+            List<Bind> firewalldNetBinds = new ArrayList<>();
+            for (Bind nb : netBinds) {
+              if (nb.getAppProtocol().getProtocol().equals(AppProtocol.MYSQL)) {
+                addTarget(nb, targets, zones, firewalldNetBinds);
               }
             }
-            // MySQL
-            {
-              List<Target> targets = new ArrayList<>();
-              Set<FirewallZone.Name> zones = new LinkedHashSet<>();
-              List<Bind> firewalldNetBinds = new ArrayList<>();
-              for (Bind nb : netBinds) {
-                if (nb.getAppProtocol().getProtocol().equals(AppProtocol.MYSQL)) {
-                  addTarget(nb, targets, zones, firewalldNetBinds);
-                }
-              }
-              if (logger.isLoggable(Level.FINE)) {
-                logger.fine("mysql targets: " + targets + ", zones: " + zones);
-              }
-              warnZoneMismatch(zones, firewalldNetBinds);
-              serviceSets.add(
-                  new Tuple2<>(
-                      ServiceSet.createOptimizedServiceSet("mysql", targets),
-                      zones
-                  )
-              );
+            if (logger.isLoggable(Level.FINE)) {
+              logger.fine("mysql targets: " + targets + ", zones: " + zones);
             }
-            // POP3
-            {
-              List<Target> targets = new ArrayList<>();
-              Set<FirewallZone.Name> zones = new LinkedHashSet<>();
-              List<Bind> firewalldNetBinds = new ArrayList<>();
-              for (Bind nb : netBinds) {
-                if (nb.getAppProtocol().getProtocol().equals(AppProtocol.POP3)) {
-                  addTarget(nb, targets, zones, firewalldNetBinds);
-                }
+            warnZoneMismatch(zones, firewalldNetBinds);
+            serviceSets.add(
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet("mysql", targets),
+                    zones
+                )
+            );
+          }
+          // POP3
+          {
+            List<Target> targets = new ArrayList<>();
+            Set<FirewallZone.Name> zones = new LinkedHashSet<>();
+            List<Bind> firewalldNetBinds = new ArrayList<>();
+            for (Bind nb : netBinds) {
+              if (nb.getAppProtocol().getProtocol().equals(AppProtocol.POP3)) {
+                addTarget(nb, targets, zones, firewalldNetBinds);
               }
-              if (logger.isLoggable(Level.FINE)) {
-                logger.fine("pop3 targets: " + targets + ", zones: " + zones);
-              }
-              warnZoneMismatch(zones, firewalldNetBinds);
-              serviceSets.add(
-                  new Tuple2<>(
-                      ServiceSet.createOptimizedServiceSet("pop3", targets),
-                      zones
-                  )
-              );
             }
-            // POP3S
-            {
-              List<Target> targets = new ArrayList<>();
-              Set<FirewallZone.Name> zones = new LinkedHashSet<>();
-              List<Bind> firewalldNetBinds = new ArrayList<>();
-              for (Bind nb : netBinds) {
-                if (nb.getAppProtocol().getProtocol().equals(AppProtocol.SPOP3)) {
-                  addTarget(nb, targets, zones, firewalldNetBinds);
-                }
-              }
-              if (logger.isLoggable(Level.FINE)) {
-                logger.fine("pop3s targets: " + targets + ", zones: " + zones);
-              }
-              warnZoneMismatch(zones, firewalldNetBinds);
-              serviceSets.add(
-                  new Tuple2<>(
-                      ServiceSet.createOptimizedServiceSet("pop3s", targets),
-                      zones
-                  )
-              );
+            if (logger.isLoggable(Level.FINE)) {
+              logger.fine("pop3 targets: " + targets + ", zones: " + zones);
             }
-            // PostgreSQL
-            {
-              List<Target> targets = new ArrayList<>();
-              Set<FirewallZone.Name> zones = new LinkedHashSet<>();
-              List<Bind> firewalldNetBinds = new ArrayList<>();
-              for (Bind nb : netBinds) {
-                if (nb.getAppProtocol().getProtocol().equals(AppProtocol.POSTGRESQL)) {
-                  addTarget(nb, targets, zones, firewalldNetBinds);
-                }
+            warnZoneMismatch(zones, firewalldNetBinds);
+            serviceSets.add(
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet("pop3", targets),
+                    zones
+                )
+            );
+          }
+          // POP3S
+          {
+            List<Target> targets = new ArrayList<>();
+            Set<FirewallZone.Name> zones = new LinkedHashSet<>();
+            List<Bind> firewalldNetBinds = new ArrayList<>();
+            for (Bind nb : netBinds) {
+              if (nb.getAppProtocol().getProtocol().equals(AppProtocol.SPOP3)) {
+                addTarget(nb, targets, zones, firewalldNetBinds);
               }
-              if (logger.isLoggable(Level.FINE)) {
-                logger.fine("postgresql targets: " + targets + ", zones: " + zones);
-              }
-              warnZoneMismatch(zones, firewalldNetBinds);
-              serviceSets.add(
-                  new Tuple2<>(
-                      ServiceSet.createOptimizedServiceSet("postgresql", targets),
-                      zones
-                  )
-              );
             }
-            // Redis
-            {
-              List<Target> targets = new ArrayList<>();
-              Set<FirewallZone.Name> zones = new LinkedHashSet<>();
-              List<Bind> firewalldNetBinds = new ArrayList<>();
-              for (Bind nb : netBinds) {
-                if (nb.getAppProtocol().getProtocol().equals(AppProtocol.REDIS)) {
-                  addTarget(nb, targets, zones, firewalldNetBinds);
-                }
-              }
-              if (logger.isLoggable(Level.FINE)) {
-                logger.fine("redis targets: " + targets + ", zones: " + zones);
-              }
-              warnZoneMismatch(zones, firewalldNetBinds);
-              serviceSets.add(
-                  new Tuple2<>(
-                      ServiceSet.createOptimizedServiceSet(
-                          new Service(
-                              "redis",
-                              null,
-                              "Redis",
-                              "Redis client data port",
-                              Collections.singletonList(
-                                  Port.valueOf(6379, Protocol.TCP)
-                              ),
-                              Collections.emptySet(), // protocols
-                              Collections.emptySet(), // sourcePorts
-                              Collections.emptySet(), // modules
-                              InetAddressPrefixes.UNSPECIFIED_IPV4,
-                              InetAddressPrefixes.UNSPECIFIED_IPV6
-                          ),
-                          targets
-                      ),
-                      zones
-                  )
-              );
+            if (logger.isLoggable(Level.FINE)) {
+              logger.fine("pop3s targets: " + targets + ", zones: " + zones);
             }
-            // Redis Cluster
-            {
-              List<Target> targets = new ArrayList<>();
-              Set<FirewallZone.Name> zones = new LinkedHashSet<>();
-              List<Bind> firewalldNetBinds = new ArrayList<>();
-              for (Bind nb : netBinds) {
-                if (nb.getAppProtocol().getProtocol().equals(AppProtocol.REDIS_CLUSTER)) {
-                  addTarget(nb, targets, zones, firewalldNetBinds);
-                }
+            warnZoneMismatch(zones, firewalldNetBinds);
+            serviceSets.add(
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet("pop3s", targets),
+                    zones
+                )
+            );
+          }
+          // PostgreSQL
+          {
+            List<Target> targets = new ArrayList<>();
+            Set<FirewallZone.Name> zones = new LinkedHashSet<>();
+            List<Bind> firewalldNetBinds = new ArrayList<>();
+            for (Bind nb : netBinds) {
+              if (nb.getAppProtocol().getProtocol().equals(AppProtocol.POSTGRESQL)) {
+                addTarget(nb, targets, zones, firewalldNetBinds);
               }
-              if (logger.isLoggable(Level.FINE)) {
-                logger.fine("redis-cluster targets: " + targets + ", zones: " + zones);
-              }
-              warnZoneMismatch(zones, firewalldNetBinds);
-              serviceSets.add(
-                  new Tuple2<>(
-                      ServiceSet.createOptimizedServiceSet(
-                          new Service(
-                              "redis-cluster",
-                              null,
-                              "Redis Cluster bus",
-                              "Redis Cluster node-to-node communication",
-                              Collections.singletonList(
-                                  Port.valueOf(16379, Protocol.TCP)
-                              ),
-                              Collections.emptySet(), // protocols
-                              Collections.emptySet(), // sourcePorts
-                              Collections.emptySet(), // modules
-                              InetAddressPrefixes.UNSPECIFIED_IPV4,
-                              InetAddressPrefixes.UNSPECIFIED_IPV6
-                          ),
-                          targets
-                      ),
-                      zones
-                  )
-              );
             }
-            // Redis Sentinel
-            {
-              List<Target> targets = new ArrayList<>();
-              Set<FirewallZone.Name> zones = new LinkedHashSet<>();
-              List<Bind> firewalldNetBinds = new ArrayList<>();
-              for (Bind nb : netBinds) {
-                if (nb.getAppProtocol().getProtocol().equals(AppProtocol.REDIS_SENTINEL)) {
-                  addTarget(nb, targets, zones, firewalldNetBinds);
-                }
-              }
-              if (logger.isLoggable(Level.FINE)) {
-                logger.fine("redis-sentinel targets: " + targets + ", zones: " + zones);
-              }
-              warnZoneMismatch(zones, firewalldNetBinds);
-              serviceSets.add(
-                  new Tuple2<>(
-                      ServiceSet.createOptimizedServiceSet(
-                          new Service(
-                              "redis-sentinel",
-                              null,
-                              "Redis Sentinel",
-                              "Redis Sentinel node-to-node communication",
-                              Collections.singletonList(
-                                  Port.valueOf(26379, Protocol.TCP)
-                              ),
-                              Collections.emptySet(), // protocols
-                              Collections.emptySet(), // sourcePorts
-                              Collections.emptySet(), // modules
-                              InetAddressPrefixes.UNSPECIFIED_IPV4,
-                              InetAddressPrefixes.UNSPECIFIED_IPV6
-                          ),
-                          targets
-                      ),
-                      zones
-                  )
-              );
+            if (logger.isLoggable(Level.FINE)) {
+              logger.fine("postgresql targets: " + targets + ", zones: " + zones);
             }
-            // SMTP
-            {
-              List<Target> targets = new ArrayList<>();
-              Set<FirewallZone.Name> zones = new LinkedHashSet<>();
-              List<Bind> firewalldNetBinds = new ArrayList<>();
-              for (Bind nb : netBinds) {
-                String prot = nb.getAppProtocol().getProtocol();
-                if (prot.equals(AppProtocol.SMTP)) {
-                  addTarget(nb, targets, zones, firewalldNetBinds);
-                }
+            warnZoneMismatch(zones, firewalldNetBinds);
+            serviceSets.add(
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet("postgresql", targets),
+                    zones
+                )
+            );
+          }
+          // Redis
+          {
+            List<Target> targets = new ArrayList<>();
+            Set<FirewallZone.Name> zones = new LinkedHashSet<>();
+            List<Bind> firewalldNetBinds = new ArrayList<>();
+            for (Bind nb : netBinds) {
+              if (nb.getAppProtocol().getProtocol().equals(AppProtocol.REDIS)) {
+                addTarget(nb, targets, zones, firewalldNetBinds);
               }
-              if (logger.isLoggable(Level.FINE)) {
-                logger.fine("smtp targets: " + targets + ", zones: " + zones);
-              }
-              warnZoneMismatch(zones, firewalldNetBinds);
-              serviceSets.add(
-                  new Tuple2<>(
-                      ServiceSet.createOptimizedServiceSet("smtp", targets),
-                      zones
-                  )
-              );
             }
-            // SMTPS
-            {
-              List<Target> targets = new ArrayList<>();
-              Set<FirewallZone.Name> zones = new LinkedHashSet<>();
-              List<Bind> firewalldNetBinds = new ArrayList<>();
-              for (Bind nb : netBinds) {
-                if (nb.getAppProtocol().getProtocol().equals(AppProtocol.SMTPS)) {
-                  addTarget(nb, targets, zones, firewalldNetBinds);
-                }
-              }
-              if (logger.isLoggable(Level.FINE)) {
-                logger.fine("smtps targets: " + targets + ", zones: " + zones);
-              }
-              warnZoneMismatch(zones, firewalldNetBinds);
-              serviceSets.add(
-                  new Tuple2<>(
-                      ServiceSet.createOptimizedServiceSet("smtps", targets),
-                      zones
-                  )
-              );
+            if (logger.isLoggable(Level.FINE)) {
+              logger.fine("redis targets: " + targets + ", zones: " + zones);
             }
-            // SUBMISSION
-            {
-              List<Target> targets = new ArrayList<>();
-              Set<FirewallZone.Name> zones = new LinkedHashSet<>();
-              List<Bind> firewalldNetBinds = new ArrayList<>();
-              for (Bind nb : netBinds) {
-                String prot = nb.getAppProtocol().getProtocol();
-                if (prot.equals(AppProtocol.SUBMISSION)) {
-                  addTarget(nb, targets, zones, firewalldNetBinds);
-                }
+            warnZoneMismatch(zones, firewalldNetBinds);
+            serviceSets.add(
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet(
+                        new Service(
+                            "redis",
+                            null,
+                            "Redis",
+                            "Redis client data port",
+                            Collections.singletonList(
+                                Port.valueOf(6379, Protocol.TCP)
+                            ),
+                            Collections.emptySet(), // protocols
+                            Collections.emptySet(), // sourcePorts
+                            Collections.emptySet(), // modules
+                            InetAddressPrefixes.UNSPECIFIED_IPV4,
+                            InetAddressPrefixes.UNSPECIFIED_IPV6
+                        ),
+                        targets
+                    ),
+                    zones
+                )
+            );
+          }
+          // Redis Cluster
+          {
+            List<Target> targets = new ArrayList<>();
+            Set<FirewallZone.Name> zones = new LinkedHashSet<>();
+            List<Bind> firewalldNetBinds = new ArrayList<>();
+            for (Bind nb : netBinds) {
+              if (nb.getAppProtocol().getProtocol().equals(AppProtocol.REDIS_CLUSTER)) {
+                addTarget(nb, targets, zones, firewalldNetBinds);
               }
-              if (logger.isLoggable(Level.FINE)) {
-                logger.fine("submission targets: " + targets + ", zones: " + zones);
-              }
-              warnZoneMismatch(zones, firewalldNetBinds);
-              serviceSets.add(
-                  new Tuple2<>(
-                      ServiceSet.createOptimizedServiceSet(
-                          new Service(
-                              "submission",
-                              null,
-                              "submission",
-                              "Outgoing SMTP Mail",
-                              Collections.singletonList(
-                                  Port.valueOf(587, Protocol.TCP)
-                              ),
-                              Collections.emptySet(), // protocols
-                              Collections.emptySet(), // sourcePorts
-                              Collections.emptySet(), // modules
-                              InetAddressPrefixes.UNSPECIFIED_IPV4,
-                              InetAddressPrefixes.UNSPECIFIED_IPV6
-                          ),
-                          targets
-                      ),
-                      zones
-                  )
-              );
             }
-            // vnc-server
-            {
-              List<Target> targets = new ArrayList<>();
-              Set<FirewallZone.Name> zones = new LinkedHashSet<>();
-              List<Bind> firewalldNetBinds = new ArrayList<>();
-              for (Bind nb : netBinds) {
-                if (nb.getAppProtocol().getProtocol().equals(AppProtocol.RFB)) {
-                  addTarget(nb, targets, zones, firewalldNetBinds);
-                }
-              }
-              if (logger.isLoggable(Level.FINE)) {
-                logger.fine("vnc-server targets: " + targets + ", zones: " + zones);
-              }
-              warnZoneMismatch(zones, firewalldNetBinds);
-              serviceSets.add(
-                  new Tuple2<>(
-                      ServiceSet.createOptimizedServiceSet("vnc-server", targets),
-                      zones
-                  )
-              );
+            if (logger.isLoggable(Level.FINE)) {
+              logger.fine("redis-cluster targets: " + targets + ", zones: " + zones);
             }
+            warnZoneMismatch(zones, firewalldNetBinds);
+            serviceSets.add(
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet(
+                        new Service(
+                            "redis-cluster",
+                            null,
+                            "Redis Cluster bus",
+                            "Redis Cluster node-to-node communication",
+                            Collections.singletonList(
+                                Port.valueOf(16379, Protocol.TCP)
+                            ),
+                            Collections.emptySet(), // protocols
+                            Collections.emptySet(), // sourcePorts
+                            Collections.emptySet(), // modules
+                            InetAddressPrefixes.UNSPECIFIED_IPV4,
+                            InetAddressPrefixes.UNSPECIFIED_IPV6
+                        ),
+                        targets
+                    ),
+                    zones
+                )
+            );
+          }
+          // Redis Sentinel
+          {
+            List<Target> targets = new ArrayList<>();
+            Set<FirewallZone.Name> zones = new LinkedHashSet<>();
+            List<Bind> firewalldNetBinds = new ArrayList<>();
+            for (Bind nb : netBinds) {
+              if (nb.getAppProtocol().getProtocol().equals(AppProtocol.REDIS_SENTINEL)) {
+                addTarget(nb, targets, zones, firewalldNetBinds);
+              }
+            }
+            if (logger.isLoggable(Level.FINE)) {
+              logger.fine("redis-sentinel targets: " + targets + ", zones: " + zones);
+            }
+            warnZoneMismatch(zones, firewalldNetBinds);
+            serviceSets.add(
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet(
+                        new Service(
+                            "redis-sentinel",
+                            null,
+                            "Redis Sentinel",
+                            "Redis Sentinel node-to-node communication",
+                            Collections.singletonList(
+                                Port.valueOf(26379, Protocol.TCP)
+                            ),
+                            Collections.emptySet(), // protocols
+                            Collections.emptySet(), // sourcePorts
+                            Collections.emptySet(), // modules
+                            InetAddressPrefixes.UNSPECIFIED_IPV4,
+                            InetAddressPrefixes.UNSPECIFIED_IPV6
+                        ),
+                        targets
+                    ),
+                    zones
+                )
+            );
+          }
+          // SMTP
+          {
+            List<Target> targets = new ArrayList<>();
+            Set<FirewallZone.Name> zones = new LinkedHashSet<>();
+            List<Bind> firewalldNetBinds = new ArrayList<>();
+            for (Bind nb : netBinds) {
+              String prot = nb.getAppProtocol().getProtocol();
+              if (prot.equals(AppProtocol.SMTP)) {
+                addTarget(nb, targets, zones, firewalldNetBinds);
+              }
+            }
+            if (logger.isLoggable(Level.FINE)) {
+              logger.fine("smtp targets: " + targets + ", zones: " + zones);
+            }
+            warnZoneMismatch(zones, firewalldNetBinds);
+            serviceSets.add(
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet("smtp", targets),
+                    zones
+                )
+            );
+          }
+          // SMTPS
+          {
+            List<Target> targets = new ArrayList<>();
+            Set<FirewallZone.Name> zones = new LinkedHashSet<>();
+            List<Bind> firewalldNetBinds = new ArrayList<>();
+            for (Bind nb : netBinds) {
+              if (nb.getAppProtocol().getProtocol().equals(AppProtocol.SMTPS)) {
+                addTarget(nb, targets, zones, firewalldNetBinds);
+              }
+            }
+            if (logger.isLoggable(Level.FINE)) {
+              logger.fine("smtps targets: " + targets + ", zones: " + zones);
+            }
+            warnZoneMismatch(zones, firewalldNetBinds);
+            serviceSets.add(
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet("smtps", targets),
+                    zones
+                )
+            );
+          }
+          // SUBMISSION
+          {
+            List<Target> targets = new ArrayList<>();
+            Set<FirewallZone.Name> zones = new LinkedHashSet<>();
+            List<Bind> firewalldNetBinds = new ArrayList<>();
+            for (Bind nb : netBinds) {
+              String prot = nb.getAppProtocol().getProtocol();
+              if (prot.equals(AppProtocol.SUBMISSION)) {
+                addTarget(nb, targets, zones, firewalldNetBinds);
+              }
+            }
+            if (logger.isLoggable(Level.FINE)) {
+              logger.fine("submission targets: " + targets + ", zones: " + zones);
+            }
+            warnZoneMismatch(zones, firewalldNetBinds);
+            serviceSets.add(
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet(
+                        new Service(
+                            "submission",
+                            null,
+                            "submission",
+                            "Outgoing SMTP Mail",
+                            Collections.singletonList(
+                                Port.valueOf(587, Protocol.TCP)
+                            ),
+                            Collections.emptySet(), // protocols
+                            Collections.emptySet(), // sourcePorts
+                            Collections.emptySet(), // modules
+                            InetAddressPrefixes.UNSPECIFIED_IPV4,
+                            InetAddressPrefixes.UNSPECIFIED_IPV6
+                        ),
+                        targets
+                    ),
+                    zones
+                )
+            );
+          }
+          // vnc-server
+          {
+            List<Target> targets = new ArrayList<>();
+            Set<FirewallZone.Name> zones = new LinkedHashSet<>();
+            List<Bind> firewalldNetBinds = new ArrayList<>();
+            for (Bind nb : netBinds) {
+              if (nb.getAppProtocol().getProtocol().equals(AppProtocol.RFB)) {
+                addTarget(nb, targets, zones, firewalldNetBinds);
+              }
+            }
+            if (logger.isLoggable(Level.FINE)) {
+              logger.fine("vnc-server targets: " + targets + ", zones: " + zones);
+            }
+            warnZoneMismatch(zones, firewalldNetBinds);
+            serviceSets.add(
+                new Tuple2<>(
+                    ServiceSet.createOptimizedServiceSet("vnc-server", targets),
+                    zones
+                )
+            );
+          }
           // Group service sets by unique set of targets
           Map<Set<FirewallZone.Name>, List<ServiceSet>> serviceSetsByZones = new LinkedHashMap<>();
           for (Tuple2<ServiceSet, Set<FirewallZone.Name>> tuple : serviceSets) {

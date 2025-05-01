@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2007-2013, 2014, 2015, 2017, 2018, 2020, 2021, 2022, 2024  AO Industries, Inc.
+ * Copyright (C) 2007-2013, 2014, 2015, 2017, 2018, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -229,16 +229,16 @@ public abstract class HttpdTomcatSiteManager<T extends TomcatCommon> extends Htt
     }
     // Only include JK settings when Tomcat instance is enabled
     boolean tomcatDisabled;
-      {
-        SharedTomcatSite htss = tomcatSite.getHttpdTomcatSharedSite();
-        if (htss != null) {
-          // Shared Tomcat
-          tomcatDisabled = htss.getHttpdSharedTomcat().isDisabled();
-        } else {
-          // Standard Tomcat
-          tomcatDisabled = httpdSite.isDisabled();
-        }
+    {
+      SharedTomcatSite htss = tomcatSite.getHttpdTomcatSharedSite();
+      if (htss != null) {
+        // Shared Tomcat
+        tomcatDisabled = htss.getHttpdSharedTomcat().isDisabled();
+      } else {
+        // Standard Tomcat
+        tomcatDisabled = httpdSite.isDisabled();
       }
+    }
     if (tomcatDisabled) {
       // Return no settings when Tomcat disabled
       return super.getJkSettings();
@@ -340,18 +340,18 @@ public abstract class HttpdTomcatSiteManager<T extends TomcatCommon> extends Htt
     // readmeTxt will be null when in-place upgrade not supported
     final PosixFile readmeTxt = readmeTxtContent == null ? null : new PosixFile(siteDirectory, README_TXT, false);
     final boolean isUpgrade;
-      {
-        final Stat readmeTxtStat;
-        isUpgrade =
-            !isInstall
-                && !httpdSite.isManual()
-                && readmeTxt != null
-                && !(
-                (readmeTxtStat = readmeTxt.getStat()).exists()
-                    && readmeTxtStat.isRegularFile()
-                    && readmeTxt.contentEquals(readmeTxtContent)
-            );
-      }
+    {
+      final Stat readmeTxtStat;
+      isUpgrade =
+          !isInstall
+              && !httpdSite.isManual()
+              && readmeTxt != null
+              && !(
+              (readmeTxtStat = readmeTxt.getStat()).exists()
+                  && readmeTxtStat.isRegularFile()
+                  && readmeTxt.contentEquals(readmeTxtContent)
+          );
+    }
     assert !(isInstall && isUpgrade);
     if (isInstall || isUpgrade) {
 
