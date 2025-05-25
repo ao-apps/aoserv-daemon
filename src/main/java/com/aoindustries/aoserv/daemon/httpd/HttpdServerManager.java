@@ -1574,7 +1574,7 @@ public final class HttpdServerManager {
                       || httpdConfPattern.matcher(filename).matches()
                       || phpPattern.matcher(filename).matches()
                       || workersPattern.matcher(filename).matches()
-              )
+                )
           ) {
             File toDelete = new File(CONF_DIRECTORY, filename);
             if (logger.isLoggable(Level.INFO)) {
@@ -1595,7 +1595,7 @@ public final class HttpdServerManager {
                   && (
                   PHP_SESSION.equals(filename)
                       || PHP_SESSION_REGEXP.matcher(filename).matches()
-              )
+                )
           ) {
             File toDelete = new File(VAR_LIB_PHP_DIRECTORY.getFile(), filename);
             if (logger.isLoggable(Level.INFO)) {
@@ -1617,7 +1617,7 @@ public final class HttpdServerManager {
                   && (
                   "httpd.conf".equals(filename)
                       || HTTPD_NAME_CONF_REGEXP.matcher(filename).matches()
-              )
+                )
           ) {
             File toDelete = new File(ETC_TMPFILES_D, filename);
             if (logger.isLoggable(Level.INFO)) {
@@ -3012,7 +3012,7 @@ public final class HttpdServerManager {
                   actualTarget.startsWith("../../../../opt/php-")
                       // PHP 7+
                       || actualTarget.startsWith("../../../opt/php-")
-              )
+                )
           ) {
             // Update link
             phpIni.delete();

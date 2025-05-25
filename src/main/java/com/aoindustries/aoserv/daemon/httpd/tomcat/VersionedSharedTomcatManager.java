@@ -485,7 +485,7 @@ public abstract class VersionedSharedTomcatManager<T extends VersionedTomcatComm
             !sharedTomcat.isManual()
                 // Script may not exist while in manual mode
                 || tomcat.getStat().exists()
-        )
+          )
     ) {
       // Enabled
       if (!daemonSymlink.getStat().exists()) {

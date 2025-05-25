@@ -574,7 +574,7 @@ public final class LinuxAccountManager extends BuilderThread {
                   && (
                   homeDirStat.getUid() == PosixFile.ROOT_UID
                       || homeDirStat.getGid() == PosixFile.ROOT_GID
-                )
+                  )
                   // Do not set permissions for encrypted home directories
                   && !(new PosixFile(homeStr + ".aes256.img").getStat().exists());
               if (chownHome) {

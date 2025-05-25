@@ -90,7 +90,7 @@ public final class CvsManager extends BuilderThread {
                 osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                     || osvId == OperatingSystemVersion.CENTOS_7_X86_64
                     || osvId == OperatingSystemVersion.ROCKY_9_X86_64
-            )
+              )
         ) {
           // Install any required RPMs
           PackageManager.installPackage(PackageManager.PackageName.CVS);

@@ -929,7 +929,7 @@ public final class DistroManager implements Runnable {
                     && (
                     uid < thisServer.getUidMin().getId()
                         || gid < thisServer.getGidMin().getId()
-                )
+                  )
             ) {
               // Allow setUID for /etc/mail/majordomo/*/wrapper 4750 root.mail
               final String majordomoPath = "/etc/mail/majordomo/";

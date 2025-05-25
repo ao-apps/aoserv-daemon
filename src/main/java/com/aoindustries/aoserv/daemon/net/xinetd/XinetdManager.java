@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2003-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
+ * Copyright (C) 2003-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -145,7 +145,7 @@ public final class XinetdManager extends BuilderThread {
                   // FTP is handled through xinetd on CentOS 5
                   osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                       && protocol.equals(AppProtocol.FTP)
-              )
+                )
           ) {
             Service service;
             if (redirect != null) {

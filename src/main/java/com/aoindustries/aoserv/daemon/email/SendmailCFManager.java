@@ -1668,7 +1668,7 @@ public final class SendmailCFManager extends BuilderThread {
                           && (
                           "sendmail.service".equals(filename)
                               || SENDMAIL_NAME_SERVICE_REGEXP.matcher(filename).matches()
-                      )
+                        )
                   ) {
                     AoservDaemon.exec(
                         "/usr/bin/systemctl",
@@ -1759,7 +1759,7 @@ public final class SendmailCFManager extends BuilderThread {
                           && (
                           SENDMAIL_NAME_CF_REGEXP.matcher(filename).matches()
                               || SENDMAIL_NAME_MC_REGEXP.matcher(filename).matches()
-                      )
+                        )
                   ) {
                     deleteFileList.add(new File(etcMail, filename));
                   }

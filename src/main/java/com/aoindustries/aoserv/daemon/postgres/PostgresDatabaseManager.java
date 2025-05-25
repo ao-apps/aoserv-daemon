@@ -438,7 +438,7 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
               && (
               postgresDatabaseManager == null
                   || !cronStarted
-          )
+            )
       ) {
         System.out.print("Starting PostgresDatabaseManager: ");
         // Must be a supported operating system
@@ -573,7 +573,7 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
                             || (
                             schema != null
                                 && Database.Name.validate(schema).isValid()
-                        )
+                          )
                     ) {
                       // VACUUM the table
                       String currentSql = null;

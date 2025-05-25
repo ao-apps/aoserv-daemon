@@ -551,7 +551,7 @@ class HttpdSharedTomcatManager_6_0_X extends HttpdSharedTomcatManager<TomcatComm
             !sharedTomcat.isManual()
                 // Script may not exist while in manual mode
                 || tomcat.getStat().exists()
-        )
+          )
     ) {
       // Enabled
       if (!daemonSymlink.getStat().exists()) {

@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2007-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2007-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2021, 2022, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -189,7 +189,7 @@ abstract class HttpdTomcatStdSiteManager<T extends TomcatCommon> extends HttpdTo
             !httpdSite.isManual()
                 // Script may not exist while in manual mode
                 || tomcat.getStat().exists()
-        )
+          )
     ) {
       // Enabled
       if (!daemonSymlink.getStat().exists()) {

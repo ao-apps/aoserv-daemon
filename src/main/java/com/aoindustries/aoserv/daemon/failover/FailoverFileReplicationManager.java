@@ -380,7 +380,7 @@ public final class FailoverFileReplicationManager {
             relativePath.startsWith("/etc/rc.d/init.d/mysql-")
                 || relativePath.startsWith("/etc/sysconfig/mysql-")
                 || relativePath.startsWith("/opt/mysql-")
-        )
+          )
     ) {
       if (logger.isLoggable(Level.FINE)) {
         logger.fine("Flagging postPassChecklist.restartMySQLs=true for path=" + relativePath);
@@ -1196,7 +1196,7 @@ public final class FailoverFileReplicationManager {
                         && (
                         !stat.isBlockDevice()
                             || stat.getDeviceIdentifier() != deviceId
-                    )
+                      )
                 ) {
                   if (isTrace) {
                     logger.finer("Deleting to create block device: " + posixFile.getPath());
@@ -1232,7 +1232,7 @@ public final class FailoverFileReplicationManager {
                         && (
                         !stat.isCharacterDevice()
                             || stat.getDeviceIdentifier() != deviceId
-                    )
+                      )
                 ) {
                   if (isTrace) {
                     logger.finer("Deleting to create character device: " + posixFile.getPath());
@@ -1515,7 +1515,7 @@ public final class FailoverFileReplicationManager {
                               && (
                               length
                                   < (((long) Integer.MAX_VALUE) << AoservDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE_BITS)
-                          )
+                            )
                       ) {
                         // Next we will try chunking.  For chunking, we will start by determining what we are chunking from.
                         PosixFile chunkingFrom;
@@ -1667,7 +1667,7 @@ public final class FailoverFileReplicationManager {
                         && (
                         !stat.isSymLink()
                             || !readLink(activity, posixFile).equals(symlinkTarget)
-                    )
+                      )
                 ) {
                   if (isTrace) {
                     logger.finer("Deleting to create sybolic link: " + posixFile.getPath());
@@ -1716,7 +1716,7 @@ public final class FailoverFileReplicationManager {
                       && (
                       (effectiveStat.getRawMode() & (PosixFile.TYPE_MASK | PosixFile.PERMISSION_MASK))
                           != (mode & (PosixFile.TYPE_MASK | PosixFile.PERMISSION_MASK))
-                  )
+                    )
               ) {
                 //try {
                 if (retention != 1) {
@@ -1736,7 +1736,7 @@ public final class FailoverFileReplicationManager {
                           || (
                           (linkToStat.getRawMode() & (PosixFile.TYPE_MASK | PosixFile.PERMISSION_MASK))
                               != (mode & (PosixFile.TYPE_MASK | PosixFile.PERMISSION_MASK))
-                      )
+                        )
                   ) {
                     result = AoservDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
                     updated(retention, postPassChecklist, relativePath);
@@ -2501,19 +2501,19 @@ public final class FailoverFileReplicationManager {
                         ||     relativePath.equals("/var/lib/mysql/" + name + "-slow")
                         || relativePath.startsWith("/var/lib/mysql/" + name + "-slow/")
                 )
-            ) || (
+              ) || (
                 relativePath.startsWith("/var/lib/mysql-fast/")
                     && (
                     relativePath.equals("/var/lib/mysql-fast/" + name)
                         || relativePath.startsWith("/var/lib/mysql-fast/" + name + "/")
                 )
-            ) || (
+              ) || (
                 relativePath.startsWith("/var/lib/mysql-slow/")
                     && (
                     relativePath.equals("/var/lib/mysql-slow/" + name)
                         || relativePath.startsWith("/var/lib/mysql-slow/" + name + "/")
                 )
-            ) || relativePath.equals("/var/lock/subsys/mysql-" + name)
+              ) || relativePath.equals("/var/lock/subsys/mysql-" + name)
         ) {
           if (isDebug) {
             logger.fine("Skipping delete on cleanup: \"" + fromServer + "\":" + relativePath);
@@ -2581,11 +2581,11 @@ public final class FailoverFileReplicationManager {
                                 // Is date + partial
                                 filename.length() == (10 + PARTIAL_EXTENSION.length())
                                     && filename.endsWith(PARTIAL_EXTENSION)
-                            ) || (
+                              ) || (
                                 // Is date + recycled + partial
                                 filename.length() == (10 + RECYCLED_PARTIAL_EXTENSION.length())
                                     && filename.endsWith(RECYCLED_PARTIAL_EXTENSION)
-                            )
+                              )
                         ) {
                           List<String> directories = directoriesByAge.get(age);
                           if (directories == null) {

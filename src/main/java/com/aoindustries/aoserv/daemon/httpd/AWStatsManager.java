@@ -803,8 +803,8 @@ public final class AWStatsManager extends BuilderThread {
       if (
           // Protect for use in '...' below:
           queryString.indexOf('\'') == -1
-          && queryString.indexOf(0) == -1
-          && (
+            && queryString.indexOf(0) == -1
+            && (
               // May not contain zero terminator
               queryString.isEmpty()
                   || "framename=mainright".equals(queryString)
@@ -822,8 +822,8 @@ public final class AWStatsManager extends BuilderThread {
                   )
                   || queryString.matches("^hostfilter=(\\w|\\.)*&hostfilterex=(\\w|\\.)*&output=\\w*&config=" + escapedSiteName + "(&year=\\d*&month=\\d*)?&framename=\\w*$")
                   || queryString.matches("^urlfilter=(\\w|\\.)*&urlfilterex=(\\w|\\.)*&output=\\w*&config=" + escapedSiteName + "(&year=\\d*&month=\\d*)?&framename=\\w*$")
-          // TODO: refererpagesfilter=sadf+&refererpagesfilterex=asd+f&output=refererpages&config=boxer.aoapps.com&year=2020&month=03&framename=mainright
-          )
+            // TODO: refererpagesfilter=sadf+&refererpagesfilterex=asd+f&output=refererpages&config=boxer.aoapps.com&year=2020&month=03&framename=mainright
+            )
       ) {
         String runascgi;
         if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {

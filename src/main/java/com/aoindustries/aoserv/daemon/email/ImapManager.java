@@ -1746,7 +1746,7 @@ public final class ImapManager extends BuilderThread {
             filename.endsWith(".index.ids")
                 || filename.endsWith(".index")
                 || filename.endsWith(".index.sorted")
-        )
+          )
     ) {
       log(logOut, Level.FINE, username, "Deleting non-mailbox file: " + file.getPath());
       file.delete();

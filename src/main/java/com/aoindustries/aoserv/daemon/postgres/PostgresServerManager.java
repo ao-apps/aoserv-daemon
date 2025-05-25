@@ -374,7 +374,7 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
                                 || filename.charAt(30) == 's'
                                 || filename.charAt(31) == 'v'
                         )
-                    )
+                      )
                 ) {
                   logger.log(Level.WARNING, null, new IOException("Warning, unexpected filename, will not remove: " + logDirectory.getPath() + "/" + filename));
                 } else {

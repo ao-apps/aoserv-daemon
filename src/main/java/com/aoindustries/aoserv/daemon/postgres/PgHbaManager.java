@@ -466,7 +466,7 @@ public final class PgHbaManager extends BuilderThread {
                                       // TODO: Allow access to subaccounts?
                                       db.getDatdba().getPostgresUser().getUsername().getPackage().getAccount()
                                   )
-                              )
+                                )
                           ) {
                             if (postgresIdentUsers.contains(username)) {
                               identDbUsers.add(username);

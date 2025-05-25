@@ -249,8 +249,8 @@ public final class MpmConfiguration {
     if (
         osConfig.isApacheDefaultPrefork()
         || hs.getModPhpVersion() != null
-        || workerServerLimit < MPM_MIN_SERVERS
-        || workerThreadsPerChild < MPM_MIN_THREADS_PER_CHILD
+          || workerServerLimit < MPM_MIN_SERVERS
+          || workerThreadsPerChild < MPM_MIN_THREADS_PER_CHILD
     ) {
       type = MpmType.PREFORK;
     } else {

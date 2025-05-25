@@ -98,7 +98,7 @@ abstract class VersionedTomcatStdSiteManager<T extends VersionedTomcatCommon> ex
               !httpdSite.isManual()
                   // Script may not exist while in manual mode
                   || tomcat.getStat().exists()
-          )
+            )
       ) {
         DaemonFileUtils.ln(
             "../bin/tomcat",
