@@ -665,6 +665,7 @@ public final class PackageManager {
     /**
      * Removes this package.
      */
+    // TODO: ROCKY_9_X86_64: dnf -q remove -y
     public void remove() throws IOException {
       if (!AoservDaemonConfiguration.isPackageManagerUninstallEnabled()) {
         throw new IllegalStateException("Package uninstall is disabled in aoserv-daemon.properties");
