@@ -175,6 +175,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
           PackageManager.PackageName.OLD_APACHE_TOMCAT_10_1);
       final String suffix = osConfig.getPackageReleaseSuffix();
       // Downgrade support
+      if (version.compareTo("10.1.43-1" + suffix) < 0) {
+        // 10.1.43-1 has same files as 10.1.42-1
+      }
       if (version.compareTo("10.1.42-1" + suffix) < 0) {
         UpgradeSymlink[] downgradeSymlinks = {
             // jakartaee-migration-1.0.9-shaded.jar -> jakartaee-migration-1.0.8-shaded.jar
@@ -850,7 +853,10 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
           }
         }
       }
-      if (version.compareTo("10.1.42-1" + suffix) > 0) {
+      if (version.compareTo("10.1.43-1" + suffix) >= 0) {
+        // 10.1.43-1 has same files as 10.1.42-1
+      }
+      if (version.compareTo("10.1.43-1" + suffix) > 0) {
         throw new IllegalStateException("Version of Tomcat newer than expected: " + version);
       }
     }
