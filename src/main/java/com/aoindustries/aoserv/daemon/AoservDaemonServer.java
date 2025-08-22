@@ -146,7 +146,7 @@ public final class AoservDaemonServer extends Thread {
                   Socket socket = SS.accept();
                   socket.setKeepAlive(true);
                   socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
-                  //socket.setTcpNoDelay(true);
+                  // socket.setTcpNoDelay(true);
                   AoservDaemonServerThread thread = new AoservDaemonServerThread(this, socket);
                   thread.start();
                 }
@@ -163,7 +163,7 @@ public final class AoservDaemonServer extends Thread {
                   try {
                     socket.setKeepAlive(true);
                     socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
-                    //socket.setTcpNoDelay(true);
+                    // socket.setTcpNoDelay(true);
                     AoservDaemonServerThread thread = new AoservDaemonServerThread(this, socket);
                     thread.start();
                   } catch (ThreadDeath td) {

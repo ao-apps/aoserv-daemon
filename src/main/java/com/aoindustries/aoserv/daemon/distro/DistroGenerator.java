@@ -486,7 +486,7 @@ public final class DistroGenerator {
      * Empty lines, after trimming, are ignored.
      * Lines containing a path are not trimmed.</p>
      */
-    private void readFileLists(ConfigFile configFile, Map<OsFilename, Boolean> map, int ... osvs) throws IOException {
+    private void readFileLists(ConfigFile configFile, Map<OsFilename, Boolean> map, int... osvs) throws IOException {
       for (int osv : osvs) {
         String path = getOperatingSystemPath(osv) + configFile.fileExtension;
         try (

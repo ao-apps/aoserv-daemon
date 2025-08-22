@@ -84,11 +84,11 @@ public final class Ipset {
     R
   }
 
-  ///**
-  // * To minimize the kernel locking duration, each ipset is only updated with
-  // * what has changed since the last build.
-  // */
-  //private static final Map<Set, Set<Integer>> lastNetworks = new HashMap<>();
+  // /**
+  //  * To minimize the kernel locking duration, each ipset is only updated with
+  //  * what has changed since the last build.
+  //  */
+  // private static final Map<Set, Set<Integer>> lastNetworks = new HashMap<>();
 
   /**
    * Calls <code>ipset -S</code>, skipping any comment lines.

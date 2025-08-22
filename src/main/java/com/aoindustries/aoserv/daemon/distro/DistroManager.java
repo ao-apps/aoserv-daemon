@@ -344,7 +344,7 @@ public final class DistroManager implements Runnable {
         }
       }
       verboseOut.append(EOL);
-      //verboseOut.flush();
+      // verboseOut.flush();
     }
   }
 
@@ -466,7 +466,7 @@ public final class DistroManager implements Runnable {
    * SYMLINK Symlink
    * TYPE Type
    */
-  //@SuppressWarnings({"unchecked"})
+  // @SuppressWarnings({"unchecked"})
   private static void checkDistroFile(
       Server thisServer,
       Integer osVersionPkey,
@@ -962,13 +962,13 @@ public final class DistroManager implements Runnable {
             }
 
             // Make sure not world writable
-            //if ((fileMode&PosixFile.OTHER_WRITE) == PosixFile.OTHER_WRITE) {
-            //    results.add("PERMISSIONS "+uf+" "+Integer.toOctalString(fileMode));
-            //    if (displayResults) {
-            //        System.out.println(results.get(results.size()-1));
-            //        System.out.flush();
-            //    }
-            //}
+            // if ((fileMode&PosixFile.OTHER_WRITE) == PosixFile.OTHER_WRITE) {
+            //     results.add("PERMISSIONS "+uf+" "+Integer.toOctalString(fileMode));
+            //     if (displayResults) {
+            //         System.out.println(results.get(results.size()-1));
+            //         System.out.flush();
+            //     }
+            // }
 
             // Recurse
             if (!ufStat.isSymLink() && ufStat.isDirectory()) {

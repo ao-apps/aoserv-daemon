@@ -307,15 +307,15 @@ public final class PostgresUserManager extends BuilderThread {
                               : "CREATE USER "
                       );
                       sql.append('"').append(username).append('"');
-                      //.append(
-                      //  (
-                      //    version.startsWith(Version.VERSION_7_1+'.')
-                      //  )
-                      //  ? " PASSWORD '"
-                      //  : " UNENCRYPTED PASSWORD '"
-                      //)
-                      //.append(User.NO_PASSWORD_DB_VALUE)
-                      //.append("' ")
+                      // .append(
+                      //   (
+                      //     version.startsWith(Version.VERSION_7_1+'.')
+                      //   )
+                      //   ? " PASSWORD '"
+                      //   : " UNENCRYPTED PASSWORD '"
+                      // )
+                      // .append(User.NO_PASSWORD_DB_VALUE)
+                      // .append("' ")
                       if (pu.canCreatedb()) {
                         sql.append(" CREATEDB");
                       }

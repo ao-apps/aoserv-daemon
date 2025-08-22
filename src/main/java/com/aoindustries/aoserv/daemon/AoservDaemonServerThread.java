@@ -106,10 +106,10 @@ public final class AoservDaemonServerThread extends Thread {
       AoservDaemonProtocol.Version.VERSION_1_77
   };
 
-  ///**
-  // * The <code>AOServServer</code> that created this <code>AOServServerThread</code>.
-  // */
-  //private final AoservDaemonServer server;
+  // /**
+  //  * The <code>AOServServer</code> that created this <code>AOServServerThread</code>.
+  //  */
+  // private final AoservDaemonServer server;
 
   /**
    * The <code>Socket</code> that is connected.
@@ -131,7 +131,7 @@ public final class AoservDaemonServerThread extends Thread {
    */
   public AoservDaemonServerThread(AoservDaemonServer server, Socket socket) throws IOException {
     setName("AOServ Daemon Host Thread #" + getId() + " - " + socket.getInetAddress().getHostAddress());
-    //this.server = server;
+    // this.server = server;
     this.socket = socket;
     this.in = new StreamableInput(new BufferedInputStream(socket.getInputStream()));
     this.out = new StreamableOutput(new BufferedOutputStream(socket.getOutputStream()));

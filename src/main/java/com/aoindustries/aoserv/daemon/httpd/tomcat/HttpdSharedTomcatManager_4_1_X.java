@@ -146,10 +146,10 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
             + "\n"
             + ". /etc/profile\n"
             + ". ").print(osConfig.getJdk17ProfileSh()).print('\n');
-        //if (postgresServerMinorVersion != null) {
-        //  out.print(". /opt/postgresql-"+postgresServerMinorVersion+"-i686/setenv.sh\n");
-        //}
-        //out.print(". ").print(osConfig.getAOServClientScriptInclude()).print("\n"
+        // if (postgresServerMinorVersion != null) {
+        //   out.print(". /opt/postgresql-"+postgresServerMinorVersion+"-i686/setenv.sh\n");
+        // }
+        // out.print(". ").print(osConfig.getAOServClientScriptInclude()).print("\n"
         out.print("\n"
             + "umask 002\n"
             + "\n"
@@ -417,17 +417,17 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
               + "  </GlobalNamingResources>\n"
               + "  <Service name=\"Tomcat-Apache\">\n"
               + "    <Connector\n"
-              //+ "      className=\"org.apache.coyote.tomcat4.CoyoteConnector\"\n"
-              //+ "      port=\"").print(hw.getNetBind().getPort().getPort()).print("\"\n"
-              //+ "      minProcessors=\"2\"\n"
-              //+ "      maxProcessors=\"200\"\n"
-              //+ "      enableLookups=\"true\"\n"
-              //+ "      redirectPort=\"443\"\n"
-              //+ "      acceptCount=\"10\"\n"
-              //+ "      debug=\"0\"\n"
-              //+ "      connectionTimeout=\"20000\"\n"
-              //+ "      useURIValidationHack=\"false\"\n"
-              //+ "      protocolHandlerClassName=\"org.apache.jk.server.JkCoyoteHandler\"\n"
+              // + "      className=\"org.apache.coyote.tomcat4.CoyoteConnector\"\n"
+              // + "      port=\"").print(hw.getNetBind().getPort().getPort()).print("\"\n"
+              // + "      minProcessors=\"2\"\n"
+              // + "      maxProcessors=\"200\"\n"
+              // + "      enableLookups=\"true\"\n"
+              // + "      redirectPort=\"443\"\n"
+              // + "      acceptCount=\"10\"\n"
+              // + "      debug=\"0\"\n"
+              // + "      connectionTimeout=\"20000\"\n"
+              // + "      useURIValidationHack=\"false\"\n"
+              // + "      protocolHandlerClassName=\"org.apache.jk.server.JkCoyoteHandler\"\n"
               + "      className=\"org.apache.ajp.tomcat4.Ajp13Connector\"\n"
               + "      port=\"").textInXmlAttribute(hw.getBind().getPort().getPort()).print("\"\n"
               + "      minProcessors=\"2\"\n"

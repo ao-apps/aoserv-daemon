@@ -76,7 +76,7 @@ module com.aoindustries.aoserv.daemon {
   requires java.mail; // <groupId>com.sun.mail</groupId><artifactId>javax.mail</artifactId>
   requires com.aoindustries.noc.monitor.portmon; // <groupId>com.aoindustries</groupId><artifactId>noc-monitor-portmon</artifactId>
   // Java SE
-  //requires java.logging;
+  // requires java.logging;
   requires java.naming;
   requires java.sql;
 }

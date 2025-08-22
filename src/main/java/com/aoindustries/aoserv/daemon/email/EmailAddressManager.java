@@ -201,7 +201,7 @@ public final class EmailAddressManager extends BuilderThread {
             {
               String exNouser;
               if (osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-                //exNouser="/opt/aoserv-client/sbin/ex_nouser";
+                // exNouser="/opt/aoserv-client/sbin/ex_nouser";
                 // Code for EX_NOUSER in /usr/include/sysexits.h
                 exNouser = "\"/bin/sh -c 'exit 67'\"";
               } else if (osvId == OperatingSystemVersion.CENTOS_7_X86_64) {

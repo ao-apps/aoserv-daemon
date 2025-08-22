@@ -136,7 +136,7 @@ public final class SslCertificateManager {
    * <p><b>Implementation Note:</b><br />
    * This synchronizes on {@link #getHashedCache} which will serialize all commands.  This is OK as results will be cached normally.</p>
    */
-  private static String getCommandHash(PosixFile file, String type, long modifiedTime, boolean allowCached, String ... command) throws IOException {
+  private static String getCommandHash(PosixFile file, String type, long modifiedTime, boolean allowCached, String... command) throws IOException {
     try {
       Tuple2<PosixFile, String> cacheKey = new Tuple2<>(file, type);
       synchronized (getHashedCache) {

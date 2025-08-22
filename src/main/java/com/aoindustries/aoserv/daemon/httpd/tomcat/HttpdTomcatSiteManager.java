@@ -115,9 +115,9 @@ public abstract class HttpdTomcatSiteManager<T extends TomcatCommon> extends Htt
     // Apache will serve content directly.
     // Always protect at the Apache level to not expose sensitive information
     // If not using Apache, let Tomcat do its own protection
-    //if (!tomcatSite.getUseApache()) {
-    //  return standardRejectedLocations;
-    //}
+    // if (!tomcatSite.getUseApache()) {
+    //   return standardRejectedLocations;
+    // }
     List<Context> htcs;
     if (
         !tomcatSite.getBlockWebinf()

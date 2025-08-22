@@ -888,7 +888,7 @@ public final class PackageManager {
    *
    * @see  #installPackage(com.aoindustries.aoserv.daemon.unix.linux.PackageManager.PackageName)
    */
-  public static void installPackages(PackageName ... packageNames) throws IOException {
+  public static void installPackages(PackageName... packageNames) throws IOException {
     synchronized (packagesLock) {
       for (PackageName packageName : packageNames) {
         installPackage(packageName);

@@ -45,9 +45,9 @@ public enum HttpdOperatingSystemConfiguration {
       return OperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64;
     }
 
-    //public String getDefaultPhpPostgresMinorVersion() {
-    //    return "9.2";
-    //}
+    // public String getDefaultPhpPostgresMinorVersion() {
+    //     return "9.2";
+    // }
 
     @Override
     public PosixPath getPhpCgiPath(String minorVersion) {
@@ -143,9 +143,9 @@ public enum HttpdOperatingSystemConfiguration {
       return OperatingSystemConfiguration.CENTOS_7_X86_64;
     }
 
-    //public String getDefaultPhpPostgresMinorVersion() {
-    //    return "9.2";
-    //}
+    // public String getDefaultPhpPostgresMinorVersion() {
+    //     return "9.2";
+    // }
 
     @Override
     public PosixPath getPhpCgiPath(String minorVersion) {
@@ -243,9 +243,9 @@ public enum HttpdOperatingSystemConfiguration {
       return OperatingSystemConfiguration.ROCKY_9_X86_64;
     }
 
-    //public String getDefaultPhpPostgresMinorVersion() {
-    //    return "15";
-    //}
+    // public String getDefaultPhpPostgresMinorVersion() {
+    //     return "15";
+    // }
 
     @Override
     public PosixPath getPhpCgiPath(String minorVersion) {
@@ -367,10 +367,10 @@ public enum HttpdOperatingSystemConfiguration {
    */
   public abstract OperatingSystemConfiguration getOperatingSystemConfiguration();
 
-  ///**
-  // * The version of PostgreSQL minor version used by the default PHP minor version.
-  // */
-  //public abstract String getDefaultPhpPostgresMinorVersion();
+  // /**
+  //  * The version of PostgreSQL minor version used by the default PHP minor version.
+  //  */
+  // public abstract String getDefaultPhpPostgresMinorVersion();
 
   /**
    * Gets the full path to the PHP CGI script for the provided PHP minor version.

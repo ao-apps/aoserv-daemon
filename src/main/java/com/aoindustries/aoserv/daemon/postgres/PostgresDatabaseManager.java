@@ -503,7 +503,7 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
   public void run(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
     try {
       AoservConnector aoservConn = AoservDaemon.getConnector();
-      //DatabaseTable postgresDatabaseTable = aoservConn.getPostgresql().getDatabase();
+      // DatabaseTable postgresDatabaseTable = aoservConn.getPostgresql().getDatabase();
       // Only REINDEX on the first Sunday of the month
       boolean isReindexTime = dayOfMonth <= 7;
       List<String> tableNames = new ArrayList<>();

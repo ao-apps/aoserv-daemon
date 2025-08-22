@@ -73,7 +73,7 @@ public final class Fail2banManager extends BuilderThread {
   }
 
   @SuppressWarnings({"unchecked"})
-  private static <T> Set<T> getSet(T ... values) {
+  private static <T> Set<T> getSet(T... values) {
     return AoCollections.optimalUnmodifiableSet(
         new HashSet<>(
             Arrays.asList(values)

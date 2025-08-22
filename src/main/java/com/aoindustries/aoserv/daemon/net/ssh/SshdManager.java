@@ -181,7 +181,7 @@ public final class SshdManager extends BuilderThread {
         + "Port " + DEFAULT_PORT + "\n"
         + "Protocol 2\n");
     // Changed to not allow Protocol 1 on 2005-02-01 by Dan Armstrong
-    //+ "Protocol 2,1\n");
+    // + "Protocol 2,1\n");
     writeListenAddresses(nbs, out, Integer.MAX_VALUE);
     out.print("AcceptEnv SCREEN_SESSION\n"
         + "SyslogFacility AUTHPRIV\n"
@@ -537,9 +537,9 @@ public final class SshdManager extends BuilderThread {
               }
             }
           }
-          //if (nbs.size() > MAX_LISTEN_SOCKS) {
-          //  throw new IOException("Refusing to build sshd_config with more than MAX_LISTEN_SOCKS(" + MAX_LISTEN_SOCKS + ") ListenAddress directives: " + nbs.size());
-          //}
+          // if (nbs.size() > MAX_LISTEN_SOCKS) {
+          //   throw new IOException("Refusing to build sshd_config with more than MAX_LISTEN_SOCKS(" + MAX_LISTEN_SOCKS + ") ListenAddress directives: " + nbs.size());
+          // }
           // Restart only when something changed
           boolean[] needsRestart = {false};
           // Install openssh-server package if missing (when there is at least one port)

@@ -395,8 +395,8 @@ public final class PgHbaManager extends BuilderThread {
                     // postgres user
                     out.print("# Super user: local peer-only, to all databases\n");
                     out.print("local all \"" + User.POSTGRES + "\"     peer\n");
-                    //out.print("hostnossl all \"" + User.POSTGRES + "\" 127.0.0.1/32 ident\n");
-                    //out.print("hostnossl all \"" + User.POSTGRES + "\" ::1/128      ident\n");
+                    // out.print("hostnossl all \"" + User.POSTGRES + "\" 127.0.0.1/32 ident\n");
+                    // out.print("hostnossl all \"" + User.POSTGRES + "\" ::1/128      ident\n");
                     out.print("host  all \"" + User.POSTGRES + "\" all reject\n");
 
                     // postgresmon database

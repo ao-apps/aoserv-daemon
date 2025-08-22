@@ -81,10 +81,10 @@ public abstract class TomcatCommon_3_X extends TomcatCommon {
    */
   public abstract void printTomcatUsers(ChainWriter out);
 
-  ///**
-  // * Gets the servlet API version.
-  // */
-  //abstract String getServletApiVersion();
+  // /**
+  //  * Gets the servlet API version.
+  //  */
+  // abstract String getServletApiVersion();
 
   /**
    * Gets the tomcat API version.

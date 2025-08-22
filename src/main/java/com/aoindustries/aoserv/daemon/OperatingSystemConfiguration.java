@@ -57,10 +57,10 @@ public enum OperatingSystemConfiguration {
       }
     }
 
-    //@Override
-    //public PosixPath getAOServClientScriptInclude() {
-    //  return "/opt/aoserv-client/scripts/aoserv-client.sh";
-    //}
+    // @Override
+    // public PosixPath getAOServClientScriptInclude() {
+    //   return "/opt/aoserv-client/scripts/aoserv-client.sh";
+    // }
 
     @Override
     public PosixPath getPostgresPath(String minorVersion) {
@@ -71,9 +71,9 @@ public enum OperatingSystemConfiguration {
       }
     }
 
-    //public PosixPath getMySQLConnectorJavaJarPath() {
-    //  return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
-    //}
+    // public PosixPath getMySQLConnectorJavaJarPath() {
+    //   return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
+    // }
 
     @Override
     public PosixPath getDefaultJdkProfileSh() {
@@ -129,18 +129,18 @@ public enum OperatingSystemConfiguration {
       return CENTOS_5_I686_AND_X86_64.getReplaceCommand();
     }
 
-    //public PosixPath getAOServClientScriptInclude() {
-    //  return "/opt/aoserv-client/scripts/aoserv-client.sh";
-    //}
+    // public PosixPath getAOServClientScriptInclude() {
+    //   return "/opt/aoserv-client/scripts/aoserv-client.sh";
+    // }
 
     @Override
     public PosixPath getPostgresPath(String minorVersion) {
       return null;
     }
 
-    //public PosixPath getMySQLConnectorJavaJarPath() {
-    //  return null;
-    //}
+    // public PosixPath getMySQLConnectorJavaJarPath() {
+    //   return null;
+    // }
 
     @Override
     public PosixPath getDefaultJdkProfileSh() {
@@ -188,18 +188,18 @@ public enum OperatingSystemConfiguration {
       return CENTOS_5_I686_AND_X86_64.getReplaceCommand();
     }
 
-    //public PosixPath getAOServClientScriptInclude() {
-    //  return "/opt/aoserv-client/scripts/aoserv-client.sh";
-    //}
+    // public PosixPath getAOServClientScriptInclude() {
+    //   return "/opt/aoserv-client/scripts/aoserv-client.sh";
+    // }
 
     @Override
     public PosixPath getPostgresPath(String minorVersion) {
       return null;
     }
 
-    //public PosixPath getMySQLConnectorJavaJarPath() {
-    //  return null;
-    //}
+    // public PosixPath getMySQLConnectorJavaJarPath() {
+    //   return null;
+    // }
 
     @Override
     public PosixPath getDefaultJdkProfileSh() {
@@ -255,10 +255,10 @@ public enum OperatingSystemConfiguration {
       }
     }
 
-    //@Override
-    //public PosixPath getAOServClientScriptInclude() {
-    //  return "/opt/aoserv-client/scripts/aoserv-client.sh";
-    //}
+    // @Override
+    // public PosixPath getAOServClientScriptInclude() {
+    //   return "/opt/aoserv-client/scripts/aoserv-client.sh";
+    // }
 
     @Override
     public PosixPath getPostgresPath(String minorVersion) {
@@ -269,9 +269,9 @@ public enum OperatingSystemConfiguration {
       }
     }
 
-    //public PosixPath getMySQLConnectorJavaJarPath() {
-    //  return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
-    //}
+    // public PosixPath getMySQLConnectorJavaJarPath() {
+    //   return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
+    // }
 
     @Override
     public PosixPath getDefaultJdkProfileSh() {
@@ -327,19 +327,19 @@ public enum OperatingSystemConfiguration {
       return CENTOS_7_X86_64.getReplaceCommand();
     }
 
-    //@Override
-    //public PosixPath getAOServClientScriptInclude() {
-    //  return "/opt/aoserv-client/scripts/aoserv-client.sh";
-    //}
+    // @Override
+    // public PosixPath getAOServClientScriptInclude() {
+    //   return "/opt/aoserv-client/scripts/aoserv-client.sh";
+    // }
 
     @Override
     public PosixPath getPostgresPath(String minorVersion) {
       return null;
     }
 
-    //public PosixPath getMySQLConnectorJavaJarPath() {
-    //  return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
-    //}
+    // public PosixPath getMySQLConnectorJavaJarPath() {
+    //   return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
+    // }
 
     @Override
     public PosixPath getDefaultJdkProfileSh() {
@@ -395,10 +395,10 @@ public enum OperatingSystemConfiguration {
       }
     }
 
-    //@Override
-    //public PosixPath getAOServClientScriptInclude() {
-    //  return "/opt/aoserv-client/scripts/aoserv-client.sh";
-    //}
+    // @Override
+    // public PosixPath getAOServClientScriptInclude() {
+    //   return "/opt/aoserv-client/scripts/aoserv-client.sh";
+    // }
 
     @Override
     public PosixPath getPostgresPath(String minorVersion) {
@@ -409,9 +409,9 @@ public enum OperatingSystemConfiguration {
       }
     }
 
-    //public PosixPath getMySQLConnectorJavaJarPath() {
-    //  return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
-    //}
+    // public PosixPath getMySQLConnectorJavaJarPath() {
+    //   return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
+    // }
 
     @Override
     public PosixPath getDefaultJdkProfileSh() {
@@ -493,11 +493,11 @@ public enum OperatingSystemConfiguration {
    */
   public abstract PosixPath getReplaceCommand();
 
-  ///**
-  // * Gets the full path that a shell script would use to include the AOServ
-  // * Client.
-  // */
-  //public abstract PosixPath getAOServClientScriptInclude();
+  // /**
+  //  * Gets the full path that a shell script would use to include the AOServ
+  //  * Client.
+  //  */
+  // public abstract PosixPath getAOServClientScriptInclude();
 
   /**
    * Gets the path to the PostgreSQL installation directory for the provided
@@ -507,11 +507,11 @@ public enum OperatingSystemConfiguration {
    */
   public abstract PosixPath getPostgresPath(String minorVersion);
 
-  ///**
-  // * Gets the full path to the preferred MySQL Java JDBC driver JAR or
-  // * <code>null</code> if none available.
-  // */
-  //public abstract PosixPath getMySQLConnectorJavaJarPath();
+  // /**
+  //  * Gets the full path to the preferred MySQL Java JDBC driver JAR or
+  //  * <code>null</code> if none available.
+  //  */
+  // public abstract PosixPath getMySQLConnectorJavaJarPath();
 
   /**
    * Gets the path to the default JDK profile.sh script.

@@ -127,8 +127,8 @@ class HttpdSharedTomcatManager_8_0_X extends HttpdSharedTomcatManager<TomcatComm
       work.mkdir().chown(lsaUid, lsgGid).setMode(0750);
       DaemonFileUtils.mkdir(innerWork.getPath(), 0750, lsaUid, lsgGid);
 
-      //Server postgresServer=thisServer.getPreferredPostgresServer();
-      //String postgresServerMinorVersion=postgresServer == null?null:postgresServer.getPostgresVersion().getMinorVersion();
+      // Server postgresServer=thisServer.getPreferredPostgresServer();
+      // String postgresServerMinorVersion=postgresServer == null?null:postgresServer.getPostgresVersion().getMinorVersion();
 
       DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-8.0/bin/bootstrap.jar", wwwGroupDir + "/bin/bootstrap.jar", lsaUid, lsgGid);
       DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-8.0/bin/catalina.sh", wwwGroupDir + "/bin/catalina.sh", lsaUid, lsgGid);
@@ -150,10 +150,10 @@ class HttpdSharedTomcatManager_8_0_X extends HttpdSharedTomcatManager<TomcatComm
 
         out.print(". /etc/profile\n"
             + ". ").print(osConfig.getDefaultJdkProfileSh()).print('\n');
-        //if (postgresServerMinorVersion != null) {
-        //  out.print(". /opt/postgresql-"+postgresServerMinorVersion+"-i686/setenv.sh\n");
-        //}
-        //out.print(". ").print(osConfig.getAOServClientScriptInclude()).print("\n"
+        // if (postgresServerMinorVersion != null) {
+        //   out.print(". /opt/postgresql-"+postgresServerMinorVersion+"-i686/setenv.sh\n");
+        // }
+        // out.print(". ").print(osConfig.getAOServClientScriptInclude()).print("\n"
         out.print("\n"
             + "umask 002\n"
             + "\n"
@@ -252,17 +252,17 @@ class HttpdSharedTomcatManager_8_0_X extends HttpdSharedTomcatManager<TomcatComm
       DaemonFileUtils.mkdir(wwwGroupDir + "/lib", 0770, lsaUid, lsgGid);
       DaemonFileUtils.lnAll("../" + optSlash + "apache-tomcat-8.0/lib/", wwwGroupDir + "/lib/", lsaUid, lsgGid);
 
-      //if (postgresServerMinorVersion != null) {
-      //  String postgresPath = osConfig.getPostgresPath(postgresServerMinorVersion);
-      //  if (postgresPath != null) {
-      //    FileUtils.ln("../../.."+postgresPath+"/share/java/postgresql.jar", wwwGroupDir+"/lib/postgresql.jar", lsaUid, lsgGid);
-      //  }
-      //}
-      //String mysqlConnectorPath = osConfig.getMySQLConnectorJavaJarPath();
-      //if (mysqlConnectorPath != null) {
-      //  String filename = new PosixFile(mysqlConnectorPath).getFile().getName();
-      //  FileUtils.ln("../../.."+mysqlConnectorPath, wwwGroupDir+"/lib/"+filename, lsaUid, lsgGid);
-      //}
+      // if (postgresServerMinorVersion != null) {
+      //   String postgresPath = osConfig.getPostgresPath(postgresServerMinorVersion);
+      //   if (postgresPath != null) {
+      //     FileUtils.ln("../../.."+postgresPath+"/share/java/postgresql.jar", wwwGroupDir+"/lib/postgresql.jar", lsaUid, lsgGid);
+      //   }
+      // }
+      // String mysqlConnectorPath = osConfig.getMySQLConnectorJavaJarPath();
+      // if (mysqlConnectorPath != null) {
+      //   String filename = new PosixFile(mysqlConnectorPath).getFile().getName();
+      //   FileUtils.ln("../../.."+mysqlConnectorPath, wwwGroupDir+"/lib/"+filename, lsaUid, lsgGid);
+      // }
 
       // Write the conf/ files
       {
@@ -414,7 +414,8 @@ class HttpdSharedTomcatManager_8_0_X extends HttpdSharedTomcatManager<TomcatComm
           if (shutdownKey == null) {
             throw new SQLException("Unable to find shutdown key for SharedTomcat: " + sharedTomcat);
           }
-          out.print(//"<?xml version='1.0' encoding='utf-8'?>\n"
+          out.print(
+              // "<?xml version='1.0' encoding='utf-8'?>\n"
               "<Server port=\"").textInXmlAttribute(shutdownPort.getPort().getPort()).print("\" shutdown=\"").textInXmlAttribute(shutdownKey).print("\">\n"
               + "  <Listener className=\"org.apache.catalina.startup.VersionLoggerListener\" />\n"
               + "  <!-- Security listener. Documentation at /docs/config/listeners.html\n"

@@ -66,7 +66,7 @@ public final class MySQLUserManager extends BuilderThread {
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
   protected boolean doRebuild() {
     try {
-      //AoservConnector connector = AoservDaemon.getConnector();
+      // AoservConnector connector = AoservDaemon.getConnector();
       com.aoindustries.aoserv.client.linux.Server thisServer = AoservDaemon.getThisServer();
       OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
       int osvId = osv.getPkey();

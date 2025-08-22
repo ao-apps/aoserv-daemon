@@ -90,8 +90,8 @@ abstract class HttpdTomcatStdSiteManager_3_X<T extends TomcatCommon_3_X> extends
     int uidMin = thisServer.getUidMin().getId();
     int gidMin = thisServer.getGidMin().getId();
     final DomainName hostname = thisServer.getHostname();
-    //final Server postgresServer=thisServer.getPreferredPostgresServer();
-    //final String postgresServerMinorVersion=postgresServer == null?null:postgresServer.getPostgresVersion().getMinorVersion();
+    // final Server postgresServer=thisServer.getPreferredPostgresServer();
+    // final String postgresServerMinorVersion=postgresServer == null?null:postgresServer.getPostgresVersion().getMinorVersion();
 
     /*
      * Create the skeleton of the site, the directories and links.
@@ -133,19 +133,19 @@ abstract class HttpdTomcatStdSiteManager_3_X<T extends TomcatCommon_3_X> extends
           + ". ").print(osConfig.getJdk17ProfileSh()).print('\n'
           + ". /opt/jakarta-oro-2.0/setenv.sh\n"
           + ". /opt/jakarta-regexp-1/setenv.sh\n"
-          //+ ". /opt/jakarta-servletapi-").print(tomcatCommon.getServletApiVersion()).print("/setenv.sh\n"
+          // + ". /opt/jakarta-servletapi-").print(tomcatCommon.getServletApiVersion()).print("/setenv.sh\n"
           + ". /opt/apache-tomcat-").print(tomcatCommon.getTomcatApiVersion()).print("/setenv.sh\n"
           + ". /opt/jetspeed-1.1/setenv.sh\n"
           + ". /opt/cocoon-1.8/setenv.sh\n"
           + ". /opt/xerces-1.2/setenv.sh\n"
           + ". /opt/ant-1/setenv.sh\n"
           + ". /opt/xalan-1.2/setenv.sh\n");
-      //if (enablePhp()) {
-      //  out.print(". /opt/php-").print(httpdConfig.getDefaultPhpMinorVersion()).print("-i686/setenv.sh\n");
-      //}
-      //if (postgresServerMinorVersion != null) {
-      //  out.print(". /opt/postgresql-"+postgresServerMinorVersion+"-i686/setenv.sh\n");
-      //}
+      // if (enablePhp()) {
+      //   out.print(". /opt/php-").print(httpdConfig.getDefaultPhpMinorVersion()).print("-i686/setenv.sh\n");
+      // }
+      // if (postgresServerMinorVersion != null) {
+      //   out.print(". /opt/postgresql-"+postgresServerMinorVersion+"-i686/setenv.sh\n");
+      // }
       out.print(". /opt/castor-0.8/setenv.sh\n"
           + ". /opt/cos-27May2002/setenv.sh\n"
           + ". /opt/ecs-1.3/setenv.sh\n"
@@ -222,8 +222,8 @@ abstract class HttpdTomcatStdSiteManager_3_X<T extends TomcatCommon_3_X> extends
           + "        cd \"$TOMCAT_HOME\"\n"
           + "        . \"$TOMCAT_HOME/bin/profile\"\n"
           + "        umask 002\n"
-          //+ "        ulimit -S -m 196608 -v 400000\n"
-          //+ "        ulimit -H -m 196608 -v 400000\n"
+          // + "        ulimit -S -m 196608 -v 400000\n"
+          // + "        ulimit -H -m 196608 -v 400000\n"
           + "        java -Dmail.smtp.host=\"").print(hostname).print("\" org.apache.tomcat.startup.Tomcat -f \"${TOMCAT_HOME}/conf/server.xml\" -stop &>/dev/null\n"
           + "        kill `cat \"${TOMCAT_HOME}/var/run/java.pid\"` &>/dev/null\n"
           + "        rm -f \"${TOMCAT_HOME}/var/run/java.pid\"\n"
@@ -233,8 +233,8 @@ abstract class HttpdTomcatStdSiteManager_3_X<T extends TomcatCommon_3_X> extends
           + "    . \"$TOMCAT_HOME/bin/profile\"\n"
           + "\n"
           + "    while [ 1 ]; do\n"
-          //+ "        ulimit -S -m 196608 -v 400000\n"
-          //+ "        ulimit -H -m 196608 -v 400000\n"
+          // + "        ulimit -S -m 196608 -v 400000\n"
+          // + "        ulimit -H -m 196608 -v 400000\n"
           + "        umask 002\n"
           + "        java -Dmail.smtp.host=\"").print(hostname).print("\" org.apache.tomcat.startup.Tomcat -f \"${TOMCAT_HOME}/conf/server.xml\" &>var/log/servlet_err &\n"
           + "        echo \"$!\" >\"${TOMCAT_HOME}/var/run/java.pid\"\n"

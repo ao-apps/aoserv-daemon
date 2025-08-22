@@ -95,7 +95,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
   protected boolean doRebuild() {
     try {
-      //AoservConnector connector=AoservDaemon.getConnector();
+      // AoservConnector connector=AoservDaemon.getConnector();
       com.aoindustries.aoserv.client.linux.Server thisServer = AoservDaemon.getThisServer();
       OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
       int osvId = osv.getPkey();
@@ -471,7 +471,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
           password
       );
     } catch (SQLException err) {
-      //logger.log(Level.SEVERE, null, err);
+      // logger.log(Level.SEVERE, null, err);
       throw new SQLException("Unable to connect to MySQL database: jdbcUrl=" + jdbcUrl, err);
     }
   }

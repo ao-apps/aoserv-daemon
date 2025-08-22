@@ -234,7 +234,7 @@ public final class HardLinkVarBackup {
                     if (
                         other != null
                             // Have the same exact path relative to their /var/backup/hostname/####-##-## directories
-                            && isLowestRelativePaths[d] //relativePaths[d].equals(lowestRelativePath)
+                            && isLowestRelativePaths[d] // relativePaths[d].equals(lowestRelativePath)
                     ) {
                       Stat otherStat = other.getStat();
                       if (
@@ -325,7 +325,7 @@ public final class HardLinkVarBackup {
           PosixFile uf = unixFiles[c];
           if (uf != null) {
             if (isLowestRelativePaths[c]) {
-              //if (relativePaths[c].equals(lowestRelativePath)) {
+              // if (relativePaths[c].equals(lowestRelativePath)) {
               try {
                 File file = iterators[c].getNextFile();
                 PosixFile newUf = file == null ? null : new PosixFile(file);

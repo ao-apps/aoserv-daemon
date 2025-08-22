@@ -124,13 +124,13 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
           + "\n"
           + ". /etc/profile\n"
           + ". ").print(osConfig.getJdk17ProfileSh()).print('\n');
-      //if (enablePhp()) {
-      //  out.print(". /opt/php-").print(httpdConfig.getDefaultPhpMinorVersion()).print("-i686/setenv.sh\n");
-      //}
-      //if (postgresServerMinorVersion != null) {
-      //  out.print(". /opt/postgresql-"+postgresServerMinorVersion+"-i686/setenv.sh\n");
-      //}
-      //out.print(". ").print(osConfig.getAOServClientScriptInclude()).print("\n"
+      // if (enablePhp()) {
+      //   out.print(". /opt/php-").print(httpdConfig.getDefaultPhpMinorVersion()).print("-i686/setenv.sh\n");
+      // }
+      // if (postgresServerMinorVersion != null) {
+      //   out.print(". /opt/postgresql-"+postgresServerMinorVersion+"-i686/setenv.sh\n");
+      // }
+      // out.print(". ").print(osConfig.getAOServClientScriptInclude()).print("\n"
       out.print("\n"
           + "umask 002\n"
           + "\n"
@@ -230,17 +230,17 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
     DaemonFileUtils.mkdir(siteDir + "/common/lib", 0775, uid, gid);
     DaemonFileUtils.lnAll("../../" + optSlash + "apache-tomcat-5.5/common/lib/", siteDir + "/common/lib/", uid, gid);
 
-    //if (postgresServerMinorVersion != null) {
-    //  String postgresPath = osConfig.getPostgresPath(postgresServerMinorVersion);
-    //  if (postgresPath != null) {
-    //    FileUtils.ln("../../../.."+postgresPath+"/share/java/postgresql.jar", siteDir+"/common/lib/postgresql.jar", uid, gid);
-    //  }
-    //}
-    //String mysqlConnectorPath = osConfig.getMySQLConnectorJavaJarPath();
-    //if (mysqlConnectorPath != null) {
-    //  String filename = new PosixFile(mysqlConnectorPath).getFile().getName();
-    //  FileUtils.ln("../../../.."+mysqlConnectorPath, siteDir+"/common/lib/"+filename, uid, gid);
-    //}
+    // if (postgresServerMinorVersion != null) {
+    //   String postgresPath = osConfig.getPostgresPath(postgresServerMinorVersion);
+    //   if (postgresPath != null) {
+    //     FileUtils.ln("../../../.."+postgresPath+"/share/java/postgresql.jar", siteDir+"/common/lib/postgresql.jar", uid, gid);
+    //   }
+    // }
+    // String mysqlConnectorPath = osConfig.getMySQLConnectorJavaJarPath();
+    // if (mysqlConnectorPath != null) {
+    //   String filename = new PosixFile(mysqlConnectorPath).getFile().getName();
+    //   FileUtils.ln("../../../.."+mysqlConnectorPath, siteDir+"/common/lib/"+filename, uid, gid);
+    // }
 
     /*
      * Write the conf/catalina.policy file
@@ -359,17 +359,17 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
           + "   </GlobalNamingResources>\n"
           + "  <Service name=\"Catalina\">\n"
           + "    <Connector\n"
-          //+ "      className=\"org.apache.coyote.tomcat4.CoyoteConnector\"\n"
-          //+ "      port=\"").print(hw.getNetBind().getPort().getPort()).print("\"\n"
-          //+ "      minProcessors=\"2\"\n"
-          //+ "      maxProcessors=\"200\"\n"
-          //+ "      enableLookups=\"true\"\n"
-          //+ "      redirectPort=\"443\"\n"
-          //+ "      acceptCount=\"10\"\n"
-          //+ "      debug=\"0\"\n"
-          //+ "      connectionTimeout=\"20000\"\n"
-          //+ "      useURIValidationHack=\"false\"\n"
-          //+ "      protocolHandlerClassName=\"org.apache.jk.server.JkCoyoteHandler\"\n"
+          // + "      className=\"org.apache.coyote.tomcat4.CoyoteConnector\"\n"
+          // + "      port=\"").print(hw.getNetBind().getPort().getPort()).print("\"\n"
+          // + "      minProcessors=\"2\"\n"
+          // + "      maxProcessors=\"200\"\n"
+          // + "      enableLookups=\"true\"\n"
+          // + "      redirectPort=\"443\"\n"
+          // + "      acceptCount=\"10\"\n"
+          // + "      debug=\"0\"\n"
+          // + "      connectionTimeout=\"20000\"\n"
+          // + "      useURIValidationHack=\"false\"\n"
+          // + "      protocolHandlerClassName=\"org.apache.jk.server.JkCoyoteHandler\"\n"
           + "      port=\"").textInXmlAttribute(hw.getBind().getPort().getPort()).print("\"\n"
           + "      enableLookups=\"false\"\n"
           + "      minProcessors=\"2\"\n"

@@ -318,47 +318,47 @@ public abstract class HttpdSharedTomcatManager<T extends TomcatCommon> implement
             + "-->\n";
   }
 
-  ///**
-  // * Gets the auto-mode warning using Unix-style comments (#).  This
-  // * may be used on any config files that a user would be tempted to change
-  // * directly.
-  // */
-  //String getAutoWarningUnixOld() throws IOException, SQLException {
-  //  return
-  //    "#\n"
-  //    + "# Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
-  //    + "# to this file will be overwritten.  Please set the is_manual flag for this multi-site\n"
-  //    + "# JVM to be able to make permanent changes to this file.\n"
-  //    + "#\n"
-  //    + "# Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP.ao?pkey="+sharedTomcat.getPkey()+"\n"
-  //    + "#\n"
-  //    + "# AOSH: "+Command.SET_HTTPD_SHARED_TOMCAT_IS_MANUAL+" "+sharedTomcat.getName()+' '+sharedTomcat.getAOServer().getHostname()+" true\n"
-  //    + "#\n"
-  //    + "# support@aoindustries.com\n"
-  //    + "# (866) 270-6195\n"
-  //    + "#\n";
-  //}
+  // /**
+  //  * Gets the auto-mode warning using Unix-style comments (#).  This
+  //  * may be used on any config files that a user would be tempted to change
+  //  * directly.
+  //  */
+  // String getAutoWarningUnixOld() throws IOException, SQLException {
+  //   return
+  //     "#\n"
+  //     + "# Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
+  //     + "# to this file will be overwritten.  Please set the is_manual flag for this multi-site\n"
+  //     + "# JVM to be able to make permanent changes to this file.\n"
+  //     + "#\n"
+  //     + "# Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP.ao?pkey="+sharedTomcat.getPkey()+"\n"
+  //     + "#\n"
+  //     + "# AOSH: "+Command.SET_HTTPD_SHARED_TOMCAT_IS_MANUAL+" "+sharedTomcat.getName()+' '+sharedTomcat.getAOServer().getHostname()+" true\n"
+  //     + "#\n"
+  //     + "# support@aoindustries.com\n"
+  //     + "# (866) 270-6195\n"
+  //     + "#\n";
+  // }
 
-  ///**
-  // * Gets the auto-mode warning using Unix-style comments (#).  This
-  // * may be used on any config files that a user would be tempted to change
-  // * directly.
-  // */
-  //String getAutoWarningUnix() throws IOException, SQLException {
-  //  return
-  //    "#\n"
-  //    + "# Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
-  //    + "# to this file will be overwritten.  Please set the is_manual flag for this multi-site\n"
-  //    + "# JVM to be able to make permanent changes to this file.\n"
-  //    + "#\n"
-  //    + "# Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP.ao?pkey="+sharedTomcat.getPkey()+"\n"
-  //    + "#\n"
-  //    + "# AOSH: "+Command.SET_HTTPD_SHARED_TOMCAT_IS_MANUAL+" "+sharedTomcat.getName()+' '+sharedTomcat.getAOServer().getHostname()+" true\n"
-  //    + "#\n"
-  //    + "# support@aoindustries.com\n"
-  //    + "# (205) 454-2556\n"
-  //    + "#\n";
-  //}
+  // /**
+  //  * Gets the auto-mode warning using Unix-style comments (#).  This
+  //  * may be used on any config files that a user would be tempted to change
+  //  * directly.
+  //  */
+  // String getAutoWarningUnix() throws IOException, SQLException {
+  //   return
+  //     "#\n"
+  //     + "# Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
+  //     + "# to this file will be overwritten.  Please set the is_manual flag for this multi-site\n"
+  //     + "# JVM to be able to make permanent changes to this file.\n"
+  //     + "#\n"
+  //     + "# Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP.ao?pkey="+sharedTomcat.getPkey()+"\n"
+  //     + "#\n"
+  //     + "# AOSH: "+Command.SET_HTTPD_SHARED_TOMCAT_IS_MANUAL+" "+sharedTomcat.getName()+' '+sharedTomcat.getAOServer().getHostname()+" true\n"
+  //     + "#\n"
+  //     + "# support@aoindustries.com\n"
+  //     + "# (205) 454-2556\n"
+  //     + "#\n";
+  // }
 
   /**
    * Gets any packages that must be installed for this site.

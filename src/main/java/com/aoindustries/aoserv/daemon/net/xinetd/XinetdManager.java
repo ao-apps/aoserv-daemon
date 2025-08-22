@@ -468,15 +468,15 @@ public final class XinetdManager extends BuilderThread {
             if (needsReloaded) {
               // Try reload config first
               // reload has several limitations documented in the man page for xinetd.conf, will always stop/start instead
-              //try {
-              //  AoservDaemon.exec(
-              //    new String[] {
-              //      "/etc/rc.d/init.d/xinetd",
-              //      "reload"
-              //    }
-              //  );
-              //} catch (IOException err) {
-              //  logger.log(Level.SEVERE, null, err);
+              // try {
+              //   AoservDaemon.exec(
+              //     new String[] {
+              //       "/etc/rc.d/init.d/xinetd",
+              //       "reload"
+              //     }
+              //   );
+              // } catch (IOException err) {
+              //   logger.log(Level.SEVERE, null, err);
 
               // Try more forceful stop/start
               try {
@@ -498,7 +498,7 @@ public final class XinetdManager extends BuilderThread {
                   "/etc/rc.d/init.d/xinetd",
                   "start"
               );
-              //}
+              // }
             }
           }
         }

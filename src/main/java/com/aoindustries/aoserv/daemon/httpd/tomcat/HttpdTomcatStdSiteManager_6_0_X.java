@@ -124,13 +124,13 @@ class HttpdTomcatStdSiteManager_6_0_X extends HttpdTomcatStdSiteManager<TomcatCo
           + "\n"
           + ". /etc/profile\n"
           + ". ").print(osConfig.getDefaultJdkProfileSh()).print('\n');
-      //if (enablePhp()) {
-      //  out.print(". /opt/php-").print(httpdConfig.getDefaultPhpMinorVersion()).print("-i686/setenv.sh\n");
-      //}
-      //if (postgresServerMinorVersion != null) {
-      //  out.print(". /opt/postgresql-"+postgresServerMinorVersion+"-i686/setenv.sh\n");
-      //}
-      //out.print(". ").print(osConfig.getAOServClientScriptInclude()).print("\n"
+      // if (enablePhp()) {
+      //   out.print(". /opt/php-").print(httpdConfig.getDefaultPhpMinorVersion()).print("-i686/setenv.sh\n");
+      // }
+      // if (postgresServerMinorVersion != null) {
+      //   out.print(". /opt/postgresql-"+postgresServerMinorVersion+"-i686/setenv.sh\n");
+      // }
+      // out.print(". ").print(osConfig.getAOServClientScriptInclude()).print("\n"
       out.print("\n"
           + "umask 002\n"
           + "\n"
@@ -226,17 +226,17 @@ class HttpdTomcatStdSiteManager_6_0_X extends HttpdTomcatStdSiteManager<TomcatCo
     DaemonFileUtils.mkdir(siteDir + "/lib", 0770, uid, gid);
     DaemonFileUtils.lnAll("../" + optSlash + "apache-tomcat-6.0/lib/", siteDir + "/lib/", uid, gid);
 
-    //if (postgresServerMinorVersion != null) {
-    //  String postgresPath = osConfig.getPostgresPath(postgresServerMinorVersion);
-    //  if (postgresPath != null) {
-    //    FileUtils.ln("../../.."+postgresPath+"/share/java/postgresql.jar", siteDir+"/lib/postgresql.jar", uid, gid);
-    //  }
-    //}
-    //String mysqlConnectorPath = osConfig.getMySQLConnectorJavaJarPath();
-    //if (mysqlConnectorPath != null) {
-    //  String filename = new PosixFile(mysqlConnectorPath).getFile().getName();
-    //  FileUtils.ln("../../.."+mysqlConnectorPath, siteDir+"/lib/"+filename, uid, gid);
-    //}
+    // if (postgresServerMinorVersion != null) {
+    //   String postgresPath = osConfig.getPostgresPath(postgresServerMinorVersion);
+    //   if (postgresPath != null) {
+    //     FileUtils.ln("../../.."+postgresPath+"/share/java/postgresql.jar", siteDir+"/lib/postgresql.jar", uid, gid);
+    //   }
+    // }
+    // String mysqlConnectorPath = osConfig.getMySQLConnectorJavaJarPath();
+    // if (mysqlConnectorPath != null) {
+    //   String filename = new PosixFile(mysqlConnectorPath).getFile().getName();
+    //   FileUtils.ln("../../.."+mysqlConnectorPath, siteDir+"/lib/"+filename, uid, gid);
+    // }
 
     /*
      * Write the conf/catalina.policy file

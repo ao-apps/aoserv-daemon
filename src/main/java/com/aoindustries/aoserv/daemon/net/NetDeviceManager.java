@@ -645,7 +645,7 @@ public final class NetDeviceManager extends BuilderThread {
         if (currentTxBytes >= lastTxBytes) {
           newTotalTxBytes = oldTotalTxBytes + currentTxBytes - lastTxBytes;
         } else {
-          //System.err.println("NetDeviceManager: tx_bytes wraparound detected on "+netDevice);
+          // System.err.println("NetDeviceManager: tx_bytes wraparound detected on "+netDevice);
           newTotalTxBytes = oldTotalTxBytes + currentTxBytes + 0x100000000L - lastTxBytes;
         }
 
@@ -656,7 +656,7 @@ public final class NetDeviceManager extends BuilderThread {
         if (currentRxBytes >= lastRxBytes) {
           newTotalRxBytes = oldTotalRxBytes + currentRxBytes - lastRxBytes;
         } else {
-          //System.err.println("NetDeviceManager: rx_bytes wraparound detected on "+netDevice);
+          // System.err.println("NetDeviceManager: rx_bytes wraparound detected on "+netDevice);
           newTotalRxBytes = oldTotalRxBytes + currentRxBytes + 0x100000000L - lastRxBytes;
         }
 
@@ -667,7 +667,7 @@ public final class NetDeviceManager extends BuilderThread {
         if (currentTxPackets >= lastTxPackets) {
           newTotalTxPackets = oldTotalTxPackets + currentTxPackets - lastTxPackets;
         } else {
-          //System.err.println("NetDeviceManager: tx_packets wraparound detected on "+netDevice);
+          // System.err.println("NetDeviceManager: tx_packets wraparound detected on "+netDevice);
           newTotalTxPackets = oldTotalTxPackets + currentTxPackets + 0x100000000L - lastTxPackets;
         }
 
@@ -678,7 +678,7 @@ public final class NetDeviceManager extends BuilderThread {
         if (currentRxPackets >= lastRxPackets) {
           newTotalRxPackets = oldTotalRxPackets + currentRxPackets - lastRxPackets;
         } else {
-          //System.err.println("NetDeviceManager: rx_packets wraparound detected on "+netDevice);
+          // System.err.println("NetDeviceManager: rx_packets wraparound detected on "+netDevice);
           newTotalRxPackets = oldTotalRxPackets + currentRxPackets + 0x100000000L - lastRxPackets;
         }
 
@@ -699,7 +699,7 @@ public final class NetDeviceManager extends BuilderThread {
                 || currentRxPacketRate > (MAX_GIGABIT_PACKET_RATE * MAX_LINK_AGGREGATION)
         ) {
           // Counter reset, remove totals to indicate reset
-          //System.err.println("NetDeviceManager: Device reset detected on "+netDevice);
+          // System.err.println("NetDeviceManager: Device reset detected on "+netDevice);
           _totalTxBytes.remove(netDevice);
           _totalRxBytes.remove(netDevice);
           _totalTxPackets.remove(netDevice);
@@ -828,7 +828,7 @@ public final class NetDeviceManager extends BuilderThread {
         try (Socket socket = new Socket()) {
           socket.setKeepAlive(true);
           socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
-          //socket.setTcpNoDelay(true);
+          // socket.setTcpNoDelay(true);
           socket.setSoTimeout(60000);
           socket.bind(new InetSocketAddress(sourceIp.toString(), sourcePort));
           socket.connect(new InetSocketAddress(connectIp.toString(), 25), 60 * 1000);

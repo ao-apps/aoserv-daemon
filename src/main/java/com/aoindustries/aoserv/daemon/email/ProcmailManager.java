@@ -217,7 +217,7 @@ public final class ProcmailManager extends BuilderThread {
                             + "SHELL=").print(bashPath).print("\n");
 
                     // TODO: Build the file after this in advance, look for the longest line, and set accordingly.
-                    //+ "LINEBUF=16384\n"
+                    // + "LINEBUF=16384\n"
                     // This was only set for the auto-reply and email attachment block stuff.
 
                     // Default locking time is fine since not locking for spamassassin now: + "LOCKSLEEP=15\n");
@@ -472,8 +472,8 @@ public final class ProcmailManager extends BuilderThread {
                       // Deliver to INBOX
                       out.print("\n"
                           + ":0 w\n"
-                          //+ "| /usr/bin/formail -I\"From \" | /usr/lib/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain)
-                          //.print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n");
+                          // + "| /usr/bin/formail -I\"From \" | /usr/lib/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain)
+                          // .print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n");
                           + "| /usr/bin/tail -n +2 | ").print(cyrusDeliver.getPath()).print(" -a \"").print(user).print('@').print(domain)
                           .print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n"
                           + "\n"

@@ -257,9 +257,9 @@ public final class ImapManager extends BuilderThread {
         props.put("mail.store.protocol", "imap");
         props.put("mail.imap.host", imapServer.getElement1().toString());
         props.put("mail.imap.port", Integer.toString(imapServer.getElement2().getPort()));
-        //props.put("mail.transport.protocol", "smtp");
-        //props.put("mail.smtp.auth", "true");
-        //props.put("mail.from", "cyrus@" + AoservDaemon.getThisAOServer().getHostname()); // Sendmail server name if used again
+        // props.put("mail.transport.protocol", "smtp");
+        // props.put("mail.smtp.auth", "true");
+        // props.put("mail.from", "cyrus@" + AoservDaemon.getThisAOServer().getHostname()); // Sendmail server name if used again
         if (imapServer.getElement3()) {
           props.put("mail.imap.starttls.enable", "true");
           props.put("mail.imap.starttls.required", "true");
@@ -1862,14 +1862,14 @@ public final class ImapManager extends BuilderThread {
                       for (String flag : oldFlags.getUserFlags()) {
                         if (!effectiveNewFlags.contains(flag)) {
                           // Ignore "$NotJunk" on oldFlags
-                          //if (flag.equals("$NotJunk")) {
-                          //    effectiveOldFlags.remove(flag);
-                          //} else {
+                          // if (flag.equals("$NotJunk")) {
+                          //     effectiveOldFlags.remove(flag);
+                          // } else {
                           // Add the user flag
                           effectiveNewFlags.add(flag);
                           newMessage.setFlags(new Flags(flag), true);
                           newFlags = newMessage.getFlags();
-                          //}
+                          // }
                         }
                       }
 

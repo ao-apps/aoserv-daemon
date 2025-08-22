@@ -169,7 +169,7 @@ public class LinuxServerEnvironment extends PosixFileEnvironment {
     filesystemRules.put("/.journal", FilesystemIteratorRule.SKIP);
     filesystemRules.put("/aquota.group", FilesystemIteratorRule.SKIP);
     filesystemRules.put("/aquota.user", FilesystemIteratorRule.SKIP);
-    //filesystemRules.put("/backup", FilesystemIteratorRule.NO_RECURSE);
+    // filesystemRules.put("/backup", FilesystemIteratorRule.NO_RECURSE);
     filesystemRules.put("/boot/.journal", FilesystemIteratorRule.SKIP);
     filesystemRules.put("/boot/lost+found", FilesystemIteratorRule.SKIP);
     if (

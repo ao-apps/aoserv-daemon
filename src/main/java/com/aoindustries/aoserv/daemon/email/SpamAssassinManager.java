@@ -493,7 +493,7 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
               tempSb.append(' ').append(uf.getPath());
             }
             String command = tempSb.toString();
-            //System.err.println("DEBUG: "+SpamAssassinManager.class.getName()+": processIncomingMessagesCentOs: username="+username+" and command=\""+command+"\"");
+            // System.err.println("DEBUG: "+SpamAssassinManager.class.getName()+": processIncomingMessagesCentOs: username="+username+" and command=\""+command+"\"");
             try {
               AoservDaemon.suexec(
                   username,
@@ -504,7 +504,7 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
             } finally {
               if (isNoSync) {
                 String command2 = "/usr/bin/sa-learn --sync";
-                //System.err.println("DEBUG: "+SpamAssassinManager.class.getName()+": processIncomingMessagesCentOs: username="+username+" and command2=\""+command2+"\"");
+                // System.err.println("DEBUG: "+SpamAssassinManager.class.getName()+": processIncomingMessagesCentOs: username="+username+" and command2=\""+command2+"\"");
                 AoservDaemon.suexec(
                     username,
                     new File(oldestLsa.getHome().toString()),
@@ -806,12 +806,12 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
                     + "# See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=774768\n"
                     + "score DNS_FROM_AHBL_RHSBL 0\n"
                     // They seem to have tweaked the FREEMAIL scores: https://bz.apache.org/SpamAssassin/show_bug.cgi?id=6744
-                    //+ "\n"
-                    //+ "# Don't want freemail alone to put into Junk folder with default required_score of 3.0\n"
-                    //+ "# Default was 1.2:\n"
-                    //+ "score FREEMAIL_REPLYTO_END_DIGIT 0.8\n"
-                    //+ "# Default was 1.6:\n"
-                    //+ "score FREEMAIL_ENVFROM_END_DIGIT 1.2"
+                    // + "\n"
+                    // + "# Don't want freemail alone to put into Junk folder with default required_score of 3.0\n"
+                    // + "# Default was 1.2:\n"
+                    // + "score FREEMAIL_REPLYTO_END_DIGIT 0.8\n"
+                    // + "# Default was 1.6:\n"
+                    // + "score FREEMAIL_ENVFROM_END_DIGIT 1.2"
                     + "\n"
                     + "# Add a stars header, which is matched in .procmailrc to completely discard super spammy messages\n"
                     + "add_header all Level _STARS(*)_\n"

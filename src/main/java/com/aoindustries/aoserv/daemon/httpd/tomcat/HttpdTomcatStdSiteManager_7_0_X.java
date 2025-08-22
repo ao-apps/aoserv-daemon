@@ -71,8 +71,8 @@ class HttpdTomcatStdSiteManager_7_0_X extends HttpdTomcatStdSiteManager<TomcatCo
     final Server thisServer = AoservDaemon.getThisServer();
     int uidMin = thisServer.getUidMin().getId();
     int gidMin = thisServer.getGidMin().getId();
-    //final Server postgresServer=thisServer.getPreferredPostgresServer();
-    //final String postgresServerMinorVersion=postgresServer == null?null:postgresServer.getPostgresVersion().getMinorVersion();
+    // final Server postgresServer=thisServer.getPreferredPostgresServer();
+    // final String postgresServerMinorVersion=postgresServer == null?null:postgresServer.getPostgresVersion().getMinorVersion();
 
     /*
      * Create the skeleton of the site, the directories and links.
@@ -123,13 +123,13 @@ class HttpdTomcatStdSiteManager_7_0_X extends HttpdTomcatStdSiteManager<TomcatCo
           + "\n"
           + ". /etc/profile\n"
           + ". ").print(osConfig.getDefaultJdkProfileSh()).print('\n');
-      //if (enablePhp()) {
-      //  out.print(". /opt/php-").print(httpdConfig.getDefaultPhpMinorVersion()).print("-i686/setenv.sh\n");
-      //}
-      //if (postgresServerMinorVersion != null) {
-      //  out.print(". /opt/postgresql-"+postgresServerMinorVersion+"-i686/setenv.sh\n");
-      //}
-      //out.print(". ").print(osConfig.getAOServClientScriptInclude()).print("\n"
+      // if (enablePhp()) {
+      //   out.print(". /opt/php-").print(httpdConfig.getDefaultPhpMinorVersion()).print("-i686/setenv.sh\n");
+      // }
+      // if (postgresServerMinorVersion != null) {
+      //   out.print(". /opt/postgresql-"+postgresServerMinorVersion+"-i686/setenv.sh\n");
+      // }
+      // out.print(". ").print(osConfig.getAOServClientScriptInclude()).print("\n"
       out.print("\n"
           + "umask 002\n"
           + "\n"
@@ -225,17 +225,17 @@ class HttpdTomcatStdSiteManager_7_0_X extends HttpdTomcatStdSiteManager<TomcatCo
     DaemonFileUtils.mkdir(siteDir + "/lib", 0770, uid, gid);
     DaemonFileUtils.lnAll("../" + optSlash + "apache-tomcat-7.0/lib/", siteDir + "/lib/", uid, gid);
 
-    //if (postgresServerMinorVersion != null) {
-    //  String postgresPath = osConfig.getPostgresPath(postgresServerMinorVersion);
-    //  if (postgresPath != null) {
-    //    FileUtils.ln("../../.."+postgresPath+"/share/java/postgresql.jar", siteDir+"/lib/postgresql.jar", uid, gid);
-    //  }
-    //}
-    //String mysqlConnectorPath = osConfig.getMySQLConnectorJavaJarPath();
-    //if (mysqlConnectorPath != null) {
-    //  String filename = new PosixFile(mysqlConnectorPath).getFile().getName();
-    //  FileUtils.ln("../../.."+mysqlConnectorPath, siteDir+"/lib/"+filename, uid, gid);
-    //}
+    // if (postgresServerMinorVersion != null) {
+    //   String postgresPath = osConfig.getPostgresPath(postgresServerMinorVersion);
+    //   if (postgresPath != null) {
+    //     FileUtils.ln("../../.."+postgresPath+"/share/java/postgresql.jar", siteDir+"/lib/postgresql.jar", uid, gid);
+    //   }
+    // }
+    // String mysqlConnectorPath = osConfig.getMySQLConnectorJavaJarPath();
+    // if (mysqlConnectorPath != null) {
+    //   String filename = new PosixFile(mysqlConnectorPath).getFile().getName();
+    //   FileUtils.ln("../../.."+mysqlConnectorPath, siteDir+"/lib/"+filename, uid, gid);
+    // }
 
     /*
      * Write the conf/catalina.policy file
@@ -335,7 +335,8 @@ class HttpdTomcatStdSiteManager_7_0_X extends HttpdTomcatStdSiteManager<TomcatCo
       if (shutdownKey == null) {
         throw new SQLException("Unable to find shutdown key for PrivateTomcatSite=" + tomcatStdSite);
       }
-      out.print(//"<?xml version='1.0' encoding='utf-8'?>\n"
+      out.print(
+          // "<?xml version='1.0' encoding='utf-8'?>\n"
           "<Server port=\"").textInXmlAttribute(shutdownPort.getPort().getPort()).print("\" shutdown=\"").textInXmlAttribute(shutdownKey).print("\">\n"
           + "  <Listener className=\"org.apache.catalina.startup.VersionLoggerListener\" />\n" // Added Tomcat 7.0.68
           + "  <Listener className=\"org.apache.catalina.core.AprLifecycleListener\" SSLEngine=\"on\" />\n"

@@ -71,7 +71,7 @@ public abstract class SocketServerThread extends Thread {
             Socket socket = ss.accept();
             socket.setKeepAlive(true);
             socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
-            //socket.setTcpNoDelay(true);
+            // socket.setTcpNoDelay(true);
             socketConnected(socket);
           }
         } finally {

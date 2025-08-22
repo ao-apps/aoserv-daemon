@@ -734,7 +734,7 @@ public final class HttpdServerManager {
                   + "    <IfModule !mod_php5.c>\n"
                   + "        Action php-script /cgi-bin/php\n"
                   // Avoid *.php.txt going to PHP: https://www.php.net/manual/en/install.unix.apache2.php
-                  //+ "        AddHandler php-script .php\n"
+                  // + "        AddHandler php-script .php\n"
                   + "        <FilesMatch \\.php$>\n"
                   + "            SetHandler php-script\n"
                   + "        </FilesMatch>\n"
@@ -957,7 +957,7 @@ public final class HttpdServerManager {
                   .print(indent).print("<IfModule actions_module>\n")
                   .print(indent).print("    Action php-script /cgi-bin/php\n")
                   // Avoid *.php.txt going to PHP: https://www.php.net/manual/en/install.unix.apache2.php
-                  //+ "            AddHandler php-script .php\n"
+                  // + "            AddHandler php-script .php\n"
                   .print(indent).print("    <FilesMatch \\.php$>\n")
                   .print(indent).print("        SetHandler php-script\n")
                   .print(indent).print("    </FilesMatch>\n")
@@ -1881,20 +1881,20 @@ public final class HttpdServerManager {
             + "LoadModule ").print(escape(dollarVariable, getPhpModule(phpMajorVersion))).print(" ")
             .print(escape(dollarVariable, "/opt/php-" + phpMinorVersion + "-i686/lib/apache/" + getLibPhpSo(phpMajorVersion))).print("\n"
             // Avoid *.php.txt going to PHP: https://www.php.net/manual/en/install.unix.apache2.php
-            //+ "AddType application/x-httpd-php .php\n"
-            //+ "AddType application/x-httpd-php-source .phps\n");
+            // + "AddType application/x-httpd-php .php\n"
+            // + "AddType application/x-httpd-php-source .phps\n");
 
             // TODO: *.phar is not found in SELinux "sudo semanage fcontext -l", enable when first needed
             //       by a client application, and as a default-off per-site option.
-            //+ "<FilesMatch \\.(php|phar)$>\n"
+            // + "<FilesMatch \\.(php|phar)$>\n"
             + "<FilesMatch \\.php$>\n"
             + "    SetHandler application/x-httpd-php\n"
             + "</FilesMatch>\n");
 
         // TODO: Enable .phps when first needed by a client application, and as a default-off per-site option
-        //+ "<FilesMatch \\.phps$>\n"
-        //+ "    SetHandler application/x-httpd-php-source\n"
-        //+ "</FilesMatch>\n"
+        // + "<FilesMatch \\.phps$>\n"
+        // + "    SetHandler application/x-httpd-php-source\n"
+        // + "</FilesMatch>\n"
 
       }
       out.print("\n"
@@ -3052,22 +3052,22 @@ public final class HttpdServerManager {
               + "    PHPIniDir ").print(escape(dollarVariable, phpIniDir.toString())).print("\n"
               + "    php_value session.save_path ").print(escape(dollarVariable, sessionDir.toString())).print("\n"
               // Avoid *.php.txt going to PHP: https://www.php.net/manual/en/install.unix.apache2.php
-              //+ "    <IfModule mime_module>\n"
-              //+ "        AddType application/x-httpd-php .php\n"
-              //+ "        AddType application/x-httpd-php-source .phps\n"
-              //+ "    </IfModule>\n"
+              // + "    <IfModule mime_module>\n"
+              // + "        AddType application/x-httpd-php .php\n"
+              // + "        AddType application/x-httpd-php-source .phps\n"
+              // + "    </IfModule>\n"
 
               // TODO: *.phar is not found in SELinux "sudo semanage fcontext -l", enable when first needed
               //       by a client application, and as a default-off per-site option.
-              //+ "    <FilesMatch \\.(php|phar)$>\n"
+              // + "    <FilesMatch \\.(php|phar)$>\n"
               + "    <FilesMatch \\.php$>\n"
               + "        SetHandler application/x-httpd-php\n"
               + "    </FilesMatch>\n"
 
               // TODO: Enable .phps when first needed by a client application, and as a default-off per-site option
-              //+ "    <FilesMatch \\.phps$>\n"
-              //+ "        SetHandler application/x-httpd-php-source\n"
-              //+ "    </FilesMatch>\n"
+              // + "    <FilesMatch \\.phps$>\n"
+              // + "        SetHandler application/x-httpd-php-source\n"
+              // + "    </FilesMatch>\n"
 
               + "</IfModule>\n");
         }

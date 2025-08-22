@@ -162,9 +162,9 @@ public final class VirtualServerManager {
           throw new ParseException("Expected one element in the root array, got " + rootList.size(), 0);
         }
         Map<String, Object> domainNode = rootList.get(0);
-        //for (Map.Entry<String, Object> entry : domainNode.entrySet()) {
-        //  System.out.println(entry.getKey() + ": (" + entry.getValue().getClass() + ") " + entry.getValue());
-        //}
+        // for (Map.Entry<String, Object> entry : domainNode.entrySet()) {
+        //   System.out.println(entry.getKey() + ": (" + entry.getValue().getClass() + ") " + entry.getValue());
+        // }
         domid = ((Double) domainNode.get("domid")).intValue();
         @SuppressWarnings("unchecked")
         Map<String, Object> configNode = (Map<String, Object>) domainNode.get("config");
@@ -352,7 +352,7 @@ public final class VirtualServerManager {
               "0pPnT"
           );
           List<String> values = Strings.split(lsof, '\u0000');
-          //System.out.println("values.size()="+values.size());
+          // System.out.println("values.size()="+values.size());
           if (
               values.size() < 7
                   || (values.size() % 5) != 2
@@ -379,7 +379,7 @@ public final class VirtualServerManager {
               break;
             }
           }
-          //System.out.println("vncPort="+vncPort);
+          // System.out.println("vncPort="+vncPort);
           if (vncPort == Integer.MIN_VALUE) {
             throw new ParseException("Unexpected output from lsof: " + lsof, 0);
           }
@@ -416,7 +416,7 @@ public final class VirtualServerManager {
                   }
                 });
                 inThread.start();
-                //try {
+                // try {
                 // Tell it DONE OK
                 socketOut.write(AoservDaemonProtocol.NEXT);
                 // vncIn -> socketOut in this thread
@@ -426,18 +426,18 @@ public final class VirtualServerManager {
                   socketOut.write(buff, 0, ret);
                   socketOut.flush();
                 }
-                //} finally {
-                //  try {
-                //      // Let the in thread complete its work before closing streams
-                //      inThread.join();
-                //  } catch (InterruptedException err) {
-                //      // Restore the interrupted status
-                //      Thread.currentThread().interrupt();
-                //      InterruptedIOException ioErr = new InterruptedIOException();
-                //      ioErr.initCause(err);
-                //      throw ioErr;
-                //  }
-                //}
+                // } finally {
+                //   try {
+                //       // Let the in thread complete its work before closing streams
+                //       inThread.join();
+                //   } catch (InterruptedException err) {
+                //       // Restore the interrupted status
+                //       Thread.currentThread().interrupt();
+                //       InterruptedIOException ioErr = new InterruptedIOException();
+                //       ioErr.initCause(err);
+                //       throw ioErr;
+                //   }
+                // }
               } finally {
                 try {
                   vncOut.close();

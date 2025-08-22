@@ -282,13 +282,13 @@ public final class DNSManager extends BuilderThread {
               }
               out.print("\n"
                   + "\tallow-query { " + acl + " };\n"
-                  //+ "\trecursion yes;\n"
+                  // + "\trecursion yes;\n"
                   + "\tallow-recursion { " + acl + " };\n"
                   + "\tallow-query-cache { " + acl + " };\n"
                   + "\n"
                   + "\tallow-transfer { none; };\n"
                   + "\tnotify no;\n"
-                  //+ "\talso-notify { none; };\n"
+                  // + "\talso-notify { none; };\n"
                   + "\n");
               if (osvId == OperatingSystemVersion.ROCKY_9_X86_64) {
                 out.print("\trecursion yes;\n"

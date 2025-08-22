@@ -247,9 +247,9 @@ public final class FailoverFileReplicationManager {
     encryptedLoopFilePaths.add("/www.aes128.img");
     encryptedLoopFilePaths.add("/www.aes256.img");
     // AO desktop home directories in Debian seem to update modified times
-    //encryptedLoopFilePaths.add("/home/bugnugger.aes256.img");
-    //encryptedLoopFilePaths.add("/home/kaori.aes256.img");
-    //encryptedLoopFilePaths.add("/home/orion.aes256.img");
+    // encryptedLoopFilePaths.add("/home/bugnugger.aes256.img");
+    // encryptedLoopFilePaths.add("/home/kaori.aes256.img");
+    // encryptedLoopFilePaths.add("/home/orion.aes256.img");
   }
 
   private static boolean isEncryptedLoopFile(String path) {
@@ -1091,7 +1091,7 @@ public final class FailoverFileReplicationManager {
               final PosixFile posixFile = new PosixFile(path);
               Stat stat = stat(activity, posixFile);
               final PosixFile parent = posixFile.getParent();
-              //String linkToPath;
+              // String linkToPath;
               final PosixFile linkTo;
               final Stat linkToStat;
               final PosixFile linkToParent;
@@ -1101,7 +1101,7 @@ public final class FailoverFileReplicationManager {
                 linkToStat = stat(activity, linkTo);
                 linkToParent = linkTo.getParent();
               } else {
-                //linkToPath = null;
+                // linkToPath = null;
                 linkTo = null;
                 linkToStat = null;
                 linkToParent = null;
@@ -1128,9 +1128,9 @@ public final class FailoverFileReplicationManager {
                 modifyTime = in.readLong();
               }
               modifyTimes[c] = modifyTime;
-              //if (modifyTime<1000 && !PosixFile.isSymLink(mode) && log.isWarnEnabled()) {
-              //  log.warn("Non-symlink modifyTime<1000: "+relativePath+": "+modifyTime);
-              //}
+              // if (modifyTime<1000 && !PosixFile.isSymLink(mode) && log.isWarnEnabled()) {
+              //   log.warn("Non-symlink modifyTime<1000: "+relativePath+": "+modifyTime);
+              // }
               String symlinkTarget;
               if (PosixFile.isSymLink(mode)) {
                 activity.update("socket: read: Reading symlinkTarget ", batchPosObj, " of ", batchSizeObj);
@@ -1718,16 +1718,16 @@ public final class FailoverFileReplicationManager {
                           != (mode & (PosixFile.TYPE_MASK | PosixFile.PERMISSION_MASK))
                     )
               ) {
-                //try {
+                // try {
                 if (retention != 1) {
                   copyIfHardLinked(activity, effectivePosixFile, effectiveStat);
                 }
                 activity.update("file: setMode: ", effectivePosixFile);
                 effectivePosixFile.setMode(mode & (PosixFile.TYPE_MASK | PosixFile.PERMISSION_MASK));
                 effectiveStat = stat(activity, effectivePosixFile);
-                //} catch (FileNotFoundException err) {
-                //  logger.log(Level.WARNING, "path="+path+", mode="+Long.toOctalString(mode), err);
-                //}
+                // } catch (FileNotFoundException err) {
+                //   logger.log(Level.WARNING, "path="+path+", mode="+Long.toOctalString(mode), err);
+                // }
                 if (result == AoservDaemonProtocol.FAILOVER_FILE_REPLICATION_NO_CHANGE) {
                   // Only modified if wrong permission in last backup set, too
                   if (
@@ -2413,37 +2413,37 @@ public final class FailoverFileReplicationManager {
       filenames.set(index, newFilename);
     }
 
-    ///**
-    // * To maintain correct cache state, this should be called whenever a regular file in this directory is linked.
-    // * This only works if they are both in the same directory.
-    // */
+    // /**
+    //  * To maintain correct cache state, this should be called whenever a regular file in this directory is linked.
+    //  * This only works if they are both in the same directory.
+    //  */
     // TODO: call activity.update if uncomment this code
-    //void linking(String filename, String linkToFilename) {
-    //  // The filename must not exist in the cache
-    //  if (filenameMap.containsKey(filename)) {
-    //    throw new AssertionError("filenameMap already contains filename: filename="+filename);
-    //  }
-    //  // Add in the filenameMap as duplicate of linkToFilename
-    //  ModifyTimeAndSize modifyTimeAndSize = filenameMap.get(linkToFilename);
-    //  if (modifyTimeAndSize == null) {
-    //    throw new AssertionError("linkToFilename not in filenameMap: linkToFilename="+linkToFilename);
-    //  }
-    //  filenameMap.put(filename, modifyTimeAndSize);
-    //  // Update in the modifyTimeAndSizeMap map
-    //  List<String> filenames = modifyTimeAndSizeMap.get(modifyTimeAndSize);
-    //  if (filenames == null) {
-    //    throw new AssertionError("filenames is null");
-    //  }
-    //  if (USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) {
-    //    if (!filenames.contains(linkToFilename)) {
-    //      throw new AssertionError("filenames doesn't contain linkToFilename: linkToFilename="+linkToFilename);
-    //    }
-    //    if (filenames.contains(filename)) {
-    //      throw new AssertionError("filenames already contains filename: filename="+filename);
-    //    }
-    //  }
-    //  filenames.add(filename);
-    //}
+    // void linking(String filename, String linkToFilename) {
+    //   // The filename must not exist in the cache
+    //   if (filenameMap.containsKey(filename)) {
+    //     throw new AssertionError("filenameMap already contains filename: filename="+filename);
+    //   }
+    //   // Add in the filenameMap as duplicate of linkToFilename
+    //   ModifyTimeAndSize modifyTimeAndSize = filenameMap.get(linkToFilename);
+    //   if (modifyTimeAndSize == null) {
+    //     throw new AssertionError("linkToFilename not in filenameMap: linkToFilename="+linkToFilename);
+    //   }
+    //   filenameMap.put(filename, modifyTimeAndSize);
+    //   // Update in the modifyTimeAndSizeMap map
+    //   List<String> filenames = modifyTimeAndSizeMap.get(modifyTimeAndSize);
+    //   if (filenames == null) {
+    //     throw new AssertionError("filenames is null");
+    //   }
+    //   if (USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) {
+    //     if (!filenames.contains(linkToFilename)) {
+    //       throw new AssertionError("filenames doesn't contain linkToFilename: linkToFilename="+linkToFilename);
+    //     }
+    //     if (filenames.contains(filename)) {
+    //       throw new AssertionError("filenames already contains filename: filename="+filename);
+    //     }
+    //   }
+    //   filenames.add(filename);
+    // }
 
     /**
      * To maintain correct cache state, this should be called after a regular file is added to this directory.
@@ -2768,7 +2768,7 @@ public final class FailoverFileReplicationManager {
           final List<File> directories = new ArrayList<>(list.length);
           for (String directory : list) {
             if (directory.endsWith(SAFE_DELETE_EXTENSION)) {
-              //found=true;
+              // found=true;
               PosixFile deleteUf = new PosixFile(serverRoot, directory, false);
               if (isFine) {
                 logger.fine("Deleting: " + deleteUf.getPath());

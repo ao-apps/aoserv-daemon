@@ -487,16 +487,16 @@ public final class SendmailCFManager extends BuilderThread {
         + "dnl Enable IDENT lookups\n"
         // TO_IDENT set to 10s was causing normally 1 second email to become 30 second email on www.keepandshare.com
         + "define(`confTO_IDENT',`0s')dnl\n"
-        //We are now blocking using egress filtering with iptables in /etc/opt/aoserv-daemon/route.
-        //This means no special interaction with the firewalls - no outgoing NAT.
-        //A local root compromise could still bypass aoserv-jilter and send spam, but this was true before.
+        // We are now blocking using egress filtering with iptables in /etc/opt/aoserv-daemon/route.
+        // This means no special interaction with the firewalls - no outgoing NAT.
+        // A local root compromise could still bypass aoserv-jilter and send spam, but this was true before.
         //
-        //if (thisAoServer.getServer().getServerFarm().useRestrictedSmtpPort()) {
-        //  out.print("MODIFY_MAILER_FLAGS(`SMTP',`+R')dnl\n"
-        //    + "MODIFY_MAILER_FLAGS(`ESMTP',`+R')dnl\n"
-        //    + "MODIFY_MAILER_FLAGS(`SMTP8',`+R')dnl\n"
-        //    + "MODIFY_MAILER_FLAGS(`DSMTP',`+R')dnl\n");
-        //}
+        // if (thisAoServer.getServer().getServerFarm().useRestrictedSmtpPort()) {
+        //   out.print("MODIFY_MAILER_FLAGS(`SMTP',`+R')dnl\n"
+        //     + "MODIFY_MAILER_FLAGS(`ESMTP',`+R')dnl\n"
+        //     + "MODIFY_MAILER_FLAGS(`SMTP8',`+R')dnl\n"
+        //     + "MODIFY_MAILER_FLAGS(`DSMTP',`+R')dnl\n");
+        // }
         + "MAILER(smtp)dnl\n"
         + "MAILER(procmail)dnl\n"
         + "LOCAL_CONFIG\n"
@@ -595,7 +595,7 @@ public final class SendmailCFManager extends BuilderThread {
     out.print("')dnl\n"
         + "define(`UUCP_MAILER_MAX', `2000000')dnl\n"
         + "define(`confUSERDB_SPEC', `/etc/mail/userdb.db')dnl\n"
-        //+ "define(`confPRIVACY_FLAGS', `authwarnings,novrfy,noexpn,restrictqrun')dnl\n"
+        // + "define(`confPRIVACY_FLAGS', `authwarnings,novrfy,noexpn,restrictqrun')dnl\n"
         + "define(`confPRIVACY_FLAGS', `authwarnings,goaway,novrfy,noexpn,restrictqrun,restrictmailq,restrictexpand')dnl\n" // AO Modified
         + "define(`confAUTH_OPTIONS', `A");
     boolean allowPlaintextAuth = sendmailServer == null ? SendmailServer.DEFAULT_ALLOW_PLAINTEXT_AUTH : sendmailServer.getAllowPlaintextAuth();
@@ -615,9 +615,9 @@ public final class SendmailCFManager extends BuilderThread {
         + "dnl # guaranteed secure.\n"
         + "dnl # Please remember that saslauthd needs to be running for AUTH. \n"
         + "dnl #\n"
-        //+ "dnl TRUST_AUTH_MECH(`EXTERNAL DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl\n"
+        // + "dnl TRUST_AUTH_MECH(`EXTERNAL DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl\n"
         + "TRUST_AUTH_MECH(`EXTERNAL LOGIN PLAIN')dnl\n" // AO Enabled and modified since using pam no sasldb
-        //+ "dnl define(`confAUTH_MECHANISMS', `EXTERNAL GSSAPI DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl\n"
+        // + "dnl define(`confAUTH_MECHANISMS', `EXTERNAL GSSAPI DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl\n"
         + "define(`confAUTH_MECHANISMS', `EXTERNAL LOGIN PLAIN')dnl\n" // AO Enabled and modified since using pam no sasldb
         + "dnl #\n"
         + "dnl # Rudimentary information on creating certificates for sendmail TLS:\n"
@@ -1061,25 +1061,25 @@ public final class SendmailCFManager extends BuilderThread {
         + "dnl MASQUERADE_DOMAIN(localhost.localdomain)dnl\n"
         + "dnl MASQUERADE_DOMAIN(mydomainalias.com)dnl\n"
         + "dnl MASQUERADE_DOMAIN(mydomain.lan)dnl\n"
-        //We are now blocking using egress filtering with firewalld direct.
-        //This means no special interaction with the firewalls - no outgoing NAT.
-        //A local root compromise could still bypass aoserv-jilter and send spam, but this was true before.
+        // We are now blocking using egress filtering with firewalld direct.
+        // This means no special interaction with the firewalls - no outgoing NAT.
+        // A local root compromise could still bypass aoserv-jilter and send spam, but this was true before.
         //
-        //if (thisAoServer.getServer().getServerFarm().useRestrictedSmtpPort()) {
-        // out.print("dnl #\n"
-        //     + "dnl # Establish outgoing connections from reserved ports (0-1023).\n"
-        //     + "dnl # This is used by firewall rules to prevent regular users from sending email directly.\n"
-        //     + "dnl #\n"
-        //     + "dnl # Some mail providers, such as yahoo.com, will not allow email from privileged ports,\n"
-        //     + "dnl # so this is used in conjunction with outgoing NAT on the routers to make connections\n"
-        //     + "dnl # appear to come from ports >= 1024.\n"
-        //     + "dnl #\n"
-        //     + "MODIFY_MAILER_FLAGS(`SMTP', `+R')dnl\n"
-        //     + "MODIFY_MAILER_FLAGS(`ESMTP', `+R')dnl\n"
-        //     + "MODIFY_MAILER_FLAGS(`SMTP8', `+R')dnl\n"
-        //     + "MODIFY_MAILER_FLAGS(`DSMTP', `+R')dnl\n"
-        //     + "dnl #\n");
-        //}
+        // if (thisAoServer.getServer().getServerFarm().useRestrictedSmtpPort()) {
+        //  out.print("dnl #\n"
+        //      + "dnl # Establish outgoing connections from reserved ports (0-1023).\n"
+        //      + "dnl # This is used by firewall rules to prevent regular users from sending email directly.\n"
+        //      + "dnl #\n"
+        //      + "dnl # Some mail providers, such as yahoo.com, will not allow email from privileged ports,\n"
+        //      + "dnl # so this is used in conjunction with outgoing NAT on the routers to make connections\n"
+        //      + "dnl # appear to come from ports >= 1024.\n"
+        //      + "dnl #\n"
+        //      + "MODIFY_MAILER_FLAGS(`SMTP', `+R')dnl\n"
+        //      + "MODIFY_MAILER_FLAGS(`ESMTP', `+R')dnl\n"
+        //      + "MODIFY_MAILER_FLAGS(`SMTP8', `+R')dnl\n"
+        //      + "MODIFY_MAILER_FLAGS(`DSMTP', `+R')dnl\n"
+        //      + "dnl #\n");
+        // }
         + "MAILER(smtp)dnl\n"
         + "MAILER(procmail)dnl\n"
         + "dnl MAILER(cyrusv2)dnl\n"
@@ -1902,7 +1902,7 @@ public final class SendmailCFManager extends BuilderThread {
           conn.getEmail().getSendmailServer().addTableListener(sendmailCFManager, 0);
           conn.getNet().getHost().addTableListener(sendmailCFManager, 0);
           conn.getPki().getCertificate().addTableListener(sendmailCFManager, 0);
-          //conn.getServerFarms().addTableListener(sendmailCFManager, 0);
+          // conn.getServerFarms().addTableListener(sendmailCFManager, 0);
           System.out.println("Done");
         } else {
           System.out.println("Unsupported OperatingSystemVersion: " + osv);

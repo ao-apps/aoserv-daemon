@@ -459,26 +459,26 @@ public abstract class HttpdSiteManager {
             + "-->\n";
   }
 
-  ///**
-  // * Gets the auto-mode warning using Unix-style comments (#).  This
-  // * may be used on any config files that a user would be tempted to change
-  // * directly.
-  // */
-  //public String getAutoWarningUnix() throws IOException, SQLException {
-  //  return
-  //    "#\n"
-  //    + "# Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
-  //    + "# to this file will be overwritten.  Please set the is_manual flag for this website\n"
-  //    + "# to be able to make permanent changes to this file.\n"
-  //    + "#\n"
-  //    + "# Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSiteCP.ao?pkey="+httpdSite.getPkey()+"\n"
-  //    + "#\n"
-  //    + "# AOSH: "+Command.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getName()+' '+httpdSite.getAOServer().getHostname()+" true\n"
-  //    + "#\n"
-  //    + "# support@aoindustries.com\n"
-  //    + "# (205) 454-2556\n"
-  //    + "#\n";
-  //}
+  // /**
+  //  * Gets the auto-mode warning using Unix-style comments (#).  This
+  //  * may be used on any config files that a user would be tempted to change
+  //  * directly.
+  //  */
+  // public String getAutoWarningUnix() throws IOException, SQLException {
+  //   return
+  //     "#\n"
+  //     + "# Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
+  //     + "# to this file will be overwritten.  Please set the is_manual flag for this website\n"
+  //     + "# to be able to make permanent changes to this file.\n"
+  //     + "#\n"
+  //     + "# Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSiteCP.ao?pkey="+httpdSite.getPkey()+"\n"
+  //     + "#\n"
+  //     + "# AOSH: "+Command.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getName()+' '+httpdSite.getAOServer().getHostname()+" true\n"
+  //     + "#\n"
+  //     + "# support@aoindustries.com\n"
+  //     + "# (205) 454-2556\n"
+  //     + "#\n";
+  // }
 
   /**
    * Gets any packages that must be installed for this site.
@@ -825,13 +825,13 @@ public abstract class HttpdSiteManager {
           new Location(true, ".*/CVS(/.*|$)"),
           new Location(true, ".*/CVSROOT(/.*|$)"),
           new Location(true, ".*/\\.cvsignore(/.*|$)")
-    //standardRejectedLocations.add(new Location(true, "/CVS/Attic"));
-    //standardRejectedLocations.add(new Location(true, "/CVS/Entries"));
+    // standardRejectedLocations.add(new Location(true, "/CVS/Attic"));
+    // standardRejectedLocations.add(new Location(true, "/CVS/Entries"));
     // Already covered by Entries: standardRejectedLocations.add(new Location(true, "/CVS/Entries\\.Static"));
-    //standardRejectedLocations.add(new Location(true, "/CVS/Repository"));
-    //standardRejectedLocations.add(new Location(true, "/CVS/RevisionCache"));
-    //standardRejectedLocations.add(new Location(true, "/CVS/Root"));
-    //standardRejectedLocations.add(new Location(true, "/CVS/\\.#merg"));
+    // standardRejectedLocations.add(new Location(true, "/CVS/Repository"));
+    // standardRejectedLocations.add(new Location(true, "/CVS/RevisionCache"));
+    // standardRejectedLocations.add(new Location(true, "/CVS/Root"));
+    // standardRejectedLocations.add(new Location(true, "/CVS/\\.#merg"));
     )
   );
 
@@ -961,54 +961,54 @@ public abstract class HttpdSiteManager {
     }
   }
 
-  //private static final List<PermanentRewriteRule> standardPermanentRewriteRules = new ArrayList<>();
-  //private static final List<PermanentRewriteRule> unmodifiableStandardPermanentRewriteRules = Collections.unmodifiableList(standardPermanentRewriteRules);
-  //static {
-  //  // emacs / kwrite
-  //  // Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*)~$", "$1"));
-  //  // Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*)~/(.*)$", "$1/$2"));
+  // private static final List<PermanentRewriteRule> standardPermanentRewriteRules = new ArrayList<>();
+  // private static final List<PermanentRewriteRule> unmodifiableStandardPermanentRewriteRules = Collections.unmodifiableList(standardPermanentRewriteRules);
+  // static {
+  //   // emacs / kwrite
+  //   // Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*)~$", "$1"));
+  //   // Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*)~/(.*)$", "$1/$2"));
   //
-  //  // vi / vim
-  //  // .test.php.swp
-  //  // Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*/)\\.([^/]+)\\.swp$", "$1$2"));
-  //  // Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*/)\\.([^/]+)\\.swp/(.*)$", "$1$2/$3"));
+  //   // vi / vim
+  //   // .test.php.swp
+  //   // Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*/)\\.([^/]+)\\.swp$", "$1$2"));
+  //   // Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*/)\\.([^/]+)\\.swp/(.*)$", "$1$2/$3"));
   //
-  //  // Some other kind (seen as left-over #wp-config.php# in web root)
-  //  // #wp-config.php#
-  //  // Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*/)#([^/]+)#$", "$1$2")); // TODO [NE]? % encoded?
-  //  // Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*/)#([^/]+)#/(.*)$", "$1$2/$3")); // TODO [NE]? % encoded?
+  //   // Some other kind (seen as left-over #wp-config.php# in web root)
+  //   // #wp-config.php#
+  //   // Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*/)#([^/]+)#$", "$1$2")); // TODO [NE]? % encoded?
+  //   // Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*/)#([^/]+)#/(.*)$", "$1$2/$3")); // TODO [NE]? % encoded?
   //
-  //  // TODO: nano .save files? https://askubuntu.com/questions/601985/what-are-save-files
+  //   // TODO: nano .save files? https://askubuntu.com/questions/601985/what-are-save-files
   //
-  //  // Should we report these in the distro scans instead of using these rules?
+  //   // Should we report these in the distro scans instead of using these rules?
   //
-  //  standardPermanentRewriteRules.put("^(.*)\\.do~$", "$1.do");
-  //  standardPermanentRewriteRules.put("^(.*)\\.do~/(.*)$", "$1.do/$2");
-  //  standardPermanentRewriteRules.put("^(.*)\\.jsp~$", "$1.jsp");
-  //  standardPermanentRewriteRules.put("^(.*)\\.jsp~/(.*)$", "$1.jsp/$2");
-  //  standardPermanentRewriteRules.put("^(.*)\\.jspa~$", "$1.jspa");
-  //  standardPermanentRewriteRules.put("^(.*)\\.jspa~/(.*)$", "$1.jspa/$2");
-  //  standardPermanentRewriteRules.put("^(.*)\\.php~$", "$1.php");
-  //  standardPermanentRewriteRules.put("^(.*)\\.php~/(.*)$", "$1.php/$2");
-  //  standardPermanentRewriteRules.put("^(.*)\\.php3~$", "$1.php3");
-  //  standardPermanentRewriteRules.put("^(.*)\\.php3~/(.*)$", "$1.php3/$2");
-  //  standardPermanentRewriteRules.put("^(.*)\\.php4~$", "$1.php4");
-  //  standardPermanentRewriteRules.put("^(.*)\\.php4~/(.*)$", "$1.php4/$2");
-  //  standardPermanentRewriteRules.put("^(.*)\\.phtml~$", "$1.phtml");
-  //  standardPermanentRewriteRules.put("^(.*)\\.phtml~/(.*)$", "$1.phtml/$2");
-  //  standardPermanentRewriteRules.put("^(.*)\\.shtml~$", "$1.shtml");
-  //  standardPermanentRewriteRules.put("^(.*)\\.shtml~/(.*)$", "$1.shtml/$2");
-  //  standardPermanentRewriteRules.put("^(.*)\\.vm~$", "$1.vm");
-  //  standardPermanentRewriteRules.put("^(.*)\\.vm~/(.*)$", "$1.vm/$2");
-  //  standardPermanentRewriteRules.put("^(.*)\\.xml~$", "$1.xml");
-  //  standardPermanentRewriteRules.put("^(.*)\\.xml~/(.*)$", "$1.xml/$2");
-  //}
+  //   standardPermanentRewriteRules.put("^(.*)\\.do~$", "$1.do");
+  //   standardPermanentRewriteRules.put("^(.*)\\.do~/(.*)$", "$1.do/$2");
+  //   standardPermanentRewriteRules.put("^(.*)\\.jsp~$", "$1.jsp");
+  //   standardPermanentRewriteRules.put("^(.*)\\.jsp~/(.*)$", "$1.jsp/$2");
+  //   standardPermanentRewriteRules.put("^(.*)\\.jspa~$", "$1.jspa");
+  //   standardPermanentRewriteRules.put("^(.*)\\.jspa~/(.*)$", "$1.jspa/$2");
+  //   standardPermanentRewriteRules.put("^(.*)\\.php~$", "$1.php");
+  //   standardPermanentRewriteRules.put("^(.*)\\.php~/(.*)$", "$1.php/$2");
+  //   standardPermanentRewriteRules.put("^(.*)\\.php3~$", "$1.php3");
+  //   standardPermanentRewriteRules.put("^(.*)\\.php3~/(.*)$", "$1.php3/$2");
+  //   standardPermanentRewriteRules.put("^(.*)\\.php4~$", "$1.php4");
+  //   standardPermanentRewriteRules.put("^(.*)\\.php4~/(.*)$", "$1.php4/$2");
+  //   standardPermanentRewriteRules.put("^(.*)\\.phtml~$", "$1.phtml");
+  //   standardPermanentRewriteRules.put("^(.*)\\.phtml~/(.*)$", "$1.phtml/$2");
+  //   standardPermanentRewriteRules.put("^(.*)\\.shtml~$", "$1.shtml");
+  //   standardPermanentRewriteRules.put("^(.*)\\.shtml~/(.*)$", "$1.shtml/$2");
+  //   standardPermanentRewriteRules.put("^(.*)\\.vm~$", "$1.vm");
+  //   standardPermanentRewriteRules.put("^(.*)\\.vm~/(.*)$", "$1.vm/$2");
+  //   standardPermanentRewriteRules.put("^(.*)\\.xml~$", "$1.xml");
+  //   standardPermanentRewriteRules.put("^(.*)\\.xml~/(.*)$", "$1.xml/$2");
+  // }
 
   /**
    * Gets the set of permanent rewrite rules.  By default, no rules.
    */
   public List<PermanentRewriteRule> getPermanentRewriteRules() {
-    //return unmodifiableStandardPermanentRewriteRules;
+    // return unmodifiableStandardPermanentRewriteRules;
     return Collections.emptyList();
   }
 
