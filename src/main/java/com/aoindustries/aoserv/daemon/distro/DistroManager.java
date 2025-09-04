@@ -194,7 +194,7 @@ public final class DistroManager implements Runnable {
               List<DistroReportFile> results = checkFilesystem(stats, null);
 
               // Report the results to the master server
-              // TODO
+              // TODO: Implement
 
               // Compile the counters for each of the different codes
               /*
