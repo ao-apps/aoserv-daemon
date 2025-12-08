@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
     shortTitle="Changelog"
     tocLevels="1"
     datePublished="2020-04-16T21:06:03-05:00"
-    dateModified="2025-11-13T04:34:35Z"
+    dateModified="2025-12-08T06:07:29Z"
   >
     <c:set var="latestRelease" value="1.91.10" />
     <c:if test="${
@@ -61,7 +61,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
             setting in support of parallel deployments.
           </li>
           <li>Added support for Apache Tomcat 8.5.100 with MySQL JDBC 8.4.0 and PostgreSQL JDBC 42.7.3.</li>
-          <li>Added support for Apache Tomcat 9.0.112 with MySQL JDBC 9.5.0 and PostgreSQL JDBC 42.7.8.</li>
+          <li>Added support for Apache Tomcat 9.0.113 with MySQL JDBC 9.5.0 and PostgreSQL JDBC 42.7.8.</li>
           <li>Added support for Apache Tomcat 10.1.49 with MySQL JDBC 9.5.0 and PostgreSQL JDBC 42.7.8.</li>
           <li>Additional support for <ao:a href="https://rockylinux.org/news/rocky-linux-9-4-ga-release">Rocky Linux 9</ao:a>.</li>
           <li>Updated to <ao:a href="https://checkstyle.org/releasenotes.html#Release_10.21.1">Checkstyle 10.21.1</ao:a>.</li>
