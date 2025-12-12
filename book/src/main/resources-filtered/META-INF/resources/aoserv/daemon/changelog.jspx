@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
     shortTitle="Changelog"
     tocLevels="1"
     datePublished="2020-04-16T21:06:03-05:00"
-    dateModified="2025-12-08T06:07:29Z"
+    dateModified="2025-12-12T06:20:35Z"
   >
     <c:set var="latestRelease" value="1.91.10" />
     <c:if test="${
@@ -70,7 +70,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
           <li>Minimum Java version changed from 1.8 to 11.</li>
           <li>Added support for <ao:a href="https://www.postgresql.org/docs/15/index.html">PostgreSQL 15</ao:a>.</li>
           <li>
-            Removed Linux group and user "centos" to since no longer supporting any CentOS deployments in
+            Removed Linux group and user "centos" since no longer supporting any CentOS deployments in
             <ao:a href="https://aws.amazon.com/ec2/">Amazon EC2</ao:a> (and other cloud environments) via
             the <ao:a href="https://cloud-init.io/">cloud-init</ao:a> package.
           </li>
