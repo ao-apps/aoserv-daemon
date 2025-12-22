@@ -175,6 +175,22 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
           PackageManager.PackageName.OLD_APACHE_TOMCAT_10_1);
       final String suffix = osConfig.getPackageReleaseSuffix();
       // Downgrade support
+      if (version.compareTo("10.1.50-1" + suffix) < 0) {
+        UpgradeSymlink[] downgradeSymlinks = {
+            // jakartaee-migration-1.0.10-shaded.jar -> jakartaee-migration-1.0.9-shaded.jar
+            new UpgradeSymlink(
+                "lib/jakartaee-migration-1.0.10-shaded.jar",
+                "../" + optSlash + "apache-tomcat-10.1/lib/jakartaee-migration-1.0.10-shaded.jar",
+                "lib/jakartaee-migration-1.0.9-shaded.jar",
+                "../" + optSlash + "apache-tomcat-10.1/lib/jakartaee-migration-1.0.9-shaded.jar"
+            ),
+        };
+        for (UpgradeSymlink symlink : downgradeSymlinks) {
+          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
+            needsRestart = true;
+          }
+        }
+      }
       if (version.compareTo("10.1.49-1" + suffix) < 0) {
         UpgradeSymlink[] downgradeSymlinks = {
             // mysql-connector-j-9.5.0.jar -> mysql-connector-j-9.3.0.jar
@@ -926,7 +942,23 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
           }
         }
       }
-      if (version.compareTo("10.1.49-1" + suffix) > 0) {
+      if (version.compareTo("10.1.50-1" + suffix) >= 0) {
+        UpgradeSymlink[] upgradeSymlinks = {
+            // jakartaee-migration-1.0.9-shaded.jar -> jakartaee-migration-1.0.10-shaded.jar
+            new UpgradeSymlink(
+                "lib/jakartaee-migration-1.0.9-shaded.jar",
+                "../" + optSlash + "apache-tomcat-10.1/lib/jakartaee-migration-1.0.9-shaded.jar",
+                "lib/jakartaee-migration-1.0.10-shaded.jar",
+                "../" + optSlash + "apache-tomcat-10.1/lib/jakartaee-migration-1.0.10-shaded.jar"
+            ),
+        };
+        for (UpgradeSymlink symlink : upgradeSymlinks) {
+          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
+            needsRestart = true;
+          }
+        }
+      }
+      if (version.compareTo("10.1.50-1" + suffix) > 0) {
         throw new IllegalStateException("Version of Tomcat newer than expected: " + version);
       }
     }
