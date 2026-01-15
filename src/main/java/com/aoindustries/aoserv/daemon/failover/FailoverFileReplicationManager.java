@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2003-2013, 2015, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
+ * Copyright (C) 2003-2013, 2015, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -152,12 +152,12 @@ import java.util.zip.GZIPInputStream;
  *
  * <p>depending on the length of the filename.
  *
-16 TiB = 2 ^ (10 + 10 + 10 + 10 + 4) = 2 ^ 44
-
-Each chunk is up to 1 MiB: 2 ^ 20
-
-Maximum number of chunks per file: 2 ^ (44 - 20): 2 ^ 24
-
+ * 16 TiB = 2 ^ (10 + 10 + 10 + 10 + 4) = 2 ^ 44
+ *
+ * Each chunk is up to 1 MiB: 2 ^ 20
+ *
+ * Maximum number of chunks per file: 2 ^ (44 - 20): 2 ^ 24
+ *
  * TODO: filename&lt;A&lt;O&lt;S&gt;O&gt;A&gt;...
  * TODO: Can't have any regular filename from client with &lt;A&lt;O&lt;CHUNK&gt;O&gt;A&gt; pattern.
  * TODO: Can't have any regular file exactly named "&lt;A&lt;O&lt;SURROGATE&gt;O&gt;A&gt;"</p>
