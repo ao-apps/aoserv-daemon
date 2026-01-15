@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
     shortTitle="Changelog"
     tocLevels="1"
     datePublished="2020-04-16T21:06:03-05:00"
-    dateModified="2025-12-22T10:45:02Z"
+    dateModified="2026-01-15T22:52:15Z"
   >
     <c:set var="latestRelease" value="1.91.10" />
     <c:if test="${
@@ -64,7 +64,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
           <li>Added support for Apache Tomcat 9.0.113 with MySQL JDBC 9.5.0 and PostgreSQL JDBC 42.7.8.</li>
           <li>Added support for Apache Tomcat 10.1.50 with MySQL JDBC 9.5.0 and PostgreSQL JDBC 42.7.8.</li>
           <li>Additional support for <ao:a href="https://rockylinux.org/news/rocky-linux-9-4-ga-release">Rocky Linux 9</ao:a>.</li>
-          <li>Updated to <ao:a href="https://checkstyle.org/releasenotes.html#Release_10.21.1">Checkstyle 10.21.1</ao:a>.</li>
+          <li>Updated to <ao:a href="https://checkstyle.org/releasenotes.html#Release_13.0.0">Checkstyle 13.0.0</ao:a>.</li>
           <li><code>named.conf</code> acl is now configured in <code>aoserv-daemon.properties</code> instead of hard-coded.</li>
           <li>Add entries to <code>/etc/passwd</code> and <code>/etc/group</code> in creation order during server upgrade/rebuild.</li>
           <li>Minimum Java version changed from 1.8 to 11.</li>
