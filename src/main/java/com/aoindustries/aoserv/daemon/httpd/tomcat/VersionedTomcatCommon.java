@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2018, 2019, 2020, 2021, 2022, 2023, 2024  AO Industries, Inc.
+ * Copyright (C) 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -265,7 +265,7 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
     }
 
     /**
-     * Compares to the given version and release, separated by last {@literal #SEPARATOR}.
+     * Compares to the given version and release, separated by last {@value #SEPARATOR}.
      */
     public int compareTo(String versionAndRelase) {
       int last = versionAndRelase.lastIndexOf(SEPARATOR);
