@@ -208,7 +208,7 @@ public final class HttpdServerManager {
 
   /**
    * The pattern matching service httpd@&lt;name&gt;.service files.
-   * Used to clean old instances from {@link #MULTI_USER_WANTS_DIRECTORY}.
+   * Used to clean old instances from {@link HttpdServerManager#MULTI_USER_WANTS_DIRECTORY}.
    */
   private static final Pattern HTTPD_NAME_SERVICE_REGEXP = Pattern.compile("^httpd@.+\\.service$");
 
@@ -227,7 +227,7 @@ public final class HttpdServerManager {
 
   /**
    * The pattern matching PHP session[@&lt;name&gt;] directories.
-   * Used to clean old instances from {@link #VAR_LIB_PHP_DIRECTORY}.
+   * Used to clean old instances from {@link HttpdServerManager#VAR_LIB_PHP_DIRECTORY}.
    */
   private static final Pattern PHP_SESSION_REGEXP = Pattern.compile("^" + PHP_SESSION + "@.+$");
 

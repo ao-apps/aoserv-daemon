@@ -71,47 +71,47 @@ public final class ShadowFile {
   public static final class Entry {
 
     /**
-     * @see  #getUsername()
+     * @see  Entry#getUsername()
      */
     private final User.Name username;
 
     /**
-     * @see  #getPassword()
+     * @see  Entry#getPassword()
      */
     private final String password;
 
     /**
-     * @see  #getChangedDate()
+     * @see  Entry#getChangedDate()
      */
     private final int changedDate;
 
     /**
-     * @see  #getMinPasswordAge()
+     * @see  Entry#getMinPasswordAge()
      */
     private final Integer minPasswordAge;
 
     /**
-     * @see  #getMaxPasswordAge()
+     * @see  Entry#getMaxPasswordAge()
      */
     private final Integer maxPasswordAge;
 
     /**
-     * @see  #getWarningDays()
+     * @see  Entry#getWarningDays()
      */
     private final Integer warningDays;
 
     /**
-     * @see  #getInactivateDays()
+     * @see  Entry#getInactivateDays()
      */
     private final Integer inactivateDays;
 
     /**
-     * @see  #getExpirationDate()
+     * @see  Entry#getExpirationDate()
      */
     private final Integer expirationDate;
 
     /**
-     * @see  #getFlag()
+     * @see  Entry#getFlag()
      */
     private final String flag;
 
@@ -252,7 +252,7 @@ public final class ShadowFile {
      * Gets this {@link Entry} as it would be written in <code>/etc/shadow</code>,
      * not including any newline.
      *
-     * @see  #appendTo(java.lang.Appendable)
+     * @see  Entry#appendTo(java.lang.Appendable)
      */
     @Override
     public String toString() {
@@ -267,7 +267,7 @@ public final class ShadowFile {
      * Appends this {@link Entry} as it would be written in <code>/etc/shadow</code>,
      * not including any newline.
      *
-     * @see  #toString()
+     * @see  Entry#toString()
      */
     public <A extends Appendable> A appendTo(A out) throws IOException {
       out
@@ -494,7 +494,7 @@ public final class ShadowFile {
   }
 
   /**
-   * Must hold {@link #shadowLock}.
+   * Must hold {@link ShadowFile#shadowLock}.
    */
   public static void writeShadowFile(byte[] newContents, Set<PosixFile> restorecon) throws SQLException, IOException {
     assert Thread.holdsLock(shadowLock);
@@ -528,7 +528,7 @@ public final class ShadowFile {
   /**
    * Builds a new version of the shadow file with necessary adjustments made.
    *
-   * <p>Must hold {@link #shadowLock}.</p>
+   * <p>Must hold {@link ShadowFile#shadowLock}.</p>
    */
   public static byte[] buildShadowFile(Set<User.Name> usernames) throws IOException {
     assert Thread.holdsLock(shadowLock);

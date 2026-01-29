@@ -665,7 +665,7 @@ public final class AoservDaemon {
   /**
    * Executes a command, opens then immediately closes the command's input, and discards the output.
    *
-   * @see  #execRun(com.aoapps.lang.function.ConsumerE, java.lang.String...)
+   * @see  AoservDaemon#execRun(com.aoapps.lang.function.ConsumerE, java.lang.String...)
    */
   public static void exec(File workingDirectory, String... command) throws IOException {
     execRun(
@@ -678,7 +678,7 @@ public final class AoservDaemon {
   /**
    * Executes a command, opens then immediately closes the command's input, and discards the output.
    *
-   * @see  #execRun(com.aoapps.lang.function.ConsumerE, java.lang.String...)
+   * @see  AoservDaemon#execRun(com.aoapps.lang.function.ConsumerE, java.lang.String...)
    */
   public static void exec(String... command) throws IOException {
     exec((File) null, command);

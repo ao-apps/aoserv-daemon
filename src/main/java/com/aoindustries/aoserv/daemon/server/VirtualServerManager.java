@@ -492,7 +492,7 @@ public final class VirtualServerManager {
    * <code>closeVncSocket(Socket)</code> in a try/finally block to ensure
    * minimal data structures.
    *
-   * @see  #closeVncSocket
+   * @see  VirtualServerManager#closeVncSocket
    */
   private static Socket getVncSocket(int vncPort) throws IOException {
     synchronized (openVncSockets) {
@@ -513,7 +513,7 @@ public final class VirtualServerManager {
   /**
    * Closes the socket and removes it from the map of active sockets.
    *
-   * @see  #getVncSocket
+   * @see  VirtualServerManager#getVncSocket
    */
   private static void closeVncSocket(int vncPort, Socket vncSocket) {
     synchronized (openVncSockets) {

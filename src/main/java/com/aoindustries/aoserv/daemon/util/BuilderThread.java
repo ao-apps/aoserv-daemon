@@ -67,7 +67,7 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
   }
 
   /**
-   * Will wait a random amount of time and then call {@link #doRebuild()}.
+   * Will wait a random amount of time and then call {@link BuilderThread#doRebuild()}.
    */
   private void delayAndRebuild() {
     synchronized (this) {

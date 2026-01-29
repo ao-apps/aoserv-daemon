@@ -132,7 +132,7 @@ public class LinuxProcess extends PosixProcess {
    * Gets the status from <code>/proc/<i>pid</i>/status</code>.
    * The colon (:) is removed from the field names.
    *
-   * @see  #getStatus(java.lang.String)
+   * @see  LinuxProcess#getStatus(java.lang.String)
    */
   public Map<String, String> getStatus() throws IOException {
     File statusFile = new File(getProc(), "status");
@@ -170,7 +170,7 @@ public class LinuxProcess extends PosixProcess {
    *
    * @return  the corresponding value or {@code null} if not found
    *
-   * @see  #getStatus()
+   * @see  LinuxProcess#getStatus()
    */
   public String getStatus(String name) throws IOException {
     File statusFile = new File(getProc(), "status");

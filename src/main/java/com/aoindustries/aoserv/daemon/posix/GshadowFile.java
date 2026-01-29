@@ -72,22 +72,22 @@ public final class GshadowFile {
   public static final class Entry {
 
     /**
-     * @see  #getGroupName()
+     * @see  Entry#getGroupName()
      */
     private final Group.Name groupName;
 
     /**
-     * @see  #getPassword()
+     * @see  Entry#getPassword()
      */
     private final String password;
 
     /**
-     * @see  #getGroupAdministrators()
+     * @see  Entry#getGroupAdministrators()
      */
     private final Set<User.Name> groupAdministrators;
 
     /**
-     * @see  #getGroupMembers()
+     * @see  Entry#getGroupMembers()
      */
     private final Set<User.Name> groupMembers;
 
@@ -178,7 +178,7 @@ public final class GshadowFile {
      * Gets this {@link Entry} as it would be written in <code>/etc/gshadow</code>,
      * not including any newline.
      *
-     * @see  #appendTo(java.lang.Appendable)
+     * @see  Entry#appendTo(java.lang.Appendable)
      */
     @Override
     public String toString() {
@@ -193,7 +193,7 @@ public final class GshadowFile {
      * Appends this {@link Entry} as it would be written in <code>/etc/gshadow</code>,
      * not including any newline.
      *
-     * @see  #toString()
+     * @see  Entry#toString()
      */
     public <A extends Appendable> A appendTo(A out) throws IOException {
       out.append(groupName.toString()).append(':');
@@ -313,7 +313,7 @@ public final class GshadowFile {
   }
 
   /**
-   * Must hold {@link #gshadowLock}.
+   * Must hold {@link GshadowFile#gshadowLock}.
    */
   public static void writeGshadowFile(byte[] newContents, Set<PosixFile> restorecon) throws SQLException, IOException {
     assert Thread.holdsLock(gshadowLock);
@@ -347,7 +347,7 @@ public final class GshadowFile {
   /**
    * Builds a new version of the gshadow file with necessary adjustments made.
    *
-   * <p>Must hold {@link #gshadowLock}.</p>
+   * <p>Must hold {@link GshadowFile#gshadowLock}.</p>
    */
   public static byte[] buildGshadowFile(Map<Group.Name, Set<User.Name>> groups) throws IOException {
     assert Thread.holdsLock(gshadowLock);

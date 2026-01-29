@@ -338,7 +338,7 @@ public final class BackupManager {
   /**
    * Gets the next backup file for ".tgz" extension.
    *
-   * @see  #getNextBackupFile(java.lang.String)
+   * @see  BackupManager#getNextBackupFile(java.lang.String)
    */
   public static File getNextTarballBackupFile() throws IOException {
     return getNextBackupFile(".tgz");

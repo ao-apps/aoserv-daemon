@@ -602,7 +602,7 @@ public abstract class VersionedSharedTomcatManager<T extends VersionedTomcatComm
    * Generates the README.txt that is used to detect major version changes to rebuild the Tomcat installation.
    *
    * @see  VersionedTomcatStdSiteManager#generateReadmeTxt(java.lang.String, java.lang.String, com.aoapps.io.posix.PosixFile)
-   * @see  #README_TXT
+   * @see  VersionedSharedTomcatManager#README_TXT
    */
   protected byte[] generateReadmeTxt(String optSlash, String apacheTomcatDir, PosixFile installDir) throws IOException, SQLException {
     ByteArrayOutputStream bout = new ByteArrayOutputStream();

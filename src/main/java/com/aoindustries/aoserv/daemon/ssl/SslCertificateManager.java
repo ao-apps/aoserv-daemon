@@ -134,7 +134,7 @@ public final class SslCertificateManager {
    * Gets the SHA-256 hashed output from a command, caching results when the file has not changed modified times.
    *
    * <p><b>Implementation Note:</b><br />
-   * This synchronizes on {@link #getHashedCache} which will serialize all commands.  This is OK as results will be cached normally.</p>
+   * This synchronizes on {@link SslCertificateManager#getHashedCache} which will serialize all commands.  This is OK as results will be cached normally.</p>
    */
   private static String getCommandHash(PosixFile file, String type, long modifiedTime, boolean allowCached, String... command) throws IOException {
     try {

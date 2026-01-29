@@ -126,7 +126,7 @@ public final class SendmailCFManager extends BuilderThread {
   /**
    * The prefix of Let's Encrypt links generated from a copy directory.
    *
-   * @see  #CERTIFICATE_COPY_DIRECTORY
+   * @see  SendmailCFManager#CERTIFICATE_COPY_DIRECTORY
    */
   private static final String LETS_ENCRYPT_SYMLINK_PREFIX = "../../../../letsencrypt/live/";
 

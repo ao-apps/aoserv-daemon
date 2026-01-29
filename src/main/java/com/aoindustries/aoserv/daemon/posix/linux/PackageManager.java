@@ -528,7 +528,7 @@ public final class PackageManager {
     }
 
     /**
-     * Parses the version then calls {@link #compareTo(com.aoindustries.aoserv.daemon.posix.linux.PackageManager.Version)}.
+     * Parses the version then calls {@link Version#compareTo(com.aoindustries.aoserv.daemon.posix.linux.PackageManager.Version)}.
      */
     public int compareTo(String other) {
       return compareTo(new Version(other));
@@ -872,7 +872,7 @@ public final class PackageManager {
    * Installs all of the packages that are not currently installed.
    * If a package is already installed, no action is taken for that package.
    *
-   * @see  #installPackage(com.aoindustries.aoserv.daemon.unix.linux.PackageManager.PackageName)
+   * @see  PackageManager#installPackage(com.aoindustries.aoserv.daemon.unix.linux.PackageManager.PackageName)
    */
   public static void installPackages(Iterable<PackageName> packageNames) throws IOException {
     synchronized (packagesLock) {
@@ -886,7 +886,7 @@ public final class PackageManager {
    * Installs all of the packages that are not currently installed.
    * If a package is already installed, no action is taken for that package.
    *
-   * @see  #installPackage(com.aoindustries.aoserv.daemon.unix.linux.PackageManager.PackageName)
+   * @see  PackageManager#installPackage(com.aoindustries.aoserv.daemon.unix.linux.PackageManager.PackageName)
    */
   public static void installPackages(PackageName... packageNames) throws IOException {
     synchronized (packagesLock) {
@@ -954,7 +954,7 @@ public final class PackageManager {
   /**
    * Adds a new package listener to be notified when the package list is updated or first loaded.
    *
-   * @see  #removePackageListener(com.aoindustries.aoserv.daemon.unix.linux.PackageManager.PackageListener)
+   * @see  PackageManager#removePackageListener(com.aoindustries.aoserv.daemon.unix.linux.PackageManager.PackageListener)
    * @see  ConcurrentListenerManager#addListener(java.lang.Object, boolean)
    */
   public static void addPackageListener(PackageListener listener) {
@@ -994,7 +994,7 @@ public final class PackageManager {
    *
    * @return  {@code true} if the listener was removed, {@code false} when not found
    *
-   * @see  #addPackageListener(com.aoindustries.aoserv.daemon.unix.linux.PackageManager.PackageListener)
+   * @see  PackageManager#addPackageListener(com.aoindustries.aoserv.daemon.unix.linux.PackageManager.PackageListener)
    * @see  ConcurrentListenerManager#removeListener(java.lang.Object)
    */
   public static boolean removePackageListener(PackageListener listener) {

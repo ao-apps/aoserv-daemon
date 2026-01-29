@@ -169,7 +169,7 @@ public final class DaemonFileUtils {
    *
    * @return  {@code true} if any modification was made
    *
-   * @see  #ln(String, String, int, int)
+   * @see  DaemonFileUtils#ln(String, String, int, int)
    */
   public static boolean lnAll(String targetBase, String srcBase, int uid, int gid) throws IOException {
     boolean modified = false;
@@ -188,7 +188,7 @@ public final class DaemonFileUtils {
    *
    * @return  {@code true} if any modification was made
    *
-   * @see  #ln(java.lang.String, com.aoapps.io.posix.PosixFile, int, int, com.aoapps.io.posix.PosixFile)
+   * @see  DaemonFileUtils#ln(java.lang.String, com.aoapps.io.posix.PosixFile, int, int, com.aoapps.io.posix.PosixFile)
    */
   public static boolean lnAll(String targetBase, PosixFile src, int uid, int gid, String backupSuffix, String backupSeparator, String backupExtension) throws IOException {
     boolean modified = false;

@@ -219,7 +219,7 @@ public final class IpReputationManager extends BuilderThread {
   /**
    * See ip_reputation_sets-create.sql for set name encoding
    *
-   * @see  #synchronizeIpset
+   * @see  IpReputationManager#synchronizeIpset
    */
   private static void synchronizeHostIpset(
       java.util.Set<Host> hosts,
@@ -246,7 +246,7 @@ public final class IpReputationManager extends BuilderThread {
   /**
    * See ip_reputation_sets-create.sql for set name encoding
    *
-   * @see  #synchronizeIpset
+   * @see  IpReputationManager#synchronizeIpset
    */
   private static void synchronizeNetworkIpset(
       java.util.Set<Network> networks,

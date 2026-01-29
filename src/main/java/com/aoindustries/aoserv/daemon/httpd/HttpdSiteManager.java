@@ -118,7 +118,7 @@ public abstract class HttpdSiteManager {
   /**
    * The per-site directory that contains PHP variable data.
    *
-   * @see  #VAR
+   * @see  HttpdSiteManager#VAR
    * @see  HttpdServerManager#PHP_SESSION
    */
   static final String VAR_PHP = "php";
@@ -287,7 +287,7 @@ public abstract class HttpdSiteManager {
    * that all types of sites will use the "daemon" directory with symbolic
    * links that accept "start" and "stop" parameters.
    *
-   * @see  #doRebuild
+   * @see  HttpdSiteManager#doRebuild
    */
   public static void stopAndDisableDaemons(PosixFile siteDirectory) throws IOException, SQLException {
     PosixFile daemonDirectory = new PosixFile(siteDirectory, "daemon", false);
@@ -526,7 +526,7 @@ public abstract class HttpdSiteManager {
    * This will only be called when <code>enableAnonymousFtp</code> returns <code>true</code>.
    * Manual mode has no impact on the ownership and permissions set.
    *
-   * @see  #enableAnonymousFtp()
+   * @see  HttpdSiteManager#enableAnonymousFtp()
    * @see  FTPManager#doRebuildSharedFtpDirectory()
    */
   public void configureFtpDirectory(PosixFile ftpDirectory, Set<PosixFile> restorecon) throws IOException, SQLException {

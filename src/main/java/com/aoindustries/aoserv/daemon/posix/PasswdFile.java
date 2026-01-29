@@ -69,47 +69,47 @@ public final class PasswdFile {
   public static final class Entry {
 
     /**
-     * @see  #getUsername()
+     * @see  Entry#getUsername()
      */
     private final User.Name username;
 
     /**
-     * @see  #getUid()
+     * @see  Entry#getUid()
      */
     private final int uid;
 
     /**
-     * @see  #getGid()
+     * @see  Entry#getGid()
      */
     private final int gid;
 
     /**
-     * @see  #getFullName()
+     * @see  Entry#getFullName()
      */
     private final Gecos fullName;
 
     /**
-     * @see  #getOfficeLocation()
+     * @see  Entry#getOfficeLocation()
      */
     private final Gecos officeLocation;
 
     /**
-     * @see  #getOfficePhone()
+     * @see  Entry#getOfficePhone()
      */
     private final Gecos officePhone;
 
     /**
-     * @see  #getHomePhone()
+     * @see  Entry#getHomePhone()
      */
     private final Gecos homePhone;
 
     /**
-     * @see  #getHome()
+     * @see  Entry#getHome()
      */
     private final PosixPath home;
 
     /**
-     * @see  #getShell()
+     * @see  Entry#getShell()
      */
     private final PosixPath shell;
 
@@ -222,7 +222,7 @@ public final class PasswdFile {
      * Gets this {@link Entry} as it would be written in <code>/etc/passwd</code>,
      * not including any newline.
      *
-     * @see  #appendTo(java.lang.Appendable)
+     * @see  Entry#appendTo(java.lang.Appendable)
      */
     @Override
     public String toString() {
@@ -237,7 +237,7 @@ public final class PasswdFile {
      * Appends this {@link Entry} as it would be written in <code>/etc/passwd</code>,
      * not including any newline.
      *
-     * @see  #toString()
+     * @see  Entry#toString()
      */
     public <A extends Appendable> A appendTo(A out) throws IOException {
       out
@@ -350,7 +350,7 @@ public final class PasswdFile {
   /**
    * Reads the full contents of <code>/etc/passwd</code>.
    *
-   * <p>Must hold {@link #passwdLock}.</p>
+   * <p>Must hold {@link PasswdFile#passwdLock}.</p>
    */
   public static Map<User.Name, Entry> readPasswdFile() throws IOException {
     assert Thread.holdsLock(passwdLock);
@@ -400,7 +400,7 @@ public final class PasswdFile {
   }
 
   /**
-   * Must hold {@link #passwdLock}.
+   * Must hold {@link PasswdFile#passwdLock}.
    */
   public static void writePasswdFile(byte[] newContents, Set<PosixFile> restorecon) throws IOException {
     assert Thread.holdsLock(passwdLock);
@@ -418,7 +418,7 @@ public final class PasswdFile {
   /**
    * Builds a new version of the passwd file with necessary adjustments made.
    *
-   * <p>Must hold {@link #passwdLock}.</p>
+   * <p>Must hold {@link PasswdFile#passwdLock}.</p>
    */
   public static byte[] buildPasswdFile(Map<User.Name, Entry> expectedEntries, int uidMin, int uidMax) throws IOException {
     assert Thread.holdsLock(passwdLock);

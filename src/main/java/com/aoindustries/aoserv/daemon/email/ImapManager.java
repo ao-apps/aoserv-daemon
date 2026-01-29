@@ -222,7 +222,7 @@ public final class ImapManager extends BuilderThread {
   /**
    * The prefix of Let's Encrypt links generated from a copy directory.
    *
-   * @see  #CERTIFICATE_COPY_DIRECTORY
+   * @see  ImapManager#CERTIFICATE_COPY_DIRECTORY
    */
   private static final String LETS_ENCRYPT_SYMLINK_PREFIX = "../../../../letsencrypt/live/";
 
@@ -1446,7 +1446,7 @@ public final class ImapManager extends BuilderThread {
   /**
    * Gets the Cyrus user part of a username.
    *
-   * @see  #getDomain
+   * @see  ImapManager#getDomain
    */
   private static String getUser(User.Name username) {
     String usernameStr = username.toString();
@@ -1457,7 +1457,7 @@ public final class ImapManager extends BuilderThread {
   /**
    * Gets the Cyrus domain part of a username or <code>null</code> for no domain.
    *
-   * @see  #getUser
+   * @see  ImapManager#getUser
    */
   private static String getDomain(User.Name username) {
     String usernameStr = username.toString();

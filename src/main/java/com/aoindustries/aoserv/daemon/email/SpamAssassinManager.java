@@ -145,7 +145,7 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
   /**
    * The number of bytes of RAM reserved per child process.  This is used to scale the maximum number of children
    * based on total system memory (as obtained by "MemTotal" in <code>/proc/meminfo</code>).  The result is then
-   * bounded within {@link #MIN_CHILDREN} and {@link #MAX_CHILDREN}.
+   * bounded within {@link SpamAssassinManager#MIN_CHILDREN} and {@link SpamAssassinManager#MAX_CHILDREN}.
    *
    * <p>We're seeing between 50 MiB and 90 MiB per child in 64-bit CentOS 7, so we're going with 100 MiB per-child.  The
    * servers certainly have other processes as well, so this should be sufficient to avoid spamd causing swap

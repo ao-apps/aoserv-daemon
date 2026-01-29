@@ -68,17 +68,17 @@ public final class GroupFile {
   public static final class Entry {
 
     /**
-     * @see  #getGroupName()
+     * @see  Entry#getGroupName()
      */
     private final Group.Name groupName;
 
     /**
-     * @see  #getGid()
+     * @see  Entry#getGid()
      */
     private final int gid;
 
     /**
-     * @see  #getGroupMembers()
+     * @see  Entry#getGroupMembers()
      */
     private final Set<User.Name> groupMembers;
 
@@ -131,7 +131,7 @@ public final class GroupFile {
      * Gets this {@link Entry} as it would be written in <code>/etc/group</code>,
      * not including any newline.
      *
-     * @see  #appendTo(java.lang.Appendable)
+     * @see  Entry#appendTo(java.lang.Appendable)
      */
     @Override
     public String toString() {
@@ -146,7 +146,7 @@ public final class GroupFile {
      * Appends this {@link Entry} as it would be written in <code>/etc/group</code>,
      * not including any newline.
      *
-     * @see  #toString()
+     * @see  Entry#toString()
      */
     public <A extends Appendable> A appendTo(A out) throws IOException {
       out
@@ -198,7 +198,7 @@ public final class GroupFile {
   /**
    * Reads the full contents of <code>/etc/group</code>.
    *
-   * <p>Must hold {@link #groupLock}.</p>
+   * <p>Must hold {@link GroupFile#groupLock}.</p>
    */
   public static Map<Group.Name, Entry> readGroupFile() throws IOException {
     assert Thread.holdsLock(groupLock);
@@ -248,7 +248,7 @@ public final class GroupFile {
   }
 
   /**
-   * Must hold {@link #groupLock}.
+   * Must hold {@link GroupFile#groupLock}.
    */
   public static void writeGroupFile(byte[] newContents, Set<PosixFile> restorecon) throws IOException {
     assert Thread.holdsLock(groupLock);
@@ -266,7 +266,7 @@ public final class GroupFile {
   /**
    * Builds a new version of the group file with necessary adjustments made.
    *
-   * <p>Must hold {@link #groupLock}.</p>
+   * <p>Must hold {@link GroupFile#groupLock}.</p>
    */
   public static byte[] buildGroupFile(Map<Group.Name, Entry> groups, int gidMin, int gidMax) throws IOException {
     assert Thread.holdsLock(groupLock);
