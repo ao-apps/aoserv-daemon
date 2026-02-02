@@ -410,7 +410,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
         <groupId>com.aoapps</groupId><artifactId>ao-io-filesystems-posix</artifactId><version>0.3.0-SNAPSHOT<!-- ${POST-SNAPSHOT} --></version>
       </dependency>
       <dependency>
-        <groupId>com.aoapps</groupId><artifactId>ao-io-posix</artifactId><version>4.2.0-SNAPSHOT<!-- ${POST-SNAPSHOT} --></version>
+        <groupId>com.aoapps</groupId><artifactId>ao-io-posix</artifactId><version>4.2.0${POST-SNAPSHOT}</version>
       </dependency>
       <dependency>
         <groupId>com.aoapps</groupId><artifactId>ao-lang</artifactId><version>5.7.0${POST-SNAPSHOT}</version>
