@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
     shortTitle="Changelog"
     tocLevels="1"
     datePublished="2020-04-16T21:06:03-05:00"
-    dateModified="2026-01-15T22:52:15Z"
+    dateModified="2026-03-09T06:00:38Z"
   >
     <c:set var="latestRelease" value="1.91.10" />
     <c:if test="${
@@ -76,6 +76,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
           </li>
           <li>Added support for HTTP/2 and Brotli compression in Rocky 9.</li>
           <li>For Rocky 9, default to event MPM unless running mod_php.</li>
+          <li>Added support for <ao:a href="http://www.opendkim.org/">OpenDKIM</ao:a> in generation of <code>sendmail.mc</code>.</li>
         </ul>
       </changelog:release>
     </c:if>

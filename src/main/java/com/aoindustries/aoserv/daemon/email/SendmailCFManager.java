@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2003-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
+ * Copyright (C) 2003-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -62,6 +62,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -811,7 +812,7 @@ public final class SendmailCFManager extends BuilderThread {
     // Look for the configured net bind for the jilter
     IpAddress primaryIpAddress = thisServer.getPrimaryIpAddress();
     Bind jilterNetBind = JilterConfigurationWriter.getJilterNetBind();
-    // Only configure when the net bind has been found
+    // Only configure when the "milter" net bind has been found
     if (jilterNetBind != null) {
       out.print("dnl #\n"
           + "dnl # Enable AOServ Jilter\n"
@@ -825,6 +826,28 @@ public final class SendmailCFManager extends BuilderThread {
           .print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
           .print(':')
           .print(jilterNetBind.getPort().getPort()).print('@').print(ip).print(", F=R, T=S:60s;R:60s')\n");
+    }
+    // Look for the configured net bind for opendkim
+    AppProtocol opendkimProtocol = AoservDaemon.getConnector().getNet().getAppProtocol().get(AppProtocol.OPENDKIM);
+    if (opendkimProtocol == null) {
+      throw new SQLException("AppProtocol not found: " + AppProtocol.OPENDKIM);
+    }
+    Optional<Bind> opendkimBindOpt = thisServer.getHost().getUniqueNetBind(opendkimProtocol);
+    // Only configure when the "opendkim" net bind has been found
+    if (opendkimBindOpt.isPresent()) {
+      Bind opendkimBind = opendkimBindOpt.get();
+      out.print("dnl #\n"
+          + "dnl # Enable OpenDKIM\n"
+          + "dnl #\n");
+      InetAddress ip = opendkimBind.getIpAddress().getInetAddress();
+      if (ip.isUnspecified()) {
+        ip = primaryIpAddress.getInetAddress();
+      }
+      out
+          .print("INPUT_MAIL_FILTER(`opendkim', `S=")
+          .print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
+          .print(':')
+          .print(opendkimBind.getPort().getPort()).print('@').print(ip).print(", F=R, T=S:60s;R:60s')\n");
     }
     out.print("dnl #\n"
         + "dnl # For using Cyrus-IMAPd as POP3/IMAP server through LMTP delivery uncomment\n"
