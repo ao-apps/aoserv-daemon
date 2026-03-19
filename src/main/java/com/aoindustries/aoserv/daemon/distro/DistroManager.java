@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2025  AO Industries, Inc.
+ * Copyright (C) 2001-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2025, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -48,7 +48,7 @@ import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.client.linux.UserServer;
 import com.aoindustries.aoserv.client.sql.SqlColumnValue;
 import com.aoindustries.aoserv.client.sql.SqlComparator;
-import com.aoindustries.aoserv.client.sql.SqlExpression;
+import com.aoindustries.aoserv.client.sql.SqlOrderByExpression;
 import com.aoindustries.aoserv.daemon.AoservDaemon;
 import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import java.io.FileInputStream;
@@ -401,11 +401,14 @@ public final class DistroManager implements Runnable {
       // The comparator used for the searches
       SqlComparator<Object> pathComparator = new SqlComparator<>(
           conn,
-          new SqlExpression[]{
+          new SqlOrderByExpression(
               new SqlColumnValue(conn, distroFileTable.getTableSchema().getSchemaColumn(conn, DistroFile.COLUMN_PATH)),
-              new SqlColumnValue(conn, distroFileTable.getTableSchema().getSchemaColumn(conn, DistroFile.COLUMN_OPERATING_SYSTEM_VERSION))
-          },
-          new boolean[]{AoservTable.ASCENDING, AoservTable.ASCENDING}
+              AoservTable.ASCENDING
+          ),
+          new SqlOrderByExpression(
+              new SqlColumnValue(conn, distroFileTable.getTableSchema().getSchemaColumn(conn, DistroFile.COLUMN_OPERATING_SYSTEM_VERSION)),
+              AoservTable.ASCENDING
+          )
       );
 
       // Verify all the files, from the root to the lowest directory, accumulating the results in the results List
