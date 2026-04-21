@@ -345,6 +345,8 @@ public final class PgHbaManager extends BuilderThread {
                           || version.startsWith(Version.VERSION_15 + 'R')
                           || version.startsWith(Version.VERSION_16 + '.')
                           || version.startsWith(Version.VERSION_16 + 'R')
+                          || version.startsWith(Version.VERSION_17 + '.')
+                          || version.startsWith(Version.VERSION_17 + 'R')
                   ) {
                     // TODO: PostgreSQL 14 allows multi-line configs with trailing backslash line continuation
                     // scram-sha-256 as of PostgreSQL 10
