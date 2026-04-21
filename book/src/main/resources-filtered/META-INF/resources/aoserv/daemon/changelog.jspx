@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
     shortTitle="Changelog"
     tocLevels="1"
     datePublished="2020-04-16T21:06:03-05:00"
-    dateModified="2026-04-21T17:56:57Z"
+    dateModified="2026-04-21T21:21:02Z"
   >
     <c:set var="latestRelease" value="1.91.10" />
     <c:if test="${
@@ -79,6 +79,7 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
           <li>Added support for <ao:a href="http://www.opendkim.org/">OpenDKIM</ao:a> in generation of <code>sendmail.mc</code>.</li>
           <li>Added support for <ao:a href="https://www.postgresql.org/docs/16/index.html">PostgreSQL 16</ao:a>.</li>
           <li>Added support for <ao:a href="https://www.postgresql.org/docs/17/index.html">PostgreSQL 17</ao:a>.</li>
+          <li>Added support for <ao:a href="https://www.postgresql.org/docs/18/index.html">PostgreSQL 18</ao:a>.</li>
         </ul>
       </changelog:release>
     </c:if>
