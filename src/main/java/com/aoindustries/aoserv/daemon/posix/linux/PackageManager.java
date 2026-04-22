@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025  AO Industries, Inc.
+ * Copyright (C) 2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -331,6 +331,27 @@ public final class PackageManager {
     PHP_8_2_EXT_MEMCACHED("php-8.2-ext-memcached"),
     PHP_8_2_EXT_RAPHF("php-8.2-ext-raphf"),
     PHP_8_2_EXT_REDIS("php-8.2-ext-redis"),
+    PHP_8_3("php-8.3"),
+    PHP_8_3_BCMATH("php-8.3-bcmath"),
+    PHP_8_3_BZ2("php-8.3-bz2"),
+    PHP_8_3_CURL("php-8.3-curl"),
+    PHP_8_3_DBA("php-8.3-dba"),
+    PHP_8_3_GD("php-8.3-gd"),
+    PHP_8_3_GMP("php-8.3-gmp"),
+    PHP_8_3_INTL("php-8.3-intl"),
+    PHP_8_3_MBSTRING("php-8.3-mbstring"),
+    PHP_8_3_MYSQL("php-8.3-mysql"),
+    PHP_8_3_PGSQL("php-8.3-pgsql"),
+    PHP_8_3_PSPELL("php-8.3-pspell"),
+    PHP_8_3_SOAP("php-8.3-soap"),
+    PHP_8_3_SQLITE3("php-8.3-sqlite3"),
+    PHP_8_3_XML("php-8.3-xml"),
+    PHP_8_3_ZIP("php-8.3-zip"),
+    PHP_8_3_EXT_HTTP("php-8.3-ext-http"),
+    PHP_8_3_EXT_IMAGICK("php-8.3-ext-imagick"),
+    PHP_8_3_EXT_MEMCACHED("php-8.3-ext-memcached"),
+    PHP_8_3_EXT_RAPHF("php-8.3-ext-raphf"),
+    PHP_8_3_EXT_REDIS("php-8.3-ext-redis"),
     POLICYCOREUTILS("policycoreutils"),
     POLICYCOREUTILS_PYTHON("policycoreutils-python"), // CentOS 7
     POLICYCOREUTILS_PYTHON_UTILS("policycoreutils-python-utils"), // Rocky 9
