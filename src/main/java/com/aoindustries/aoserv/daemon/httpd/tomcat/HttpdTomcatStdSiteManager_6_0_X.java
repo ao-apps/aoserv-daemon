@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2007-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2025  AO Industries, Inc.
+ * Copyright (C) 2007-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2025, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -72,8 +72,8 @@ class HttpdTomcatStdSiteManager_6_0_X extends HttpdTomcatStdSiteManager<TomcatCo
     final int uid = lsa.getUid().getId();
     final int gid = httpdSite.getLinuxServerGroup().getGid().getId();
     final Server thisServer = AoservDaemon.getThisServer();
-    int uidMin = thisServer.getUidMin().getId();
-    int gidMin = thisServer.getGidMin().getId();
+    final int uidMin = thisServer.getUidMin().getId();
+    final int gidMin = thisServer.getGidMin().getId();
 
     /*
      * Create the skeleton of the site, the directories and links.

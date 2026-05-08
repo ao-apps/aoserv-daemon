@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2005-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
+ * Copyright (C) 2005-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -481,7 +481,7 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
             // Make sure sa-learn is installed
             PackageManager.installPackage(PackageManager.PackageName.SPAMASSASSIN);
             // Call sa-learn for this pass
-            User.Name username = oldestLsa.getLinuxAccount_username_id();
+            final User.Name username = oldestLsa.getLinuxAccount_username_id();
             tempSb.setLength(0);
             tempSb.append("/usr/bin/sa-learn");
             boolean isNoSync = thisPass.size() >= SALEARN_NOSYNC_THRESHOLD;

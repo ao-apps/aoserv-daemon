@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2002-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025  AO Industries, Inc.
+ * Copyright (C) 2002-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -590,7 +590,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
                   }
                   try (ResultSet results = stmt.executeQuery(currentSql = "SHOW TABLE STATUS FROM `" + databaseName + '`')) {
                     while (results.next()) {
-                      String engine = results.getString(isMysql40 ? "Type" : "Engine");
+                      final String engine = results.getString(isMysql40 ? "Type" : "Engine");
                       Integer version;
                       if (isMysql40) {
                         version = null;
@@ -600,7 +600,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
                           version = null;
                         }
                       }
-                      String rowFormat = results.getString("Row_format");
+                      final String rowFormat = results.getString("Row_format");
                       Long rows = results.getLong("Rows");
                       if (results.wasNull()) {
                         rows = null;

@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2000-2012, 2014, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
+ * Copyright (C) 2000-2012, 2014, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -113,8 +113,8 @@ public final class EmailListManager {
       throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
     }
 
-    int uidMin = thisServer.getUidMin().getId();
-    int gidMin = thisServer.getGidMin().getId();
+    final int uidMin = thisServer.getUidMin().getId();
+    final int gidMin = thisServer.getGidMin().getId();
 
     // Remove any '/r'
     StringBuilder sb = new StringBuilder();
