@@ -1622,9 +1622,9 @@ public final class FailoverFileReplicationManager {
                                 filePos += ret;
                                 pos += ret;
                               }
-                              md5.Init();
-                              md5.Update(chunkBuffer, 0, chunkSize);
-                              byte[] md5Bytes = md5.Final();
+                              md5.init();
+                              md5.update(chunkBuffer, 0, chunkSize);
+                              byte[] md5Bytes = md5.digest();
                               md5His[chunkIndex] = MD5.getMD5Hi(md5Bytes);
                               md5Los[chunkIndex] = MD5.getMD5Lo(md5Bytes);
                             }
