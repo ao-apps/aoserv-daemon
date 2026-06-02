@@ -305,8 +305,8 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
   /**
    * This task will be ran once per day at 1:30am.
    */
-  private static final Schedule schedule = (int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year)
-      -> minute == 30 && hour == 1;
+  private static final Schedule schedule = (int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) ->
+      minute == 30 && hour == 1;
 
   @Override
   public Schedule getSchedule() {

@@ -1023,8 +1023,8 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
     private static final int NUM_LINES_RETAINED = 1000;
 
     private static final Schedule schedule =
-        (int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year)
-            -> minute == 5 && hour == 1;
+        (int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) ->
+            minute == 5 && hour == 1;
 
     @Override
     public Schedule getSchedule() {
