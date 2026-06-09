@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2013, 2014, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
+ * Copyright (C) 2001-2013, 2014, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -174,6 +174,33 @@ public final class PostgresUserManager extends BuilderThread {
           User.PG_DATABASE_OWNER,
           // PostgreSQL 15+
           User.PG_CHECKPOINT
+      ));
+    }
+    if (
+        version.startsWith(Version.VERSION_16 + '.')
+            || version.startsWith(Version.VERSION_16 + 'R')
+    ) {
+      return new HashSet<>(Arrays.asList(
+          User.POSTGRES,
+          // PostgreSQL 10+
+          User.PG_MONITOR,
+          User.PG_READ_ALL_SETTINGS,
+          User.PG_READ_ALL_STATS,
+          User.PG_SIGNAL_BACKEND,
+          User.PG_STAT_SCAN_TABLES,
+          // PostgreSQL 11+
+          User.PG_EXECUTE_SERVER_PROGRAM,
+          User.PG_READ_SERVER_FILES,
+          User.PG_WRITE_SERVER_FILES,
+          // PostgreSQL 14+
+          User.PG_READ_ALL_DATA,
+          User.PG_WRITE_ALL_DATA,
+          User.PG_DATABASE_OWNER,
+          // PostgreSQL 15+
+          User.PG_CHECKPOINT,
+          // PostgreSQL 16+
+          User.PG_USE_RESERVED_CONNECTIONS,
+          User.PG_CREATE_SUBSCRIPTION
       ));
     }
     throw new NotImplementedException("TODO: Implement for version " + version);
