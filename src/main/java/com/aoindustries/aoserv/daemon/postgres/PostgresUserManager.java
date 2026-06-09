@@ -64,144 +64,93 @@ public final class PostgresUserManager extends BuilderThread {
     // Do nothing
   }
 
+  private static boolean isVersion(String version, String... versions) {
+    for (String v : versions) {
+      if (version.startsWith(v + '.') || version.startsWith(v + 'R')) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /**
    * Gets the <a href="https://www.postgresql.org/docs/current/predefined-roles.html">predefined roles</a> for a given
    * version of PostgreSQL.  Compare to <code>select rolname from pg_roles order by rolname;</code>
    */
   private static Set<User.Name> getPredefinedRoles(String version) {
-    if (
-        version.startsWith(Version.VERSION_7_1 + '.')
-            || version.startsWith(Version.VERSION_7_2 + '.')
-            || version.startsWith(Version.VERSION_7_3 + '.')
-            || version.startsWith(Version.VERSION_8_0 + '.')
-            || version.startsWith(Version.VERSION_8_1 + '.')
-            || version.startsWith(Version.VERSION_8_3 + '.')
-            || version.startsWith(Version.VERSION_8_3 + 'R')
-            || version.startsWith(Version.VERSION_9_4 + '.')
-            || version.startsWith(Version.VERSION_9_4 + 'R')
-    ) {
-      return Collections.singleton(User.POSTGRES);
+    Set<User.Name> roles = new HashSet<>();
+    // PostgreSQL 7.1+
+    roles.add(User.POSTGRES);
+    if (isVersion(version,
+        Version.VERSION_7_1,
+        Version.VERSION_7_2,
+        Version.VERSION_7_3,
+        Version.VERSION_8_0,
+        Version.VERSION_8_1,
+        Version.VERSION_8_3,
+        Version.VERSION_9_4,
+        Version.VERSION_9_5
+    )) {
+      return roles;
     }
-    if (
-        version.startsWith(Version.VERSION_9_5 + '.')
-            || version.startsWith(Version.VERSION_9_5 + 'R')
-    ) {
-      throw new NotImplementedException("TODO: Implement for version " + version);
+    // PostgreSQL 9.6+
+    roles.add(User.PG_SIGNAL_BACKEND);
+    if (isVersion(version,
+        Version.VERSION_9_6
+    )) {
+      return roles;
     }
-    if (
-        version.startsWith(Version.VERSION_9_6 + '.')
-            || version.startsWith(Version.VERSION_9_6 + 'R')
-    ) {
-      throw new NotImplementedException("TODO: Implement for version " + version);
+    // PostgreSQL 10+
+    roles.add(User.PG_MONITOR);
+    roles.add(User.PG_READ_ALL_SETTINGS);
+    roles.add(User.PG_READ_ALL_STATS);
+    roles.add(User.PG_STAT_SCAN_TABLES);
+    if (isVersion(version,
+        Version.VERSION_10
+    )) {
+      return roles;
     }
-    if (
-        version.startsWith(Version.VERSION_10 + '.')
-            || version.startsWith(Version.VERSION_10 + 'R')
-    ) {
-      return new HashSet<>(Arrays.asList(
-          User.POSTGRES,
-          // PostgreSQL 10+
-          User.PG_MONITOR,
-          User.PG_READ_ALL_SETTINGS,
-          User.PG_READ_ALL_STATS,
-          User.PG_SIGNAL_BACKEND,
-          User.PG_STAT_SCAN_TABLES
-      ));
+    // PostgreSQL 11+
+    roles.add(User.PG_EXECUTE_SERVER_PROGRAM);
+    roles.add(User.PG_READ_SERVER_FILES);
+    roles.add(User.PG_WRITE_SERVER_FILES);
+    if (isVersion(version,
+        Version.VERSION_11,
+        Version.VERSION_12,
+        Version.VERSION_13
+    )) {
+      return roles;
     }
-    if (
-        version.startsWith(Version.VERSION_11 + '.')
-            || version.startsWith(Version.VERSION_11 + 'R')
-            || version.startsWith(Version.VERSION_12 + '.')
-            || version.startsWith(Version.VERSION_12 + 'R')
-            || version.startsWith(Version.VERSION_13 + '.')
-            || version.startsWith(Version.VERSION_13 + 'R')
-    ) {
-      return new HashSet<>(Arrays.asList(
-          User.POSTGRES,
-          // PostgreSQL 10+
-          User.PG_MONITOR,
-          User.PG_READ_ALL_SETTINGS,
-          User.PG_READ_ALL_STATS,
-          User.PG_SIGNAL_BACKEND,
-          User.PG_STAT_SCAN_TABLES,
-          // PostgreSQL 11+
-          User.PG_EXECUTE_SERVER_PROGRAM,
-          User.PG_READ_SERVER_FILES,
-          User.PG_WRITE_SERVER_FILES
-      ));
+    // PostgreSQL 14+
+    roles.add(User.PG_READ_ALL_DATA);
+    roles.add(User.PG_WRITE_ALL_DATA);
+    roles.add(User.PG_DATABASE_OWNER);
+    if (isVersion(version,
+        Version.VERSION_14
+    )) {
+      return roles;
     }
-    if (
-        version.startsWith(Version.VERSION_14 + '.')
-            || version.startsWith(Version.VERSION_14 + 'R')
-    ) {
-      return new HashSet<>(Arrays.asList(
-          User.POSTGRES,
-          // PostgreSQL 10+
-          User.PG_MONITOR,
-          User.PG_READ_ALL_SETTINGS,
-          User.PG_READ_ALL_STATS,
-          User.PG_SIGNAL_BACKEND,
-          User.PG_STAT_SCAN_TABLES,
-          // PostgreSQL 11+
-          User.PG_EXECUTE_SERVER_PROGRAM,
-          User.PG_READ_SERVER_FILES,
-          User.PG_WRITE_SERVER_FILES,
-          // PostgreSQL 14+
-          User.PG_READ_ALL_DATA,
-          User.PG_WRITE_ALL_DATA,
-          User.PG_DATABASE_OWNER
-      ));
+    // PostgreSQL 15+
+    roles.add(User.PG_CHECKPOINT);
+    if (isVersion(version,
+        Version.VERSION_15
+    )) {
+      return roles;
     }
-    if (
-        version.startsWith(Version.VERSION_15 + '.')
-            || version.startsWith(Version.VERSION_15 + 'R')
-    ) {
-      return new HashSet<>(Arrays.asList(
-          User.POSTGRES,
-          // PostgreSQL 10+
-          User.PG_MONITOR,
-          User.PG_READ_ALL_SETTINGS,
-          User.PG_READ_ALL_STATS,
-          User.PG_SIGNAL_BACKEND,
-          User.PG_STAT_SCAN_TABLES,
-          // PostgreSQL 11+
-          User.PG_EXECUTE_SERVER_PROGRAM,
-          User.PG_READ_SERVER_FILES,
-          User.PG_WRITE_SERVER_FILES,
-          // PostgreSQL 14+
-          User.PG_READ_ALL_DATA,
-          User.PG_WRITE_ALL_DATA,
-          User.PG_DATABASE_OWNER,
-          // PostgreSQL 15+
-          User.PG_CHECKPOINT
-      ));
+    // PostgreSQL 16+
+    roles.add(User.PG_USE_RESERVED_CONNECTIONS);
+    roles.add(User.PG_CREATE_SUBSCRIPTION);
+    if (isVersion(version,
+        Version.VERSION_16
+    )) {
+      return roles;
     }
-    if (
-        version.startsWith(Version.VERSION_16 + '.')
-            || version.startsWith(Version.VERSION_16 + 'R')
-    ) {
-      return new HashSet<>(Arrays.asList(
-          User.POSTGRES,
-          // PostgreSQL 10+
-          User.PG_MONITOR,
-          User.PG_READ_ALL_SETTINGS,
-          User.PG_READ_ALL_STATS,
-          User.PG_SIGNAL_BACKEND,
-          User.PG_STAT_SCAN_TABLES,
-          // PostgreSQL 11+
-          User.PG_EXECUTE_SERVER_PROGRAM,
-          User.PG_READ_SERVER_FILES,
-          User.PG_WRITE_SERVER_FILES,
-          // PostgreSQL 14+
-          User.PG_READ_ALL_DATA,
-          User.PG_WRITE_ALL_DATA,
-          User.PG_DATABASE_OWNER,
-          // PostgreSQL 15+
-          User.PG_CHECKPOINT,
-          // PostgreSQL 16+
-          User.PG_USE_RESERVED_CONNECTIONS,
-          User.PG_CREATE_SUBSCRIPTION
-      ));
+    // PostgreSQL 17+
+    roles.add(User.PG_MAINTAIN);
+    if (isVersion(version,
+        Version.VERSION_17
+    )) {
+      return roles;
     }
     throw new NotImplementedException("TODO: Implement for version " + version);
   }
