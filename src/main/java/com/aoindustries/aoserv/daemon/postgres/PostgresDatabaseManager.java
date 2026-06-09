@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
+ * Copyright (C) 2001-2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -150,6 +150,7 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
                           version.startsWith(Version.VERSION_7_1 + '.')
                               || version.startsWith(Version.VERSION_7_2 + '.')
                       ) {
+                        // PostgreSQL 7.1 and 7.2 do not yet have "WITH OWNER"
                         // Create the database
                         currentSql = null;
                         try (Statement stmt = conn.createStatement()) {
@@ -169,29 +170,8 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
                             throw e;
                           }
                         }
-                      } else if (
-                          version.startsWith(Version.VERSION_7_3 + '.')
-                              || version.startsWith(Version.VERSION_8_0 + '.')
-                              || version.startsWith(Version.VERSION_8_1 + '.')
-                              || version.startsWith(Version.VERSION_8_3 + '.')
-                              || version.startsWith(Version.VERSION_8_3 + 'R')
-                              || version.startsWith(Version.VERSION_9_4 + '.')
-                              || version.startsWith(Version.VERSION_9_4 + 'R')
-                              || version.startsWith(Version.VERSION_9_5 + '.')
-                              || version.startsWith(Version.VERSION_9_5 + 'R')
-                              || version.startsWith(Version.VERSION_9_6 + '.')
-                              || version.startsWith(Version.VERSION_9_6 + 'R')
-                              || version.startsWith(Version.VERSION_10 + '.')
-                              || version.startsWith(Version.VERSION_10 + 'R')
-                              || version.startsWith(Version.VERSION_11 + '.')
-                              || version.startsWith(Version.VERSION_11 + 'R')
-                              || version.startsWith(Version.VERSION_12 + '.')
-                              || version.startsWith(Version.VERSION_12 + 'R')
-                              || version.startsWith(Version.VERSION_13 + '.')
-                              || version.startsWith(Version.VERSION_13 + 'R')
-                              || version.startsWith(Version.VERSION_14 + '.')
-                              || version.startsWith(Version.VERSION_14 + 'R')
-                      ) {
+                      } else {
+                        // PostgreSQL 7.3 and above have "WITH OWNER"
                         currentSql = null;
                         try (Statement stmt = conn.createStatement()) {
                           stmt.executeUpdate(currentSql = "CREATE DATABASE \"" + name + "\" WITH OWNER = \""
@@ -201,8 +181,6 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
                           ErrorPrinter.addSql(e, currentSql);
                           throw e;
                         }
-                      } else {
-                        throw new SQLException("Unsupported version of PostgreSQL: " + version);
                       }
 
                       // createlang
