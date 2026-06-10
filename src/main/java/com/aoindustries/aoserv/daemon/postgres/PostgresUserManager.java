@@ -152,6 +152,13 @@ public final class PostgresUserManager extends BuilderThread {
     )) {
       return roles;
     }
+    // PostgreSQL 18+
+    roles.add(User.PG_SIGNAL_AUTOVACUUM_WORKER);
+    if (isVersion(version,
+        Version.VERSION_18
+    )) {
+      return roles;
+    }
     throw new NotImplementedException("TODO: Implement for version " + version);
   }
 
