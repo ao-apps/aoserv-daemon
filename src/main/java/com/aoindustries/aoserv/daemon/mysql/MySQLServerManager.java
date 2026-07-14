@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2006-2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
+ * Copyright (C) 2006-2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -39,8 +39,6 @@ import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.selinux.SEManagePort;
 import java.io.File;
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -151,12 +149,7 @@ public final class MySQLServerManager extends BuilderThread {
         }
         Port port = md.getMysqlServer().getBind().getPort();
         Server.Name serverName = ms.getName();
-        String jdbcUrl;
-        if (port == Server.DEFAULT_PORT) {
-          jdbcUrl = "jdbc:mysql://127.0.0.1/" + URLEncoder.encode(md.getName().toString(), StandardCharsets.UTF_8) + "?useSSL=false";
-        } else {
-          jdbcUrl = "jdbc:mysql://127.0.0.1:" + port.getPort() + "/" + URLEncoder.encode(md.getName().toString(), StandardCharsets.UTF_8) + "?useSSL=false";
-        }
+        String jdbcUrl = MySQLDatabaseManager.getJdbcUrl(port, md.getName());
         pool = new AOConnectionPool(
             AoservDaemonConfiguration.getMySqlDriver(),
             jdbcUrl,

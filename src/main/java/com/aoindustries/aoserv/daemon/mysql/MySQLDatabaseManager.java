@@ -406,18 +406,18 @@ public final class MySQLDatabaseManager extends BuilderThread {
     }
   }
 
-  public static String getJdbcUrl(Port port, Database.Name database) {
+  static String getJdbcUrl(Port port, Database.Name database) {
     if (port == Server.DEFAULT_PORT) {
-      return "jdbc:mysql://127.0.0.1/" + URLEncoder.encode(database.toString(), StandardCharsets.UTF_8) + "?useSSL=false";
+      return "jdbc:mysql://127.0.0.1/" + URLEncoder.encode(database.toString(), StandardCharsets.UTF_8) + "?useSSL=false&allowPublicKeyRetrieval=true";
     } else {
-      return "jdbc:mysql://127.0.0.1:" + port.getPort() + "/" + URLEncoder.encode(database.toString(), StandardCharsets.UTF_8) + "?useSSL=false";
+      return "jdbc:mysql://127.0.0.1:" + port.getPort() + "/" + URLEncoder.encode(database.toString(), StandardCharsets.UTF_8) + "?useSSL=false&allowPublicKeyRetrieval=true";
     }
   }
 
   /**
    * Gets a connection to the MySQL server, this handles both master and slave scenarios.
    */
-  public static Connection getMysqlConnection(PosixPath failoverRoot, int nestedOperatingSystemVersion, Server.Name serverName, Port port) throws IOException, SQLException {
+  private static Connection getMysqlConnection(PosixPath failoverRoot, int nestedOperatingSystemVersion, Server.Name serverName, Port port) throws IOException, SQLException {
     if (port.getProtocol() != com.aoapps.net.Protocol.TCP) {
       throw new IllegalArgumentException("Only TCP supported: " + port);
     }
