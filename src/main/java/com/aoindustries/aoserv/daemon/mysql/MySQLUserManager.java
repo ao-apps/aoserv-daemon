@@ -160,6 +160,13 @@ public final class MySQLUserManager extends BuilderThread {
     }
   }
 
+  private static void setParams(PreparedStatement pstmt, Iterable<String> params) throws SQLException {
+    int pos = 1;
+    for (String param : params) {
+      pstmt.setString(pos++, param);
+    }
+  }
+
   /**
    * Adds any missing users with default (minimal) permissions.
    *
@@ -226,9 +233,7 @@ public final class MySQLUserManager extends BuilderThread {
           }
           String currentSql = null;
           try (PreparedStatement pstmt = conn.prepareStatement(currentSql = sql)) {
-            for (int i = 0; i < params.size(); i++) {
-              pstmt.setString(i + 1, params.get(i));
-            }
+            setParams(pstmt, params);
             pstmt.executeUpdate();
           } catch (Error | RuntimeException | SQLException e) {
             ErrorPrinter.addSql(e, currentSql);
