@@ -842,7 +842,7 @@ public final class MySQLUserManager extends BuilderThread {
     } else if (version.startsWith(Server.VERSION_8_4_PREFIX)) {
       // MySQL 8.4+: password stored in "authentication_string" column but NO_PASSWORD_DB_VALUE_CACHING_SHA2 used instead of User.NO_PASSWORD_DB_VALUE
       sql = "SELECT authentication_string FROM user WHERE user=?";
-      compatibilityConverter = authentication_string -> NO_PASSWORD_DB_VALUE_CACHING_SHA2.equals(authentication_string) ? User.NO_PASSWORD_DB_VALUE : authentication_string;
+      compatibilityConverter = authenticationString -> NO_PASSWORD_DB_VALUE_CACHING_SHA2.equals(authenticationString) ? User.NO_PASSWORD_DB_VALUE : authenticationString;
     } else {
       throw new SQLException("Unsupported version of MySQL: " + version);
     }
