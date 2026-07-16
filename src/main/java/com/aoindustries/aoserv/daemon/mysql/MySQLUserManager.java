@@ -562,6 +562,7 @@ public final class MySQLUserManager extends BuilderThread {
     }
 
     // Disable and enable accounts
+    // Note: This is done without holding Connection because it can callback to master, which could potentially deadlock.
     if (
         version.startsWith(Server.VERSION_4_1_PREFIX)
             || version.startsWith(Server.VERSION_5_0_PREFIX)
