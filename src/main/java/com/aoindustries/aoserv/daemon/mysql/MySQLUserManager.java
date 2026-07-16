@@ -722,29 +722,47 @@ public final class MySQLUserManager extends BuilderThread {
                   }
 
                   // Remove the extra users
-                  if (!existing.isEmpty()) {
-                    currentSql = null;
-                    try (PreparedStatement pstmt = conn.prepareStatement(currentSql = "DELETE FROM user WHERE host=? AND user=?")) {
-                      for (Tuple2<String, User.Name> key : existing) {
-                        // Remove the extra host entry
-                        String host = key.getElement1();
-                        User.Name user = key.getElement2();
-                        if (User.isSpecial(user)) {
-                          logger.log(
-                              Level.WARNING,
-                              null,
-                              new SQLException("Refusing to drop special user: " + user + " user for host " + host + " on " + mysqlServer.getName())
-                          );
-                        } else {
-                          pstmt.setString(1, host);
-                          pstmt.setString(2, user.toString());
-                          pstmt.executeUpdate();
-                          needsFlush = true;
-                        }
+                  for (Tuple2<String, User.Name> key : existing) {
+                    // Remove the extra user@host entry
+                    String host = key.getElement1();
+                    User.Name user = key.getElement2();
+                    if (User.isSpecial(user)) {
+                      logger.log(
+                          Level.WARNING,
+                          null,
+                          new SQLException("Refusing to drop special user: " + user + " user for host " + host + " on " + mysqlServer.getName())
+                      );
+                    } else {
+                      String sql;
+                      String param1;
+                      String param2;
+                      if (
+                          version.startsWith(Server.VERSION_4_0_PREFIX)
+                              || version.startsWith(Server.VERSION_4_1_PREFIX)
+                              || version.startsWith(Server.VERSION_5_0_PREFIX)
+                              || version.startsWith(Server.VERSION_5_1_PREFIX)
+                              || version.startsWith(Server.VERSION_5_6_PREFIX)
+                              || version.startsWith(Server.VERSION_5_7_PREFIX)
+                      ) {
+                        sql = "DELETE FROM user WHERE host=? AND user=?";
+                        param1 = host;
+                        param2 = user.toString();
+                        needsFlush = true;
+                      } else if (version.startsWith(Server.VERSION_8_4_PREFIX)) {
+                        sql = "DROP USER ?@?";
+                        param1 = user.toString();
+                        param2 = host;
+                      } else {
+                        throw new SQLException("Unsupported version of MySQL: " + version);
                       }
-                    } catch (Error | RuntimeException | SQLException e) {
-                      ErrorPrinter.addSql(e, currentSql);
-                      throw e;
+                      try (PreparedStatement pstmt = conn.prepareStatement(currentSql = sql)) {
+                        pstmt.setString(1, param1);
+                        pstmt.setString(2, param2);
+                        pstmt.executeUpdate();
+                      } catch (Error | RuntimeException | SQLException e) {
+                        ErrorPrinter.addSql(e, currentSql);
+                        throw e;
+                      }
                     }
                   }
                 } catch (SQLException e) {
