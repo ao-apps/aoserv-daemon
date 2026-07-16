@@ -602,12 +602,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
                       if (results.wasNull()) {
                         autoIncrement = null;
                       }
-                      String collation;
-                      if (isMysql40) {
-                        collation = null;
-                      } else {
-                        collation = results.getString("Collation");
-                      }
+                      String collation = results.getString("Collation");
                       try {
                         statuses.add(
                             new Database.TableStatus(
@@ -623,10 +618,10 @@ public final class MySQLDatabaseManager extends BuilderThread {
                                 dataFree,
                                 autoIncrement,
                                 results.getString("Create_time"),
-                                isMysql40 ? null : results.getString("Update_time"),
+                                results.getString("Update_time"),
                                 results.getString("Check_time"),
                                 collation == null ? null : Database.TableStatus.Collation.valueOf(collation),
-                                isMysql40 ? null : results.getString("Checksum"),
+                                results.getString("Checksum"),
                                 results.getString("Create_options"),
                                 results.getString("Comment")
                             )
