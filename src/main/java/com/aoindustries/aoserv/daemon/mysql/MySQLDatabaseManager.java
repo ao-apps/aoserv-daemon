@@ -131,7 +131,8 @@ public final class MySQLDatabaseManager extends BuilderThread {
               systemDatabases.add(Database.MYSQL);
               systemDatabases.add(Database.INFORMATION_SCHEMA);
               systemDatabases.add(Database.PERFORMANCE_SCHEMA);
-            } else if (version.startsWith(Server.VERSION_5_7_PREFIX)) {
+            } else if (version.startsWith(Server.VERSION_5_7_PREFIX)
+                || version.startsWith(Server.VERSION_8_4_PREFIX)) {
               systemDatabases.add(Database.MYSQL);
               systemDatabases.add(Database.INFORMATION_SCHEMA);
               systemDatabases.add(Database.PERFORMANCE_SCHEMA);
