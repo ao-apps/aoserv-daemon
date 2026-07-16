@@ -42,6 +42,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -262,390 +263,214 @@ public final class MySQLUserManager extends BuilderThread {
       User.Name username = mu.getKey();
       Tuple2<String, User.Name> key = new Tuple2<>(host, username);
       if (existing.remove(key)) {
-        String updateSql;
-        if (version == Server.Version.VERSION_4_1) {
-          updateSql = "UPDATE user SET\n"
-              + "  Select_priv=?,\n"
-              + "  Insert_priv=?,\n"
-              + "  Update_priv=?,\n"
-              + "  Delete_priv=?,\n"
-              + "  Create_priv=?,\n"
-              + "  Drop_priv=?,\n"
-              + "  Reload_priv=?,\n"
-              + "  Shutdown_priv=?,\n"
-              + "  Process_priv=?,\n"
-              + "  File_priv=?,\n"
-              + "  Grant_priv=?,\n"
-              + "  References_priv=?,\n"
-              + "  Index_priv=?,\n"
-              + "  Alter_priv=?,\n"
-              + "  Show_db_priv=?,\n"
-              + "  Super_priv=?,\n"
-              + "  Create_tmp_table_priv=?,\n"
-              + "  Lock_tables_priv=?,\n"
-              + "  Execute_priv=?,\n"
-              + "  Repl_slave_priv=?,\n"
-              + "  Repl_client_priv=?,\n"
-              + "  max_questions=?,\n"
-              + "  max_updates=?,\n"
-              + "  max_connections=?\n"
-              + "WHERE\n"
-              + "  Host=?\n"
-              + "  AND User=?\n"
-              + "  AND (\n"
-              + "    Select_priv != ?\n"
-              + "    OR Insert_priv != ?\n"
-              + "    OR Update_priv != ?\n"
-              + "    OR Delete_priv != ?\n"
-              + "    OR Create_priv != ?\n"
-              + "    OR Drop_priv != ?\n"
-              + "    OR Reload_priv != ?\n"
-              + "    OR Shutdown_priv != ?\n"
-              + "    OR Process_priv != ?\n"
-              + "    OR File_priv != ?\n"
-              + "    OR Grant_priv != ?\n"
-              + "    OR References_priv != ?\n"
-              + "    OR Index_priv != ?\n"
-              + "    OR Alter_priv != ?\n"
-              + "    OR Show_db_priv != ?\n"
-              + "    OR Super_priv != ?\n"
-              + "    OR Create_tmp_table_priv != ?\n"
-              + "    OR Lock_tables_priv != ?\n"
-              + "    OR Execute_priv != ?\n"
-              + "    OR Repl_slave_priv != ?\n"
-              + "    OR Repl_client_priv != ?\n"
-              + "    OR max_questions != ?\n"
-              + "    OR max_updates != ?\n"
-              + "    OR max_connections != ?\n"
-              + "  )";
-        } else if (version == Server.Version.VERSION_5_0) {
-          updateSql = "UPDATE user SET\n"
-              + "  Select_priv=?,\n"
-              + "  Insert_priv=?,\n"
-              + "  Update_priv=?,\n"
-              + "  Delete_priv=?,\n"
-              + "  Create_priv=?,\n"
-              + "  Drop_priv=?,\n"
-              + "  Reload_priv=?,\n"
-              + "  Shutdown_priv=?,\n"
-              + "  Process_priv=?,\n"
-              + "  File_priv=?,\n"
-              + "  Grant_priv=?,\n"
-              + "  References_priv=?,\n"
-              + "  Index_priv=?,\n"
-              + "  Alter_priv=?,\n"
-              + "  Show_db_priv=?,\n"
-              + "  Super_priv=?,\n"
-              + "  Create_tmp_table_priv=?,\n"
-              + "  Lock_tables_priv=?,\n"
-              + "  Execute_priv=?,\n"
-              + "  Repl_slave_priv=?,\n"
-              + "  Repl_client_priv=?,\n"
+        StringBuilder sql = new StringBuilder();
+        List<Object> params = new ArrayList<>();
+        sql.append("UPDATE user SET\n"
+            + "  Select_priv=?,\n"
+            + "  Insert_priv=?,\n"
+            + "  Update_priv=?,\n"
+            + "  Delete_priv=?,\n"
+            + "  Create_priv=?,\n"
+            + "  Drop_priv=?,\n"
+            + "  Reload_priv=?,\n"
+            + "  Shutdown_priv=?,\n"
+            + "  Process_priv=?,\n"
+            + "  File_priv=?,\n"
+            + "  Grant_priv=?,\n"
+            + "  References_priv=?,\n"
+            + "  Index_priv=?,\n"
+            + "  Alter_priv=?,\n"
+            + "  Show_db_priv=?,\n"
+            + "  Super_priv=?,\n"
+            + "  Create_tmp_table_priv=?,\n"
+            + "  Lock_tables_priv=?,\n"
+            + "  Execute_priv=?,\n"
+            + "  Repl_slave_priv=?,\n"
+            + "  Repl_client_priv=?");
+        params.add(mu.canSelect() ? "Y" : "N");
+        params.add(mu.canInsert() ? "Y" : "N");
+        params.add(mu.canUpdate() ? "Y" : "N");
+        params.add(mu.canDelete() ? "Y" : "N");
+        params.add(mu.canCreate() ? "Y" : "N");
+        params.add(mu.canDrop() ? "Y" : "N");
+        params.add(mu.canReload() ? "Y" : "N");
+        params.add(mu.canShutdown() ? "Y" : "N");
+        params.add(mu.canProcess() ? "Y" : "N");
+        params.add(mu.canFile() ? "Y" : "N");
+        params.add(mu.canGrant() ? "Y" : "N");
+        params.add(mu.canReference() ? "Y" : "N");
+        params.add(mu.canIndex() ? "Y" : "N");
+        params.add(mu.canAlter() ? "Y" : "N");
+        params.add(mu.canShowDb() ? "Y" : "N");
+        params.add(mu.isSuper() ? "Y" : "N");
+        params.add(mu.canCreateTempTable() ? "Y" : "N");
+        params.add(mu.canLockTables() ? "Y" : "N");
+        params.add(mu.canExecute() ? "Y" : "N");
+        params.add(mu.isReplicationSlave() ? "Y" : "N");
+        params.add(mu.isReplicationClient() ? "Y" : "N");
+        if (
+            version == Server.Version.VERSION_5_0
+                || version == Server.Version.VERSION_5_6
+                || version == Server.Version.VERSION_5_7
+        ) {
+          sql.append(",\n"
               + "  Create_view_priv=?,\n"
               + "  Show_view_priv=?,\n"
               + "  Create_routine_priv=?,\n"
               + "  Alter_routine_priv=?,\n"
-              + "  Create_user_priv=?,\n"
-              + "  max_questions=?,\n"
-              + "  max_updates=?,\n"
-              + "  max_connections=?,\n"
-              + "  max_user_connections=?\n"
-              + "WHERE\n"
-              + "  Host=?\n"
-              + "  AND User=?\n"
-              + "  AND (\n"
-              + "    Select_priv != ?\n"
-              + "    OR Insert_priv != ?\n"
-              + "    OR Update_priv != ?\n"
-              + "    OR Delete_priv != ?\n"
-              + "    OR Create_priv != ?\n"
-              + "    OR Drop_priv != ?\n"
-              + "    OR Reload_priv != ?\n"
-              + "    OR Shutdown_priv != ?\n"
-              + "    OR Process_priv != ?\n"
-              + "    OR File_priv != ?\n"
-              + "    OR Grant_priv != ?\n"
-              + "    OR References_priv != ?\n"
-              + "    OR Index_priv != ?\n"
-              + "    OR Alter_priv != ?\n"
-              + "    OR Show_db_priv != ?\n"
-              + "    OR Super_priv != ?\n"
-              + "    OR Create_tmp_table_priv != ?\n"
-              + "    OR Lock_tables_priv != ?\n"
-              + "    OR Execute_priv != ?\n"
-              + "    OR Repl_slave_priv != ?\n"
-              + "    OR Repl_client_priv != ?\n"
-              + "    OR Create_view_priv != ?\n"
-              + "    OR Show_view_priv != ?\n"
-              + "    OR Create_routine_priv != ?\n"
-              + "    OR Alter_routine_priv != ?\n"
-              + "    OR Create_user_priv != ?\n"
-              + "    OR max_questions != ?\n"
-              + "    OR max_updates != ?\n"
-              + "    OR max_connections != ?\n"
-              + "    OR max_user_connections != ?\n"
-              + "  )";
-        } else if (version == Server.Version.VERSION_5_6) {
-          updateSql = "UPDATE user SET\n"
-              + "  Select_priv=?,\n"
-              + "  Insert_priv=?,\n"
-              + "  Update_priv=?,\n"
-              + "  Delete_priv=?,\n"
-              + "  Create_priv=?,\n"
-              + "  Drop_priv=?,\n"
-              + "  Reload_priv=?,\n"
-              + "  Shutdown_priv=?,\n"
-              + "  Process_priv=?,\n"
-              + "  File_priv=?,\n"
-              + "  Grant_priv=?,\n"
-              + "  References_priv=?,\n"
-              + "  Index_priv=?,\n"
-              + "  Alter_priv=?,\n"
-              + "  Show_db_priv=?,\n"
-              + "  Super_priv=?,\n"
-              + "  Create_tmp_table_priv=?,\n"
-              + "  Lock_tables_priv=?,\n"
-              + "  Execute_priv=?,\n"
-              + "  Repl_slave_priv=?,\n"
-              + "  Repl_client_priv=?,\n"
-              + "  Create_view_priv=?,\n"
-              + "  Show_view_priv=?,\n"
-              + "  Create_routine_priv=?,\n"
-              + "  Alter_routine_priv=?,\n"
-              + "  Create_user_priv=?,\n"
-              + "  Event_priv=?,\n"
-              + "  Trigger_priv=?,\n"
-              + "  max_questions=?,\n"
-              + "  max_updates=?,\n"
-              + "  max_connections=?,\n"
-              + "  max_user_connections=?\n"
-              + "WHERE\n"
-              + "  Host=?\n"
-              + "  AND User=?\n"
-              + "  AND (\n"
-              + "    Select_priv != ?\n"
-              + "    OR Insert_priv != ?\n"
-              + "    OR Update_priv != ?\n"
-              + "    OR Delete_priv != ?\n"
-              + "    OR Create_priv != ?\n"
-              + "    OR Drop_priv != ?\n"
-              + "    OR Reload_priv != ?\n"
-              + "    OR Shutdown_priv != ?\n"
-              + "    OR Process_priv != ?\n"
-              + "    OR File_priv != ?\n"
-              + "    OR Grant_priv != ?\n"
-              + "    OR References_priv != ?\n"
-              + "    OR Index_priv != ?\n"
-              + "    OR Alter_priv != ?\n"
-              + "    OR Show_db_priv != ?\n"
-              + "    OR Super_priv != ?\n"
-              + "    OR Create_tmp_table_priv != ?\n"
-              + "    OR Lock_tables_priv != ?\n"
-              + "    OR Execute_priv != ?\n"
-              + "    OR Repl_slave_priv != ?\n"
-              + "    OR Repl_client_priv != ?\n"
-              + "    OR Create_view_priv != ?\n"
-              + "    OR Show_view_priv != ?\n"
-              + "    OR Create_routine_priv != ?\n"
-              + "    OR Alter_routine_priv != ?\n"
-              + "    OR Create_user_priv != ?\n"
-              + "    OR Event_priv != ?\n"
-              + "    OR Trigger_priv != ?\n"
-              + "    OR max_questions != ?\n"
-              + "    OR max_updates != ?\n"
-              + "    OR max_connections != ?\n"
-              + "    OR max_user_connections != ?\n"
-              + "  )";
-        } else if (version == Server.Version.VERSION_5_7) {
-          updateSql = "UPDATE user SET\n"
-              + "  Select_priv=?,\n"
-              + "  Insert_priv=?,\n"
-              + "  Update_priv=?,\n"
-              + "  Delete_priv=?,\n"
-              + "  Create_priv=?,\n"
-              + "  Drop_priv=?,\n"
-              + "  Reload_priv=?,\n"
-              + "  Shutdown_priv=?,\n"
-              + "  Process_priv=?,\n"
-              + "  File_priv=?,\n"
-              + "  Grant_priv=?,\n"
-              + "  References_priv=?,\n"
-              + "  Index_priv=?,\n"
-              + "  Alter_priv=?,\n"
-              + "  Show_db_priv=?,\n"
-              + "  Super_priv=?,\n"
-              + "  Create_tmp_table_priv=?,\n"
-              + "  Lock_tables_priv=?,\n"
-              + "  Execute_priv=?,\n"
-              + "  Repl_slave_priv=?,\n"
-              + "  Repl_client_priv=?,\n"
-              + "  Create_view_priv=?,\n"
-              + "  Show_view_priv=?,\n"
-              + "  Create_routine_priv=?,\n"
-              + "  Alter_routine_priv=?,\n"
-              + "  Create_user_priv=?,\n"
-              + "  Event_priv=?,\n"
-              + "  Trigger_priv=?,\n"
-              + "  max_questions=?,\n"
-              + "  max_updates=?,\n"
-              + "  max_connections=?,\n"
-              + "  max_user_connections=?,\n"
-              + "  account_locked=?\n"
-              + "WHERE\n"
-              + "  Host=?\n"
-              + "  AND User=?\n"
-              + "  AND (\n"
-              + "    Select_priv != ?\n"
-              + "    OR Insert_priv != ?\n"
-              + "    OR Update_priv != ?\n"
-              + "    OR Delete_priv != ?\n"
-              + "    OR Create_priv != ?\n"
-              + "    OR Drop_priv != ?\n"
-              + "    OR Reload_priv != ?\n"
-              + "    OR Shutdown_priv != ?\n"
-              + "    OR Process_priv != ?\n"
-              + "    OR File_priv != ?\n"
-              + "    OR Grant_priv != ?\n"
-              + "    OR References_priv != ?\n"
-              + "    OR Index_priv != ?\n"
-              + "    OR Alter_priv != ?\n"
-              + "    OR Show_db_priv != ?\n"
-              + "    OR Super_priv != ?\n"
-              + "    OR Create_tmp_table_priv != ?\n"
-              + "    OR Lock_tables_priv != ?\n"
-              + "    OR Execute_priv != ?\n"
-              + "    OR Repl_slave_priv != ?\n"
-              + "    OR Repl_client_priv != ?\n"
-              + "    OR Create_view_priv != ?\n"
-              + "    OR Show_view_priv != ?\n"
-              + "    OR Create_routine_priv != ?\n"
-              + "    OR Alter_routine_priv != ?\n"
-              + "    OR Create_user_priv != ?\n"
-              + "    OR Event_priv != ?\n"
-              + "    OR Trigger_priv != ?\n"
-              + "    OR max_questions != ?\n"
-              + "    OR max_updates != ?\n"
-              + "    OR max_connections != ?\n"
-              + "    OR max_user_connections != ?\n"
-              + "    OR account_locked != ?\n"
-              + "  )";
-        } else {
-          throw new SQLException("Unsupported MySQL version: " + version);
+              + "  Create_user_priv=?");
+          params.add(mu.canCreateView() ? "Y" : "N");
+          params.add(mu.canShowView() ? "Y" : "N");
+          params.add(mu.canCreateRoutine() ? "Y" : "N");
+          params.add(mu.canAlterRoutine() ? "Y" : "N");
+          params.add(mu.canCreateUser() ? "Y" : "N");
+          if (
+              version == Server.Version.VERSION_5_6
+                  || version == Server.Version.VERSION_5_7
+          ) {
+            sql.append(",\n"
+                + "  Event_priv=?,\n"
+                + "  Trigger_priv=?");
+            params.add(mu.canEvent() ? "Y" : "N");
+            params.add(mu.canTrigger() ? "Y" : "N");
+          }
         }
-
+        sql.append(",\n"
+              + "  max_questions=?,\n"
+              + "  max_updates=?,\n"
+              + "  max_connections=?");
+        params.add(msu.getMaxQuestions());
+        params.add(msu.getMaxUpdates());
+        params.add(msu.getMaxConnections());
+        if (
+            version == Server.Version.VERSION_5_0
+                || version == Server.Version.VERSION_5_6
+                || version == Server.Version.VERSION_5_7
+        ) {
+          sql.append(",\n"
+              + "  max_user_connections=?");
+          params.add(msu.getMaxUserConnections());
+        }
+        boolean locked =
+            username.equals(User.MYSQL_SESSION)
+                || username.equals(User.MYSQL_SYS)
+                || msu.isDisabled();
+        if (version == Server.Version.VERSION_5_7) {
+          sql.append(",\n"
+              + "  account_locked=?");
+          params.add(locked ? "Y" : "N");
+        }
+        sql.append("\n"
+            + "WHERE\n"
+            + "  Host=?\n"
+            + "  AND User=?\n"
+            + "  AND (\n"
+            + "    Select_priv != ?\n"
+            + "    OR Insert_priv != ?\n"
+            + "    OR Update_priv != ?\n"
+            + "    OR Delete_priv != ?\n"
+            + "    OR Create_priv != ?\n"
+            + "    OR Drop_priv != ?\n"
+            + "    OR Reload_priv != ?\n"
+            + "    OR Shutdown_priv != ?\n"
+            + "    OR Process_priv != ?\n"
+            + "    OR File_priv != ?\n"
+            + "    OR Grant_priv != ?\n"
+            + "    OR References_priv != ?\n"
+            + "    OR Index_priv != ?\n"
+            + "    OR Alter_priv != ?\n"
+            + "    OR Show_db_priv != ?\n"
+            + "    OR Super_priv != ?\n"
+            + "    OR Create_tmp_table_priv != ?\n"
+            + "    OR Lock_tables_priv != ?\n"
+            + "    OR Execute_priv != ?\n"
+            + "    OR Repl_slave_priv != ?\n"
+            + "    OR Repl_client_priv != ?");
+        params.add(host);
+        params.add(username.toString());
+        params.add(mu.canSelect() ? "Y" : "N");
+        params.add(mu.canInsert() ? "Y" : "N");
+        params.add(mu.canUpdate() ? "Y" : "N");
+        params.add(mu.canDelete() ? "Y" : "N");
+        params.add(mu.canCreate() ? "Y" : "N");
+        params.add(mu.canDrop() ? "Y" : "N");
+        params.add(mu.canReload() ? "Y" : "N");
+        params.add(mu.canShutdown() ? "Y" : "N");
+        params.add(mu.canProcess() ? "Y" : "N");
+        params.add(mu.canFile() ? "Y" : "N");
+        params.add(mu.canGrant() ? "Y" : "N");
+        params.add(mu.canReference() ? "Y" : "N");
+        params.add(mu.canIndex() ? "Y" : "N");
+        params.add(mu.canAlter() ? "Y" : "N");
+        params.add(mu.canShowDb() ? "Y" : "N");
+        params.add(mu.isSuper() ? "Y" : "N");
+        params.add(mu.canCreateTempTable() ? "Y" : "N");
+        params.add(mu.canLockTables() ? "Y" : "N");
+        params.add(mu.canExecute() ? "Y" : "N");
+        params.add(mu.isReplicationSlave() ? "Y" : "N");
+        params.add(mu.isReplicationClient() ? "Y" : "N");
+        if (
+            version == Server.Version.VERSION_5_0
+                || version == Server.Version.VERSION_5_6
+                || version == Server.Version.VERSION_5_7
+        ) {
+          sql.append("\n"
+              + "    OR Create_view_priv != ?\n"
+              + "    OR Show_view_priv != ?\n"
+              + "    OR Create_routine_priv != ?\n"
+              + "    OR Alter_routine_priv != ?\n"
+              + "    OR Create_user_priv != ?");
+          params.add(mu.canCreateView() ? "Y" : "N");
+          params.add(mu.canShowView() ? "Y" : "N");
+          params.add(mu.canCreateRoutine() ? "Y" : "N");
+          params.add(mu.canAlterRoutine() ? "Y" : "N");
+          params.add(mu.canCreateUser() ? "Y" : "N");
+          if (
+              version == Server.Version.VERSION_5_6
+                  || version == Server.Version.VERSION_5_7
+          ) {
+            sql.append("\n"
+                + "    OR Event_priv != ?\n"
+                + "    OR Trigger_priv != ?");
+            params.add(mu.canEvent() ? "Y" : "N");
+            params.add(mu.canTrigger() ? "Y" : "N");
+          }
+        }
+        sql.append("\n"
+              + "    OR max_questions != ?\n"
+              + "    OR max_updates != ?\n"
+              + "    OR max_connections != ?");
+        params.add(msu.getMaxQuestions());
+        params.add(msu.getMaxUpdates());
+        params.add(msu.getMaxConnections());
+        if (
+            version == Server.Version.VERSION_5_0
+                || version == Server.Version.VERSION_5_6
+                || version == Server.Version.VERSION_5_7
+        ) {
+          sql.append("\n"
+              + "    OR max_user_connections != ?");
+          params.add(msu.getMaxUserConnections());
+        }
+        if (version == Server.Version.VERSION_5_7) {
+          sql.append("\n"
+              + "    OR account_locked != ?");
+          params.add(locked ? "Y" : "N");
+        }
+        sql.append("\n"
+              + "  )");
+        String updateSql = sql.toString();
         try (PreparedStatement pstmt = conn.prepareStatement(updateSql)) {
           int pos = 1;
           // Update the user
-          pstmt.setString(pos++, mu.canSelect() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canInsert() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canUpdate() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canDelete() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canCreate() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canDrop() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canReload() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canShutdown() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canProcess() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canFile() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canGrant() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canReference() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canIndex() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canAlter() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canShowDb() ? "Y" : "N");
-          pstmt.setString(pos++, mu.isSuper() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canCreateTempTable() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canLockTables() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canExecute() ? "Y" : "N");
-          pstmt.setString(pos++, mu.isReplicationSlave() ? "Y" : "N");
-          pstmt.setString(pos++, mu.isReplicationClient() ? "Y" : "N");
-          if (
-              version == Server.Version.VERSION_5_0
-                  || version == Server.Version.VERSION_5_6
-                  || version == Server.Version.VERSION_5_7
-          ) {
-            pstmt.setString(pos++, mu.canCreateView() ? "Y" : "N");
-            pstmt.setString(pos++, mu.canShowView() ? "Y" : "N");
-            pstmt.setString(pos++, mu.canCreateRoutine() ? "Y" : "N");
-            pstmt.setString(pos++, mu.canAlterRoutine() ? "Y" : "N");
-            pstmt.setString(pos++, mu.canCreateUser() ? "Y" : "N");
-            if (
-                version == Server.Version.VERSION_5_6
-                    || version == Server.Version.VERSION_5_7
-            ) {
-              pstmt.setString(pos++, mu.canEvent() ? "Y" : "N");
-              pstmt.setString(pos++, mu.canTrigger() ? "Y" : "N");
+          for (Object param : params) {
+            if (param instanceof String) {
+              pstmt.setString(pos++, (String) param);
+            } else if (param instanceof Integer) {
+              pstmt.setInt(pos++, (Integer) param);
+            } else {
+              throw new AssertionError("Unexpected parameter type: " + (param == null ? "null" : param.getClass().getName()));
             }
-          }
-          pstmt.setInt(pos++, msu.getMaxQuestions());
-          pstmt.setInt(pos++, msu.getMaxUpdates());
-          pstmt.setInt(pos++, msu.getMaxConnections());
-          if (
-              version == Server.Version.VERSION_5_0
-                  || version == Server.Version.VERSION_5_6
-                  || version == Server.Version.VERSION_5_7
-          ) {
-            pstmt.setInt(pos++, msu.getMaxUserConnections());
-          }
-          boolean locked =
-              username.equals(User.MYSQL_SESSION)
-                  || username.equals(User.MYSQL_SYS)
-                  || msu.isDisabled();
-          if (version == Server.Version.VERSION_5_7) {
-            pstmt.setString(pos++, locked ? "Y" : "N");
-          }
-          // where
-          pstmt.setString(pos++, host);
-          pstmt.setString(pos++, username.toString());
-          pstmt.setString(pos++, mu.canSelect() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canInsert() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canUpdate() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canDelete() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canCreate() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canDrop() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canReload() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canShutdown() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canProcess() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canFile() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canGrant() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canReference() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canIndex() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canAlter() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canShowDb() ? "Y" : "N");
-          pstmt.setString(pos++, mu.isSuper() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canCreateTempTable() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canLockTables() ? "Y" : "N");
-          pstmt.setString(pos++, mu.canExecute() ? "Y" : "N");
-          pstmt.setString(pos++, mu.isReplicationSlave() ? "Y" : "N");
-          pstmt.setString(pos++, mu.isReplicationClient() ? "Y" : "N");
-          if (
-              version == Server.Version.VERSION_5_0
-                  || version == Server.Version.VERSION_5_6
-                  || version == Server.Version.VERSION_5_7
-          ) {
-            pstmt.setString(pos++, mu.canCreateView() ? "Y" : "N");
-            pstmt.setString(pos++, mu.canShowView() ? "Y" : "N");
-            pstmt.setString(pos++, mu.canCreateRoutine() ? "Y" : "N");
-            pstmt.setString(pos++, mu.canAlterRoutine() ? "Y" : "N");
-            pstmt.setString(pos++, mu.canCreateUser() ? "Y" : "N");
-            if (
-                version == Server.Version.VERSION_5_6
-                    || version == Server.Version.VERSION_5_7
-            ) {
-              pstmt.setString(pos++, mu.canEvent() ? "Y" : "N");
-              pstmt.setString(pos++, mu.canTrigger() ? "Y" : "N");
-            }
-          }
-          pstmt.setInt(pos++, msu.getMaxQuestions());
-          pstmt.setInt(pos++, msu.getMaxUpdates());
-          pstmt.setInt(pos++, msu.getMaxConnections());
-          if (
-              version == Server.Version.VERSION_5_0
-                  || version == Server.Version.VERSION_5_6
-                  || version == Server.Version.VERSION_5_7
-          ) {
-            pstmt.setInt(pos++, msu.getMaxUserConnections());
-          }
-          if (version == Server.Version.VERSION_5_7) {
-            pstmt.setString(pos++, locked ? "Y" : "N");
           }
           int updateCount = pstmt.executeUpdate();
           if (updateCount > 0) {
@@ -888,27 +713,28 @@ public final class MySQLUserManager extends BuilderThread {
             }
             needsFlush = true;
             break;
-          case VERSION_8_4: {
-            String host = getHostForUser(conn, username);
-            if (isNoPassword) {
-              executeUpdate(
-                  conn,
-                  "ALTER USER ?@? IDENTIFIED WITH caching_sha2_password AS ?",
-                  username.toString(),
-                  host,
-                  NO_PASSWORD_DB_VALUE_CACHING_SHA2
-              );
-            } else {
-              executeUpdate(
-                  conn,
-                  "ALTER USER ?@? IDENTIFIED WITH caching_sha2_password BY ?",
-                  username.toString(),
-                  host,
-                  password
-              );
+          case VERSION_8_4:
+            {
+              String host = getHostForUser(conn, username);
+              if (isNoPassword) {
+                executeUpdate(
+                    conn,
+                    "ALTER USER ?@? IDENTIFIED WITH caching_sha2_password AS ?",
+                    username.toString(),
+                    host,
+                    NO_PASSWORD_DB_VALUE_CACHING_SHA2
+                );
+              } else {
+                executeUpdate(
+                    conn,
+                    "ALTER USER ?@? IDENTIFIED WITH caching_sha2_password BY ?",
+                    username.toString(),
+                    host,
+                    password
+                );
+              }
+              break;
             }
-            break;
-          }
           default:
             throw new SQLException("Unsupported version of MySQL: " + version);
         }
@@ -958,17 +784,18 @@ public final class MySQLUserManager extends BuilderThread {
             );
             needsFlush = true;
             break;
-          case VERSION_8_4: {
-            String host = getHostForUser(conn, username);
-            executeUpdate(
-                conn,
-                "ALTER USER ?@? IDENTIFIED WITH caching_sha2_password AS ?",
-                username.toString(),
-                host,
-                isNoPassword ? NO_PASSWORD_DB_VALUE_CACHING_SHA2 : authenticationString
-            );
-            break;
-          }
+          case VERSION_8_4:
+            {
+              String host = getHostForUser(conn, username);
+              executeUpdate(
+                  conn,
+                  "ALTER USER ?@? IDENTIFIED WITH caching_sha2_password AS ?",
+                  username.toString(),
+                  host,
+                  isNoPassword ? NO_PASSWORD_DB_VALUE_CACHING_SHA2 : authenticationString
+              );
+              break;
+            }
           default:
             throw new SQLException("Unsupported version of MySQL: " + version);
         }
