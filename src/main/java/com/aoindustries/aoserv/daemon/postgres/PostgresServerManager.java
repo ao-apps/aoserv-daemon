@@ -141,8 +141,6 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
         // TODO: restart any that need started/restarted
       }
       return true;
-    } catch (ThreadDeath td) {
-      throw td;
     } catch (Throwable t) {
       logger.log(Level.SEVERE, null, t);
       return false;
@@ -406,8 +404,6 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
           }
         }
       }
-    } catch (ThreadDeath td) {
-      throw td;
     } catch (Throwable t) {
       logger.log(Level.SEVERE, null, t);
     }

@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2012, 2013, 2015, 2017, 2018, 2020, 2021, 2022, 2024  AO Industries, Inc.
+ * Copyright (C) 2012, 2013, 2015, 2017, 2018, 2020, 2021, 2022, 2024, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -166,8 +166,6 @@ public final class AoservDaemonServer extends Thread {
                     // socket.setTcpNoDelay(true);
                     AoservDaemonServerThread thread = new AoservDaemonServerThread(this, socket);
                     thread.start();
-                  } catch (ThreadDeath td) {
-                    throw td;
                   } catch (Throwable t) {
                     logger.log(Level.SEVERE, null, t);
                   }
@@ -180,8 +178,6 @@ public final class AoservDaemonServer extends Thread {
           default:
             throw new IllegalArgumentException("Unsupported protocol: " + protocol);
         }
-      } catch (ThreadDeath td) {
-        throw td;
       } catch (Throwable t) {
         logger.log(Level.SEVERE, null, t);
       }

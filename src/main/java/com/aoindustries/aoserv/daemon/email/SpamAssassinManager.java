@@ -207,8 +207,6 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
 
         // Process incoming messages
         processIncomingMessages();
-      } catch (ThreadDeath td) {
-        throw td;
       } catch (Throwable t) {
         logger.log(Level.SEVERE, null, t);
         try {
@@ -993,8 +991,6 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
         }
       }
       return true;
-    } catch (ThreadDeath td) {
-      throw td;
     } catch (Throwable t) {
       logger.log(Level.SEVERE, null, t);
       return false;
@@ -1091,8 +1087,6 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
         } finally {
           DaemonFileUtils.restorecon(restorecon);
         }
-      } catch (ThreadDeath td) {
-        throw td;
       } catch (Throwable t) {
         logger.log(Level.SEVERE, null, t);
       }

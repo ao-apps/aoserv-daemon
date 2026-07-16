@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2002-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
+ * Copyright (C) 2002-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -179,8 +179,6 @@ public final class CvsManager extends BuilderThread {
         }
       }
       return true;
-    } catch (ThreadDeath td) {
-      throw td;
     } catch (Throwable t) {
       logger.log(Level.SEVERE, null, t);
       return false;

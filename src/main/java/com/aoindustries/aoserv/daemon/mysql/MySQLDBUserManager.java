@@ -277,8 +277,6 @@ public final class MySQLDBUserManager extends BuilderThread {
         }
       }
       return true;
-    } catch (ThreadDeath td) {
-      throw td;
     } catch (Throwable t) {
       logger.log(Level.SEVERE, null, t);
       return false;

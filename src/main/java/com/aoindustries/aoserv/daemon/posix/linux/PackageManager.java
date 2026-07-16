@@ -1037,8 +1037,6 @@ public final class PackageManager {
                     break;
                   }
                   getAllRpms();
-                } catch (ThreadDeath td) {
-                  throw td;
                 } catch (Throwable t) {
                   logger.log(Level.SEVERE, null, t);
                 }

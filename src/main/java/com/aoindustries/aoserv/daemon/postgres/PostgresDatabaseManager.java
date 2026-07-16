@@ -305,8 +305,6 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
         }
       }
       return true;
-    } catch (ThreadDeath td) {
-      throw td;
     } catch (Throwable t) {
       logger.log(Level.SEVERE, null, t);
       return false;
@@ -601,8 +599,6 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
           }
         }
       }
-    } catch (ThreadDeath td) {
-      throw td;
     } catch (Throwable t) {
       logger.log(Level.SEVERE, null, t);
     }

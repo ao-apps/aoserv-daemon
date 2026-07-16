@@ -92,8 +92,6 @@ public final class MySQLUserManager extends BuilderThread {
         }
       }
       return true;
-    } catch (ThreadDeath td) {
-      throw td;
     } catch (Throwable t) {
       logger.log(Level.SEVERE, null, t);
       return false;

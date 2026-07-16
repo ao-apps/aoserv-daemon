@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2013, 2014, 2017, 2018, 2020, 2021, 2022, 2024  AO Industries, Inc.
+ * Copyright (C) 2013, 2014, 2017, 2018, 2020, 2021, 2022, 2024, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -396,8 +396,6 @@ public final class NetworkMonitor {
                           }
                         }
                       }
-                    } catch (ThreadDeath td) {
-                      throw td;
                     } catch (Throwable t) {
                       logger.log(Level.SEVERE, null, t);
                     }
@@ -650,8 +648,6 @@ public final class NetworkMonitor {
                   throw new IOException("non-zero exit code: " + retVal);
                 }
               }
-            } catch (ThreadDeath td) {
-              throw td;
             } catch (Throwable t) {
               logger.log(Level.SEVERE, null, t);
             }

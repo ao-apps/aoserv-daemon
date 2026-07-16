@@ -210,8 +210,6 @@ public final class DistroManager implements Runnable {
             }
           }
         }
-      } catch (ThreadDeath td) {
-        throw td;
       } catch (Throwable t) {
         logger.log(Level.SEVERE, null, t);
         try {

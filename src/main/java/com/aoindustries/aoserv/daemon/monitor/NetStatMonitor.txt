@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2000-2009, 2018, 2019, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2000-2009, 2018, 2019, 2021, 2022, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -164,8 +164,6 @@ final public class NetStatMonitor implements Runnable {
             AOServDaemon.reportFullMonitoringMessage(SB.toString());
           }
         }
-      } catch (ThreadDeath TD) {
-        throw TD;
       } catch (Throwable T) {
         LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, T);
         try {
