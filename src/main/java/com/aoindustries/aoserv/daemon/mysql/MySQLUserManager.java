@@ -560,39 +560,8 @@ public final class MySQLUserManager extends BuilderThread {
         throw e;
       }
     }
-
-    // Disable and enable accounts
     // Note: This is done without holding Connection because it can callback to master, which could potentially deadlock.
-    if (
-        version == Server.Version.VERSION_4_1
-            || version == Server.Version.VERSION_5_0
-            || version == Server.Version.VERSION_5_6
-    ) {
-      // Older versions of MySQL are disabled by stashing the encrypted password and replacing it with an invalid hash
-      for (UserServer msu : users) {
-        if (!msu.isSpecial()) {
-          String prePassword = msu.getPredisablePassword();
-          if (!msu.isDisabled()) {
-            if (prePassword != null) {
-              needsFlush |= setAuthenticationString(mysqlServer, version, msu.getMysqlUser().getKey(), prePassword);
-              msu.setPredisablePassword(null);
-            }
-          } else {
-            if (prePassword == null) {
-              User.Name username = msu.getMysqlUser().getKey();
-              msu.setPredisablePassword(getAuthenticationString(mysqlServer, username));
-              needsFlush |= setAuthenticationString(mysqlServer, version, username, User.NO_PASSWORD);
-            }
-          }
-        }
-      }
-    } else if (version == Server.Version.VERSION_5_7
-        || version == Server.Version.VERSION_8_4) {
-      // MySQL 5.7+ support "account_locked" column, set above.
-      // Nothing to do here.
-    } else {
-      throw new SQLException("Unsupported version of MySQL: " + version);
-    }
+    needsFlush |= disableAndEnableUsers(mysqlServer, version, users);
     if (needsFlush) {
       MySQLServerManager.flushPrivileges(mysqlServer);
     }
@@ -719,6 +688,48 @@ public final class MySQLUserManager extends BuilderThread {
           throw e;
         }
       }
+    }
+    return needsFlush;
+  }
+
+  /**
+   * Disable and enable users.  This makes calls to master so no {@link Connection} passed-in.
+   *
+   * @return  Returns {@code true} when {@link MySQLServerManager#flushPrivileges(com.aoindustries.aoserv.client.mysql.Server)} is required.
+   */
+  private static boolean disableAndEnableUsers(Server mysqlServer, Server.Version version, List<UserServer> users) throws IOException, SQLException {
+    boolean needsFlush = false;
+    // Disable and enable accounts
+    switch (version) {
+      case VERSION_4_1:
+      case VERSION_5_0:
+      case VERSION_5_6:
+        // Older versions of MySQL are disabled by stashing the encrypted password and replacing it with an invalid hash
+        for (UserServer msu : users) {
+          if (!msu.isSpecial()) {
+            String prePassword = msu.getPredisablePassword();
+            if (!msu.isDisabled()) {
+              if (prePassword != null) {
+                needsFlush |= setAuthenticationString(mysqlServer, version, msu.getMysqlUser().getKey(), prePassword);
+                msu.setPredisablePassword(null);
+              }
+            } else {
+              if (prePassword == null) {
+                User.Name username = msu.getMysqlUser().getKey();
+                msu.setPredisablePassword(getAuthenticationString(mysqlServer, username));
+                needsFlush |= setAuthenticationString(mysqlServer, version, username, User.NO_PASSWORD);
+              }
+            }
+          }
+        }
+        break;
+      case VERSION_5_7:
+      case VERSION_8_4:
+        // MySQL 5.7+ support "account_locked" column, set above.
+        // Nothing to do here.
+        break;
+      default:
+        throw new SQLException("Unsupported version of MySQL: " + version);
     }
     return needsFlush;
   }
