@@ -145,56 +145,7 @@ public final class MySQLUserManager extends BuilderThread {
           ErrorPrinter.addSql(e, currentSql);
           throw e;
         }
-
-        // Add the users that do not exist and should
-        String insertSql;
-        if (version.startsWith(Server.VERSION_4_1_PREFIX)
-            || version.startsWith(Server.VERSION_5_0_PREFIX)) {
-          insertSql = "INSERT INTO user (Host, User, Password, ssl_type, ssl_cipher, x509_issuer, x509_subject) VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "','','','','')";
-        } else if (version.startsWith(Server.VERSION_5_6_PREFIX)) {
-          insertSql = "INSERT INTO user (Host, User, Password, ssl_type, ssl_cipher, x509_issuer, x509_subject, plugin) VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "','','','','','')";
-        } else if (version.startsWith(Server.VERSION_5_7_PREFIX)) {
-          insertSql = "INSERT INTO user (Host, User, ssl_type, ssl_cipher, x509_issuer, x509_subject, authentication_string, password_last_changed, account_locked) VALUES (?,?,'','','','','" + User.NO_PASSWORD_DB_VALUE + "',NOW(),?)";
-        } else {
-          throw new SQLException("Unsupported MySQL version: " + version);
-        }
-
-        currentSql = null;
-        try (PreparedStatement pstmt = conn.prepareStatement(currentSql = insertSql)) {
-          for (UserServer msu : users) {
-            User mu = msu.getMysqlUser();
-            String host = msu.getHost();
-            if (host == null) {
-              host = "";
-            }
-            User.Name username = mu.getKey();
-            Tuple2<String, User.Name> key = new Tuple2<>(host, username);
-            if (existing.add(key)) {
-              // Add the user
-              if (mu.isSpecial()) {
-                logger.log(
-                    Level.WARNING,
-                    null,
-                    new SQLException("Refusing to create special user: " + username + " on " + mysqlServer.getName())
-                );
-              } else {
-                int pos = 1;
-                pstmt.setString(pos++, host);
-                pstmt.setString(pos++, username.toString());
-                if (version.startsWith(Server.VERSION_5_7_PREFIX)) {
-                  boolean locked = msu.isDisabled();
-                  pstmt.setString(pos++, locked ? "Y" : "N");
-                }
-                pstmt.executeUpdate();
-
-                needsFlush = true;
-              }
-            }
-          }
-        } catch (Error | RuntimeException | SQLException e) {
-          ErrorPrinter.addSql(e, currentSql);
-          throw e;
-        }
+        needsFlush |= addMissingUsers(mysqlServer, version, conn, users, existing);
 
         // Update existing users to proper values
         String updateSql;
@@ -684,6 +635,68 @@ public final class MySQLUserManager extends BuilderThread {
     }
     if (needsFlush) {
       MySQLServerManager.flushPrivileges(mysqlServer);
+    }
+  }
+
+  /**
+   * Adds any missing users with default (minimal) permissions.
+   *
+   * @param existing  Any users added are added to this set
+   *
+   * @return  Returns {@code true} when {@link MySQLServerManager#flushPrivileges(com.aoindustries.aoserv.client.mysql.Server)} is required.
+   */
+  private static boolean addMissingUsers(Server mysqlServer, String version, Connection conn, List<UserServer> users,
+      Set<Tuple2<String, User.Name>> existing) throws IOException, SQLException {
+    // Add the users that do not exist and should
+    String insertSql;
+    if (version.startsWith(Server.VERSION_4_1_PREFIX)
+        || version.startsWith(Server.VERSION_5_0_PREFIX)) {
+      insertSql = "INSERT INTO user (Host, User, Password, ssl_type, ssl_cipher, x509_issuer, x509_subject) VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "','','','','')";
+    } else if (version.startsWith(Server.VERSION_5_6_PREFIX)) {
+      insertSql = "INSERT INTO user (Host, User, Password, ssl_type, ssl_cipher, x509_issuer, x509_subject, plugin) VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "','','','','','')";
+    } else if (version.startsWith(Server.VERSION_5_7_PREFIX)) {
+      insertSql = "INSERT INTO user (Host, User, ssl_type, ssl_cipher, x509_issuer, x509_subject, authentication_string, password_last_changed, account_locked) VALUES (?,?,'','','','','" + User.NO_PASSWORD_DB_VALUE + "',NOW(),?)";
+    } else {
+      throw new SQLException("Unsupported MySQL version: " + version);
+    }
+
+    boolean needsFlush = false;
+    String currentSql = null;
+    try (PreparedStatement pstmt = conn.prepareStatement(currentSql = insertSql)) {
+      for (UserServer msu : users) {
+        User mu = msu.getMysqlUser();
+        String host = msu.getHost();
+        if (host == null) {
+          host = "";
+        }
+        User.Name username = mu.getKey();
+        Tuple2<String, User.Name> key = new Tuple2<>(host, username);
+        if (existing.add(key)) {
+          // Add the user
+          if (mu.isSpecial()) {
+            logger.log(
+                Level.WARNING,
+                null,
+                new SQLException("Refusing to create special user: " + username + " on " + mysqlServer.getName())
+            );
+          } else {
+            int pos = 1;
+            pstmt.setString(pos++, host);
+            pstmt.setString(pos++, username.toString());
+            if (version.startsWith(Server.VERSION_5_7_PREFIX)) {
+              boolean locked = msu.isDisabled();
+              pstmt.setString(pos++, locked ? "Y" : "N");
+            }
+            pstmt.executeUpdate();
+
+            needsFlush = true;
+          }
+        }
+      }
+      return needsFlush;
+    } catch (Error | RuntimeException | SQLException e) {
+      ErrorPrinter.addSql(e, currentSql);
+      throw e;
     }
   }
 
