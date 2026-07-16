@@ -168,44 +168,43 @@ public final class MySQLUserManager extends BuilderThread {
    */
   private static boolean addMissingUsers(Server mysqlServer, Server.Version version, Connection conn, List<UserServer> users,
       Set<Tuple2<String, User.Name>> existing) throws IOException, SQLException {
-    // Add the users that do not exist and should
-    final String insertSql;
-    switch (version) {
-      case VERSION_4_1:
-      case VERSION_5_0:
-        insertSql = "INSERT INTO user (Host, User, Password, ssl_type, ssl_cipher, x509_issuer, x509_subject) VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "','','','','')";
-        break;
-      case VERSION_5_6:
-        insertSql = "INSERT INTO user (Host, User, Password, ssl_type, ssl_cipher, x509_issuer, x509_subject, plugin) VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "','','','','','')";
-        break;
-      case VERSION_5_7:
-        insertSql = "INSERT INTO user (Host, User, ssl_type, ssl_cipher, x509_issuer, x509_subject, authentication_string, password_last_changed, account_locked)"
-            + " VALUES (?,?,'','','','','" + User.NO_PASSWORD_DB_VALUE + "',NOW(),?)";
-        break;
-      default:
-        throw new SQLException("Unsupported MySQL version: " + version);
-    }
-
     boolean needsFlush = false;
-    String currentSql = null;
-    try (PreparedStatement pstmt = conn.prepareStatement(currentSql = insertSql)) {
-      for (UserServer msu : users) {
-        User mu = msu.getMysqlUser();
-        String host = msu.getHost();
-        if (host == null) {
-          host = "";
-        }
-        User.Name username = mu.getKey();
-        Tuple2<String, User.Name> key = new Tuple2<>(host, username);
-        if (existing.add(key)) {
-          // Add the user
-          if (mu.isSpecial()) {
-            logger.log(
-                Level.WARNING,
-                null,
-                new SQLException("Refusing to create special user: " + username + " on " + mysqlServer.getName())
-            );
-          } else {
+    for (UserServer msu : users) {
+      User mu = msu.getMysqlUser();
+      String host = msu.getHost();
+      if (host == null) {
+        host = "";
+      }
+      User.Name username = mu.getKey();
+      Tuple2<String, User.Name> key = new Tuple2<>(host, username);
+      if (existing.add(key)) {
+        // Add the user
+        if (mu.isSpecial()) {
+          logger.log(
+              Level.WARNING,
+              null,
+              new SQLException("Refusing to create special user: " + username + " on " + mysqlServer.getName())
+          );
+        } else {
+          // Add the users that do not exist and should
+          final String insertSql;
+          switch (version) {
+            case VERSION_4_1:
+            case VERSION_5_0:
+              insertSql = "INSERT INTO user (Host, User, Password, ssl_type, ssl_cipher, x509_issuer, x509_subject) VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "','','','','')";
+              break;
+            case VERSION_5_6:
+              insertSql = "INSERT INTO user (Host, User, Password, ssl_type, ssl_cipher, x509_issuer, x509_subject, plugin) VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "','','','','','')";
+              break;
+            case VERSION_5_7:
+              insertSql = "INSERT INTO user (Host, User, ssl_type, ssl_cipher, x509_issuer, x509_subject, authentication_string, password_last_changed, account_locked)"
+                  + " VALUES (?,?,'','','','','" + User.NO_PASSWORD_DB_VALUE + "',NOW(),?)";
+              break;
+            default:
+              throw new SQLException("Unsupported MySQL version: " + version);
+          }
+          String currentSql = null;
+          try (PreparedStatement pstmt = conn.prepareStatement(currentSql = insertSql)) {
             int pos = 1;
             pstmt.setString(pos++, host);
             pstmt.setString(pos++, username.toString());
@@ -216,14 +215,14 @@ public final class MySQLUserManager extends BuilderThread {
             pstmt.executeUpdate();
 
             needsFlush = true;
+          } catch (Error | RuntimeException | SQLException e) {
+            ErrorPrinter.addSql(e, currentSql);
+            throw e;
           }
         }
       }
-      return needsFlush;
-    } catch (Error | RuntimeException | SQLException e) {
-      ErrorPrinter.addSql(e, currentSql);
-      throw e;
     }
+    return needsFlush;
   }
 
   /**
