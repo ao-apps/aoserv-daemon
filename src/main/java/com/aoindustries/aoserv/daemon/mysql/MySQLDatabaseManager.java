@@ -113,26 +113,31 @@ public final class MySQLDatabaseManager extends BuilderThread {
           if (databases.isEmpty()) {
             logger.severe("No databases; refusing to rebuild config: " + mysqlServer);
           } else {
-            String version = mysqlServer.getVersion().getVersion();
+            Server.Version version = Server.Version.parse(mysqlServer.getVersion().getVersion());
             // Different versions of MySQL have different sets of system databases
             Set<Database.Name> systemDatabases = new LinkedHashSet<>();
-            if (version.startsWith(Server.VERSION_4_1_PREFIX)) {
-              systemDatabases.add(Database.MYSQL);
-            } else if (version.startsWith(Server.VERSION_5_0_PREFIX)) {
-              systemDatabases.add(Database.MYSQL);
-              systemDatabases.add(Database.INFORMATION_SCHEMA);
-            } else if (version.startsWith(Server.VERSION_5_6_PREFIX)) {
-              systemDatabases.add(Database.MYSQL);
-              systemDatabases.add(Database.INFORMATION_SCHEMA);
-              systemDatabases.add(Database.PERFORMANCE_SCHEMA);
-            } else if (version.startsWith(Server.VERSION_5_7_PREFIX)
-                || version.startsWith(Server.VERSION_8_4_PREFIX)) {
-              systemDatabases.add(Database.MYSQL);
-              systemDatabases.add(Database.INFORMATION_SCHEMA);
-              systemDatabases.add(Database.PERFORMANCE_SCHEMA);
-              systemDatabases.add(Database.SYS);
-            } else {
-              throw new SQLException("Unsupported version of MySQL: " + version);
+            switch (version) {
+              case VERSION_4_1:
+                systemDatabases.add(Database.MYSQL);
+                break;
+              case VERSION_5_0:
+                systemDatabases.add(Database.MYSQL);
+                systemDatabases.add(Database.INFORMATION_SCHEMA);
+                break;
+              case VERSION_5_6:
+                systemDatabases.add(Database.MYSQL);
+                systemDatabases.add(Database.INFORMATION_SCHEMA);
+                systemDatabases.add(Database.PERFORMANCE_SCHEMA);
+                break;
+              case VERSION_5_7:
+              case VERSION_8_4:
+                systemDatabases.add(Database.MYSQL);
+                systemDatabases.add(Database.INFORMATION_SCHEMA);
+                systemDatabases.add(Database.PERFORMANCE_SCHEMA);
+                systemDatabases.add(Database.SYS);
+                break;
+              default:
+                throw new SQLException("Unsupported version of MySQL: " + version);
             }
             // Verify has all system databases
             Set<Database.Name> requiredDatabases = new LinkedHashSet<>(systemDatabases);

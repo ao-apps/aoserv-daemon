@@ -77,11 +77,11 @@ public final class MySQLHostManager extends BuilderThread {
       AoservConnector connector = AoservDaemon.getConnector();
       synchronized (rebuildLock) {
         for (Server mysqlServer : connector.getMysql().getServer()) {
-          String version = mysqlServer.getVersion().getVersion();
+          Server.Version version = Server.Version.parse(mysqlServer.getVersion().getVersion());
           // hosts no longer exists in MySQL 5.6.7+
           if (
-              version.startsWith(Server.VERSION_4_1_PREFIX)
-                  || version.startsWith(Server.VERSION_5_0_PREFIX)
+              version == Server.Version.VERSION_4_1
+                  || version == Server.Version.VERSION_5_0
           ) {
             boolean needsFlush = false;
             // Get the connection to work through
@@ -125,13 +125,16 @@ public final class MySQLHostManager extends BuilderThread {
                 }
 
                 // Add the hosts that do not exist and should
-                String insertSql;
-                if (version.startsWith(Server.VERSION_4_1_PREFIX)) {
-                  insertSql = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
-                } else if (version.startsWith(Server.VERSION_5_0_PREFIX)) {
-                  insertSql = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
-                } else {
-                  throw new SQLException("Unsupported MySQL version: " + version);
+                final String insertSql;
+                switch (version) {
+                  case VERSION_4_1:
+                    insertSql = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
+                    break;
+                  case VERSION_5_0:
+                    insertSql = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
+                    break;
+                  default:
+                    throw new SQLException("Unsupported MySQL version: " + version);
                 }
 
                 currentSql = null;

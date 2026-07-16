@@ -114,7 +114,7 @@ public final class MySQLUserManager extends BuilderThread {
       logger.severe(User.ROOT + " user not found; refusing to rebuild config: " + mysqlServer);
       return;
     }
-    final String version = mysqlServer.getVersion().getVersion();
+    final Server.Version version = Server.Version.parse(mysqlServer.getVersion().getVersion());
 
     boolean needsFlush = false;
 
@@ -149,7 +149,7 @@ public final class MySQLUserManager extends BuilderThread {
 
         // Update existing users to proper values
         String updateSql;
-        if (version.startsWith(Server.VERSION_4_1_PREFIX)) {
+        if (version == Server.Version.VERSION_4_1) {
           updateSql = "UPDATE user SET\n"
               + "  Select_priv=?,\n"
               + "  Insert_priv=?,\n"
@@ -204,7 +204,7 @@ public final class MySQLUserManager extends BuilderThread {
               + "    OR max_updates != ?\n"
               + "    OR max_connections != ?\n"
               + "  )";
-        } else if (version.startsWith(Server.VERSION_5_0_PREFIX)) {
+        } else if (version == Server.Version.VERSION_5_0) {
           updateSql = "UPDATE user SET\n"
               + "  Select_priv=?,\n"
               + "  Insert_priv=?,\n"
@@ -271,7 +271,7 @@ public final class MySQLUserManager extends BuilderThread {
               + "    OR max_connections != ?\n"
               + "    OR max_user_connections != ?\n"
               + "  )";
-        } else if (version.startsWith(Server.VERSION_5_6_PREFIX)) {
+        } else if (version == Server.Version.VERSION_5_6) {
           updateSql = "UPDATE user SET\n"
               + "  Select_priv=?,\n"
               + "  Insert_priv=?,\n"
@@ -342,7 +342,7 @@ public final class MySQLUserManager extends BuilderThread {
               + "    OR max_connections != ?\n"
               + "    OR max_user_connections != ?\n"
               + "  )";
-        } else if (version.startsWith(Server.VERSION_5_7_PREFIX)) {
+        } else if (version == Server.Version.VERSION_5_7) {
           updateSql = "UPDATE user SET\n"
               + "  Select_priv=?,\n"
               + "  Insert_priv=?,\n"
@@ -454,9 +454,9 @@ public final class MySQLUserManager extends BuilderThread {
               pstmt.setString(pos++, mu.isReplicationSlave() ? "Y" : "N");
               pstmt.setString(pos++, mu.isReplicationClient() ? "Y" : "N");
               if (
-                  version.startsWith(Server.VERSION_5_0_PREFIX)
-                      || version.startsWith(Server.VERSION_5_6_PREFIX)
-                      || version.startsWith(Server.VERSION_5_7_PREFIX)
+                  version == Server.Version.VERSION_5_0
+                      || version == Server.Version.VERSION_5_6
+                      || version == Server.Version.VERSION_5_7
               ) {
                 pstmt.setString(pos++, mu.canCreateView() ? "Y" : "N");
                 pstmt.setString(pos++, mu.canShowView() ? "Y" : "N");
@@ -464,8 +464,8 @@ public final class MySQLUserManager extends BuilderThread {
                 pstmt.setString(pos++, mu.canAlterRoutine() ? "Y" : "N");
                 pstmt.setString(pos++, mu.canCreateUser() ? "Y" : "N");
                 if (
-                    version.startsWith(Server.VERSION_5_6_PREFIX)
-                        || version.startsWith(Server.VERSION_5_7_PREFIX)
+                    version == Server.Version.VERSION_5_6
+                        || version == Server.Version.VERSION_5_7
                 ) {
                   pstmt.setString(pos++, mu.canEvent() ? "Y" : "N");
                   pstmt.setString(pos++, mu.canTrigger() ? "Y" : "N");
@@ -475,9 +475,9 @@ public final class MySQLUserManager extends BuilderThread {
               pstmt.setInt(pos++, msu.getMaxUpdates());
               pstmt.setInt(pos++, msu.getMaxConnections());
               if (
-                  version.startsWith(Server.VERSION_5_0_PREFIX)
-                      || version.startsWith(Server.VERSION_5_6_PREFIX)
-                      || version.startsWith(Server.VERSION_5_7_PREFIX)
+                  version == Server.Version.VERSION_5_0
+                      || version == Server.Version.VERSION_5_6
+                      || version == Server.Version.VERSION_5_7
               ) {
                 pstmt.setInt(pos++, msu.getMaxUserConnections());
               }
@@ -485,7 +485,7 @@ public final class MySQLUserManager extends BuilderThread {
                   username.equals(User.MYSQL_SESSION)
                       || username.equals(User.MYSQL_SYS)
                       || msu.isDisabled();
-              if (version.startsWith(Server.VERSION_5_7_PREFIX)) {
+              if (version == Server.Version.VERSION_5_7) {
                 pstmt.setString(pos++, locked ? "Y" : "N");
               }
               // where
@@ -513,9 +513,9 @@ public final class MySQLUserManager extends BuilderThread {
               pstmt.setString(pos++, mu.isReplicationSlave() ? "Y" : "N");
               pstmt.setString(pos++, mu.isReplicationClient() ? "Y" : "N");
               if (
-                  version.startsWith(Server.VERSION_5_0_PREFIX)
-                      || version.startsWith(Server.VERSION_5_6_PREFIX)
-                      || version.startsWith(Server.VERSION_5_7_PREFIX)
+                  version == Server.Version.VERSION_5_0
+                      || version == Server.Version.VERSION_5_6
+                      || version == Server.Version.VERSION_5_7
               ) {
                 pstmt.setString(pos++, mu.canCreateView() ? "Y" : "N");
                 pstmt.setString(pos++, mu.canShowView() ? "Y" : "N");
@@ -523,8 +523,8 @@ public final class MySQLUserManager extends BuilderThread {
                 pstmt.setString(pos++, mu.canAlterRoutine() ? "Y" : "N");
                 pstmt.setString(pos++, mu.canCreateUser() ? "Y" : "N");
                 if (
-                    version.startsWith(Server.VERSION_5_6_PREFIX)
-                        || version.startsWith(Server.VERSION_5_7_PREFIX)
+                    version == Server.Version.VERSION_5_6
+                        || version == Server.Version.VERSION_5_7
                 ) {
                   pstmt.setString(pos++, mu.canEvent() ? "Y" : "N");
                   pstmt.setString(pos++, mu.canTrigger() ? "Y" : "N");
@@ -534,13 +534,13 @@ public final class MySQLUserManager extends BuilderThread {
               pstmt.setInt(pos++, msu.getMaxUpdates());
               pstmt.setInt(pos++, msu.getMaxConnections());
               if (
-                  version.startsWith(Server.VERSION_5_0_PREFIX)
-                      || version.startsWith(Server.VERSION_5_6_PREFIX)
-                      || version.startsWith(Server.VERSION_5_7_PREFIX)
+                  version == Server.Version.VERSION_5_0
+                      || version == Server.Version.VERSION_5_6
+                      || version == Server.Version.VERSION_5_7
               ) {
                 pstmt.setInt(pos++, msu.getMaxUserConnections());
               }
-              if (version.startsWith(Server.VERSION_5_7_PREFIX)) {
+              if (version == Server.Version.VERSION_5_7) {
                 pstmt.setString(pos++, locked ? "Y" : "N");
               }
               int updateCount = pstmt.executeUpdate();
@@ -564,9 +564,9 @@ public final class MySQLUserManager extends BuilderThread {
     // Disable and enable accounts
     // Note: This is done without holding Connection because it can callback to master, which could potentially deadlock.
     if (
-        version.startsWith(Server.VERSION_4_1_PREFIX)
-            || version.startsWith(Server.VERSION_5_0_PREFIX)
-            || version.startsWith(Server.VERSION_5_6_PREFIX)
+        version == Server.Version.VERSION_4_1
+            || version == Server.Version.VERSION_5_0
+            || version == Server.Version.VERSION_5_6
     ) {
       // Older versions of MySQL are disabled by stashing the encrypted password and replacing it with an invalid hash
       for (UserServer msu : users) {
@@ -586,8 +586,8 @@ public final class MySQLUserManager extends BuilderThread {
           }
         }
       }
-    } else if (version.startsWith(Server.VERSION_5_7_PREFIX)
-        || version.startsWith(Server.VERSION_8_4_PREFIX)) {
+    } else if (version == Server.Version.VERSION_5_7
+        || version == Server.Version.VERSION_8_4) {
       // MySQL 5.7+ support "account_locked" column, set above.
       // Nothing to do here.
     } else {
@@ -605,20 +605,24 @@ public final class MySQLUserManager extends BuilderThread {
    *
    * @return  Returns {@code true} when {@link MySQLServerManager#flushPrivileges(com.aoindustries.aoserv.client.mysql.Server)} is required.
    */
-  private static boolean addMissingUsers(Server mysqlServer, String version, Connection conn, List<UserServer> users,
+  private static boolean addMissingUsers(Server mysqlServer, Server.Version version, Connection conn, List<UserServer> users,
       Set<Tuple2<String, User.Name>> existing) throws IOException, SQLException {
     // Add the users that do not exist and should
-    String insertSql;
-    if (version.startsWith(Server.VERSION_4_1_PREFIX)
-        || version.startsWith(Server.VERSION_5_0_PREFIX)) {
-      insertSql = "INSERT INTO user (Host, User, Password, ssl_type, ssl_cipher, x509_issuer, x509_subject) VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "','','','','')";
-    } else if (version.startsWith(Server.VERSION_5_6_PREFIX)) {
-      insertSql = "INSERT INTO user (Host, User, Password, ssl_type, ssl_cipher, x509_issuer, x509_subject, plugin) VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "','','','','','')";
-    } else if (version.startsWith(Server.VERSION_5_7_PREFIX)) {
-      insertSql = "INSERT INTO user (Host, User, ssl_type, ssl_cipher, x509_issuer, x509_subject, authentication_string, password_last_changed, account_locked)"
-          + " VALUES (?,?,'','','','','" + User.NO_PASSWORD_DB_VALUE + "',NOW(),?)";
-    } else {
-      throw new SQLException("Unsupported MySQL version: " + version);
+    final String insertSql;
+    switch (version) {
+      case VERSION_4_1:
+      case VERSION_5_0:
+        insertSql = "INSERT INTO user (Host, User, Password, ssl_type, ssl_cipher, x509_issuer, x509_subject) VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "','','','','')";
+        break;
+      case VERSION_5_6:
+        insertSql = "INSERT INTO user (Host, User, Password, ssl_type, ssl_cipher, x509_issuer, x509_subject, plugin) VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "','','','','','')";
+        break;
+      case VERSION_5_7:
+        insertSql = "INSERT INTO user (Host, User, ssl_type, ssl_cipher, x509_issuer, x509_subject, authentication_string, password_last_changed, account_locked)"
+            + " VALUES (?,?,'','','','','" + User.NO_PASSWORD_DB_VALUE + "',NOW(),?)";
+        break;
+      default:
+        throw new SQLException("Unsupported MySQL version: " + version);
     }
 
     boolean needsFlush = false;
@@ -644,7 +648,7 @@ public final class MySQLUserManager extends BuilderThread {
             int pos = 1;
             pstmt.setString(pos++, host);
             pstmt.setString(pos++, username.toString());
-            if (version.startsWith(Server.VERSION_5_7_PREFIX)) {
+            if (version == Server.Version.VERSION_5_7) {
               boolean locked = msu.isDisabled();
               pstmt.setString(pos++, locked ? "Y" : "N");
             }
@@ -669,7 +673,7 @@ public final class MySQLUserManager extends BuilderThread {
    *
    * @return  Returns {@code true} when {@link MySQLServerManager#flushPrivileges(com.aoindustries.aoserv.client.mysql.Server)} is required.
    */
-  private static boolean removeExtraUsers(Server mysqlServer, String version, Connection conn,
+  private static boolean removeExtraUsers(Server mysqlServer, Server.Version version, Connection conn,
       Set<Tuple2<String, User.Name>> extra) throws IOException, SQLException {
     boolean needsFlush = false;
     // Remove the extra users
@@ -684,25 +688,26 @@ public final class MySQLUserManager extends BuilderThread {
             new SQLException("Refusing to drop special user: " + user + " user for host " + host + " on " + mysqlServer.getName())
         );
       } else {
-        String sql;
-        String param1;
-        String param2;
-        if (
-            version.startsWith(Server.VERSION_4_1_PREFIX)
-                || version.startsWith(Server.VERSION_5_0_PREFIX)
-                || version.startsWith(Server.VERSION_5_6_PREFIX)
-                || version.startsWith(Server.VERSION_5_7_PREFIX)
-        ) {
-          sql = "DELETE FROM user WHERE host=? AND user=?";
-          param1 = host;
-          param2 = user.toString();
-          needsFlush = true;
-        } else if (version.startsWith(Server.VERSION_8_4_PREFIX)) {
-          sql = "DROP USER ?@?";
-          param1 = user.toString();
-          param2 = host;
-        } else {
-          throw new SQLException("Unsupported version of MySQL: " + version);
+        final String sql;
+        final String param1;
+        final String param2;
+        switch (version) {
+          case VERSION_4_1:
+          case VERSION_5_0:
+          case VERSION_5_6:
+          case VERSION_5_7:
+            sql = "DELETE FROM user WHERE host=? AND user=?";
+            param1 = host;
+            param2 = user.toString();
+            needsFlush = true;
+            break;
+          case VERSION_8_4:
+            sql = "DROP USER ?@?";
+            param1 = user.toString();
+            param2 = host;
+            break;
+          default:
+            throw new SQLException("Unsupported version of MySQL: " + version);
         }
         String currentSql = null;
         try (PreparedStatement pstmt = conn.prepareStatement(currentSql = sql)) {
@@ -722,25 +727,27 @@ public final class MySQLUserManager extends BuilderThread {
     if (User.isSpecial(username)) {
       throw new SQLException("Refusing to get the encrypted password for a special user: " + username + " on " + mysqlServer.getName());
     }
-    final String version = mysqlServer.getVersion().getVersion();
-    String sql;
+    final Server.Version version = Server.Version.parse(mysqlServer.getVersion().getVersion());
+    final String sql;
     Function<String, String> compatibilityConverter = Function.identity();
-    if (
-        version.startsWith(Server.VERSION_4_1_PREFIX)
-            || version.startsWith(Server.VERSION_5_0_PREFIX)
-            || version.startsWith(Server.VERSION_5_6_PREFIX)
-    ) {
-      // Older MySQL: password stored in "password" column
-      sql = "SELECT password FROM user WHERE user=?";
-    } else if (version.startsWith(Server.VERSION_5_7_PREFIX)) {
-      // MySQL 5.7+: password stored in "authentication_string" column
-      sql = "SELECT authentication_string FROM user WHERE user=?";
-    } else if (version.startsWith(Server.VERSION_8_4_PREFIX)) {
-      // MySQL 8.4+: password stored in "authentication_string" column but NO_PASSWORD_DB_VALUE_CACHING_SHA2 used instead of User.NO_PASSWORD_DB_VALUE
-      sql = "SELECT authentication_string FROM user WHERE user=?";
-      compatibilityConverter = authenticationString -> NO_PASSWORD_DB_VALUE_CACHING_SHA2.equals(authenticationString) ? User.NO_PASSWORD_DB_VALUE : authenticationString;
-    } else {
-      throw new SQLException("Unsupported version of MySQL: " + version);
+    switch (version) {
+      case VERSION_4_1:
+      case VERSION_5_0:
+      case VERSION_5_6:
+        // Older MySQL: password stored in "password" column
+        sql = "SELECT password FROM user WHERE user=?";
+        break;
+      case VERSION_5_7:
+        // MySQL 5.7+: password stored in "authentication_string" column
+        sql = "SELECT authentication_string FROM user WHERE user=?";
+        break;
+      case VERSION_8_4:
+        // MySQL 8.4+: password stored in "authentication_string" column but NO_PASSWORD_DB_VALUE_CACHING_SHA2 used instead of User.NO_PASSWORD_DB_VALUE
+        sql = "SELECT authentication_string FROM user WHERE user=?";
+        compatibilityConverter = authenticationString -> NO_PASSWORD_DB_VALUE_CACHING_SHA2.equals(authenticationString) ? User.NO_PASSWORD_DB_VALUE : authenticationString;
+        break;
+      default:
+        throw new SQLException("Unsupported version of MySQL: " + version);
     }
     try (Connection conn = MySQLServerManager.getPool(mysqlServer).getConnection(true)) {
       try {
@@ -773,54 +780,56 @@ public final class MySQLUserManager extends BuilderThread {
     if (User.isSpecial(username)) {
       throw new SQLException("Refusing to set the password for a special user: " + username + " on " + mysqlServer.getName());
     }
-    final String version = mysqlServer.getVersion().getVersion();
+    final Server.Version version = Server.Version.parse(mysqlServer.getVersion().getVersion());
     boolean needsFlush = false;
     // Get the connection to work through
     try (Connection conn = MySQLServerManager.getPool(mysqlServer).getConnection()) {
       try {
-        String sql;
-        String param1;
-        String param2;
         // Support "no password" as a method to disable the account
-        boolean isNoPassword = Objects.equals(password, User.NO_PASSWORD);
-        if (
-            version.startsWith(Server.VERSION_4_1_PREFIX)
-                || version.startsWith(Server.VERSION_5_0_PREFIX)
-                || version.startsWith(Server.VERSION_5_6_PREFIX)
-        ) {
-          if (isNoPassword) {
-            sql = "UPDATE user SET password=? WHERE user=?";
-            param1 = User.NO_PASSWORD_DB_VALUE;
-            param2 = username.toString();
-          } else {
-            sql = "UPDATE user SET password=PASSWORD(?) WHERE user=?";
-            param1 = password;
-            param2 = username.toString();
-          }
-          needsFlush = true;
-        } else if (version.startsWith(Server.VERSION_5_7_PREFIX)) {
-          if (isNoPassword) {
-            sql = "UPDATE user SET authentication_string=?, password_last_changed=NOW() WHERE user=?";
-            param1 = User.NO_PASSWORD_DB_VALUE;
-            param2 = username.toString();
-          } else {
-            sql = "UPDATE user SET authentication_string=PASSWORD(?), password_last_changed=NOW() WHERE user=?";
-            param1 = password;
-            param2 = username.toString();
-          }
-          needsFlush = true;
-        } else if (version.startsWith(Server.VERSION_8_4_PREFIX)) {
-          if (isNoPassword) {
-            sql = "ALTER USER ?@'' IDENTIFIED WITH caching_sha2_password AS ?";
-            param1 = username.toString();
-            param2 = NO_PASSWORD_DB_VALUE_CACHING_SHA2;
-          } else {
-            sql = "ALTER USER ?@'' IDENTIFIED WITH caching_sha2_password BY ?";
-            param1 = username.toString();
-            param2 = password;
-          }
-        } else {
-          throw new SQLException("Unsupported version of MySQL: " + version);
+        final boolean isNoPassword = Objects.equals(password, User.NO_PASSWORD);
+        final String sql;
+        final String param1;
+        final String param2;
+        switch (version) {
+          case VERSION_4_1:
+          case VERSION_5_0:
+          case VERSION_5_6:
+            if (isNoPassword) {
+              sql = "UPDATE user SET password=? WHERE user=?";
+              param1 = User.NO_PASSWORD_DB_VALUE;
+              param2 = username.toString();
+            } else {
+              sql = "UPDATE user SET password=PASSWORD(?) WHERE user=?";
+              param1 = password;
+              param2 = username.toString();
+            }
+            needsFlush = true;
+            break;
+          case VERSION_5_7:
+            if (isNoPassword) {
+              sql = "UPDATE user SET authentication_string=?, password_last_changed=NOW() WHERE user=?";
+              param1 = User.NO_PASSWORD_DB_VALUE;
+              param2 = username.toString();
+            } else {
+              sql = "UPDATE user SET authentication_string=PASSWORD(?), password_last_changed=NOW() WHERE user=?";
+              param1 = password;
+              param2 = username.toString();
+            }
+            needsFlush = true;
+            break;
+          case VERSION_8_4:
+            if (isNoPassword) {
+              sql = "ALTER USER ?@'' IDENTIFIED WITH caching_sha2_password AS ?";
+              param1 = username.toString();
+              param2 = NO_PASSWORD_DB_VALUE_CACHING_SHA2;
+            } else {
+              sql = "ALTER USER ?@'' IDENTIFIED WITH caching_sha2_password BY ?";
+              param1 = username.toString();
+              param2 = password;
+            }
+            break;
+          default:
+            throw new SQLException("Unsupported version of MySQL: " + version);
         }
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
           pstmt.setString(1, param1);
@@ -845,7 +854,7 @@ public final class MySQLUserManager extends BuilderThread {
    *
    * @return  Returns {@code true} when {@link MySQLServerManager#flushPrivileges(com.aoindustries.aoserv.client.mysql.Server)} is required.
    */
-  private static boolean setAuthenticationString(Server mysqlServer, String version, User.Name username, String authenticationString) throws IOException, SQLException {
+  private static boolean setAuthenticationString(Server mysqlServer, Server.Version version, User.Name username, String authenticationString) throws IOException, SQLException {
     if (User.isSpecial(username)) {
       throw new SQLException("Refusing to set the authentication string for a special user: " + username + " on " + mysqlServer.getName());
     }
@@ -853,31 +862,33 @@ public final class MySQLUserManager extends BuilderThread {
     // Get the connection to work through
     try (Connection conn = MySQLServerManager.getPool(mysqlServer).getConnection()) {
       try {
-        String sql;
-        String param1;
-        String param2;
         // Support "no password" as a method to disable the account
-        boolean isNoPassword = Objects.equals(authenticationString, User.NO_PASSWORD);
-        if (
-            version.startsWith(Server.VERSION_4_1_PREFIX)
-                || version.startsWith(Server.VERSION_5_0_PREFIX)
-                || version.startsWith(Server.VERSION_5_6_PREFIX)
-        ) {
-          sql = "UPDATE user SET password=? WHERE user=?";
-          param1 = isNoPassword ? User.NO_PASSWORD_DB_VALUE : authenticationString;
-          param2 = username.toString();
-          needsFlush = true;
-        } else if (version.startsWith(Server.VERSION_5_7_PREFIX)) {
-          sql = "UPDATE user SET authentication_string=? WHERE user=?";
-          param1 = isNoPassword ? User.NO_PASSWORD_DB_VALUE : authenticationString;
-          param2 = username.toString();
-          needsFlush = true;
-        } else if (version.startsWith(Server.VERSION_8_4_PREFIX)) {
-          sql = "ALTER USER ?@'' IDENTIFIED WITH caching_sha2_password AS ?";
-          param1 = username.toString();
-          param2 = isNoPassword ? NO_PASSWORD_DB_VALUE_CACHING_SHA2 : authenticationString;
-        } else {
-          throw new SQLException("Unsupported version of MySQL: " + version);
+        final boolean isNoPassword = Objects.equals(authenticationString, User.NO_PASSWORD);
+        final String sql;
+        final String param1;
+        final String param2;
+        switch (version) {
+          case VERSION_4_1:
+          case VERSION_5_0:
+          case VERSION_5_6:
+            sql = "UPDATE user SET password=? WHERE user=?";
+            param1 = isNoPassword ? User.NO_PASSWORD_DB_VALUE : authenticationString;
+            param2 = username.toString();
+            needsFlush = true;
+            break;
+          case VERSION_5_7:
+            sql = "UPDATE user SET authentication_string=? WHERE user=?";
+            param1 = isNoPassword ? User.NO_PASSWORD_DB_VALUE : authenticationString;
+            param2 = username.toString();
+            needsFlush = true;
+            break;
+          case VERSION_8_4:
+            sql = "ALTER USER ?@'' IDENTIFIED WITH caching_sha2_password AS ?";
+            param1 = username.toString();
+            param2 = isNoPassword ? NO_PASSWORD_DB_VALUE_CACHING_SHA2 : authenticationString;
+            break;
+          default:
+            throw new SQLException("Unsupported version of MySQL: " + version);
         }
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
           pstmt.setString(1, param1);
