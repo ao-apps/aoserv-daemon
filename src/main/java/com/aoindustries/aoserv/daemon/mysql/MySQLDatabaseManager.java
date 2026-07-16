@@ -147,7 +147,6 @@ public final class MySQLDatabaseManager extends BuilderThread {
             if (!requiredDatabases.isEmpty()) {
               logger.severe("Required databases not found; refusing to rebuild config: " + mysqlServer + " → " + requiredDatabases);
             } else {
-              boolean modified = false;
               // Get the connection to work through
               try (Connection conn = MySQLServerManager.getPool(mysqlServer).getConnection()) {
                 try {
@@ -181,7 +180,6 @@ public final class MySQLDatabaseManager extends BuilderThread {
                         } else {
                           // Create the database
                           stmt.executeUpdate(currentSql = "CREATE DATABASE `" + name + '`');
-                          modified = true;
                         }
                       }
                     }
@@ -210,7 +208,6 @@ public final class MySQLDatabaseManager extends BuilderThread {
                         );
                         // Now drop
                         stmt.executeUpdate(currentSql = "DROP DATABASE `" + dbName + '`');
-                        modified = true;
                       }
                     }
                   } catch (Error | RuntimeException | SQLException e) {
@@ -221,9 +218,6 @@ public final class MySQLDatabaseManager extends BuilderThread {
                   conn.abort(AoservDaemon.executorService);
                   throw e;
                 }
-              }
-              if (modified) {
-                MySQLServerManager.flushPrivileges(mysqlServer);
               }
             }
           }
