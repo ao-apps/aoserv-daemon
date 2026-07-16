@@ -148,10 +148,7 @@ public final class MySQLUserManager extends BuilderThread {
 
         // Add the users that do not exist and should
         String insertSql;
-        if (version.startsWith(Server.VERSION_4_0_PREFIX)) {
-          insertSql = "INSERT INTO user VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "',?,?,?,?,?,?,?,?,?,?,?"
-              + ",?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?)";
-        } else if (version.startsWith(Server.VERSION_4_1_PREFIX)) {
+        if (version.startsWith(Server.VERSION_4_1_PREFIX)) {
           insertSql = "INSERT INTO user VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "',?,?,?,?,?,?,?,?,?,?,"
               + "?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?)";
         } else if (version.startsWith(Server.VERSION_5_0_PREFIX)) {
@@ -262,62 +259,7 @@ public final class MySQLUserManager extends BuilderThread {
 
         // Update existing users to proper values
         String updateSql;
-        if (version.startsWith(Server.VERSION_4_0_PREFIX)) {
-          updateSql = "UPDATE user SET\n"
-              + "  Select_priv=?,\n"
-              + "  Insert_priv=?,\n"
-              + "  Update_priv=?,\n"
-              + "  Delete_priv=?,\n"
-              + "  Create_priv=?,\n"
-              + "  Drop_priv=?,\n"
-              + "  Reload_priv=?,\n"
-              + "  Shutdown_priv=?,\n"
-              + "  Process_priv=?,\n"
-              + "  File_priv=?,\n"
-              + "  Grant_priv=?,\n"
-              + "  References_priv=?,\n"
-              + "  Index_priv=?,\n"
-              + "  Alter_priv=?,\n"
-              + "  Show_db_priv=?,\n"
-              + "  Super_priv=?,\n"
-              + "  Create_tmp_table_priv=?,\n"
-              + "  Lock_tables_priv=?,\n"
-              + "  Execute_priv=?,\n"
-              + "  Repl_slave_priv=?,\n"
-              + "  Repl_client_priv=?,\n"
-              + "  max_questions=?,\n"
-              + "  max_updates=?,\n"
-              + "  max_connections=?\n"
-              + "WHERE\n"
-              + "  Host=?\n"
-              + "  AND User=?\n"
-              + "  AND (\n"
-              + "    Select_priv != ?\n"
-              + "    OR Insert_priv != ?\n"
-              + "    OR Update_priv != ?\n"
-              + "    OR Delete_priv != ?\n"
-              + "    OR Create_priv != ?\n"
-              + "    OR Drop_priv != ?\n"
-              + "    OR Reload_priv != ?\n"
-              + "    OR Shutdown_priv != ?\n"
-              + "    OR Process_priv != ?\n"
-              + "    OR File_priv != ?\n"
-              + "    OR Grant_priv != ?\n"
-              + "    OR References_priv != ?\n"
-              + "    OR Index_priv != ?\n"
-              + "    OR Alter_priv != ?\n"
-              + "    OR Show_db_priv != ?\n"
-              + "    OR Super_priv != ?\n"
-              + "    OR Create_tmp_table_priv != ?\n"
-              + "    OR Lock_tables_priv != ?\n"
-              + "    OR Execute_priv != ?\n"
-              + "    OR Repl_slave_priv != ?\n"
-              + "    OR Repl_client_priv != ?\n"
-              + "    OR max_questions != ?\n"
-              + "    OR max_updates != ?\n"
-              + "    OR max_connections != ?\n"
-              + "  )";
-        } else if (version.startsWith(Server.VERSION_4_1_PREFIX)) {
+        if (version.startsWith(Server.VERSION_4_1_PREFIX)) {
           updateSql = "UPDATE user SET\n"
               + "  Select_priv=?,\n"
               + "  Insert_priv=?,\n"
@@ -747,8 +689,7 @@ public final class MySQLUserManager extends BuilderThread {
             String param1;
             String param2;
             if (
-                version.startsWith(Server.VERSION_4_0_PREFIX)
-                    || version.startsWith(Server.VERSION_4_1_PREFIX)
+                version.startsWith(Server.VERSION_4_1_PREFIX)
                     || version.startsWith(Server.VERSION_5_0_PREFIX)
                     || version.startsWith(Server.VERSION_5_1_PREFIX)
                     || version.startsWith(Server.VERSION_5_6_PREFIX)
@@ -783,8 +724,7 @@ public final class MySQLUserManager extends BuilderThread {
 
     // Disable and enable accounts
     if (
-        version.startsWith(Server.VERSION_4_0_PREFIX)
-            || version.startsWith(Server.VERSION_4_1_PREFIX)
+        version.startsWith(Server.VERSION_4_1_PREFIX)
             || version.startsWith(Server.VERSION_5_0_PREFIX)
             || version.startsWith(Server.VERSION_5_1_PREFIX)
             || version.startsWith(Server.VERSION_5_6_PREFIX)
@@ -827,8 +767,7 @@ public final class MySQLUserManager extends BuilderThread {
     String sql;
     Function<String, String> compatibilityConverter = Function.identity();
     if (
-        version.startsWith(Server.VERSION_4_0_PREFIX)
-            || version.startsWith(Server.VERSION_4_1_PREFIX)
+        version.startsWith(Server.VERSION_4_1_PREFIX)
             || version.startsWith(Server.VERSION_5_0_PREFIX)
             || version.startsWith(Server.VERSION_5_1_PREFIX)
             || version.startsWith(Server.VERSION_5_6_PREFIX)
@@ -887,8 +826,7 @@ public final class MySQLUserManager extends BuilderThread {
         // Support "no password" as a method to disable the account
         boolean isNoPassword = Objects.equals(password, User.NO_PASSWORD);
         if (
-            version.startsWith(Server.VERSION_4_0_PREFIX)
-                || version.startsWith(Server.VERSION_4_1_PREFIX)
+            version.startsWith(Server.VERSION_4_1_PREFIX)
                 || version.startsWith(Server.VERSION_5_0_PREFIX)
                 || version.startsWith(Server.VERSION_5_1_PREFIX)
                 || version.startsWith(Server.VERSION_5_6_PREFIX)
@@ -963,8 +901,7 @@ public final class MySQLUserManager extends BuilderThread {
         // Support "no password" as a method to disable the account
         boolean isNoPassword = Objects.equals(authenticationString, User.NO_PASSWORD);
         if (
-            version.startsWith(Server.VERSION_4_0_PREFIX)
-                || version.startsWith(Server.VERSION_4_1_PREFIX)
+            version.startsWith(Server.VERSION_4_1_PREFIX)
                 || version.startsWith(Server.VERSION_5_0_PREFIX)
                 || version.startsWith(Server.VERSION_5_1_PREFIX)
                 || version.startsWith(Server.VERSION_5_6_PREFIX)

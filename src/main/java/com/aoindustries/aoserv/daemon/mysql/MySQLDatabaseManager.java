@@ -116,10 +116,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
             String version = mysqlServer.getVersion().getVersion();
             // Different versions of MySQL have different sets of system databases
             Set<Database.Name> systemDatabases = new LinkedHashSet<>();
-            if (
-                version.startsWith(Server.VERSION_4_0_PREFIX)
-                    || version.startsWith(Server.VERSION_4_1_PREFIX)
-            ) {
+            if (version.startsWith(Server.VERSION_4_1_PREFIX)) {
               systemDatabases.add(Database.MYSQL);
             } else if (
                 version.startsWith(Server.VERSION_5_0_PREFIX)
@@ -571,24 +568,13 @@ public final class MySQLDatabaseManager extends BuilderThread {
               try {
                 String currentSql = null;
                 try (Statement stmt = conn.createStatement()) {
-                  boolean isMysql40;
-                  try (ResultSet results = stmt.executeQuery(currentSql = "SELECT VERSION()")) {
-                    if (!results.next()) {
-                      throw new SQLException("No row returned"); // TODO: NoRowException move to ao-sql
-                    }
-                    isMysql40 = results.getString(1).startsWith(Server.VERSION_4_0_PREFIX);
-                  }
                   try (ResultSet results = stmt.executeQuery(currentSql = "SHOW TABLE STATUS FROM `" + databaseName + '`')) {
                     while (results.next()) {
-                      final String engine = results.getString(isMysql40 ? "Type" : "Engine");
+                      final String engine = results.getString("Engine");
                       Integer version;
-                      if (isMysql40) {
+                      version = results.getInt("Version");
+                      if (results.wasNull()) {
                         version = null;
-                      } else {
-                        version = results.getInt("Version");
-                        if (results.wasNull()) {
-                          version = null;
-                        }
                       }
                       final String rowFormat = results.getString("Row_format");
                       Long rows = results.getLong("Rows");

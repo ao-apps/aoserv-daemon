@@ -80,8 +80,7 @@ public final class MySQLHostManager extends BuilderThread {
           String version = mysqlServer.getVersion().getVersion();
           // hosts no longer exists in MySQL 5.6.7+
           if (
-              version.startsWith(Server.VERSION_4_0_PREFIX)
-                  || version.startsWith(Server.VERSION_4_1_PREFIX)
+              version.startsWith(Server.VERSION_4_1_PREFIX)
                   || version.startsWith(Server.VERSION_5_0_PREFIX)
                   || version.startsWith(Server.VERSION_5_1_PREFIX)
           ) {
@@ -128,9 +127,7 @@ public final class MySQLHostManager extends BuilderThread {
 
                 // Add the hosts that do not exist and should
                 String insertSql;
-                if (version.startsWith(Server.VERSION_4_0_PREFIX)) {
-                  insertSql = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
-                } else if (version.startsWith(Server.VERSION_4_1_PREFIX)) {
+                if (version.startsWith(Server.VERSION_4_1_PREFIX)) {
                   insertSql = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
                 } else if (version.startsWith(Server.VERSION_5_0_PREFIX)) {
                   insertSql = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";

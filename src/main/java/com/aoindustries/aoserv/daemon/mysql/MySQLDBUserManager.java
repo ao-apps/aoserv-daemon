@@ -91,8 +91,7 @@ public final class MySQLDBUserManager extends BuilderThread {
             // Different versions of MySQL have different sets of system db users
             Set<Tuple2<Database.Name, User.Name>> systemDbUsers = new LinkedHashSet<>();
             if (
-                version.startsWith(Server.VERSION_4_0_PREFIX)
-                    || version.startsWith(Server.VERSION_4_1_PREFIX)
+                version.startsWith(Server.VERSION_4_1_PREFIX)
                     || version.startsWith(Server.VERSION_5_0_PREFIX)
                     || version.startsWith(Server.VERSION_5_1_PREFIX)
                     || version.startsWith(Server.VERSION_5_6_PREFIX)
@@ -153,9 +152,7 @@ public final class MySQLDBUserManager extends BuilderThread {
 
                   // Add the db entries that do not exist and should
                   String insertSql;
-                  if (version.startsWith(Server.VERSION_4_0_PREFIX)) {
-                    insertSql = "INSERT INTO db VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-                  } else if (version.startsWith(Server.VERSION_4_1_PREFIX)) {
+                  if (version.startsWith(Server.VERSION_4_1_PREFIX)) {
                     insertSql = "INSERT INTO db VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
                   } else if (version.startsWith(Server.VERSION_5_0_PREFIX)) {
                     insertSql = "INSERT INTO db VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
