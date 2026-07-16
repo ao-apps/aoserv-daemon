@@ -148,19 +148,13 @@ public final class MySQLUserManager extends BuilderThread {
 
         // Add the users that do not exist and should
         String insertSql;
-        if (version.startsWith(Server.VERSION_4_1_PREFIX)) {
-          insertSql = "INSERT INTO user VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "',?,?,?,?,?,?,?,?,?,?,"
-              + "?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?)";
-        } else if (version.startsWith(Server.VERSION_5_0_PREFIX)) {
-          insertSql = "INSERT INTO user VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "',?,?,?,?,?,?,?,?,?,?,"
-              + "?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?,?)";
+        if (version.startsWith(Server.VERSION_4_1_PREFIX)
+            || version.startsWith(Server.VERSION_5_0_PREFIX)) {
+          insertSql = "INSERT INTO user (Host, User, Password, ssl_type, ssl_cipher, x509_issuer, x509_subject) VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "','','','','')";
         } else if (version.startsWith(Server.VERSION_5_6_PREFIX)) {
-          insertSql = "INSERT INTO user VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "',?,?,?,?,?,?,?,?,?,?,"
-              + "?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'N','','','','',?,?,?,?,'',NULL,'N')";
+          insertSql = "INSERT INTO user (Host, User, Password, ssl_type, ssl_cipher, x509_issuer, x509_subject, plugin) VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "','','','','','')";
         } else if (version.startsWith(Server.VERSION_5_7_PREFIX)) {
-          insertSql = "INSERT INTO user VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,"
-              + "'N','','','','',?,?,?,?,'mysql_native_password','" + User.NO_PASSWORD_DB_VALUE + "','N',"
-              + "NOW(),NULL,?)";
+          insertSql = "INSERT INTO user (Host, User, ssl_type, ssl_cipher, x509_issuer, x509_subject, authentication_string, password_last_changed, account_locked) VALUES (?,?,'','','','','" + User.NO_PASSWORD_DB_VALUE + "',NOW(),?)";
         } else {
           throw new SQLException("Unsupported MySQL version: " + version);
         }
@@ -187,55 +181,6 @@ public final class MySQLUserManager extends BuilderThread {
                 int pos = 1;
                 pstmt.setString(pos++, host);
                 pstmt.setString(pos++, username.toString());
-                pstmt.setString(pos++, mu.canSelect() ? "Y" : "N");
-                pstmt.setString(pos++, mu.canInsert() ? "Y" : "N");
-                pstmt.setString(pos++, mu.canUpdate() ? "Y" : "N");
-                pstmt.setString(pos++, mu.canDelete() ? "Y" : "N");
-                pstmt.setString(pos++, mu.canCreate() ? "Y" : "N");
-                pstmt.setString(pos++, mu.canDrop() ? "Y" : "N");
-                pstmt.setString(pos++, mu.canReload() ? "Y" : "N");
-                pstmt.setString(pos++, mu.canShutdown() ? "Y" : "N");
-                pstmt.setString(pos++, mu.canProcess() ? "Y" : "N");
-                pstmt.setString(pos++, mu.canFile() ? "Y" : "N");
-                pstmt.setString(pos++, mu.canGrant() ? "Y" : "N");
-                pstmt.setString(pos++, mu.canReference() ? "Y" : "N");
-                pstmt.setString(pos++, mu.canIndex() ? "Y" : "N");
-                pstmt.setString(pos++, mu.canAlter() ? "Y" : "N");
-                pstmt.setString(pos++, mu.canShowDb() ? "Y" : "N");
-                pstmt.setString(pos++, mu.isSuper() ? "Y" : "N");
-                pstmt.setString(pos++, mu.canCreateTempTable() ? "Y" : "N");
-                pstmt.setString(pos++, mu.canLockTables() ? "Y" : "N");
-                pstmt.setString(pos++, mu.canExecute() ? "Y" : "N");
-                pstmt.setString(pos++, mu.isReplicationSlave() ? "Y" : "N");
-                pstmt.setString(pos++, mu.isReplicationClient() ? "Y" : "N");
-                if (
-                    version.startsWith(Server.VERSION_5_0_PREFIX)
-                        || version.startsWith(Server.VERSION_5_6_PREFIX)
-                        || version.startsWith(Server.VERSION_5_7_PREFIX)
-                ) {
-                  pstmt.setString(pos++, mu.canCreateView() ? "Y" : "N");
-                  pstmt.setString(pos++, mu.canShowView() ? "Y" : "N");
-                  pstmt.setString(pos++, mu.canCreateRoutine() ? "Y" : "N");
-                  pstmt.setString(pos++, mu.canAlterRoutine() ? "Y" : "N");
-                  pstmt.setString(pos++, mu.canCreateUser() ? "Y" : "N");
-                  if (
-                      version.startsWith(Server.VERSION_5_6_PREFIX)
-                          || version.startsWith(Server.VERSION_5_7_PREFIX)
-                  ) {
-                    pstmt.setString(pos++, mu.canEvent() ? "Y" : "N");
-                    pstmt.setString(pos++, mu.canTrigger() ? "Y" : "N");
-                  }
-                }
-                pstmt.setInt(pos++, msu.getMaxQuestions());
-                pstmt.setInt(pos++, msu.getMaxUpdates());
-                pstmt.setInt(pos++, msu.getMaxConnections());
-                if (
-                    version.startsWith(Server.VERSION_5_0_PREFIX)
-                        || version.startsWith(Server.VERSION_5_6_PREFIX)
-                        || version.startsWith(Server.VERSION_5_7_PREFIX)
-                ) {
-                  pstmt.setInt(pos++, msu.getMaxUserConnections());
-                }
                 if (version.startsWith(Server.VERSION_5_7_PREFIX)) {
                   boolean locked = msu.isDisabled();
                   pstmt.setString(pos++, locked ? "Y" : "N");
