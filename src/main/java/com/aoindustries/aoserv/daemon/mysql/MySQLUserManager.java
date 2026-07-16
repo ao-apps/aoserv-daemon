@@ -806,10 +806,11 @@ public final class MySQLUserManager extends BuilderThread {
   }
 
   /**
-   * Gets the set of host values found in user table for the given user.
-   * Actions performed for a user, such as setting a password, are performed on all user@host for the user.
+   * Gets the host value found in user table for the given user.
+   *
+   * @throws SQLException when not found or more than one row in user matches.
    */
-  private static Set<String> getHostsForUser(Connection conn, User.Name username) throws SQLException {
+  private static String getHostForUser(Connection conn, User.Name username) throws SQLException {
     String sql = "SELECT host FROM user WHERE user = ?";
     try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
       pstmt.setString(1, username.toString());
@@ -821,7 +822,13 @@ public final class MySQLUserManager extends BuilderThread {
             throw new SQLException("Duplicate (user, host): (" + username + ", " + host + ")");
           }
         }
-        return hosts;
+        if (hosts.isEmpty()) {
+          throw new SQLException("User not found: " + username);
+        }
+        if (hosts.size() > 1) {
+          throw new SQLException("More than one host found: " + username + ": " + hosts);
+        }
+        return hosts.iterator().next();
       }
     } catch (Error | RuntimeException | SQLException e) {
       ErrorPrinter.addSql(e, sql);
@@ -882,32 +889,27 @@ public final class MySQLUserManager extends BuilderThread {
             }
             needsFlush = true;
             break;
-          case VERSION_8_4:
-            boolean found = false;
-            for (String host : getHostsForUser(conn, username)) {
-              if (isNoPassword) {
-                executeUpdate(
-                    conn,
-                    "ALTER USER ?@? IDENTIFIED WITH caching_sha2_password AS ?",
-                    username.toString(),
-                    host,
-                    NO_PASSWORD_DB_VALUE_CACHING_SHA2
-                );
-              } else {
-                executeUpdate(
-                    conn,
-                    "ALTER USER ?@? IDENTIFIED WITH caching_sha2_password BY ?",
-                    username.toString(),
-                    host,
-                    password
-                );
-              }
-              found = true;
-            }
-            if (!found) {
-              throw new SQLException("User not found: " + username);
+          case VERSION_8_4: {
+            String host = getHostForUser(conn, username);
+            if (isNoPassword) {
+              executeUpdate(
+                  conn,
+                  "ALTER USER ?@? IDENTIFIED WITH caching_sha2_password AS ?",
+                  username.toString(),
+                  host,
+                  NO_PASSWORD_DB_VALUE_CACHING_SHA2
+              );
+            } else {
+              executeUpdate(
+                  conn,
+                  "ALTER USER ?@? IDENTIFIED WITH caching_sha2_password BY ?",
+                  username.toString(),
+                  host,
+                  password
+              );
             }
             break;
+          }
           default:
             throw new SQLException("Unsupported version of MySQL: " + version);
         }
@@ -957,22 +959,17 @@ public final class MySQLUserManager extends BuilderThread {
             );
             needsFlush = true;
             break;
-          case VERSION_8_4:
-            boolean found = false;
-            for (String host : getHostsForUser(conn, username)) {
-              executeUpdate(
-                  conn,
-                  "ALTER USER ?@? IDENTIFIED WITH caching_sha2_password AS ?",
-                  username.toString(),
-                  host,
-                  isNoPassword ? NO_PASSWORD_DB_VALUE_CACHING_SHA2 : authenticationString
-              );
-              found = true;
-            }
-            if (!found) {
-              throw new SQLException("User not found: " + username);
-            }
+          case VERSION_8_4: {
+            String host = getHostForUser(conn, username);
+            executeUpdate(
+                conn,
+                "ALTER USER ?@? IDENTIFIED WITH caching_sha2_password AS ?",
+                username.toString(),
+                host,
+                isNoPassword ? NO_PASSWORD_DB_VALUE_CACHING_SHA2 : authenticationString
+            );
             break;
+          }
           default:
             throw new SQLException("Unsupported version of MySQL: " + version);
         }
