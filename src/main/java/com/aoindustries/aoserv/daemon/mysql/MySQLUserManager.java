@@ -755,6 +755,10 @@ public final class MySQLUserManager extends BuilderThread {
     return needsFlush;
   }
 
+  /**
+   * Gets the authentication string for a user.  When multiple MySQL users exist with the given username,
+   * the value from the first one is used (in unspecified order).
+   */
   public static String getAuthenticationString(Server mysqlServer, User.Name username) throws IOException, SQLException {
     if (User.isSpecial(username)) {
       throw new SQLException("Refusing to get the encrypted password for a special user: " + username + " on " + mysqlServer.getName());
@@ -767,15 +771,15 @@ public final class MySQLUserManager extends BuilderThread {
       case VERSION_5_0:
       case VERSION_5_6:
         // Older MySQL: password stored in "password" column
-        sql = "SELECT password FROM user WHERE user=?";
+        sql = "SELECT password FROM user WHERE user=? LIMIT 1";
         break;
       case VERSION_5_7:
         // MySQL 5.7+: password stored in "authentication_string" column
-        sql = "SELECT authentication_string FROM user WHERE user=?";
+        sql = "SELECT authentication_string FROM user WHERE user=? LIMIT 1";
         break;
       case VERSION_8_4:
         // MySQL 8.4+: password stored in "authentication_string" column but NO_PASSWORD_DB_VALUE_CACHING_SHA2 used instead of User.NO_PASSWORD_DB_VALUE
-        sql = "SELECT authentication_string FROM user WHERE user=?";
+        sql = "SELECT authentication_string FROM user WHERE user=? LIMIT 1";
         compatibilityConverter = authenticationString -> NO_PASSWORD_DB_VALUE_CACHING_SHA2.equals(authenticationString) ? User.NO_PASSWORD_DB_VALUE : authenticationString;
         break;
       default:
