@@ -23,6 +23,7 @@
 
 package com.aoindustries.aoserv.daemon.mysql;
 
+import com.aoapps.lang.util.ErrorPrinter;
 import com.aoapps.net.Port;
 import com.aoapps.sql.pool.AOConnectionPool;
 import com.aoindustries.aoserv.client.AoservConnector;
@@ -39,6 +40,8 @@ import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.selinux.SEManagePort;
 import java.io.File;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -160,6 +163,19 @@ public final class MySQLServerManager extends BuilderThread {
         pools.put(i, pool);
       }
       return pool;
+    }
+  }
+
+  static int executeUpdate(Connection conn, String sql, String... params) throws SQLException {
+    try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+      int pos = 1;
+      for (String param : params) {
+        pstmt.setString(pos++, param);
+      }
+      return pstmt.executeUpdate();
+    } catch (Error | RuntimeException | SQLException e) {
+      ErrorPrinter.addSql(e, sql);
+      throw e;
     }
   }
 

@@ -23,6 +23,8 @@
 
 package com.aoindustries.aoserv.daemon.mysql;
 
+import static com.aoindustries.aoserv.daemon.mysql.MySQLServerManager.executeUpdate;
+
 import com.aoapps.lang.util.ErrorPrinter;
 import com.aoapps.net.InetAddress;
 import com.aoindustries.aoserv.client.AoservConnector;
@@ -35,7 +37,6 @@ import com.aoindustries.aoserv.daemon.AoservDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -125,45 +126,38 @@ public final class MySQLHostManager extends BuilderThread {
                 }
 
                 // Add the hosts that do not exist and should
-                final String insertSql;
-                switch (version) {
-                  case VERSION_4_1:
-                    insertSql = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
-                    break;
-                  case VERSION_5_0:
-                    insertSql = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
-                    break;
-                  default:
-                    throw new SQLException("Unsupported MySQL version: " + version);
-                }
-
-                currentSql = null;
-                try (PreparedStatement pstmt = conn.prepareStatement(currentSql = insertSql)) {
-                  for (String hostname : hosts) {
-                    if (!existing.remove(hostname)) {
-                      // Add the host
-                      pstmt.setString(1, hostname);
-                      pstmt.executeUpdate();
-                      needsFlush = true;
+                for (String hostname : hosts) {
+                  if (!existing.remove(hostname)) {
+                    // Add the host
+                    final String insertSql;
+                    switch (version) {
+                      case VERSION_4_1:
+                        insertSql = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
+                        break;
+                      case VERSION_5_0:
+                        insertSql = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
+                        break;
+                      default:
+                        throw new SQLException("Unsupported MySQL version: " + version);
                     }
+                    executeUpdate(
+                        conn,
+                        insertSql,
+                        hostname
+                    );
+                    needsFlush = true;
                   }
-                } catch (Error | RuntimeException | SQLException e) {
-                  ErrorPrinter.addSql(e, currentSql);
-                  throw e;
                 }
 
                 // Remove the extra hosts
                 if (!existing.isEmpty()) {
-                  currentSql = null;
-                  try (PreparedStatement pstmt = conn.prepareStatement(currentSql = "DELETE FROM host WHERE host=?")) {
-                    for (String dbName : existing) {
-                      // Remove the extra host entry
-                      pstmt.setString(1, dbName);
-                      pstmt.executeUpdate();
-                    }
-                  } catch (Error | RuntimeException | SQLException e) {
-                    ErrorPrinter.addSql(e, currentSql);
-                    throw e;
+                  for (String dbName : existing) {
+                    // Remove the extra host entry
+                    executeUpdate(
+                        conn,
+                        "DELETE FROM host WHERE host=?",
+                        dbName
+                    );
                   }
                   needsFlush = true;
                 }

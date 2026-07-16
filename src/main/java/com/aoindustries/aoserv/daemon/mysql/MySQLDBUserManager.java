@@ -23,6 +23,8 @@
 
 package com.aoindustries.aoserv.daemon.mysql;
 
+import static com.aoindustries.aoserv.daemon.mysql.MySQLServerManager.executeUpdate;
+
 import com.aoapps.hodgepodge.util.Tuple2;
 import com.aoapps.lang.util.ErrorPrinter;
 import com.aoapps.lang.validation.ValidationException;
@@ -243,26 +245,24 @@ public final class MySQLDBUserManager extends BuilderThread {
                   // Remove the extra db entries
                   if (!existing.isEmpty()) {
                     currentSql = null;
-                    try (PreparedStatement pstmt = conn.prepareStatement(currentSql = "DELETE FROM db WHERE db=? AND user=?")) {
-                      for (Tuple2<Database.Name, User.Name> key : existing) {
-                        if (systemDbUsers.contains(key)) {
-                          logger.log(
-                              Level.WARNING,
-                              null,
-                              new SQLException("Refusing to delete system MySQL db user: " + key + " on " + mysqlServer)
-                          );
-                        } else {
-                          // Remove the extra db entry
-                          pstmt.setString(1, key.getElement1().toString());
-                          pstmt.setString(2, key.getElement2().toString());
-                          pstmt.executeUpdate();
-                        }
+                    for (Tuple2<Database.Name, User.Name> key : existing) {
+                      if (systemDbUsers.contains(key)) {
+                        logger.log(
+                            Level.WARNING,
+                            null,
+                            new SQLException("Refusing to delete system MySQL db user: " + key + " on " + mysqlServer)
+                        );
+                      } else {
+                        // Remove the extra db entry
+                        executeUpdate(
+                            conn,
+                            "DELETE FROM db WHERE db=? AND user=?",
+                            key.getElement1().toString(),
+                            key.getElement2().toString()
+                        );
+                        needsFlush = true;
                       }
-                    } catch (Error | RuntimeException | SQLException e) {
-                      ErrorPrinter.addSql(e, currentSql);
-                      throw e;
                     }
-                    needsFlush = true;
                   }
                 } catch (SQLException e) {
                   conn.abort(AoservDaemon.executorService);
