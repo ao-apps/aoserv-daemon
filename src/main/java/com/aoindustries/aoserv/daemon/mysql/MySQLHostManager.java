@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2002-2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
+ * Copyright (C) 2002-2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -85,7 +85,7 @@ public final class MySQLHostManager extends BuilderThread {
                   || version.startsWith(Server.VERSION_5_0_PREFIX)
                   || version.startsWith(Server.VERSION_5_1_PREFIX)
           ) {
-            boolean modified = false;
+            boolean needsFlush = false;
             // Get the connection to work through
             try (Connection conn = MySQLServerManager.getPool(mysqlServer).getConnection()) {
               try {
@@ -147,7 +147,7 @@ public final class MySQLHostManager extends BuilderThread {
                       // Add the host
                       pstmt.setString(1, hostname);
                       pstmt.executeUpdate();
-                      modified = true;
+                      needsFlush = true;
                     }
                   }
                 } catch (Error | RuntimeException | SQLException e) {
@@ -168,14 +168,14 @@ public final class MySQLHostManager extends BuilderThread {
                     ErrorPrinter.addSql(e, currentSql);
                     throw e;
                   }
-                  modified = true;
+                  needsFlush = true;
                 }
               } catch (SQLException e) {
                 conn.abort(AoservDaemon.executorService);
                 throw e;
               }
             }
-            if (modified) {
+            if (needsFlush) {
               MySQLServerManager.flushPrivileges(mysqlServer);
             }
           }

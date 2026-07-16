@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2002-2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
+ * Copyright (C) 2002-2013, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -98,7 +98,7 @@ public final class MySQLUserManager extends BuilderThread {
             } else {
               final String version = mysqlServer.getVersion().getVersion();
 
-              boolean modified = false;
+              boolean needsFlush = false;
 
               // Get the connection to work through
               try (Connection conn = MySQLServerManager.getPool(mysqlServer).getConnection()) {
@@ -590,7 +590,7 @@ public final class MySQLUserManager extends BuilderThread {
                         }
                         int updateCount = pstmt.executeUpdate();
                         if (updateCount > 0) {
-                          modified = true;
+                          needsFlush = true;
                         }
                       }
                     }
@@ -704,7 +704,7 @@ public final class MySQLUserManager extends BuilderThread {
                           }
                           pstmt.executeUpdate();
 
-                          modified = true;
+                          needsFlush = true;
                         }
                       }
                     }
@@ -731,7 +731,7 @@ public final class MySQLUserManager extends BuilderThread {
                           pstmt.setString(1, host);
                           pstmt.setString(2, user.toString());
                           pstmt.executeUpdate();
-                          modified = true;
+                          needsFlush = true;
                         }
                       }
                     } catch (Error | RuntimeException | SQLException e) {
@@ -760,7 +760,7 @@ public final class MySQLUserManager extends BuilderThread {
                     if (!msu.isDisabled()) {
                       if (prePassword != null) {
                         setEncryptedPassword(mysqlServer, msu.getMysqlUser().getKey(), prePassword);
-                        modified = true;
+                        needsFlush = true;
                         msu.setPredisablePassword(null);
                       }
                     } else {
@@ -768,7 +768,7 @@ public final class MySQLUserManager extends BuilderThread {
                         User.Name username = msu.getMysqlUser().getKey();
                         msu.setPredisablePassword(getEncryptedPassword(mysqlServer, username));
                         setEncryptedPassword(mysqlServer, username, User.NO_PASSWORD);
-                        modified = true;
+                        needsFlush = true;
                       }
                     }
                   }
@@ -779,7 +779,7 @@ public final class MySQLUserManager extends BuilderThread {
               } else {
                 throw new SQLException("Unsupported version of MySQL: " + version);
               }
-              if (modified) {
+              if (needsFlush) {
                 MySQLServerManager.flushPrivileges(mysqlServer);
               }
             }
