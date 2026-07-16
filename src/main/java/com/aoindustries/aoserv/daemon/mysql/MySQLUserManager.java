@@ -95,13 +95,7 @@ public final class MySQLUserManager extends BuilderThread {
             continue;
           }
           // Must have root user
-          boolean foundRoot = false;
-          for (UserServer user : users) {
-            if (user.getMysqlUser().getKey().equals(User.ROOT)) {
-              foundRoot = true;
-              break;
-            }
-          }
+          boolean foundRoot = users.stream().anyMatch(user -> User.ROOT.equals(user.getMysqlUser_username()));
           if (!foundRoot) {
             logger.severe(User.ROOT + " user not found; refusing to rebuild config: " + mysqlServer);
             continue;
