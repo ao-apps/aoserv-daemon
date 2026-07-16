@@ -614,7 +614,8 @@ public final class MySQLUserManager extends BuilderThread {
     } else if (version.startsWith(Server.VERSION_5_6_PREFIX)) {
       insertSql = "INSERT INTO user (Host, User, Password, ssl_type, ssl_cipher, x509_issuer, x509_subject, plugin) VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "','','','','','')";
     } else if (version.startsWith(Server.VERSION_5_7_PREFIX)) {
-      insertSql = "INSERT INTO user (Host, User, ssl_type, ssl_cipher, x509_issuer, x509_subject, authentication_string, password_last_changed, account_locked) VALUES (?,?,'','','','','" + User.NO_PASSWORD_DB_VALUE + "',NOW(),?)";
+      insertSql = "INSERT INTO user (Host, User, ssl_type, ssl_cipher, x509_issuer, x509_subject, authentication_string, password_last_changed, account_locked)"
+          + " VALUES (?,?,'','','','','" + User.NO_PASSWORD_DB_VALUE + "',NOW(),?)";
     } else {
       throw new SQLException("Unsupported MySQL version: " + version);
     }
