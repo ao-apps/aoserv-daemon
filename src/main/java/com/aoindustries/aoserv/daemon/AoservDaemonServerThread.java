@@ -1281,15 +1281,15 @@ public final class AoservDaemonServerThread extends Thread {
                 if (AoservDaemon.DEBUG) {
                   System.out.println("DEBUG: AoservDaemonServerThread performing SET_MYSQL_USER_PASSWORD, Thread=" + toString());
                 }
-                int pkdy = in.readCompressedInt();
+                int pkey = in.readCompressedInt();
                 com.aoindustries.aoserv.client.mysql.User.Name username = com.aoindustries.aoserv.client.mysql.User.Name.valueOf(in.readUTF());
                 String password = in.readBoolean() ? in.readUTF() : null;
                 if (daemonKey == null) {
                   throw new IOException("Only the master server may SET_MYSQL_USER_PASSWORD");
                 }
-                com.aoindustries.aoserv.client.mysql.Server mysqlServer = connector.getMysql().getServer().get(pkdy);
+                com.aoindustries.aoserv.client.mysql.Server mysqlServer = connector.getMysql().getServer().get(pkey);
                 if (mysqlServer == null) {
-                  throw new SQLException("Unable to find Server: " + pkdy);
+                  throw new SQLException("Unable to find Server: " + pkey);
                 }
                 MySQLUserManager.setPassword(mysqlServer, username, password);
                 out.write(AoservDaemonProtocol.DONE);
