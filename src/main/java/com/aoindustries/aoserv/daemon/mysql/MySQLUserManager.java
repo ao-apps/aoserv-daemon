@@ -646,7 +646,7 @@ public final class MySQLUserManager extends BuilderThread {
         while (results.next()) {
           String host = results.getString(1);
           if (!hosts.add(host)) {
-            throw new SQLException("Duplicate (user, host): (" + username + ", " + host + ")");
+            throw new SQLException("Duplicate (host, user): (" + host + ", " + username + ")");
           }
         }
         if (hosts.isEmpty()) {
