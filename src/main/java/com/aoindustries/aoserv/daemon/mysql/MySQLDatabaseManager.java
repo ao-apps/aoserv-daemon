@@ -118,10 +118,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
             Set<Database.Name> systemDatabases = new LinkedHashSet<>();
             if (version.startsWith(Server.VERSION_4_1_PREFIX)) {
               systemDatabases.add(Database.MYSQL);
-            } else if (
-                version.startsWith(Server.VERSION_5_0_PREFIX)
-                    || version.startsWith(Server.VERSION_5_1_PREFIX)
-            ) {
+            } else if (version.startsWith(Server.VERSION_5_0_PREFIX)) {
               systemDatabases.add(Database.MYSQL);
               systemDatabases.add(Database.INFORMATION_SCHEMA);
             } else if (version.startsWith(Server.VERSION_5_6_PREFIX)) {

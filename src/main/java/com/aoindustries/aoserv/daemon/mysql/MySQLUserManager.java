@@ -154,9 +154,6 @@ public final class MySQLUserManager extends BuilderThread {
         } else if (version.startsWith(Server.VERSION_5_0_PREFIX)) {
           insertSql = "INSERT INTO user VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "',?,?,?,?,?,?,?,?,?,?,"
               + "?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?,?)";
-        } else if (version.startsWith(Server.VERSION_5_1_PREFIX)) {
-          insertSql = "INSERT INTO user VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "',?,?,?,?,?,?,?,?,?,?,"
-              + "?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?,?)";
         } else if (version.startsWith(Server.VERSION_5_6_PREFIX)) {
           insertSql = "INSERT INTO user VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "',?,?,?,?,?,?,?,?,?,?,"
               + "?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'N','','','','',?,?,?,?,'',NULL,'N')";
@@ -213,7 +210,6 @@ public final class MySQLUserManager extends BuilderThread {
                 pstmt.setString(pos++, mu.isReplicationClient() ? "Y" : "N");
                 if (
                     version.startsWith(Server.VERSION_5_0_PREFIX)
-                        || version.startsWith(Server.VERSION_5_1_PREFIX)
                         || version.startsWith(Server.VERSION_5_6_PREFIX)
                         || version.startsWith(Server.VERSION_5_7_PREFIX)
                 ) {
@@ -223,8 +219,7 @@ public final class MySQLUserManager extends BuilderThread {
                   pstmt.setString(pos++, mu.canAlterRoutine() ? "Y" : "N");
                   pstmt.setString(pos++, mu.canCreateUser() ? "Y" : "N");
                   if (
-                      version.startsWith(Server.VERSION_5_1_PREFIX)
-                          || version.startsWith(Server.VERSION_5_6_PREFIX)
+                      version.startsWith(Server.VERSION_5_6_PREFIX)
                           || version.startsWith(Server.VERSION_5_7_PREFIX)
                   ) {
                     pstmt.setString(pos++, mu.canEvent() ? "Y" : "N");
@@ -236,7 +231,6 @@ public final class MySQLUserManager extends BuilderThread {
                 pstmt.setInt(pos++, msu.getMaxConnections());
                 if (
                     version.startsWith(Server.VERSION_5_0_PREFIX)
-                        || version.startsWith(Server.VERSION_5_1_PREFIX)
                         || version.startsWith(Server.VERSION_5_6_PREFIX)
                         || version.startsWith(Server.VERSION_5_7_PREFIX)
                 ) {
@@ -381,10 +375,7 @@ public final class MySQLUserManager extends BuilderThread {
               + "    OR max_connections != ?\n"
               + "    OR max_user_connections != ?\n"
               + "  )";
-        } else if (
-            version.startsWith(Server.VERSION_5_1_PREFIX)
-                || version.startsWith(Server.VERSION_5_6_PREFIX)
-        ) {
+        } else if (version.startsWith(Server.VERSION_5_6_PREFIX)) {
           updateSql = "UPDATE user SET\n"
               + "  Select_priv=?,\n"
               + "  Insert_priv=?,\n"
@@ -568,7 +559,6 @@ public final class MySQLUserManager extends BuilderThread {
               pstmt.setString(pos++, mu.isReplicationClient() ? "Y" : "N");
               if (
                   version.startsWith(Server.VERSION_5_0_PREFIX)
-                      || version.startsWith(Server.VERSION_5_1_PREFIX)
                       || version.startsWith(Server.VERSION_5_6_PREFIX)
                       || version.startsWith(Server.VERSION_5_7_PREFIX)
               ) {
@@ -578,8 +568,7 @@ public final class MySQLUserManager extends BuilderThread {
                 pstmt.setString(pos++, mu.canAlterRoutine() ? "Y" : "N");
                 pstmt.setString(pos++, mu.canCreateUser() ? "Y" : "N");
                 if (
-                    version.startsWith(Server.VERSION_5_1_PREFIX)
-                        || version.startsWith(Server.VERSION_5_6_PREFIX)
+                    version.startsWith(Server.VERSION_5_6_PREFIX)
                         || version.startsWith(Server.VERSION_5_7_PREFIX)
                 ) {
                   pstmt.setString(pos++, mu.canEvent() ? "Y" : "N");
@@ -591,7 +580,6 @@ public final class MySQLUserManager extends BuilderThread {
               pstmt.setInt(pos++, msu.getMaxConnections());
               if (
                   version.startsWith(Server.VERSION_5_0_PREFIX)
-                      || version.startsWith(Server.VERSION_5_1_PREFIX)
                       || version.startsWith(Server.VERSION_5_6_PREFIX)
                       || version.startsWith(Server.VERSION_5_7_PREFIX)
               ) {
@@ -630,7 +618,6 @@ public final class MySQLUserManager extends BuilderThread {
               pstmt.setString(pos++, mu.isReplicationClient() ? "Y" : "N");
               if (
                   version.startsWith(Server.VERSION_5_0_PREFIX)
-                      || version.startsWith(Server.VERSION_5_1_PREFIX)
                       || version.startsWith(Server.VERSION_5_6_PREFIX)
                       || version.startsWith(Server.VERSION_5_7_PREFIX)
               ) {
@@ -640,8 +627,7 @@ public final class MySQLUserManager extends BuilderThread {
                 pstmt.setString(pos++, mu.canAlterRoutine() ? "Y" : "N");
                 pstmt.setString(pos++, mu.canCreateUser() ? "Y" : "N");
                 if (
-                    version.startsWith(Server.VERSION_5_1_PREFIX)
-                        || version.startsWith(Server.VERSION_5_6_PREFIX)
+                    version.startsWith(Server.VERSION_5_6_PREFIX)
                         || version.startsWith(Server.VERSION_5_7_PREFIX)
                 ) {
                   pstmt.setString(pos++, mu.canEvent() ? "Y" : "N");
@@ -653,7 +639,6 @@ public final class MySQLUserManager extends BuilderThread {
               pstmt.setInt(pos++, msu.getMaxConnections());
               if (
                   version.startsWith(Server.VERSION_5_0_PREFIX)
-                      || version.startsWith(Server.VERSION_5_1_PREFIX)
                       || version.startsWith(Server.VERSION_5_6_PREFIX)
                       || version.startsWith(Server.VERSION_5_7_PREFIX)
               ) {
@@ -691,7 +676,6 @@ public final class MySQLUserManager extends BuilderThread {
             if (
                 version.startsWith(Server.VERSION_4_1_PREFIX)
                     || version.startsWith(Server.VERSION_5_0_PREFIX)
-                    || version.startsWith(Server.VERSION_5_1_PREFIX)
                     || version.startsWith(Server.VERSION_5_6_PREFIX)
                     || version.startsWith(Server.VERSION_5_7_PREFIX)
             ) {
@@ -726,7 +710,6 @@ public final class MySQLUserManager extends BuilderThread {
     if (
         version.startsWith(Server.VERSION_4_1_PREFIX)
             || version.startsWith(Server.VERSION_5_0_PREFIX)
-            || version.startsWith(Server.VERSION_5_1_PREFIX)
             || version.startsWith(Server.VERSION_5_6_PREFIX)
     ) {
       // Older versions of MySQL are disabled by stashing the encrypted password and replacing it with an invalid hash
@@ -769,7 +752,6 @@ public final class MySQLUserManager extends BuilderThread {
     if (
         version.startsWith(Server.VERSION_4_1_PREFIX)
             || version.startsWith(Server.VERSION_5_0_PREFIX)
-            || version.startsWith(Server.VERSION_5_1_PREFIX)
             || version.startsWith(Server.VERSION_5_6_PREFIX)
     ) {
       // Older MySQL: password stored in "password" column
@@ -828,7 +810,6 @@ public final class MySQLUserManager extends BuilderThread {
         if (
             version.startsWith(Server.VERSION_4_1_PREFIX)
                 || version.startsWith(Server.VERSION_5_0_PREFIX)
-                || version.startsWith(Server.VERSION_5_1_PREFIX)
                 || version.startsWith(Server.VERSION_5_6_PREFIX)
         ) {
           if (isNoPassword) {
@@ -903,7 +884,6 @@ public final class MySQLUserManager extends BuilderThread {
         if (
             version.startsWith(Server.VERSION_4_1_PREFIX)
                 || version.startsWith(Server.VERSION_5_0_PREFIX)
-                || version.startsWith(Server.VERSION_5_1_PREFIX)
                 || version.startsWith(Server.VERSION_5_6_PREFIX)
         ) {
           sql = "UPDATE user SET password=? WHERE user=?";

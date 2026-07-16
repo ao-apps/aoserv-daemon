@@ -82,7 +82,6 @@ public final class MySQLHostManager extends BuilderThread {
           if (
               version.startsWith(Server.VERSION_4_1_PREFIX)
                   || version.startsWith(Server.VERSION_5_0_PREFIX)
-                  || version.startsWith(Server.VERSION_5_1_PREFIX)
           ) {
             boolean needsFlush = false;
             // Get the connection to work through
@@ -131,8 +130,6 @@ public final class MySQLHostManager extends BuilderThread {
                   insertSql = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
                 } else if (version.startsWith(Server.VERSION_5_0_PREFIX)) {
                   insertSql = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
-                } else if (version.startsWith(Server.VERSION_5_1_PREFIX)) {
-                  insertSql = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
                 } else {
                   throw new SQLException("Unsupported MySQL version: " + version);
                 }

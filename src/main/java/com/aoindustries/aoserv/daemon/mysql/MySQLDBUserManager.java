@@ -93,7 +93,6 @@ public final class MySQLDBUserManager extends BuilderThread {
             if (
                 version.startsWith(Server.VERSION_4_1_PREFIX)
                     || version.startsWith(Server.VERSION_5_0_PREFIX)
-                    || version.startsWith(Server.VERSION_5_1_PREFIX)
                     || version.startsWith(Server.VERSION_5_6_PREFIX)
             ) {
               // None
@@ -157,8 +156,7 @@ public final class MySQLDBUserManager extends BuilderThread {
                   } else if (version.startsWith(Server.VERSION_5_0_PREFIX)) {
                     insertSql = "INSERT INTO db VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
                   } else if (
-                      version.startsWith(Server.VERSION_5_1_PREFIX)
-                          || version.startsWith(Server.VERSION_5_6_PREFIX)
+                      version.startsWith(Server.VERSION_5_6_PREFIX)
                           || version.startsWith(Server.VERSION_5_7_PREFIX)
                   ) {
                     insertSql = "INSERT INTO db VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
@@ -214,7 +212,6 @@ public final class MySQLDBUserManager extends BuilderThread {
                         pstmt.setString(15, mdu.canLockTables() ? "Y" : "N");
                         if (
                             version.startsWith(Server.VERSION_5_0_PREFIX)
-                                || version.startsWith(Server.VERSION_5_1_PREFIX)
                                 || version.startsWith(Server.VERSION_5_6_PREFIX)
                                 || version.startsWith(Server.VERSION_5_7_PREFIX)
                         ) {
@@ -224,8 +221,7 @@ public final class MySQLDBUserManager extends BuilderThread {
                           pstmt.setString(19, mdu.canAlterRoutine() ? "Y" : "N");
                           pstmt.setString(20, mdu.canExecute() ? "Y" : "N");
                           if (
-                              version.startsWith(Server.VERSION_5_1_PREFIX)
-                                  || version.startsWith(Server.VERSION_5_6_PREFIX)
+                              version.startsWith(Server.VERSION_5_6_PREFIX)
                                   || version.startsWith(Server.VERSION_5_7_PREFIX)
                           ) {
                             pstmt.setString(21, mdu.canEvent() ? "Y" : "N");
