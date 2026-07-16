@@ -142,12 +142,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
             // Verify has all system databases
             Set<Database.Name> requiredDatabases = new LinkedHashSet<>(systemDatabases);
             for (Database database : databases) {
-              if (
-                  requiredDatabases.remove(database.getName())
-                      && requiredDatabases.isEmpty()
-              ) {
-                break;
-              }
+              requiredDatabases.remove(database.getName());
             }
             if (!requiredDatabases.isEmpty()) {
               logger.severe("Required databases not found; refusing to rebuild config: " + mysqlServer + " → " + requiredDatabases);
