@@ -40,6 +40,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -187,34 +188,48 @@ public final class MySQLUserManager extends BuilderThread {
           );
         } else {
           // Add the users that do not exist and should
-          final String insertSql;
+          final String sql;
+          final List<String> params = new ArrayList<>();
           switch (version) {
             case VERSION_4_1:
             case VERSION_5_0:
-              insertSql = "INSERT INTO user (Host, User, Password, ssl_type, ssl_cipher, x509_issuer, x509_subject) VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "','','','','')";
+              sql = "INSERT INTO user (Host, User, Password, ssl_type, ssl_cipher, x509_issuer, x509_subject) VALUES (?,?,?,'','','','')";
+              params.add(host);
+              params.add(username.toString());
+              params.add(User.NO_PASSWORD_DB_VALUE);
+              needsFlush = true;
               break;
             case VERSION_5_6:
-              insertSql = "INSERT INTO user (Host, User, Password, ssl_type, ssl_cipher, x509_issuer, x509_subject, plugin) VALUES (?,?,'" + User.NO_PASSWORD_DB_VALUE + "','','','','','')";
+              sql = "INSERT INTO user (Host, User, Password, ssl_type, ssl_cipher, x509_issuer, x509_subject, plugin) VALUES (?,?,?,'','','','','')";
+              params.add(host);
+              params.add(username.toString());
+              params.add(User.NO_PASSWORD_DB_VALUE);
+              needsFlush = true;
               break;
             case VERSION_5_7:
-              insertSql = "INSERT INTO user (Host, User, ssl_type, ssl_cipher, x509_issuer, x509_subject, authentication_string, password_last_changed, account_locked)"
-                  + " VALUES (?,?,'','','','','" + User.NO_PASSWORD_DB_VALUE + "',NOW(),?)";
+              sql = "INSERT INTO user (Host, User, ssl_type, ssl_cipher, x509_issuer, x509_subject, authentication_string, password_last_changed, account_locked)"
+                  + " VALUES (?,?,'','','','',?,NOW(),?)";
+              params.add(host);
+              params.add(username.toString());
+              params.add(User.NO_PASSWORD_DB_VALUE);
+              params.add(msu.isDisabled() ? "Y" : "N");
+              needsFlush = true;
+              break;
+            case VERSION_8_4:
+              sql = "CREATE USER ?@? IDENTIFIED WITH caching_sha2_password AS ? ACCOUNT " + (msu.isDisabled() ? "LOCK" : "UNLOCK");
+              params.add(username.toString());
+              params.add(host);
+              params.add(NO_PASSWORD_DB_VALUE_CACHING_SHA2);
               break;
             default:
               throw new SQLException("Unsupported MySQL version: " + version);
           }
           String currentSql = null;
-          try (PreparedStatement pstmt = conn.prepareStatement(currentSql = insertSql)) {
-            int pos = 1;
-            pstmt.setString(pos++, host);
-            pstmt.setString(pos++, username.toString());
-            if (version == Server.Version.VERSION_5_7) {
-              boolean locked = msu.isDisabled();
-              pstmt.setString(pos++, locked ? "Y" : "N");
+          try (PreparedStatement pstmt = conn.prepareStatement(currentSql = sql)) {
+            for (int i = 0; i < params.size(); i++) {
+              pstmt.setString(i + 1, params.get(i));
             }
             pstmt.executeUpdate();
-
-            needsFlush = true;
           } catch (Error | RuntimeException | SQLException e) {
             ErrorPrinter.addSql(e, currentSql);
             throw e;
