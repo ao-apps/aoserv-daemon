@@ -573,14 +573,14 @@ public final class MySQLUserManager extends BuilderThread {
           String prePassword = msu.getPredisablePassword();
           if (!msu.isDisabled()) {
             if (prePassword != null) {
-              setAuthenticationString(mysqlServer, msu.getMysqlUser().getKey(), prePassword);
+              needsFlush |= setAuthenticationString(mysqlServer, version, msu.getMysqlUser().getKey(), prePassword);
               msu.setPredisablePassword(null);
             }
           } else {
             if (prePassword == null) {
               User.Name username = msu.getMysqlUser().getKey();
               msu.setPredisablePassword(getAuthenticationString(mysqlServer, username));
-              setAuthenticationString(mysqlServer, username, User.NO_PASSWORD);
+              needsFlush |= setAuthenticationString(mysqlServer, version, username, User.NO_PASSWORD);
             }
           }
         }
@@ -841,12 +841,13 @@ public final class MySQLUserManager extends BuilderThread {
 
   /**
    * Directly set authentication_string, password_last_changed unchanged.
+   *
+   * @return  Returns {@code true} when {@link MySQLServerManager#flushPrivileges(com.aoindustries.aoserv.client.mysql.Server)} is required.
    */
-  private static void setAuthenticationString(Server mysqlServer, User.Name username, String authenticationString) throws IOException, SQLException {
+  private static boolean setAuthenticationString(Server mysqlServer, String version, User.Name username, String authenticationString) throws IOException, SQLException {
     if (User.isSpecial(username)) {
       throw new SQLException("Refusing to set the authentication string for a special user: " + username + " on " + mysqlServer.getName());
     }
-    final String version = mysqlServer.getVersion().getVersion();
     boolean needsFlush = false;
     // Get the connection to work through
     try (Connection conn = MySQLServerManager.getPool(mysqlServer).getConnection()) {
@@ -890,9 +891,7 @@ public final class MySQLUserManager extends BuilderThread {
         throw e;
       }
     }
-    if (needsFlush) {
-      MySQLServerManager.flushPrivileges(mysqlServer);
-    }
+    return needsFlush;
   }
 
   private static MySQLUserManager mysqlUserManager;
