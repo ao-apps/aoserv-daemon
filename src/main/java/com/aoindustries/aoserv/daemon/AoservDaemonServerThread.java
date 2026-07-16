@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2000-2013, 2014, 2015, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025  AO Industries, Inc.
+ * Copyright (C) 2000-2013, 2014, 2015, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -832,7 +832,7 @@ public final class AoservDaemonServerThread extends Thread {
                 if (mysqlServer == null) {
                   throw new SQLException("Unable to find Server: " + id);
                 }
-                String encryptedPassword = MySQLUserManager.getEncryptedPassword(mysqlServer, username);
+                String encryptedPassword = MySQLUserManager.getAuthenticationString(mysqlServer, username);
                 out.write(AoservDaemonProtocol.DONE);
                 // TODO: How is this used?  Should it just be a flag true/false if set?
                 // TODO: Does the master actually need the raw value?  Is it used to copy passwords between accounts?  Should a copy password command exist?
