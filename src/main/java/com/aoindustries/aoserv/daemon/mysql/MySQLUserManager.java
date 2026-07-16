@@ -554,48 +554,7 @@ public final class MySQLUserManager extends BuilderThread {
           throw e;
         }
 
-        // Remove the extra users
-        for (Tuple2<String, User.Name> key : existing) {
-          // Remove the extra user@host entry
-          String host = key.getElement1();
-          User.Name user = key.getElement2();
-          if (User.isSpecial(user)) {
-            logger.log(
-                Level.WARNING,
-                null,
-                new SQLException("Refusing to drop special user: " + user + " user for host " + host + " on " + mysqlServer.getName())
-            );
-          } else {
-            String sql;
-            String param1;
-            String param2;
-            if (
-                version.startsWith(Server.VERSION_4_1_PREFIX)
-                    || version.startsWith(Server.VERSION_5_0_PREFIX)
-                    || version.startsWith(Server.VERSION_5_6_PREFIX)
-                    || version.startsWith(Server.VERSION_5_7_PREFIX)
-            ) {
-              sql = "DELETE FROM user WHERE host=? AND user=?";
-              param1 = host;
-              param2 = user.toString();
-              needsFlush = true;
-            } else if (version.startsWith(Server.VERSION_8_4_PREFIX)) {
-              sql = "DROP USER ?@?";
-              param1 = user.toString();
-              param2 = host;
-            } else {
-              throw new SQLException("Unsupported version of MySQL: " + version);
-            }
-            try (PreparedStatement pstmt = conn.prepareStatement(currentSql = sql)) {
-              pstmt.setString(1, param1);
-              pstmt.setString(2, param2);
-              pstmt.executeUpdate();
-            } catch (Error | RuntimeException | SQLException e) {
-              ErrorPrinter.addSql(e, currentSql);
-              throw e;
-            }
-          }
-        }
+        needsFlush |= removeExtraUsers(mysqlServer, version, conn, existing);
       } catch (SQLException e) {
         conn.abort(AoservDaemon.executorService);
         throw e;
@@ -698,6 +657,63 @@ public final class MySQLUserManager extends BuilderThread {
       ErrorPrinter.addSql(e, currentSql);
       throw e;
     }
+  }
+
+  /**
+   * Removes all extra users.  {@linkplain User#isSpecial(com.aoindustries.aoserv.client.mysql.User.Name) special users}
+   * will not be removed and a warning will be logged instead.
+   *
+   * @param extra  All users in this set will be removed.
+   *
+   * @return  Returns {@code true} when {@link MySQLServerManager#flushPrivileges(com.aoindustries.aoserv.client.mysql.Server)} is required.
+   */
+  private static boolean removeExtraUsers(Server mysqlServer, String version, Connection conn,
+      Set<Tuple2<String, User.Name>> extra) throws IOException, SQLException {
+    boolean needsFlush = false;
+    // Remove the extra users
+    for (Tuple2<String, User.Name> key : extra) {
+      // Remove the extra user@host entry
+      String host = key.getElement1();
+      User.Name user = key.getElement2();
+      if (User.isSpecial(user)) {
+        logger.log(
+            Level.WARNING,
+            null,
+            new SQLException("Refusing to drop special user: " + user + " user for host " + host + " on " + mysqlServer.getName())
+        );
+      } else {
+        String sql;
+        String param1;
+        String param2;
+        if (
+            version.startsWith(Server.VERSION_4_1_PREFIX)
+                || version.startsWith(Server.VERSION_5_0_PREFIX)
+                || version.startsWith(Server.VERSION_5_6_PREFIX)
+                || version.startsWith(Server.VERSION_5_7_PREFIX)
+        ) {
+          sql = "DELETE FROM user WHERE host=? AND user=?";
+          param1 = host;
+          param2 = user.toString();
+          needsFlush = true;
+        } else if (version.startsWith(Server.VERSION_8_4_PREFIX)) {
+          sql = "DROP USER ?@?";
+          param1 = user.toString();
+          param2 = host;
+        } else {
+          throw new SQLException("Unsupported version of MySQL: " + version);
+        }
+        String currentSql = null;
+        try (PreparedStatement pstmt = conn.prepareStatement(currentSql = sql)) {
+          pstmt.setString(1, param1);
+          pstmt.setString(2, param2);
+          pstmt.executeUpdate();
+        } catch (Error | RuntimeException | SQLException e) {
+          ErrorPrinter.addSql(e, currentSql);
+          throw e;
+        }
+      }
+    }
+    return needsFlush;
   }
 
   public static String getAuthenticationString(Server mysqlServer, User.Name username) throws IOException, SQLException {
