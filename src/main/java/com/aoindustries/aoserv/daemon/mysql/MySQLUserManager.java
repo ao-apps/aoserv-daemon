@@ -475,6 +475,9 @@ public final class MySQLUserManager extends BuilderThread {
           int updateCount = pstmt.executeUpdate();
           if (updateCount > 0) {
             needsFlush = true;
+            if (updateCount > 1) {
+              throw new SQLException("Duplicate (host, user): " + key);
+            }
           }
         } catch (Error | RuntimeException | SQLException e) {
           ErrorPrinter.addSql(e, updateSql);
