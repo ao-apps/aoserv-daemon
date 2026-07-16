@@ -830,52 +830,50 @@ public final class MySQLUserManager extends BuilderThread {
         // Support "no password" as a method to disable the account
         final boolean isNoPassword = Objects.equals(password, User.NO_PASSWORD);
         final String sql;
-        final String param1;
-        final String param2;
+        final List<String> params = new ArrayList<>();
         switch (version) {
           case VERSION_4_1:
           case VERSION_5_0:
           case VERSION_5_6:
             if (isNoPassword) {
               sql = "UPDATE user SET password=? WHERE user=?";
-              param1 = User.NO_PASSWORD_DB_VALUE;
-              param2 = username.toString();
+              params.add(User.NO_PASSWORD_DB_VALUE);
+              params.add(username.toString());
             } else {
               sql = "UPDATE user SET password=PASSWORD(?) WHERE user=?";
-              param1 = password;
-              param2 = username.toString();
+              params.add(password);
+              params.add(username.toString());
             }
             needsFlush = true;
             break;
           case VERSION_5_7:
             if (isNoPassword) {
               sql = "UPDATE user SET authentication_string=?, password_last_changed=NOW() WHERE user=?";
-              param1 = User.NO_PASSWORD_DB_VALUE;
-              param2 = username.toString();
+              params.add(User.NO_PASSWORD_DB_VALUE);
+              params.add(username.toString());
             } else {
               sql = "UPDATE user SET authentication_string=PASSWORD(?), password_last_changed=NOW() WHERE user=?";
-              param1 = password;
-              param2 = username.toString();
+              params.add(password);
+              params.add(username.toString());
             }
             needsFlush = true;
             break;
           case VERSION_8_4:
             if (isNoPassword) {
               sql = "ALTER USER ?@'' IDENTIFIED WITH caching_sha2_password AS ?";
-              param1 = username.toString();
-              param2 = NO_PASSWORD_DB_VALUE_CACHING_SHA2;
+              params.add(username.toString());
+              params.add(NO_PASSWORD_DB_VALUE_CACHING_SHA2);
             } else {
               sql = "ALTER USER ?@'' IDENTIFIED WITH caching_sha2_password BY ?";
-              param1 = username.toString();
-              param2 = password;
+              params.add(username.toString());
+              params.add(password);
             }
             break;
           default:
             throw new SQLException("Unsupported version of MySQL: " + version);
         }
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-          pstmt.setString(1, param1);
-          pstmt.setString(2, param2);
+          setParams(pstmt, params);
           pstmt.executeUpdate();
         } catch (Error | RuntimeException | SQLException e) {
           ErrorPrinter.addSql(e, sql);
