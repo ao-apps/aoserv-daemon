@@ -95,20 +95,7 @@ public final class MySQLDBUserManager extends BuilderThread {
           } else {
             Server.Version version = Server.Version.parse(mysqlServer.getVersion().getVersion());
             // Different versions of MySQL have different sets of system db users
-            Set<Tuple2<Database.Name, User.Name>> systemDbUsers = new LinkedHashSet<>();
-            switch (version) {
-              case VERSION_4_1:
-              case VERSION_5_0:
-              case VERSION_5_6:
-                // None
-                break;
-              case VERSION_5_7:
-                systemDbUsers.add(new Tuple2<>(Database.PERFORMANCE_SCHEMA, User.MYSQL_SESSION));
-                systemDbUsers.add(new Tuple2<>(Database.SYS, User.MYSQL_SYS));
-                break;
-              default:
-                throw new SQLException("Unsupported version of MySQL: " + version);
-            }
+            Set<Tuple2<Database.Name, User.Name>> systemDbUsers = version.getSystemDatabaseUsers();
 
             // Verify has all system db users
             Set<Tuple2<Database.Name, User.Name>> requiredDbUsers = new LinkedHashSet<>(systemDbUsers);
