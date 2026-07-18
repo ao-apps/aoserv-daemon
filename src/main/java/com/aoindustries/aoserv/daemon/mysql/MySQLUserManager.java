@@ -192,51 +192,50 @@ public final class MySQLUserManager extends BuilderThread {
           );
         } else {
           // Add the users that do not exist and should
-          switch (version) {
-            case VERSION_4_1:
-            case VERSION_5_0:
-              executeUpdate(
-                  conn,
-                  "INSERT INTO user (Host, User, Password, ssl_type, ssl_cipher, x509_issuer, x509_subject) VALUES (?,?,?,'','','','')",
-                  host,
-                  username.toString(),
-                  User.NO_PASSWORD_DB_VALUE
-              );
-              needsFlush = true;
-              break;
-            case VERSION_5_6:
-              executeUpdate(
-                  conn,
-                  "INSERT INTO user (Host, User, Password, ssl_type, ssl_cipher, x509_issuer, x509_subject, plugin) VALUES (?,?,?,'','','','','')",
-                  host,
-                  username.toString(),
-                  User.NO_PASSWORD_DB_VALUE
-              );
-              needsFlush = true;
-              break;
-            case VERSION_5_7:
-              executeUpdate(
-                  conn,
-                  "INSERT INTO user (Host, User, ssl_type, ssl_cipher, x509_issuer, x509_subject, authentication_string, password_last_changed, account_locked)"
-                  + " VALUES (?,?,'','','','',?,NOW(),?)",
-                  host,
-                  username.toString(),
-                  User.NO_PASSWORD_DB_VALUE,
-                  msu.isDisabled() ? "Y" : "N"
-              );
-              needsFlush = true;
-              break;
-            case VERSION_8_4:
-              executeUpdate(
-                  conn,
-                  "CREATE USER ?@? IDENTIFIED WITH caching_sha2_password AS ? ACCOUNT " + (msu.isDisabled() ? "LOCK" : "UNLOCK"),
-                  username.toString(),
-                  host,
-                  NO_PASSWORD_DB_VALUE_CACHING_SHA2
-              );
-              break;
-            default:
-              throw new SQLException("Unsupported MySQL version: " + version);
+          if (version.supportsDirectGrantTableUpdates()) {
+            switch (version) {
+              case VERSION_4_1:
+              case VERSION_5_0:
+                executeUpdate(
+                    conn,
+                    "INSERT INTO user (Host, User, Password, ssl_type, ssl_cipher, x509_issuer, x509_subject) VALUES (?,?,?,'','','','')",
+                    host,
+                    username.toString(),
+                    User.NO_PASSWORD_DB_VALUE
+                );
+                break;
+              case VERSION_5_6:
+                executeUpdate(
+                    conn,
+                    "INSERT INTO user (Host, User, Password, ssl_type, ssl_cipher, x509_issuer, x509_subject, plugin) VALUES (?,?,?,'','','','','')",
+                    host,
+                    username.toString(),
+                    User.NO_PASSWORD_DB_VALUE
+                );
+                break;
+              case VERSION_5_7:
+                executeUpdate(
+                    conn,
+                    "INSERT INTO user (Host, User, ssl_type, ssl_cipher, x509_issuer, x509_subject, authentication_string, password_last_changed, account_locked)"
+                    + " VALUES (?,?,'','','','',?,NOW(),?)",
+                    host,
+                    username.toString(),
+                    User.NO_PASSWORD_DB_VALUE,
+                    msu.isDisabled() ? "Y" : "N"
+                );
+                break;
+              default:
+                throw new SQLException("Unsupported MySQL version: " + version);
+            }
+            needsFlush = true;
+          } else {
+            executeUpdate(
+                conn,
+                "CREATE USER ?@? IDENTIFIED WITH caching_sha2_password AS ? ACCOUNT " + (msu.isDisabled() ? "LOCK" : "UNLOCK"),
+                username.toString(),
+                host,
+                NO_PASSWORD_DB_VALUE_CACHING_SHA2
+            );
           }
         }
       }
@@ -378,33 +377,23 @@ public final class MySQLUserManager extends BuilderThread {
         logger.log(
             Level.WARNING,
             null,
-            new SQLException("Refusing to drop special user: " + user + " user for host " + host + " on " + mysqlServer.getName())
+            new SQLException("Refusing to drop special user: " + user + " for host " + host + " on " + mysqlServer.getName())
         );
+      } else if (version.supportsDirectGrantTableUpdates()) {
+        executeUpdate(
+            conn,
+            "DELETE FROM user WHERE host=? AND user=?",
+            host,
+            user.toString()
+        );
+        needsFlush = true;
       } else {
-        switch (version) {
-          case VERSION_4_1:
-          case VERSION_5_0:
-          case VERSION_5_6:
-          case VERSION_5_7:
-            executeUpdate(
-                conn,
-                "DELETE FROM user WHERE host=? AND user=?",
-                host,
-                user.toString()
-            );
-            needsFlush = true;
-            break;
-          case VERSION_8_4:
-            executeUpdate(
-                conn,
-                "DROP USER ?@?",
-                user.toString(),
-                host
-            );
-            break;
-          default:
-            throw new SQLException("Unsupported version of MySQL: " + version);
-        }
+        executeUpdate(
+            conn,
+            "DROP USER ?@?",
+            user.toString(),
+            host
+        );
       }
     }
     return needsFlush;
@@ -448,24 +437,25 @@ public final class MySQLUserManager extends BuilderThread {
     final Server.Version version = Server.Version.parse(mysqlServer.getVersion().getVersion());
     final String sql;
     Function<String, String> compatibilityConverter = Function.identity();
-    switch (version) {
-      case VERSION_4_1:
-      case VERSION_5_0:
-      case VERSION_5_6:
-        // Older MySQL: password stored in "password" column
-        sql = "SELECT password FROM user WHERE user=?";
-        break;
-      case VERSION_5_7:
-        // MySQL 5.7+: password stored in "authentication_string" column
-        sql = "SELECT authentication_string FROM user WHERE user=?";
-        break;
-      case VERSION_8_4:
-        // MySQL 8.4+: password stored in "authentication_string" column but NO_PASSWORD_DB_VALUE_CACHING_SHA2 used instead of User.NO_PASSWORD_DB_VALUE
-        sql = "SELECT authentication_string FROM user WHERE user=?";
-        compatibilityConverter = authenticationString -> NO_PASSWORD_DB_VALUE_CACHING_SHA2.equals(authenticationString) ? User.NO_PASSWORD_DB_VALUE : authenticationString;
-        break;
-      default:
-        throw new SQLException("Unsupported version of MySQL: " + version);
+    if (version.supportsDirectGrantTableUpdates()) {
+      switch (version) {
+        case VERSION_4_1:
+        case VERSION_5_0:
+        case VERSION_5_6:
+          // Older MySQL: password stored in "password" column
+          sql = "SELECT password FROM user WHERE user=?";
+          break;
+        case VERSION_5_7:
+          // MySQL 5.7+: password stored in "authentication_string" column
+          sql = "SELECT authentication_string FROM user WHERE user=?";
+          break;
+        default:
+          throw new SQLException("Unsupported version of MySQL: " + version);
+      }
+    } else {
+      // MySQL 8.0+: password stored in "authentication_string" column but NO_PASSWORD_DB_VALUE_CACHING_SHA2 used instead of User.NO_PASSWORD_DB_VALUE
+      sql = "SELECT authentication_string FROM user WHERE user=?";
+      compatibilityConverter = authenticationString -> NO_PASSWORD_DB_VALUE_CACHING_SHA2.equals(authenticationString) ? User.NO_PASSWORD_DB_VALUE : authenticationString;
     }
     try (Connection conn = MySQLServerManager.getPool(mysqlServer).getConnection(true)) {
       try {
@@ -536,69 +526,67 @@ public final class MySQLUserManager extends BuilderThread {
       try {
         // Support "no password" as a method to disable the account
         final boolean isNoPassword = Objects.equals(password, User.NO_PASSWORD);
-        switch (version) {
-          case VERSION_4_1:
-          case VERSION_5_0:
-          case VERSION_5_6:
-            if (isNoPassword) {
-              executeUpdate(
-                  conn,
-                  "UPDATE user SET password=? WHERE user=?",
-                  User.NO_PASSWORD_DB_VALUE,
-                  username.toString()
-              );
-            } else {
-              executeUpdate(
-                  conn,
-                  "UPDATE user SET password=PASSWORD(?) WHERE user=?",
-                  password,
-                  username.toString()
-              );
-            }
-            needsFlush = true;
-            break;
-          case VERSION_5_7:
-            if (isNoPassword) {
-              executeUpdate(
-                  conn,
-                  "UPDATE user SET authentication_string=?, password_last_changed=NOW() WHERE user=?",
-                  User.NO_PASSWORD_DB_VALUE,
-                  username.toString()
-              );
-            } else {
-              executeUpdate(
-                  conn,
-                  "UPDATE user SET authentication_string=PASSWORD(?), password_last_changed=NOW() WHERE user=?",
-                  password,
-                  username.toString()
-              );
-            }
-            needsFlush = true;
-            break;
-          case VERSION_8_4:
-            {
-              String host = getHostForUser(conn, username);
+        if (version.supportsDirectGrantTableUpdates()) {
+          switch (version) {
+            case VERSION_4_1:
+            case VERSION_5_0:
+            case VERSION_5_6:
               if (isNoPassword) {
                 executeUpdate(
                     conn,
-                    "ALTER USER ?@? IDENTIFIED WITH caching_sha2_password AS ?",
-                    username.toString(),
-                    host,
-                    NO_PASSWORD_DB_VALUE_CACHING_SHA2
+                    "UPDATE user SET password=? WHERE user=?",
+                    User.NO_PASSWORD_DB_VALUE,
+                    username.toString()
                 );
               } else {
                 executeUpdate(
                     conn,
-                    "ALTER USER ?@? IDENTIFIED WITH caching_sha2_password BY ?",
-                    username.toString(),
-                    host,
-                    password
+                    "UPDATE user SET password=PASSWORD(?) WHERE user=?",
+                    password,
+                    username.toString()
                 );
               }
               break;
-            }
-          default:
-            throw new SQLException("Unsupported version of MySQL: " + version);
+            case VERSION_5_7:
+              if (isNoPassword) {
+                executeUpdate(
+                    conn,
+                    "UPDATE user SET authentication_string=?, password_last_changed=NOW() WHERE user=?",
+                    User.NO_PASSWORD_DB_VALUE,
+                    username.toString()
+                );
+              } else {
+                executeUpdate(
+                    conn,
+                    "UPDATE user SET authentication_string=PASSWORD(?), password_last_changed=NOW() WHERE user=?",
+                    password,
+                    username.toString()
+                );
+              }
+              break;
+            default:
+              throw new SQLException("Unsupported version of MySQL: " + version);
+          }
+          needsFlush = true;
+        } else {
+          String host = getHostForUser(conn, username);
+          if (isNoPassword) {
+            executeUpdate(
+                conn,
+                "ALTER USER ?@? IDENTIFIED WITH caching_sha2_password AS ?",
+                username.toString(),
+                host,
+                NO_PASSWORD_DB_VALUE_CACHING_SHA2
+            );
+          } else {
+            executeUpdate(
+                conn,
+                "ALTER USER ?@? IDENTIFIED WITH caching_sha2_password BY ?",
+                username.toString(),
+                host,
+                password
+            );
+          }
         }
       } catch (SQLException e) {
         conn.abort(AoservDaemon.executorService);
@@ -625,41 +613,39 @@ public final class MySQLUserManager extends BuilderThread {
       try {
         // Support "no password" as a method to disable the account
         final boolean isNoPassword = Objects.equals(authenticationString, User.NO_PASSWORD);
-        switch (version) {
-          case VERSION_4_1:
-          case VERSION_5_0:
-          case VERSION_5_6:
-            executeUpdate(
-                conn,
-                "UPDATE user SET password=? WHERE user=?",
-                isNoPassword ? User.NO_PASSWORD_DB_VALUE : authenticationString,
-                username.toString()
-            );
-            needsFlush = true;
-            break;
-          case VERSION_5_7:
-            executeUpdate(
-                conn,
-                "UPDATE user SET authentication_string=? WHERE user=?",
-                isNoPassword ? User.NO_PASSWORD_DB_VALUE : authenticationString,
-                username.toString()
-            );
-            needsFlush = true;
-            break;
-          case VERSION_8_4:
-            {
-              String host = getHostForUser(conn, username);
+        if (version.supportsDirectGrantTableUpdates()) {
+          switch (version) {
+            case VERSION_4_1:
+            case VERSION_5_0:
+            case VERSION_5_6:
               executeUpdate(
                   conn,
-                  "ALTER USER ?@? IDENTIFIED WITH caching_sha2_password AS ?",
-                  username.toString(),
-                  host,
-                  isNoPassword ? NO_PASSWORD_DB_VALUE_CACHING_SHA2 : authenticationString
+                  "UPDATE user SET password=? WHERE user=?",
+                  isNoPassword ? User.NO_PASSWORD_DB_VALUE : authenticationString,
+                  username.toString()
               );
               break;
-            }
-          default:
-            throw new SQLException("Unsupported version of MySQL: " + version);
+            case VERSION_5_7:
+              executeUpdate(
+                  conn,
+                  "UPDATE user SET authentication_string=? WHERE user=?",
+                  isNoPassword ? User.NO_PASSWORD_DB_VALUE : authenticationString,
+                  username.toString()
+              );
+              break;
+            default:
+              throw new SQLException("Unsupported version of MySQL: " + version);
+          }
+          needsFlush = true;
+        } else {
+          String host = getHostForUser(conn, username);
+          executeUpdate(
+              conn,
+              "ALTER USER ?@? IDENTIFIED WITH caching_sha2_password AS ?",
+              username.toString(),
+              host,
+              isNoPassword ? NO_PASSWORD_DB_VALUE_CACHING_SHA2 : authenticationString
+          );
         }
       } catch (SQLException e) {
         conn.abort(AoservDaemon.executorService);
