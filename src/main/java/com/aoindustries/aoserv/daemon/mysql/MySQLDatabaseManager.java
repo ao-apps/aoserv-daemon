@@ -115,30 +115,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
           } else {
             Server.Version version = Server.Version.parse(mysqlServer.getVersion().getVersion());
             // Different versions of MySQL have different sets of system databases
-            Set<Database.Name> systemDatabases = new LinkedHashSet<>();
-            switch (version) {
-              case VERSION_4_1:
-                systemDatabases.add(Database.MYSQL);
-                break;
-              case VERSION_5_0:
-                systemDatabases.add(Database.MYSQL);
-                systemDatabases.add(Database.INFORMATION_SCHEMA);
-                break;
-              case VERSION_5_6:
-                systemDatabases.add(Database.MYSQL);
-                systemDatabases.add(Database.INFORMATION_SCHEMA);
-                systemDatabases.add(Database.PERFORMANCE_SCHEMA);
-                break;
-              case VERSION_5_7:
-              case VERSION_8_4:
-                systemDatabases.add(Database.MYSQL);
-                systemDatabases.add(Database.INFORMATION_SCHEMA);
-                systemDatabases.add(Database.PERFORMANCE_SCHEMA);
-                systemDatabases.add(Database.SYS);
-                break;
-              default:
-                throw new SQLException("Unsupported version of MySQL: " + version);
-            }
+            Set<Database.Name> systemDatabases = version.getSystemDatabases();
             // Verify has all system databases
             Set<Database.Name> requiredDatabases = new LinkedHashSet<>(systemDatabases);
             for (Database database : databases) {
