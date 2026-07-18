@@ -30,6 +30,7 @@ import com.aoapps.lang.util.ErrorPrinter;
 import com.aoapps.lang.validation.ValidationException;
 import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.mysql.Permission;
 import com.aoindustries.aoserv.client.mysql.Server;
 import com.aoindustries.aoserv.client.mysql.User;
 import com.aoindustries.aoserv.client.mysql.UserServer;
@@ -50,6 +51,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.commons.lang3.NotImplementedException;
 
 /**
  * Controls the MySQL Users.
@@ -263,217 +265,93 @@ public final class MySQLUserManager extends BuilderThread {
       User.Name username = mu.getKey();
       Tuple2<String, User.Name> key = new Tuple2<>(host, username);
       if (existing.remove(key)) {
-        StringBuilder sql = new StringBuilder();
-        List<Object> params = new ArrayList<>();
-        sql.append("UPDATE user SET\n"
-            + "  Select_priv=?,\n"
-            + "  Insert_priv=?,\n"
-            + "  Update_priv=?,\n"
-            + "  Delete_priv=?,\n"
-            + "  Create_priv=?,\n"
-            + "  Drop_priv=?,\n"
-            + "  Reload_priv=?,\n"
-            + "  Shutdown_priv=?,\n"
-            + "  Process_priv=?,\n"
-            + "  File_priv=?,\n"
-            + "  Grant_priv=?,\n"
-            + "  References_priv=?,\n"
-            + "  Index_priv=?,\n"
-            + "  Alter_priv=?,\n"
-            + "  Show_db_priv=?,\n"
-            + "  Super_priv=?,\n"
-            + "  Create_tmp_table_priv=?,\n"
-            + "  Lock_tables_priv=?,\n"
-            + "  Execute_priv=?,\n"
-            + "  Repl_slave_priv=?,\n"
-            + "  Repl_client_priv=?");
-        params.add(mu.canSelect() ? "Y" : "N");
-        params.add(mu.canInsert() ? "Y" : "N");
-        params.add(mu.canUpdate() ? "Y" : "N");
-        params.add(mu.canDelete() ? "Y" : "N");
-        params.add(mu.canCreate() ? "Y" : "N");
-        params.add(mu.canDrop() ? "Y" : "N");
-        params.add(mu.canReload() ? "Y" : "N");
-        params.add(mu.canShutdown() ? "Y" : "N");
-        params.add(mu.canProcess() ? "Y" : "N");
-        params.add(mu.canFile() ? "Y" : "N");
-        params.add(mu.canGrant() ? "Y" : "N");
-        params.add(mu.canReference() ? "Y" : "N");
-        params.add(mu.canIndex() ? "Y" : "N");
-        params.add(mu.canAlter() ? "Y" : "N");
-        params.add(mu.canShowDb() ? "Y" : "N");
-        params.add(mu.isSuper() ? "Y" : "N");
-        params.add(mu.canCreateTempTable() ? "Y" : "N");
-        params.add(mu.canLockTables() ? "Y" : "N");
-        params.add(mu.canExecute() ? "Y" : "N");
-        params.add(mu.isReplicationSlave() ? "Y" : "N");
-        params.add(mu.isReplicationClient() ? "Y" : "N");
-        if (
-            version == Server.Version.VERSION_5_0
-                || version == Server.Version.VERSION_5_6
-                || version == Server.Version.VERSION_5_7
-        ) {
-          sql.append(",\n"
-              + "  Create_view_priv=?,\n"
-              + "  Show_view_priv=?,\n"
-              + "  Create_routine_priv=?,\n"
-              + "  Alter_routine_priv=?,\n"
-              + "  Create_user_priv=?");
-          params.add(mu.canCreateView() ? "Y" : "N");
-          params.add(mu.canShowView() ? "Y" : "N");
-          params.add(mu.canCreateRoutine() ? "Y" : "N");
-          params.add(mu.canAlterRoutine() ? "Y" : "N");
-          params.add(mu.canCreateUser() ? "Y" : "N");
-          if (
-              version == Server.Version.VERSION_5_6
-                  || version == Server.Version.VERSION_5_7
-          ) {
+        Set<Permission> userPermissions = version.getUserPermissions();
+        if (version.supportsDirectGrantTableUpdates()) {
+          StringBuilder sql = new StringBuilder();
+          List<Object> params = new ArrayList<>();
+          sql.append("UPDATE user SET");
+          for (Permission permission : userPermissions) {
+            sql.append("\n  ").append(permission.getMysqlColumn()).append("=?,");
+            params.add(permission.isUserGranted(mu) ? "Y" : "N");
+          }
+          sql.append("\n"
+                + "  max_questions=?,\n"
+                + "  max_updates=?,\n"
+                + "  max_connections=?");
+          params.add(msu.getMaxQuestions());
+          params.add(msu.getMaxUpdates());
+          params.add(msu.getMaxConnections());
+          if (version.hasMaxUserConnections()) {
             sql.append(",\n"
-                + "  Event_priv=?,\n"
-                + "  Trigger_priv=?");
-            params.add(mu.canEvent() ? "Y" : "N");
-            params.add(mu.canTrigger() ? "Y" : "N");
+                + "  max_user_connections=?");
+            params.add(msu.getMaxUserConnections());
           }
-        }
-        sql.append(",\n"
-              + "  max_questions=?,\n"
-              + "  max_updates=?,\n"
-              + "  max_connections=?");
-        params.add(msu.getMaxQuestions());
-        params.add(msu.getMaxUpdates());
-        params.add(msu.getMaxConnections());
-        if (version.hasMaxUserConnections()) {
-          sql.append(",\n"
-              + "  max_user_connections=?");
-          params.add(msu.getMaxUserConnections());
-        }
-        boolean locked =
-            username.equals(User.MYSQL_SESSION)
-                || username.equals(User.MYSQL_SYS)
-                || msu.isDisabled();
-        if (version.hasAccountLocked()) {
-          sql.append(",\n"
-              + "  account_locked=?");
-          params.add(locked ? "Y" : "N");
-        }
-        sql.append("\n"
-            + "WHERE\n"
-            + "  Host=?\n"
-            + "  AND User=?\n"
-            + "  AND (\n"
-            + "    Select_priv != ?\n"
-            + "    OR Insert_priv != ?\n"
-            + "    OR Update_priv != ?\n"
-            + "    OR Delete_priv != ?\n"
-            + "    OR Create_priv != ?\n"
-            + "    OR Drop_priv != ?\n"
-            + "    OR Reload_priv != ?\n"
-            + "    OR Shutdown_priv != ?\n"
-            + "    OR Process_priv != ?\n"
-            + "    OR File_priv != ?\n"
-            + "    OR Grant_priv != ?\n"
-            + "    OR References_priv != ?\n"
-            + "    OR Index_priv != ?\n"
-            + "    OR Alter_priv != ?\n"
-            + "    OR Show_db_priv != ?\n"
-            + "    OR Super_priv != ?\n"
-            + "    OR Create_tmp_table_priv != ?\n"
-            + "    OR Lock_tables_priv != ?\n"
-            + "    OR Execute_priv != ?\n"
-            + "    OR Repl_slave_priv != ?\n"
-            + "    OR Repl_client_priv != ?");
-        params.add(host);
-        params.add(username.toString());
-        params.add(mu.canSelect() ? "Y" : "N");
-        params.add(mu.canInsert() ? "Y" : "N");
-        params.add(mu.canUpdate() ? "Y" : "N");
-        params.add(mu.canDelete() ? "Y" : "N");
-        params.add(mu.canCreate() ? "Y" : "N");
-        params.add(mu.canDrop() ? "Y" : "N");
-        params.add(mu.canReload() ? "Y" : "N");
-        params.add(mu.canShutdown() ? "Y" : "N");
-        params.add(mu.canProcess() ? "Y" : "N");
-        params.add(mu.canFile() ? "Y" : "N");
-        params.add(mu.canGrant() ? "Y" : "N");
-        params.add(mu.canReference() ? "Y" : "N");
-        params.add(mu.canIndex() ? "Y" : "N");
-        params.add(mu.canAlter() ? "Y" : "N");
-        params.add(mu.canShowDb() ? "Y" : "N");
-        params.add(mu.isSuper() ? "Y" : "N");
-        params.add(mu.canCreateTempTable() ? "Y" : "N");
-        params.add(mu.canLockTables() ? "Y" : "N");
-        params.add(mu.canExecute() ? "Y" : "N");
-        params.add(mu.isReplicationSlave() ? "Y" : "N");
-        params.add(mu.isReplicationClient() ? "Y" : "N");
-        if (
-            version == Server.Version.VERSION_5_0
-                || version == Server.Version.VERSION_5_6
-                || version == Server.Version.VERSION_5_7
-        ) {
+          boolean locked =
+              username.equals(User.MYSQL_SESSION)
+                  || username.equals(User.MYSQL_SYS)
+                  || msu.isDisabled();
+          if (version.hasAccountLocked()) {
+            sql.append(",\n"
+                + "  account_locked=?");
+            params.add(locked ? "Y" : "N");
+          }
           sql.append("\n"
-              + "    OR Create_view_priv != ?\n"
-              + "    OR Show_view_priv != ?\n"
-              + "    OR Create_routine_priv != ?\n"
-              + "    OR Alter_routine_priv != ?\n"
-              + "    OR Create_user_priv != ?");
-          params.add(mu.canCreateView() ? "Y" : "N");
-          params.add(mu.canShowView() ? "Y" : "N");
-          params.add(mu.canCreateRoutine() ? "Y" : "N");
-          params.add(mu.canAlterRoutine() ? "Y" : "N");
-          params.add(mu.canCreateUser() ? "Y" : "N");
-          if (
-              version == Server.Version.VERSION_5_6
-                  || version == Server.Version.VERSION_5_7
-          ) {
+              + "WHERE\n"
+              + "  Host=?\n"
+              + "  AND User=?\n");
+          params.add(host);
+          params.add(username.toString());
+          sql.append("  AND (\n"
+              + "    ");
+          for (Permission permission : userPermissions) {
+            sql.append(permission.getMysqlColumn()).append(" != ?\n"
+                + "    OR ");
+            params.add(permission.isUserGranted(mu) ? "Y" : "N");
+          }
+          sql.append("max_questions != ?\n"
+                + "    OR max_updates != ?\n"
+                + "    OR max_connections != ?");
+          params.add(msu.getMaxQuestions());
+          params.add(msu.getMaxUpdates());
+          params.add(msu.getMaxConnections());
+          if (version.hasMaxUserConnections()) {
             sql.append("\n"
-                + "    OR Event_priv != ?\n"
-                + "    OR Trigger_priv != ?");
-            params.add(mu.canEvent() ? "Y" : "N");
-            params.add(mu.canTrigger() ? "Y" : "N");
+                + "    OR max_user_connections != ?");
+            params.add(msu.getMaxUserConnections());
           }
-        }
-        sql.append("\n"
-              + "    OR max_questions != ?\n"
-              + "    OR max_updates != ?\n"
-              + "    OR max_connections != ?");
-        params.add(msu.getMaxQuestions());
-        params.add(msu.getMaxUpdates());
-        params.add(msu.getMaxConnections());
-        if (version.hasMaxUserConnections()) {
+          if (version.hasAccountLocked()) {
+            sql.append("\n"
+                + "    OR account_locked != ?");
+            params.add(locked ? "Y" : "N");
+          }
           sql.append("\n"
-              + "    OR max_user_connections != ?");
-          params.add(msu.getMaxUserConnections());
-        }
-        if (version.hasAccountLocked()) {
-          sql.append("\n"
-              + "    OR account_locked != ?");
-          params.add(locked ? "Y" : "N");
-        }
-        sql.append("\n"
-              + "  )");
-        String updateSql = sql.toString();
-        try (PreparedStatement pstmt = conn.prepareStatement(updateSql)) {
-          int pos = 1;
-          // Update the user
-          for (Object param : params) {
-            if (param instanceof String) {
-              pstmt.setString(pos++, (String) param);
-            } else if (param instanceof Integer) {
-              pstmt.setInt(pos++, (Integer) param);
-            } else {
-              throw new AssertionError("Unexpected parameter type: " + (param == null ? "null" : param.getClass().getName()));
+                + "  )");
+          String updateSql = sql.toString();
+          try (PreparedStatement pstmt = conn.prepareStatement(updateSql)) {
+            // Update the user
+            int pos = 1;
+            for (Object param : params) {
+              if (param instanceof String) {
+                pstmt.setString(pos++, (String) param);
+              } else if (param instanceof Integer) {
+                pstmt.setInt(pos++, (Integer) param);
+              } else {
+                throw new AssertionError("Unexpected parameter type: " + (param == null ? "null" : param.getClass().getName()));
+              }
             }
-          }
-          int updateCount = pstmt.executeUpdate();
-          if (updateCount > 0) {
-            needsFlush = true;
-            if (updateCount > 1) {
-              throw new SQLException("Duplicate (host, user): " + key);
+            int updateCount = pstmt.executeUpdate();
+            if (updateCount > 0) {
+              needsFlush = true;
+              if (updateCount > 1) {
+                throw new SQLException("Duplicate (host, user): " + key);
+              }
             }
+          } catch (Error | RuntimeException | SQLException e) {
+            ErrorPrinter.addSql(e, updateSql);
+            throw e;
           }
-        } catch (Error | RuntimeException | SQLException e) {
-          ErrorPrinter.addSql(e, updateSql);
-          throw e;
+        } else {
+          throw new NotImplementedException("TODO: Update via GRANT/REVOKE (and other things) for MySQL " + version);
         }
       }
     }

@@ -32,6 +32,7 @@ import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.mysql.Database;
 import com.aoindustries.aoserv.client.mysql.DatabaseUser;
+import com.aoindustries.aoserv.client.mysql.Permission;
 import com.aoindustries.aoserv.client.mysql.Server;
 import com.aoindustries.aoserv.client.mysql.User;
 import com.aoindustries.aoserv.client.mysql.UserServer;
@@ -44,12 +45,15 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.NotImplementedException;
 
 /**
  * Controls the MySQL DB Users.
@@ -153,93 +157,67 @@ public final class MySQLDBUserManager extends BuilderThread {
                   }
 
                   // Add the db entries that do not exist and should
-                  final String insertSql;
-                  switch (version) {
-                    case VERSION_4_1:
-                      insertSql = "INSERT INTO db VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-                      break;
-                    case VERSION_5_0:
-                      insertSql = "INSERT INTO db VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-                      break;
-                    case VERSION_5_6:
-                    case VERSION_5_7:
-                      insertSql = "INSERT INTO db VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-                      break;
-                    default:
-                      throw new SQLException("Unsupported MySQL version: " + version);
-                  }
-                  currentSql = null;
-                  try (PreparedStatement pstmt = conn.prepareStatement(currentSql = insertSql)) {
-                    for (DatabaseUser mdu : dbUsers) {
-                      Database md = mdu.getMysqlDatabase();
-                      Database.Name db = md.getName();
-                      UserServer msu = mdu.getMysqlServerUser();
-                      User.Name user = msu.getMysqlUser().getKey();
+                  for (DatabaseUser mdu : dbUsers) {
+                    Database md = mdu.getMysqlDatabase();
+                    Database.Name db = md.getName();
+                    UserServer msu = mdu.getMysqlServerUser();
+                    User.Name user = msu.getMysqlUser().getKey();
 
-                      // These must both be on the same server !!!
-                      if (!md.getMysqlServer().equals(msu.getMysqlServer())) {
-                        throw new SQLException(
-                            "Host mismatch in mysql_db_users.pkey="
-                                + mdu.getPkey()
-                                + ": ((mysql_databases.pkey="
-                                + md.getPkey()
-                                + ").mysql_server="
-                                + md.getMysqlServer().getPkey()
-                                + ") != ((mysql_server_users.pkey="
-                                + msu.getPkey()
-                                + ").mysql_server="
-                                + msu.getMysqlServer().getPkey()
-                                + ')'
-                        );
-                      }
-                      Tuple2<Database.Name, User.Name> key = new Tuple2<>(db, user);
-                      if (!existing.remove(key)) {
-                        // Add the db entry
+                    // These must both be on the same server !!!
+                    if (!md.getMysqlServer().equals(msu.getMysqlServer())) {
+                      throw new SQLException(
+                          "Host mismatch in mysql_db_users.pkey="
+                              + mdu.getPkey()
+                              + ": ((mysql_databases.pkey="
+                              + md.getPkey()
+                              + ").mysql_server="
+                              + md.getMysqlServer().getPkey()
+                              + ") != ((mysql_server_users.pkey="
+                              + msu.getPkey()
+                              + ").mysql_server="
+                              + msu.getMysqlServer().getPkey()
+                              + ')'
+                      );
+                    }
+                    Tuple2<Database.Name, User.Name> key = new Tuple2<>(db, user);
+                    if (!existing.remove(key)) {
+                      Set<Permission> databaseUserPermissions = version.getDatabaseUserPermissions();
+                      if (version.supportsDirectGrantTableUpdates()) {
+                        StringBuilder sql = new StringBuilder();
+                        sql.append("INSERT INTO db (Host, Db, User, ")
+                            .append(databaseUserPermissions.stream().map(Permission::getMysqlColumn).collect(Collectors.joining(", ")))
+                            .append(") VALUES (?, ?, ?, ")
+                            .append(databaseUserPermissions.stream().map(permission -> "?").collect(Collectors.joining(", ")))
+                            .append(")");
+                        List<String> params = new ArrayList<>();
                         String host =
                             user.equals(User.MYSQL_SESSION)
                                 || user.equals(User.MYSQL_SYS)
                                 ? "localhost"
                                 : UserServer.ANY_HOST;
-                        pstmt.setString(1, host);
-                        pstmt.setString(2, db.toString());
-                        pstmt.setString(3, user.toString());
-                        pstmt.setString(4, mdu.canSelect() ? "Y" : "N");
-                        pstmt.setString(5, mdu.canInsert() ? "Y" : "N");
-                        pstmt.setString(6, mdu.canUpdate() ? "Y" : "N");
-                        pstmt.setString(7, mdu.canDelete() ? "Y" : "N");
-                        pstmt.setString(8, mdu.canCreate() ? "Y" : "N");
-                        pstmt.setString(9, mdu.canDrop() ? "Y" : "N");
-                        pstmt.setString(10, mdu.canGrant() ? "Y" : "N");
-                        pstmt.setString(11, mdu.canReference() ? "Y" : "N");
-                        pstmt.setString(12, mdu.canIndex() ? "Y" : "N");
-                        pstmt.setString(13, mdu.canAlter() ? "Y" : "N");
-                        pstmt.setString(14, mdu.canCreateTempTable() ? "Y" : "N");
-                        pstmt.setString(15, mdu.canLockTables() ? "Y" : "N");
-                        if (
-                            version == Server.Version.VERSION_5_0
-                                || version == Server.Version.VERSION_5_6
-                                || version == Server.Version.VERSION_5_7
-                        ) {
-                          pstmt.setString(16, mdu.canCreateView() ? "Y" : "N");
-                          pstmt.setString(17, mdu.canShowView() ? "Y" : "N");
-                          pstmt.setString(18, mdu.canCreateRoutine() ? "Y" : "N");
-                          pstmt.setString(19, mdu.canAlterRoutine() ? "Y" : "N");
-                          pstmt.setString(20, mdu.canExecute() ? "Y" : "N");
-                          if (
-                              version == Server.Version.VERSION_5_6
-                                  || version == Server.Version.VERSION_5_7
-                          ) {
-                            pstmt.setString(21, mdu.canEvent() ? "Y" : "N");
-                            pstmt.setString(22, mdu.canTrigger() ? "Y" : "N");
-                          }
+                        params.add(host);
+                        params.add(db.toString());
+                        params.add(user.toString());
+                        for (Permission permission : databaseUserPermissions) {
+                          params.add(permission.isDatabaseUserGranted(mdu) ? "Y" : "N");
                         }
-                        pstmt.executeUpdate();
+                        currentSql = null;
+                        try (PreparedStatement pstmt = conn.prepareStatement(currentSql = sql.toString())) {
+                          // Add the db entry
+                          int pos = 1;
+                          for (String param : params) {
+                            pstmt.setString(pos++, param);
+                          }
+                          pstmt.executeUpdate();
+                        } catch (Error | RuntimeException | SQLException e) {
+                          ErrorPrinter.addSql(e, currentSql);
+                          throw e;
+                        }
                         needsFlush = true;
                       }
+                    } else {
+                      throw new NotImplementedException("TODO: Update via GRANT/REVOKE (and other things) for MySQL " + version);
                     }
-                  } catch (Error | RuntimeException | SQLException e) {
-                    ErrorPrinter.addSql(e, currentSql);
-                    throw e;
                   }
 
                   // Remove the extra db entries
@@ -253,14 +231,18 @@ public final class MySQLDBUserManager extends BuilderThread {
                             new SQLException("Refusing to delete system MySQL db user: " + key + " on " + mysqlServer)
                         );
                       } else {
-                        // Remove the extra db entry
-                        executeUpdate(
-                            conn,
-                            "DELETE FROM db WHERE db=? AND user=?",
-                            key.getElement1().toString(),
-                            key.getElement2().toString()
-                        );
-                        needsFlush = true;
+                        if (version.supportsDirectGrantTableUpdates()) {
+                          // Remove the extra db entry
+                          executeUpdate(
+                              conn,
+                              "DELETE FROM db WHERE db=? AND user=?",
+                              key.getElement1().toString(),
+                              key.getElement2().toString()
+                          );
+                          needsFlush = true;
+                        } else {
+                          throw new NotImplementedException("TODO: Update via GRANT/REVOKE (and other things) for MySQL " + version);
+                        }
                       }
                     }
                   }
