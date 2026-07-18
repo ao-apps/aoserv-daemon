@@ -342,11 +342,7 @@ public final class MySQLUserManager extends BuilderThread {
         params.add(msu.getMaxQuestions());
         params.add(msu.getMaxUpdates());
         params.add(msu.getMaxConnections());
-        if (
-            version == Server.Version.VERSION_5_0
-                || version == Server.Version.VERSION_5_6
-                || version == Server.Version.VERSION_5_7
-        ) {
+        if (version.hasMaxUserConnections()) {
           sql.append(",\n"
               + "  max_user_connections=?");
           params.add(msu.getMaxUserConnections());
@@ -443,11 +439,7 @@ public final class MySQLUserManager extends BuilderThread {
         params.add(msu.getMaxQuestions());
         params.add(msu.getMaxUpdates());
         params.add(msu.getMaxConnections());
-        if (
-            version == Server.Version.VERSION_5_0
-                || version == Server.Version.VERSION_5_6
-                || version == Server.Version.VERSION_5_7
-        ) {
+        if (version.hasMaxUserConnections()) {
           sql.append("\n"
               + "    OR max_user_connections != ?");
           params.add(msu.getMaxUserConnections());
