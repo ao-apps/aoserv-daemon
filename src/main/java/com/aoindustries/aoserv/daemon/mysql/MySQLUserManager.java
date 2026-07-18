@@ -44,6 +44,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -51,7 +52,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.apache.commons.lang3.NotImplementedException;
+import java.util.stream.Collectors;
 
 /**
  * Controls the MySQL Users.
@@ -150,7 +151,7 @@ public final class MySQLUserManager extends BuilderThread {
         }
         // Warning: The order of add, update, then remove may not be changed without careful review of how existing is handled
         needsFlush |= addMissingUsers(mysqlServer, version, conn, users, existing);
-        needsFlush |= updateExistingUsers(version, conn, users, existing);
+        needsFlush |= updateExistingUsers(mysqlServer, version, conn, users, existing);
         needsFlush |= removeExtraUsers(mysqlServer, version, conn, existing);
       } catch (SQLException e) {
         conn.abort(AoservDaemon.executorService);
@@ -162,6 +163,13 @@ public final class MySQLUserManager extends BuilderThread {
     if (needsFlush) {
       MySQLServerManager.flushPrivileges(mysqlServer);
     }
+  }
+
+  /**
+   * Locked when either always-locked or disabled.
+   */
+  private static boolean isLocked(Server.Version version, UserServer msu) {
+    return version.isAlwaysLocked(msu.getMysqlUser_username()) || msu.isDisabled();
   }
 
   /**
@@ -221,7 +229,7 @@ public final class MySQLUserManager extends BuilderThread {
                     host,
                     username.toString(),
                     User.NO_PASSWORD_DB_VALUE,
-                    msu.isDisabled() ? "Y" : "N"
+                    isLocked(version, msu) ? "Y" : "N"
                 );
                 break;
               default:
@@ -231,7 +239,7 @@ public final class MySQLUserManager extends BuilderThread {
           } else {
             executeUpdate(
                 conn,
-                "CREATE USER ?@? IDENTIFIED WITH caching_sha2_password AS ? ACCOUNT " + (msu.isDisabled() ? "LOCK" : "UNLOCK"),
+                "CREATE USER ?@? IDENTIFIED WITH caching_sha2_password AS ? ACCOUNT " + (isLocked(version, msu) ? "LOCK" : "UNLOCK"),
                 username.toString(),
                 host,
                 NO_PASSWORD_DB_VALUE_CACHING_SHA2
@@ -251,7 +259,7 @@ public final class MySQLUserManager extends BuilderThread {
    *
    * @return  Returns {@code true} when {@link MySQLServerManager#flushPrivileges(com.aoindustries.aoserv.client.mysql.Server)} is required.
    */
-  private static boolean updateExistingUsers(Server.Version version, Connection conn, List<UserServer> users,
+  private static boolean updateExistingUsers(Server mysqlServer, Server.Version version, Connection conn, List<UserServer> users,
       Set<Tuple2<String, User.Name>> existing) throws IOException, SQLException {
     boolean needsFlush = false;
     // Update existing users to proper values
@@ -264,93 +272,256 @@ public final class MySQLUserManager extends BuilderThread {
       User.Name username = mu.getKey();
       Tuple2<String, User.Name> key = new Tuple2<>(host, username);
       if (existing.remove(key)) {
-        Set<Permission> userPermissions = version.getUserPermissions();
+        final Set<Permission> userPermissions = version.getUserPermissions();
+        final boolean expectedLocked = isLocked(version, msu);
         if (version.supportsDirectGrantTableUpdates()) {
-          StringBuilder sql = new StringBuilder();
-          List<Object> params = new ArrayList<>();
-          sql.append("UPDATE user SET");
-          for (Permission permission : userPermissions) {
-            sql.append("\n  ").append(permission.getMysqlColumn()).append("=?,");
-            params.add(permission.isUserGranted(mu) ? "Y" : "N");
-          }
-          sql.append("\n"
-                + "  max_questions=?,\n"
-                + "  max_updates=?,\n"
-                + "  max_connections=?");
-          params.add(msu.getMaxQuestions());
-          params.add(msu.getMaxUpdates());
-          params.add(msu.getMaxConnections());
-          if (version.hasMaxUserConnections()) {
-            sql.append(",\n"
-                + "  max_user_connections=?");
-            params.add(msu.getMaxUserConnections());
-          }
-          boolean locked =
-              username.equals(User.MYSQL_SESSION)
-                  || username.equals(User.MYSQL_SYS)
-                  || msu.isDisabled();
-          if (version.hasAccountLocked()) {
-            sql.append(",\n"
-                + "  account_locked=?");
-            params.add(locked ? "Y" : "N");
-          }
-          sql.append("\n"
-              + "WHERE\n"
-              + "  Host=?\n"
-              + "  AND User=?\n");
-          params.add(host);
-          params.add(username.toString());
-          sql.append("  AND (\n"
-              + "    ");
-          for (Permission permission : userPermissions) {
-            sql.append(permission.getMysqlColumn()).append(" != ?\n"
-                + "    OR ");
-            params.add(permission.isUserGranted(mu) ? "Y" : "N");
-          }
-          sql.append("max_questions != ?\n"
-                + "    OR max_updates != ?\n"
-                + "    OR max_connections != ?");
-          params.add(msu.getMaxQuestions());
-          params.add(msu.getMaxUpdates());
-          params.add(msu.getMaxConnections());
-          if (version.hasMaxUserConnections()) {
-            sql.append("\n"
-                + "    OR max_user_connections != ?");
-            params.add(msu.getMaxUserConnections());
-          }
-          if (version.hasAccountLocked()) {
-            sql.append("\n"
-                + "    OR account_locked != ?");
-            params.add(locked ? "Y" : "N");
-          }
-          sql.append("\n"
-                + "  )");
-          String updateSql = sql.toString();
-          try (PreparedStatement pstmt = conn.prepareStatement(updateSql)) {
-            // Update the user
-            int pos = 1;
-            for (Object param : params) {
-              if (param instanceof String) {
-                pstmt.setString(pos++, (String) param);
-              } else if (param instanceof Integer) {
-                pstmt.setInt(pos++, (Integer) param);
-              } else {
-                throw new AssertionError("Unexpected parameter type: " + (param == null ? "null" : param.getClass().getName()));
-              }
+          // Never update special users
+          if (!mu.isSpecial()) {
+            StringBuilder sql = new StringBuilder();
+            List<Object> params = new ArrayList<>();
+            sql.append("UPDATE user SET");
+            for (Permission permission : userPermissions) {
+              sql.append("\n  ").append(permission.getMysqlColumn()).append("=?,");
+              params.add(permission.isUserGranted(mu) ? "Y" : "N");
             }
-            int updateCount = pstmt.executeUpdate();
-            if (updateCount > 0) {
-              needsFlush = true;
-              if (updateCount > 1) {
+            sql.append("\n"
+                  + "  max_questions=?,\n"
+                  + "  max_updates=?,\n"
+                  + "  max_connections=?");
+            params.add(msu.getMaxQuestions());
+            params.add(msu.getMaxUpdates());
+            params.add(msu.getMaxConnections());
+            if (version.hasMaxUserConnections()) {
+              sql.append(",\n"
+                  + "  max_user_connections=?");
+              params.add(msu.getMaxUserConnections());
+            }
+            if (version.hasAccountLocked()) {
+              sql.append(",\n"
+                  + "  account_locked=?");
+              params.add(expectedLocked ? "Y" : "N");
+            }
+            sql.append("\n"
+                + "WHERE\n"
+                + "  Host=?\n"
+                + "  AND User=?\n");
+            params.add(host);
+            params.add(username.toString());
+            sql.append("  AND (\n"
+                + "    ");
+            for (Permission permission : userPermissions) {
+              sql.append(permission.getMysqlColumn()).append(" != ?\n"
+                  + "    OR ");
+              params.add(permission.isUserGranted(mu) ? "Y" : "N");
+            }
+            sql.append("max_questions != ?\n"
+                  + "    OR max_updates != ?\n"
+                  + "    OR max_connections != ?");
+            params.add(msu.getMaxQuestions());
+            params.add(msu.getMaxUpdates());
+            params.add(msu.getMaxConnections());
+            if (version.hasMaxUserConnections()) {
+              sql.append("\n"
+                  + "    OR max_user_connections != ?");
+              params.add(msu.getMaxUserConnections());
+            }
+            if (version.hasAccountLocked()) {
+              sql.append("\n"
+                  + "    OR account_locked != ?");
+              params.add(expectedLocked ? "Y" : "N");
+            }
+            sql.append("\n"
+                  + "  )");
+            String updateSql = sql.toString();
+            try (PreparedStatement pstmt = conn.prepareStatement(updateSql)) {
+              // Update the user
+              int pos = 1;
+              for (Object param : params) {
+                if (param instanceof String) {
+                  pstmt.setString(pos++, (String) param);
+                } else if (param instanceof Integer) {
+                  pstmt.setInt(pos++, (Integer) param);
+                } else {
+                  throw new AssertionError("Unexpected parameter type: " + (param == null ? "null" : param.getClass().getName()));
+                }
+              }
+              int updateCount = pstmt.executeUpdate();
+              if (updateCount > 0) {
+                needsFlush = true;
+                if (updateCount > 1) {
+                  throw new SQLException("Duplicate (host, user): " + key);
+                }
+              }
+            } catch (Error | RuntimeException | SQLException e) {
+              ErrorPrinter.addSql(e, updateSql);
+              throw e;
+            }
+          }
+        } else {
+          // Query current record, must exist
+          StringBuilder sql = new StringBuilder();
+          sql.append("SELECT ");
+          // permissions
+          sql.append(userPermissions.stream().map(Permission::getMysqlColumn).collect(Collectors.joining(", ")));
+          final EnumSet<Permission> currentPermissions = EnumSet.noneOf(Permission.class);
+          // max_*
+          sql.append("max_questions, max_updates, max_connections");
+          final int currentMaxQuestions;
+          final int currentMaxUpdates;
+          final int currentMaxConnections;
+          // max_user_connections
+          if (version.hasMaxUserConnections()) {
+            sql.append(", max_user_connections");
+          }
+          final int currentMaxUserConnections;
+          // account_locked
+          if (version.hasAccountLocked()) {
+            sql.append(", account_locked");
+          }
+          final boolean currentAccountLocked;
+          sql.append(" FROM user WHERE Host = ? AND User = ?");
+          String currentSql = null;
+          try (PreparedStatement pstmt = conn.prepareStatement(currentSql = sql.toString())) {
+            pstmt.setString(1, host);
+            pstmt.setString(2, username.toString());
+            try (ResultSet result = pstmt.executeQuery()) {
+              if (!result.next()) {
+                throw new SQLException("User not found (host, user): " + key);
+              }
+              // permissions
+              for (Permission permission : userPermissions) {
+                if ("Y".equals(result.getString(permission.getMysqlColumn()))) {
+                  currentPermissions.add(permission);
+                }
+              }
+              // max_*
+              currentMaxQuestions = result.getInt("max_questions");
+              currentMaxUpdates = result.getInt("max_updates");
+              currentMaxConnections = result.getInt("max_connections");
+              // max_user_connections
+              if (version.hasMaxUserConnections()) {
+                currentMaxUserConnections = result.getInt("max_user_connections");
+              } else {
+                currentMaxUserConnections = -1;
+              }
+              // account_locked
+              if (version.hasAccountLocked()) {
+                currentAccountLocked = "Y".equals(result.getString("account_locked"));
+              } else {
+                currentAccountLocked = false;
+              }
+              if (result.next()) {
                 throw new SQLException("Duplicate (host, user): " + key);
               }
             }
           } catch (Error | RuntimeException | SQLException e) {
-            ErrorPrinter.addSql(e, updateSql);
+            ErrorPrinter.addSql(e, currentSql);
             throw e;
           }
-        } else {
-          throw new NotImplementedException("TODO: Update via GRANT/REVOKE (and other things) for MySQL " + version);
+          // Find all permission differences
+          EnumSet<Permission> toRevoke = EnumSet.noneOf(Permission.class);
+          EnumSet<Permission> toGrant = EnumSet.noneOf(Permission.class);
+          for (Permission permission : userPermissions) {
+            boolean currentGrant = currentPermissions.contains(permission);
+            boolean expectedGrant = permission.isUserGranted(mu);
+            if (currentGrant != expectedGrant) {
+              (expectedGrant ? toGrant : toRevoke).add(permission);
+            }
+          }
+          if (version.hasAccountLocked() && expectedLocked && !currentAccountLocked) {
+            // Do lock if needed
+            if (mu.isSpecial()) {
+              logger.log(
+                  Level.WARNING,
+                  null,
+                  new SQLException("Refusing to lock special user: " + username + " on " + mysqlServer.getName())
+              );
+            } else {
+              executeUpdate(
+                  conn,
+                  "ALTER USER ?@? ACCOUNT LOCK",
+                  username.toString(),
+                  host
+              );
+            }
+          }
+          if (!toRevoke.isEmpty()) {
+            // Do any revokes
+            if (mu.isSpecial()) {
+              logger.log(
+                  Level.WARNING,
+                  null,
+                  new SQLException("Refusing to revoke from special user: " + username + " on " + mysqlServer.getName() + ": " + toRevoke)
+              );
+            } else {
+              executeUpdate(
+                  conn,
+                  "REVOKE " + toRevoke.stream().map(Permission::getMysqlPrivilegeType).collect(Collectors.joining(", "))
+                      + " ON *.* FROM ?@?",
+                  username.toString(),
+                  host
+              );
+            }
+          }
+          if (!toGrant.isEmpty()) {
+            // Do any grants
+            if (mu.isSpecial()) {
+              logger.log(
+                  Level.WARNING,
+                  null,
+                  new SQLException("Refusing to grant to special user: " + username + " on " + mysqlServer.getName() + ": " + toGrant)
+              );
+            } else {
+              executeUpdate(
+                  conn,
+                  "GRANT " + toGrant.stream().map(Permission::getMysqlPrivilegeType).collect(Collectors.joining(", "))
+                      + " ON *.* TO ?@?",
+                  username.toString(),
+                  host
+              );
+            }
+          }
+          // Build ALTER USER
+          sql.setLength(0);
+          sql.append("ALTER USER ?@?");
+          boolean didWith = false;
+          if (currentMaxQuestions != msu.getMaxQuestions()) {
+            sql.append(" WITH MAX_QUERIES_PER_HOUR ").append(msu.getMaxQuestions());
+            didWith = true;
+          }
+          if (currentMaxUpdates != msu.getMaxUpdates()) {
+            sql.append(didWith ? " " : " WITH ").append("MAX_UPDATES_PER_HOUR ").append(msu.getMaxUpdates());
+            didWith = true;
+          }
+          if (currentMaxConnections != msu.getMaxConnections()) {
+            sql.append(didWith ? " " : " WITH ").append("MAX_CONNECTIONS_PER_HOUR ").append(msu.getMaxConnections());
+            didWith = true;
+          }
+          if (version.hasMaxUserConnections() && currentMaxUserConnections != msu.getMaxUserConnections()) {
+            sql.append(didWith ? " " : " WITH ").append("MAX_USER_CONNECTIONS ").append(msu.getMaxUserConnections());
+            didWith = true;
+          }
+          boolean hasAlter = didWith;
+          if (version.hasAccountLocked() && !expectedLocked && currentAccountLocked) {
+            sql.append(" ACCOUNT UNLOCK");
+            hasAlter = true;
+          }
+          if (hasAlter) {
+            if (mu.isSpecial()) {
+              logger.log(
+                  Level.WARNING,
+                  null,
+                  new SQLException("Refusing to alter special user: " + username + " on " + mysqlServer.getName() + ": " + sql)
+              );
+            } else {
+              executeUpdate(
+                  conn,
+                  sql.toString(),
+                  username.toString(),
+                  host
+              );
+            }
+          }
         }
       }
     }
@@ -412,7 +583,7 @@ public final class MySQLUserManager extends BuilderThread {
       for (UserServer msu : users) {
         if (!msu.isSpecial()) {
           String prePassword = msu.getPredisablePassword();
-          if (!msu.isDisabled()) {
+          if (!isLocked(version, msu)) {
             if (prePassword != null) {
               needsFlush |= setAuthenticationString(mysqlServer, version, msu.getMysqlUser().getKey(), prePassword);
               msu.setPredisablePassword(null);
