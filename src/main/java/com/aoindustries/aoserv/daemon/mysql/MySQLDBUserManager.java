@@ -169,6 +169,7 @@ public final class MySQLDBUserManager extends BuilderThread {
                     }
                     Tuple2<Database.Name, User.Name> key = new Tuple2<>(db, user);
                     if (!existing.remove(key)) {
+                      backupOnce.backup();
                       Set<Permission> databaseUserPermissions = version.getDatabaseUserPermissions();
                       if (version.supportsDirectGrantTableUpdates()) {
                         String host =
@@ -176,7 +177,6 @@ public final class MySQLDBUserManager extends BuilderThread {
                                 || user.equals(User.MYSQL_SYS)
                                 ? "localhost"
                                 : UserServer.ANY_HOST;
-                        backupOnce.backup();
                         logger.info(() -> "Inserting '" + user + "'@'" + host + "'→'" + db + "' to mysql.db on " + mysqlServer);
                         StringBuilder sql = new StringBuilder();
                         sql.append("INSERT INTO db (Host, Db, User, ")
@@ -221,10 +221,10 @@ public final class MySQLDBUserManager extends BuilderThread {
                             new SQLException("Refusing to delete system MySQL db user: " + key + " on " + mysqlServer)
                         );
                       } else {
+                        backupOnce.backup();
                         if (version.supportsDirectGrantTableUpdates()) {
                           Database.Name db = key.getElement1();
                           User.Name user = key.getElement2();
-                          backupOnce.backup();
                           logger.info(() -> "Deleting '" + user + "'→'" + db + "' from mysql.db on " + mysqlServer);
                           // Remove the extra db entry
                           executeUpdate(
