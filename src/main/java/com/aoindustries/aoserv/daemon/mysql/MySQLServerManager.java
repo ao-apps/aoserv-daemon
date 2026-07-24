@@ -245,6 +245,7 @@ public final class MySQLServerManager extends BuilderThread {
     int osvId = osv.getPkey();
 
     synchronized (flushLock) {
+      logger.info(() -> "Flushing privileges on " + mysqlServer);
       /*
       This did not work properly, so we now invoke a native process instead.
 

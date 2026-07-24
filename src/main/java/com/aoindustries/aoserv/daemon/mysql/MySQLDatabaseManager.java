@@ -156,6 +156,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
                           );
                         } else {
                           // Create the database
+                          logger.info(() -> "Creating database: " + name + " on " + mysqlServer);
                           stmt.executeUpdate(currentSql = "CREATE DATABASE `" + name + '`');
                         }
                       }
@@ -184,6 +185,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
                             true
                         );
                         // Now drop
+                        logger.info(() -> "Dropping database: " + dbName + " on " + mysqlServer);
                         stmt.executeUpdate(currentSql = "DROP DATABASE `" + dbName + '`');
                       }
                     }
@@ -276,6 +278,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
     if (gzip) {
       PackageManager.installPackage(PackageManager.PackageName.GZIP);
     }
+    logger.info(() -> "Dumping database: " + dbName + " on " + ms + " to " + output);
     String[] command = {
         commandPath,
         dbName.toString(),

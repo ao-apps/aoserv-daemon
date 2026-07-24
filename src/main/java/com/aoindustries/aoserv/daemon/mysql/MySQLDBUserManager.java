@@ -170,6 +170,12 @@ public final class MySQLDBUserManager extends BuilderThread {
                     if (!existing.remove(key)) {
                       Set<Permission> databaseUserPermissions = version.getDatabaseUserPermissions();
                       if (version.supportsDirectGrantTableUpdates()) {
+                        String host =
+                            user.equals(User.MYSQL_SESSION)
+                                || user.equals(User.MYSQL_SYS)
+                                ? "localhost"
+                                : UserServer.ANY_HOST;
+                        logger.info(() -> "Inserting '" + user + "'@'" + host + "'→'" + db + "' to mysql.db on " + mysqlServer);
                         StringBuilder sql = new StringBuilder();
                         sql.append("INSERT INTO db (Host, Db, User, ")
                             .append(databaseUserPermissions.stream().map(Permission::getMysqlColumn).collect(Collectors.joining(", ")))
@@ -177,11 +183,6 @@ public final class MySQLDBUserManager extends BuilderThread {
                             .append(databaseUserPermissions.stream().map(permission -> "?").collect(Collectors.joining(", ")))
                             .append(")");
                         List<String> params = new ArrayList<>();
-                        String host =
-                            user.equals(User.MYSQL_SESSION)
-                                || user.equals(User.MYSQL_SYS)
-                                ? "localhost"
-                                : UserServer.ANY_HOST;
                         params.add(host);
                         params.add(db.toString());
                         params.add(user.toString());
@@ -219,12 +220,15 @@ public final class MySQLDBUserManager extends BuilderThread {
                         );
                       } else {
                         if (version.supportsDirectGrantTableUpdates()) {
+                          Database.Name db = key.getElement1();
+                          User.Name user = key.getElement2();
+                          logger.info(() -> "Deleting '" + user + "'→'" + db + "' from mysql.db on " + mysqlServer);
                           // Remove the extra db entry
                           executeUpdate(
                               conn,
                               "DELETE FROM db WHERE db=? AND user=?",
-                              key.getElement1().toString(),
-                              key.getElement2().toString()
+                              db.toString(),
+                              user.toString()
                           );
                           needsFlush = true;
                         } else {

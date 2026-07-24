@@ -184,10 +184,7 @@ public final class MySQLUserManager extends BuilderThread {
     boolean needsFlush = false;
     for (UserServer msu : users) {
       User mu = msu.getMysqlUser();
-      String host = msu.getHost();
-      if (host == null) {
-        host = "";
-      }
+      String host = Objects.toString(msu.getHost(), "");
       User.Name username = mu.getKey();
       Tuple2<String, User.Name> key = new Tuple2<>(host, username);
       if (existing.add(key)) {
@@ -201,6 +198,7 @@ public final class MySQLUserManager extends BuilderThread {
         } else {
           // Add the users that do not exist and should
           if (version.supportsDirectGrantTableUpdates()) {
+            logger.info(() -> "Inserting '" + username + "'@'" + host + "' to mysql.user on " + mysqlServer);
             switch (version) {
               case VERSION_4_1:
               case VERSION_5_0:
@@ -237,6 +235,7 @@ public final class MySQLUserManager extends BuilderThread {
             }
             needsFlush = true;
           } else {
+            logger.info(() -> "Creating user '" + username + "'@'" + host + "' on " + mysqlServer);
             executeUpdate(
                 conn,
                 "CREATE USER ?@? IDENTIFIED WITH caching_sha2_password AS ? ACCOUNT " + (isLocked(version, msu) ? "LOCK" : "UNLOCK"),
@@ -265,10 +264,7 @@ public final class MySQLUserManager extends BuilderThread {
     // Update existing users to proper values
     for (UserServer msu : users) {
       User mu = msu.getMysqlUser();
-      String host = msu.getHost();
-      if (host == null) {
-        host = "";
-      }
+      String host = Objects.toString(msu.getHost(), "");
       User.Name username = mu.getKey();
       Tuple2<String, User.Name> key = new Tuple2<>(host, username);
       if (existing.remove(key)) {
@@ -347,6 +343,7 @@ public final class MySQLUserManager extends BuilderThread {
               }
               int updateCount = pstmt.executeUpdate();
               if (updateCount > 0) {
+                logger.info(() -> "Updated '" + username + "'@'" + host + "' in mysql.user on " + mysqlServer);
                 needsFlush = true;
                 if (updateCount > 1) {
                   throw new SQLException("Duplicate (host, user): " + key);
@@ -437,6 +434,7 @@ public final class MySQLUserManager extends BuilderThread {
                   new SQLException("Refusing to lock special user: " + username + " on " + mysqlServer.getName())
               );
             } else {
+              logger.info(() -> "Locking '" + username + "'@'" + host + "' on " + mysqlServer);
               executeUpdate(
                   conn,
                   "ALTER USER ?@? ACCOUNT LOCK",
@@ -454,10 +452,11 @@ public final class MySQLUserManager extends BuilderThread {
                   new SQLException("Refusing to revoke from special user: " + username + " on " + mysqlServer.getName() + ": " + toRevoke)
               );
             } else {
+              String permissions = toRevoke.stream().map(Permission::getMysqlPrivilegeType).collect(Collectors.joining(", "));
+              logger.info(() -> "Revoking " + permissions + " on *.* from '" + username + "'@'" + host + "' on " + mysqlServer);
               executeUpdate(
                   conn,
-                  "REVOKE " + toRevoke.stream().map(Permission::getMysqlPrivilegeType).collect(Collectors.joining(", "))
-                      + " ON *.* FROM ?@?",
+                  "REVOKE " + permissions + " ON *.* FROM ?@?",
                   username.toString(),
                   host
               );
@@ -472,10 +471,11 @@ public final class MySQLUserManager extends BuilderThread {
                   new SQLException("Refusing to grant to special user: " + username + " on " + mysqlServer.getName() + ": " + toGrant)
               );
             } else {
+              String permissions = toGrant.stream().map(Permission::getMysqlPrivilegeType).collect(Collectors.joining(", "));
+              logger.info(() -> "Granting " + permissions + " on *.* to '" + username + "'@'" + host + "' on " + mysqlServer);
               executeUpdate(
                   conn,
-                  "GRANT " + toGrant.stream().map(Permission::getMysqlPrivilegeType).collect(Collectors.joining(", "))
-                      + " ON *.* TO ?@?",
+                  "GRANT " + permissions + " ON *.* TO ?@?",
                   username.toString(),
                   host
               );
@@ -485,24 +485,35 @@ public final class MySQLUserManager extends BuilderThread {
           sql.setLength(0);
           sql.append("ALTER USER ?@?");
           boolean didWith = false;
-          if (currentMaxQuestions != msu.getMaxQuestions()) {
-            sql.append(" WITH MAX_QUERIES_PER_HOUR ").append(msu.getMaxQuestions());
+          int expectedMaxQuestions = msu.getMaxQuestions();
+          if (currentMaxQuestions != expectedMaxQuestions) {
+            logger.info(() -> "Altering MAX_QUERIES_PER_HOUR to " + expectedMaxQuestions + " on '" + username + "'@'" + host + "' on " + mysqlServer);
+            sql.append(" WITH MAX_QUERIES_PER_HOUR ").append(expectedMaxQuestions);
             didWith = true;
           }
-          if (currentMaxUpdates != msu.getMaxUpdates()) {
-            sql.append(didWith ? " " : " WITH ").append("MAX_UPDATES_PER_HOUR ").append(msu.getMaxUpdates());
+          int expectedMaxUpdates = msu.getMaxUpdates();
+          if (currentMaxUpdates != expectedMaxUpdates) {
+            logger.info(() -> "Altering MAX_UPDATES_PER_HOUR to " + expectedMaxUpdates + " on '" + username + "'@'" + host + "' on " + mysqlServer);
+            sql.append(didWith ? " " : " WITH ").append("MAX_UPDATES_PER_HOUR ").append(expectedMaxUpdates);
             didWith = true;
           }
-          if (currentMaxConnections != msu.getMaxConnections()) {
-            sql.append(didWith ? " " : " WITH ").append("MAX_CONNECTIONS_PER_HOUR ").append(msu.getMaxConnections());
+          int expectedMaxConnections = msu.getMaxConnections();
+          if (currentMaxConnections != expectedMaxConnections) {
+            logger.info(() -> "Altering MAX_CONNECTIONS_PER_HOUR to " + expectedMaxConnections + " on '" + username + "'@'" + host + "' on " + mysqlServer);
+            sql.append(didWith ? " " : " WITH ").append("MAX_CONNECTIONS_PER_HOUR ").append(expectedMaxConnections);
             didWith = true;
           }
-          if (version.hasMaxUserConnections() && currentMaxUserConnections != msu.getMaxUserConnections()) {
-            sql.append(didWith ? " " : " WITH ").append("MAX_USER_CONNECTIONS ").append(msu.getMaxUserConnections());
-            didWith = true;
+          if (version.hasMaxUserConnections()) {
+            int expectedMaxUserConnections = msu.getMaxUserConnections();
+            if (currentMaxUserConnections != expectedMaxUserConnections) {
+              logger.info(() -> "Altering MAX_USER_CONNECTIONS to " + expectedMaxUserConnections + " on '" + username + "'@'" + host + "' on " + mysqlServer);
+              sql.append(didWith ? " " : " WITH ").append("MAX_USER_CONNECTIONS ").append(expectedMaxUserConnections);
+              didWith = true;
+            }
           }
           boolean hasAlter = didWith;
           if (version.hasAccountLocked() && !expectedLocked && currentAccountLocked) {
+            logger.info(() -> "Unlocking '" + username + "'@'" + host + "' on " + mysqlServer);
             sql.append(" ACCOUNT UNLOCK");
             hasAlter = true;
           }
@@ -551,6 +562,7 @@ public final class MySQLUserManager extends BuilderThread {
             new SQLException("Refusing to drop special user: " + user + " for host " + host + " on " + mysqlServer.getName())
         );
       } else if (version.supportsDirectGrantTableUpdates()) {
+        logger.info(() -> "Deleting '" + user + "'@'" + host + "' from mysql.user on " + mysqlServer);
         executeUpdate(
             conn,
             "DELETE FROM user WHERE host=? AND user=?",
@@ -559,6 +571,7 @@ public final class MySQLUserManager extends BuilderThread {
         );
         needsFlush = true;
       } else {
+        logger.info(() -> "Dropping user '" + user + "'@'" + host + "' on " + mysqlServer);
         executeUpdate(
             conn,
             "DROP USER ?@?",
@@ -703,6 +716,7 @@ public final class MySQLUserManager extends BuilderThread {
             case VERSION_5_0:
             case VERSION_5_6:
               if (isNoPassword) {
+                logger.info(() -> "Removing password for '" + username + "' in mysql.user on " + mysqlServer);
                 executeUpdate(
                     conn,
                     "UPDATE user SET password=? WHERE user=?",
@@ -710,6 +724,7 @@ public final class MySQLUserManager extends BuilderThread {
                     username.toString()
                 );
               } else {
+                logger.info(() -> "Setting password for '" + username + "' in mysql.user on " + mysqlServer);
                 executeUpdate(
                     conn,
                     "UPDATE user SET password=PASSWORD(?) WHERE user=?",
@@ -720,6 +735,7 @@ public final class MySQLUserManager extends BuilderThread {
               break;
             case VERSION_5_7:
               if (isNoPassword) {
+                logger.info(() -> "Removing authentication_string for '" + username + "' in mysql.user on " + mysqlServer);
                 executeUpdate(
                     conn,
                     "UPDATE user SET authentication_string=?, password_last_changed=NOW() WHERE user=?",
@@ -727,6 +743,7 @@ public final class MySQLUserManager extends BuilderThread {
                     username.toString()
                 );
               } else {
+                logger.info(() -> "Setting authentication_string for '" + username + "' in mysql.user on " + mysqlServer);
                 executeUpdate(
                     conn,
                     "UPDATE user SET authentication_string=PASSWORD(?), password_last_changed=NOW() WHERE user=?",
@@ -742,6 +759,7 @@ public final class MySQLUserManager extends BuilderThread {
         } else {
           String host = getHostForUser(conn, username);
           if (isNoPassword) {
+            logger.info(() -> "Removing authentication_string for '" + username + "'@'" + host + "' on " + mysqlServer);
             executeUpdate(
                 conn,
                 "ALTER USER ?@? IDENTIFIED WITH caching_sha2_password AS ?",
@@ -750,6 +768,7 @@ public final class MySQLUserManager extends BuilderThread {
                 NO_PASSWORD_DB_VALUE_CACHING_SHA2
             );
           } else {
+            logger.info(() -> "Setting authentication_string for '" + username + "'@'" + host + "' on " + mysqlServer);
             executeUpdate(
                 conn,
                 "ALTER USER ?@? IDENTIFIED WITH caching_sha2_password BY ?",
@@ -789,20 +808,42 @@ public final class MySQLUserManager extends BuilderThread {
             case VERSION_4_1:
             case VERSION_5_0:
             case VERSION_5_6:
-              executeUpdate(
-                  conn,
-                  "UPDATE user SET password=? WHERE user=?",
-                  isNoPassword ? User.NO_PASSWORD_DB_VALUE : authenticationString,
-                  username.toString()
-              );
+              if (isNoPassword) {
+                logger.info(() -> "Removing password for '" + username + "' in mysql.user on " + mysqlServer);
+                executeUpdate(
+                    conn,
+                    "UPDATE user SET password=? WHERE user=?",
+                    User.NO_PASSWORD_DB_VALUE,
+                    username.toString()
+                );
+              } else {
+                logger.info(() -> "Updating password for '" + username + "' in mysql.user on " + mysqlServer);
+                executeUpdate(
+                    conn,
+                    "UPDATE user SET password=? WHERE user=?",
+                    authenticationString,
+                    username.toString()
+                );
+              }
               break;
             case VERSION_5_7:
-              executeUpdate(
-                  conn,
-                  "UPDATE user SET authentication_string=? WHERE user=?",
-                  isNoPassword ? User.NO_PASSWORD_DB_VALUE : authenticationString,
-                  username.toString()
-              );
+              if (isNoPassword) {
+                logger.info(() -> "Removing authentication_string for '" + username + "' in mysql.user on " + mysqlServer);
+                executeUpdate(
+                    conn,
+                    "UPDATE user SET authentication_string=? WHERE user=?",
+                    User.NO_PASSWORD_DB_VALUE,
+                    username.toString()
+                );
+              } else {
+                logger.info(() -> "Updating authentication_string for '" + username + "' in mysql.user on " + mysqlServer);
+                executeUpdate(
+                    conn,
+                    "UPDATE user SET authentication_string=? WHERE user=?",
+                    authenticationString,
+                    username.toString()
+                );
+              }
               break;
             default:
               throw new SQLException("Unsupported version of MySQL: " + version);
@@ -810,13 +851,25 @@ public final class MySQLUserManager extends BuilderThread {
           needsFlush = true;
         } else {
           String host = getHostForUser(conn, username);
-          executeUpdate(
-              conn,
-              "ALTER USER ?@? IDENTIFIED WITH caching_sha2_password AS ?",
-              username.toString(),
-              host,
-              isNoPassword ? NO_PASSWORD_DB_VALUE_CACHING_SHA2 : authenticationString
-          );
+          if (isNoPassword) {
+            logger.info(() -> "Removing authentication_string for '" + username + "'@'" + host + "' on " + mysqlServer);
+            executeUpdate(
+                conn,
+                "ALTER USER ?@? IDENTIFIED WITH caching_sha2_password AS ?",
+                username.toString(),
+                host,
+                isNoPassword ? NO_PASSWORD_DB_VALUE_CACHING_SHA2 : authenticationString
+            );
+          } else {
+            logger.info(() -> "Updating authentication_string for '" + username + "'@'" + host + "' on " + mysqlServer);
+            executeUpdate(
+                conn,
+                "ALTER USER ?@? IDENTIFIED WITH caching_sha2_password AS ?",
+                username.toString(),
+                host,
+                isNoPassword ? NO_PASSWORD_DB_VALUE_CACHING_SHA2 : authenticationString
+            );
+          }
         }
       } catch (SQLException e) {
         conn.abort(AoservDaemon.executorService);

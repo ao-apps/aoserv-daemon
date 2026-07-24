@@ -129,6 +129,7 @@ public final class MySQLHostManager extends BuilderThread {
                 for (String hostname : hosts) {
                   if (!existing.remove(hostname)) {
                     // Add the host
+                    logger.info(() -> "Inserting " + hostname + " to mysql.host on " + mysqlServer);
                     final String insertSql;
                     switch (version) {
                       case VERSION_4_1:
@@ -151,12 +152,13 @@ public final class MySQLHostManager extends BuilderThread {
 
                 // Remove the extra hosts
                 if (!existing.isEmpty()) {
-                  for (String dbName : existing) {
+                  for (String hostname : existing) {
                     // Remove the extra host entry
+                    logger.info(() -> "Deleting " + hostname + " from mysql.host on " + mysqlServer);
                     executeUpdate(
                         conn,
                         "DELETE FROM host WHERE host=?",
-                        dbName
+                        hostname
                     );
                   }
                   needsFlush = true;
