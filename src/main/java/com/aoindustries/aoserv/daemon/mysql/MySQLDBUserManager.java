@@ -110,6 +110,7 @@ public final class MySQLDBUserManager extends BuilderThread {
             if (!requiredDbUsers.isEmpty()) {
               logger.severe("Required db users not found; refusing to rebuild config: " + mysqlServer + " → " + requiredDbUsers);
             } else {
+              MySQLDatabaseManager.BackupOnce backupOnce = new MySQLDatabaseManager.BackupOnce(mysqlServer);
               boolean needsFlush = false;
 
               // Get the connection to work through
@@ -175,6 +176,7 @@ public final class MySQLDBUserManager extends BuilderThread {
                                 || user.equals(User.MYSQL_SYS)
                                 ? "localhost"
                                 : UserServer.ANY_HOST;
+                        backupOnce.backup();
                         logger.info(() -> "Inserting '" + user + "'@'" + host + "'→'" + db + "' to mysql.db on " + mysqlServer);
                         StringBuilder sql = new StringBuilder();
                         sql.append("INSERT INTO db (Host, Db, User, ")
@@ -222,6 +224,7 @@ public final class MySQLDBUserManager extends BuilderThread {
                         if (version.supportsDirectGrantTableUpdates()) {
                           Database.Name db = key.getElement1();
                           User.Name user = key.getElement2();
+                          backupOnce.backup();
                           logger.info(() -> "Deleting '" + user + "'→'" + db + "' from mysql.db on " + mysqlServer);
                           // Remove the extra db entry
                           executeUpdate(

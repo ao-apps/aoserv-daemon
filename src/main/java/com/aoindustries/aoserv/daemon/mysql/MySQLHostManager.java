@@ -84,6 +84,7 @@ public final class MySQLHostManager extends BuilderThread {
               version == Server.Version.VERSION_4_1
                   || version == Server.Version.VERSION_5_0
           ) {
+            MySQLDatabaseManager.BackupOnce backupOnce = new MySQLDatabaseManager.BackupOnce(mysqlServer);
             boolean needsFlush = false;
             // Get the connection to work through
             try (Connection conn = MySQLServerManager.getPool(mysqlServer).getConnection()) {
@@ -129,6 +130,7 @@ public final class MySQLHostManager extends BuilderThread {
                 for (String hostname : hosts) {
                   if (!existing.remove(hostname)) {
                     // Add the host
+                    backupOnce.backup();
                     logger.info(() -> "Inserting " + hostname + " to mysql.host on " + mysqlServer);
                     final String insertSql;
                     switch (version) {
@@ -154,6 +156,7 @@ public final class MySQLHostManager extends BuilderThread {
                 if (!existing.isEmpty()) {
                   for (String hostname : existing) {
                     // Remove the extra host entry
+                    backupOnce.backup();
                     logger.info(() -> "Deleting " + hostname + " from mysql.host on " + mysqlServer);
                     executeUpdate(
                         conn,

@@ -71,6 +71,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -178,12 +179,7 @@ public final class MySQLDatabaseManager extends BuilderThread {
                         );
                       } else {
                         // Dump database before dropping
-                        dumpDatabase(
-                            mysqlServer,
-                            dbName,
-                            BackupManager.getNextBackupFile("-mysql-" + mysqlServer.getName() + "-" + dbName + ".sql.gz"),
-                            true
-                        );
+                        backupDatabase(mysqlServer, dbName);
                         // Now drop
                         logger.info(() -> "Dropping database: " + dbName + " on " + mysqlServer);
                         stmt.executeUpdate(currentSql = "DROP DATABASE `" + dbName + '`');
@@ -206,6 +202,52 @@ public final class MySQLDatabaseManager extends BuilderThread {
     } catch (Throwable t) {
       logger.log(Level.SEVERE, null, t);
       return false;
+    }
+  }
+
+  static void backupDatabase(Server mysqlServer, Database.Name dbName) throws IOException, SQLException {
+    dumpDatabase(
+        mysqlServer,
+        dbName,
+        BackupManager.getNextBackupFile("-mysql-" + mysqlServer.getName() + "-" + dbName + ".sql.gz"),
+        true
+    );
+  }
+
+  /**
+   * Backs up the given database at most once, on the first call to {@link BackupOnce#backup()}.
+   *
+   * @see  MySQLDatabaseManager#backupDatabase(com.aoindustries.aoserv.client.mysql.Server, com.aoindustries.aoserv.client.mysql.Database.Name)
+   * @see  BackupOnce#backup()
+   */
+  static class BackupOnce {
+
+    private final Server mysqlServer;
+    private final Database.Name dbName;
+    private final AtomicBoolean backedUp = new AtomicBoolean();
+
+    BackupOnce(Server mysqlServer, Database.Name dbName) {
+      this.mysqlServer = mysqlServer;
+      this.dbName = dbName;
+    }
+
+    /**
+     * Defaults to {@link Database#MYSQL}.
+     */
+    BackupOnce(Server mysqlServer) {
+      this(mysqlServer, Database.MYSQL);
+    }
+
+    /**
+     * Performs the backup at most once on the first call.
+     * When the backup fails, throws an exception and a second call will not attempt another backup.
+     *
+     * @see  MySQLDatabaseManager#backupDatabase(com.aoindustries.aoserv.client.mysql.Server, com.aoindustries.aoserv.client.mysql.Database.Name)
+     */
+    void backup() throws IOException, SQLException {
+      if (backedUp.compareAndSet(false, true)) {
+        backupDatabase(mysqlServer, dbName);
+      }
     }
   }
 

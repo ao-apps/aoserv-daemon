@@ -30,6 +30,7 @@ import com.aoapps.lang.util.ErrorPrinter;
 import com.aoapps.lang.validation.ValidationException;
 import com.aoindustries.aoserv.client.AoservConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.mysql.Database;
 import com.aoindustries.aoserv.client.mysql.Permission;
 import com.aoindustries.aoserv.client.mysql.Server;
 import com.aoindustries.aoserv.client.mysql.User;
@@ -120,6 +121,7 @@ public final class MySQLUserManager extends BuilderThread {
     }
     final Server.Version version = Server.Version.parse(mysqlServer.getVersion().getVersion());
 
+    MySQLDatabaseManager.BackupOnce backupOnce = new MySQLDatabaseManager.BackupOnce(mysqlServer);
     boolean needsFlush = false;
 
     // Get the connection to work through
@@ -150,16 +152,16 @@ public final class MySQLUserManager extends BuilderThread {
           throw e;
         }
         // Warning: The order of add, update, then remove may not be changed without careful review of how existing is handled
-        needsFlush |= addMissingUsers(mysqlServer, version, conn, users, existing);
-        needsFlush |= updateExistingUsers(mysqlServer, version, conn, users, existing);
-        needsFlush |= removeExtraUsers(mysqlServer, version, conn, existing);
+        needsFlush |= addMissingUsers(mysqlServer, version, backupOnce, conn, users, existing);
+        needsFlush |= updateExistingUsers(mysqlServer, version, backupOnce, conn, users, existing);
+        needsFlush |= removeExtraUsers(mysqlServer, version, backupOnce, conn, existing);
       } catch (SQLException e) {
         conn.abort(AoservDaemon.executorService);
         throw e;
       }
     }
     // Note: This is done without holding Connection because it can callback to master, which could potentially deadlock.
-    needsFlush |= disableAndEnableUsers(mysqlServer, version, users);
+    needsFlush |= disableAndEnableUsers(mysqlServer, version, backupOnce, users);
     if (needsFlush) {
       MySQLServerManager.flushPrivileges(mysqlServer);
     }
@@ -179,7 +181,8 @@ public final class MySQLUserManager extends BuilderThread {
    *
    * @return  Returns {@code true} when {@link MySQLServerManager#flushPrivileges(com.aoindustries.aoserv.client.mysql.Server)} is required.
    */
-  private static boolean addMissingUsers(Server mysqlServer, Server.Version version, Connection conn, List<UserServer> users,
+  private static boolean addMissingUsers(Server mysqlServer, Server.Version version,
+      MySQLDatabaseManager.BackupOnce backupOnce, Connection conn, List<UserServer> users,
       Set<Tuple2<String, User.Name>> existing) throws IOException, SQLException {
     boolean needsFlush = false;
     for (UserServer msu : users) {
@@ -197,6 +200,7 @@ public final class MySQLUserManager extends BuilderThread {
           );
         } else {
           // Add the users that do not exist and should
+          backupOnce.backup();
           if (version.supportsDirectGrantTableUpdates()) {
             logger.info(() -> "Inserting '" + username + "'@'" + host + "' to mysql.user on " + mysqlServer);
             switch (version) {
@@ -250,6 +254,54 @@ public final class MySQLUserManager extends BuilderThread {
     return needsFlush;
   }
 
+  private static void addUpdateWhere(Server.Version version, UserServer msu, User mu, String host, User.Name username,
+      Set<Permission> userPermissions, boolean expectedLocked, StringBuilder sql, List<Object> params) {
+    sql.append("\n"
+        + "WHERE\n"
+        + "  Host=?\n"
+        + "  AND User=?\n");
+    params.add(host);
+    params.add(username.toString());
+    sql.append("  AND (\n"
+        + "    ");
+    for (Permission permission : userPermissions) {
+      sql.append(permission.getMysqlColumn()).append(" != ?\n"
+          + "    OR ");
+      params.add(permission.isUserGranted(mu) ? "Y" : "N");
+    }
+    sql.append("max_questions != ?\n"
+          + "    OR max_updates != ?\n"
+          + "    OR max_connections != ?");
+    params.add(msu.getMaxQuestions());
+    params.add(msu.getMaxUpdates());
+    params.add(msu.getMaxConnections());
+    if (version.hasMaxUserConnections()) {
+      sql.append("\n"
+          + "    OR max_user_connections != ?");
+      params.add(msu.getMaxUserConnections());
+    }
+    if (version.hasAccountLocked()) {
+      sql.append("\n"
+          + "    OR account_locked != ?");
+      params.add(expectedLocked ? "Y" : "N");
+    }
+    sql.append("\n"
+          + "  )");
+  }
+
+  private static void setParams(PreparedStatement pstmt, Iterable<?> params) throws SQLException {
+    int pos = 1;
+    for (Object param : params) {
+      if (param instanceof String) {
+        pstmt.setString(pos++, (String) param);
+      } else if (param instanceof Integer) {
+        pstmt.setInt(pos++, (Integer) param);
+      } else {
+        throw new AssertionError("Unexpected parameter type: " + (param == null ? "null" : param.getClass().getName()));
+      }
+    }
+  }
+
   /**
    * Updates user permissions and other settings.
    *
@@ -258,7 +310,8 @@ public final class MySQLUserManager extends BuilderThread {
    *
    * @return  Returns {@code true} when {@link MySQLServerManager#flushPrivileges(com.aoindustries.aoserv.client.mysql.Server)} is required.
    */
-  private static boolean updateExistingUsers(Server mysqlServer, Server.Version version, Connection conn, List<UserServer> users,
+  private static boolean updateExistingUsers(Server mysqlServer, Server.Version version,
+      MySQLDatabaseManager.BackupOnce backupOnce, Connection conn, List<UserServer> users,
       Set<Tuple2<String, User.Name>> existing) throws IOException, SQLException {
     boolean needsFlush = false;
     // Update existing users to proper values
@@ -275,83 +328,71 @@ public final class MySQLUserManager extends BuilderThread {
           if (!mu.isSpecial()) {
             StringBuilder sql = new StringBuilder();
             List<Object> params = new ArrayList<>();
-            sql.append("UPDATE user SET");
-            for (Permission permission : userPermissions) {
-              sql.append("\n  ").append(permission.getMysqlColumn()).append("=?,");
-              params.add(permission.isUserGranted(mu) ? "Y" : "N");
-            }
-            sql.append("\n"
-                  + "  max_questions=?,\n"
-                  + "  max_updates=?,\n"
-                  + "  max_connections=?");
-            params.add(msu.getMaxQuestions());
-            params.add(msu.getMaxUpdates());
-            params.add(msu.getMaxConnections());
-            if (version.hasMaxUserConnections()) {
-              sql.append(",\n"
-                  + "  max_user_connections=?");
-              params.add(msu.getMaxUserConnections());
-            }
-            if (version.hasAccountLocked()) {
-              sql.append(",\n"
-                  + "  account_locked=?");
-              params.add(expectedLocked ? "Y" : "N");
-            }
-            sql.append("\n"
-                + "WHERE\n"
-                + "  Host=?\n"
-                + "  AND User=?\n");
-            params.add(host);
-            params.add(username.toString());
-            sql.append("  AND (\n"
-                + "    ");
-            for (Permission permission : userPermissions) {
-              sql.append(permission.getMysqlColumn()).append(" != ?\n"
-                  + "    OR ");
-              params.add(permission.isUserGranted(mu) ? "Y" : "N");
-            }
-            sql.append("max_questions != ?\n"
-                  + "    OR max_updates != ?\n"
-                  + "    OR max_connections != ?");
-            params.add(msu.getMaxQuestions());
-            params.add(msu.getMaxUpdates());
-            params.add(msu.getMaxConnections());
-            if (version.hasMaxUserConnections()) {
-              sql.append("\n"
-                  + "    OR max_user_connections != ?");
-              params.add(msu.getMaxUserConnections());
-            }
-            if (version.hasAccountLocked()) {
-              sql.append("\n"
-                  + "    OR account_locked != ?");
-              params.add(expectedLocked ? "Y" : "N");
-            }
-            sql.append("\n"
-                  + "  )");
-            String updateSql = sql.toString();
-            try (PreparedStatement pstmt = conn.prepareStatement(updateSql)) {
+            // Check if update required
+            sql.append("SELECT COUNT(*) FROM user");
+            addUpdateWhere(version, msu, mu, host, username, userPermissions, expectedLocked, sql, params);
+            boolean updateRequired;
+            String selectSql = sql.toString();
+            try (PreparedStatement pstmt = conn.prepareStatement(selectSql)) {
               // Update the user
-              int pos = 1;
-              for (Object param : params) {
-                if (param instanceof String) {
-                  pstmt.setString(pos++, (String) param);
-                } else if (param instanceof Integer) {
-                  pstmt.setInt(pos++, (Integer) param);
-                } else {
-                  throw new AssertionError("Unexpected parameter type: " + (param == null ? "null" : param.getClass().getName()));
+              setParams(pstmt, params);
+              int toUpdateCount;
+              try (ResultSet result = pstmt.executeQuery()) {
+                if (!result.next()) {
+                  throw new SQLException("No row");
                 }
+                toUpdateCount = result.getInt(1);
               }
-              int updateCount = pstmt.executeUpdate();
-              if (updateCount > 0) {
-                logger.info(() -> "Updated '" + username + "'@'" + host + "' in mysql.user on " + mysqlServer);
-                needsFlush = true;
-                if (updateCount > 1) {
-                  throw new SQLException("Duplicate (host, user): " + key);
-                }
+              if (toUpdateCount > 1) {
+                throw new SQLException("Duplicate (host, user): " + key);
               }
+              updateRequired = toUpdateCount != 0;
             } catch (Error | RuntimeException | SQLException e) {
-              ErrorPrinter.addSql(e, updateSql);
+              ErrorPrinter.addSql(e, selectSql);
               throw e;
+            }
+            if (updateRequired) {
+              backupOnce.backup();
+              logger.info(() -> "Updating '" + username + "'@'" + host + "' in mysql.user on " + mysqlServer);
+              // Do the update
+              sql.setLength(0);
+              params.clear();
+              sql.append("UPDATE user SET");
+              for (Permission permission : userPermissions) {
+                sql.append("\n  ").append(permission.getMysqlColumn()).append("=?,");
+                params.add(permission.isUserGranted(mu) ? "Y" : "N");
+              }
+              sql.append("\n"
+                    + "  max_questions=?,\n"
+                    + "  max_updates=?,\n"
+                    + "  max_connections=?");
+              params.add(msu.getMaxQuestions());
+              params.add(msu.getMaxUpdates());
+              params.add(msu.getMaxConnections());
+              if (version.hasMaxUserConnections()) {
+                sql.append(",\n"
+                    + "  max_user_connections=?");
+                params.add(msu.getMaxUserConnections());
+              }
+              if (version.hasAccountLocked()) {
+                sql.append(",\n"
+                    + "  account_locked=?");
+                params.add(expectedLocked ? "Y" : "N");
+              }
+              addUpdateWhere(version, msu, mu, host, username, userPermissions, expectedLocked, sql, params);
+              String updateSql = sql.toString();
+              try (PreparedStatement pstmt = conn.prepareStatement(updateSql)) {
+                // Update the user
+                setParams(pstmt, params);
+                int updateCount = pstmt.executeUpdate();
+                needsFlush = true;
+                if (updateCount != 1) {
+                  throw new SQLException("Unexpected number of rows updated: expected 1, got " + updateCount + " for (host, user): " + key);
+                }
+              } catch (Error | RuntimeException | SQLException e) {
+                ErrorPrinter.addSql(e, updateSql);
+                throw e;
+              }
             }
           }
         } else {
@@ -434,6 +475,7 @@ public final class MySQLUserManager extends BuilderThread {
                   new SQLException("Refusing to lock special user: " + username + " on " + mysqlServer.getName())
               );
             } else {
+              backupOnce.backup();
               logger.info(() -> "Locking '" + username + "'@'" + host + "' on " + mysqlServer);
               executeUpdate(
                   conn,
@@ -452,6 +494,7 @@ public final class MySQLUserManager extends BuilderThread {
                   new SQLException("Refusing to revoke from special user: " + username + " on " + mysqlServer.getName() + ": " + toRevoke)
               );
             } else {
+              backupOnce.backup();
               String permissions = toRevoke.stream().map(Permission::getMysqlPrivilegeType).collect(Collectors.joining(", "));
               logger.info(() -> "Revoking " + permissions + " on *.* from '" + username + "'@'" + host + "' on " + mysqlServer);
               executeUpdate(
@@ -471,6 +514,7 @@ public final class MySQLUserManager extends BuilderThread {
                   new SQLException("Refusing to grant to special user: " + username + " on " + mysqlServer.getName() + ": " + toGrant)
               );
             } else {
+              backupOnce.backup();
               String permissions = toGrant.stream().map(Permission::getMysqlPrivilegeType).collect(Collectors.joining(", "));
               logger.info(() -> "Granting " + permissions + " on *.* to '" + username + "'@'" + host + "' on " + mysqlServer);
               executeUpdate(
@@ -487,18 +531,21 @@ public final class MySQLUserManager extends BuilderThread {
           boolean didWith = false;
           int expectedMaxQuestions = msu.getMaxQuestions();
           if (currentMaxQuestions != expectedMaxQuestions) {
+            backupOnce.backup();
             logger.info(() -> "Altering MAX_QUERIES_PER_HOUR to " + expectedMaxQuestions + " on '" + username + "'@'" + host + "' on " + mysqlServer);
             sql.append(" WITH MAX_QUERIES_PER_HOUR ").append(expectedMaxQuestions);
             didWith = true;
           }
           int expectedMaxUpdates = msu.getMaxUpdates();
           if (currentMaxUpdates != expectedMaxUpdates) {
+            backupOnce.backup();
             logger.info(() -> "Altering MAX_UPDATES_PER_HOUR to " + expectedMaxUpdates + " on '" + username + "'@'" + host + "' on " + mysqlServer);
             sql.append(didWith ? " " : " WITH ").append("MAX_UPDATES_PER_HOUR ").append(expectedMaxUpdates);
             didWith = true;
           }
           int expectedMaxConnections = msu.getMaxConnections();
           if (currentMaxConnections != expectedMaxConnections) {
+            backupOnce.backup();
             logger.info(() -> "Altering MAX_CONNECTIONS_PER_HOUR to " + expectedMaxConnections + " on '" + username + "'@'" + host + "' on " + mysqlServer);
             sql.append(didWith ? " " : " WITH ").append("MAX_CONNECTIONS_PER_HOUR ").append(expectedMaxConnections);
             didWith = true;
@@ -506,6 +553,7 @@ public final class MySQLUserManager extends BuilderThread {
           if (version.hasMaxUserConnections()) {
             int expectedMaxUserConnections = msu.getMaxUserConnections();
             if (currentMaxUserConnections != expectedMaxUserConnections) {
+              backupOnce.backup();
               logger.info(() -> "Altering MAX_USER_CONNECTIONS to " + expectedMaxUserConnections + " on '" + username + "'@'" + host + "' on " + mysqlServer);
               sql.append(didWith ? " " : " WITH ").append("MAX_USER_CONNECTIONS ").append(expectedMaxUserConnections);
               didWith = true;
@@ -513,6 +561,7 @@ public final class MySQLUserManager extends BuilderThread {
           }
           boolean hasAlter = didWith;
           if (version.hasAccountLocked() && !expectedLocked && currentAccountLocked) {
+            backupOnce.backup();
             logger.info(() -> "Unlocking '" + username + "'@'" + host + "' on " + mysqlServer);
             sql.append(" ACCOUNT UNLOCK");
             hasAlter = true;
@@ -547,7 +596,8 @@ public final class MySQLUserManager extends BuilderThread {
    *
    * @return  Returns {@code true} when {@link MySQLServerManager#flushPrivileges(com.aoindustries.aoserv.client.mysql.Server)} is required.
    */
-  private static boolean removeExtraUsers(Server mysqlServer, Server.Version version, Connection conn,
+  private static boolean removeExtraUsers(Server mysqlServer, Server.Version version,
+      MySQLDatabaseManager.BackupOnce backupOnce, Connection conn,
       Set<Tuple2<String, User.Name>> extra) throws IOException, SQLException {
     boolean needsFlush = false;
     // Remove the extra users
@@ -561,23 +611,26 @@ public final class MySQLUserManager extends BuilderThread {
             null,
             new SQLException("Refusing to drop special user: " + user + " for host " + host + " on " + mysqlServer.getName())
         );
-      } else if (version.supportsDirectGrantTableUpdates()) {
-        logger.info(() -> "Deleting '" + user + "'@'" + host + "' from mysql.user on " + mysqlServer);
-        executeUpdate(
-            conn,
-            "DELETE FROM user WHERE host=? AND user=?",
-            host,
-            user.toString()
-        );
-        needsFlush = true;
       } else {
-        logger.info(() -> "Dropping user '" + user + "'@'" + host + "' on " + mysqlServer);
-        executeUpdate(
-            conn,
-            "DROP USER ?@?",
-            user.toString(),
-            host
-        );
+        backupOnce.backup();
+        if (version.supportsDirectGrantTableUpdates()) {
+          logger.info(() -> "Deleting '" + user + "'@'" + host + "' from mysql.user on " + mysqlServer);
+          executeUpdate(
+              conn,
+              "DELETE FROM user WHERE host=? AND user=?",
+              host,
+              user.toString()
+          );
+          needsFlush = true;
+        } else {
+          logger.info(() -> "Dropping user '" + user + "'@'" + host + "' on " + mysqlServer);
+          executeUpdate(
+              conn,
+              "DROP USER ?@?",
+              user.toString(),
+              host
+          );
+        }
       }
     }
     return needsFlush;
@@ -588,7 +641,8 @@ public final class MySQLUserManager extends BuilderThread {
    *
    * @return  Returns {@code true} when {@link MySQLServerManager#flushPrivileges(com.aoindustries.aoserv.client.mysql.Server)} is required.
    */
-  private static boolean disableAndEnableUsers(Server mysqlServer, Server.Version version, List<UserServer> users) throws IOException, SQLException {
+  private static boolean disableAndEnableUsers(Server mysqlServer, Server.Version version,
+      MySQLDatabaseManager.BackupOnce backupOnce, List<UserServer> users) throws IOException, SQLException {
     boolean needsFlush = false;
     // Disable and enable accounts
     if (!version.hasAccountLocked()) {
@@ -598,14 +652,14 @@ public final class MySQLUserManager extends BuilderThread {
           String prePassword = msu.getPredisablePassword();
           if (!isLocked(version, msu)) {
             if (prePassword != null) {
-              needsFlush |= setAuthenticationString(mysqlServer, version, msu.getMysqlUser().getKey(), prePassword);
+              needsFlush |= setAuthenticationString(mysqlServer, version, backupOnce, msu.getMysqlUser().getKey(), prePassword);
               msu.setPredisablePassword(null);
             }
           } else {
             if (prePassword == null) {
               User.Name username = msu.getMysqlUser().getKey();
               msu.setPredisablePassword(getAuthenticationString(mysqlServer, username));
-              needsFlush |= setAuthenticationString(mysqlServer, version, username, User.NO_PASSWORD);
+              needsFlush |= setAuthenticationString(mysqlServer, version, backupOnce, username, User.NO_PASSWORD);
             }
           }
         }
@@ -703,6 +757,7 @@ public final class MySQLUserManager extends BuilderThread {
     if (User.isSpecial(username)) {
       throw new SQLException("Refusing to set the password for a special user: " + username + " on " + mysqlServer.getName());
     }
+    MySQLDatabaseManager.backupDatabase(mysqlServer, Database.MYSQL);
     final Server.Version version = Server.Version.parse(mysqlServer.getVersion().getVersion());
     boolean needsFlush = false;
     // Get the connection to work through
@@ -793,10 +848,13 @@ public final class MySQLUserManager extends BuilderThread {
    *
    * @return  Returns {@code true} when {@link MySQLServerManager#flushPrivileges(com.aoindustries.aoserv.client.mysql.Server)} is required.
    */
-  private static boolean setAuthenticationString(Server mysqlServer, Server.Version version, User.Name username, String authenticationString) throws IOException, SQLException {
+  private static boolean setAuthenticationString(Server mysqlServer, Server.Version version,
+      MySQLDatabaseManager.BackupOnce backupOnce, User.Name username, String authenticationString
+  ) throws IOException, SQLException {
     if (User.isSpecial(username)) {
       throw new SQLException("Refusing to set the authentication string for a special user: " + username + " on " + mysqlServer.getName());
     }
+    backupOnce.backup();
     boolean needsFlush = false;
     // Get the connection to work through
     try (Connection conn = MySQLServerManager.getPool(mysqlServer).getConnection()) {
