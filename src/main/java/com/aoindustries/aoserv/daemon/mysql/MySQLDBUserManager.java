@@ -70,6 +70,33 @@ public final class MySQLDBUserManager extends BuilderThread {
 
   private static final Object rebuildLock = new Object();
 
+  /**
+   * Checks if can perform an action on the database and user.
+   * Logs warning when action should not be performed.
+   *
+   * @return {@code true} if the action may be performed; {@code false} if a warning was logged and
+   *         the action must be skipped.
+   */
+  private static boolean checkAction(Server mysqlServer, String action, Database.Name db, User.Name user, String relation) {
+    if (Database.isSpecial(db)) {
+      logger.log(
+          Level.WARNING,
+          null,
+          new SQLException("Refusing to " + action + " " + user + " " + relation + " special database: " + db + " on " + mysqlServer.getName())
+      );
+      return false;
+    } else if (User.isSpecial(user)) {
+      logger.log(
+          Level.WARNING,
+          null,
+          new SQLException("Refusing to " + action + " special user " + user + " " + relation + " database: " + db + " on " + mysqlServer.getName())
+      );
+      return false;
+    } else {
+      return true;
+    }
+  }
+
   @Override
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
   protected boolean doRebuild() {
@@ -169,41 +196,43 @@ public final class MySQLDBUserManager extends BuilderThread {
                     }
                     Tuple2<Database.Name, User.Name> key = new Tuple2<>(db, user);
                     if (!existing.remove(key)) {
-                      backupOnce.backup();
-                      Set<Permission> databaseUserPermissions = version.getDatabaseUserPermissions();
-                      if (version.supportsDirectGrantTableUpdates()) {
-                        String host =
-                            user.equals(User.MYSQL_SESSION)
-                                || user.equals(User.MYSQL_SYS)
-                                ? "localhost"
-                                : UserServer.ANY_HOST;
-                        logger.info(() -> "Inserting '" + user + "'@'" + host + "'→'" + db + "' to mysql.db on " + mysqlServer);
-                        StringBuilder sql = new StringBuilder();
-                        sql.append("INSERT INTO db (Host, Db, User, ")
-                            .append(databaseUserPermissions.stream().map(Permission::getMysqlColumn).collect(Collectors.joining(", ")))
-                            .append(") VALUES (?, ?, ?, ")
-                            .append(databaseUserPermissions.stream().map(permission -> "?").collect(Collectors.joining(", ")))
-                            .append(")");
-                        List<String> params = new ArrayList<>();
-                        params.add(host);
-                        params.add(db.toString());
-                        params.add(user.toString());
-                        for (Permission permission : databaseUserPermissions) {
-                          params.add(permission.isDatabaseUserGranted(mdu) ? "Y" : "N");
-                        }
-                        currentSql = null;
-                        try (PreparedStatement pstmt = conn.prepareStatement(currentSql = sql.toString())) {
-                          // Add the db entry
-                          int pos = 1;
-                          for (String param : params) {
-                            pstmt.setString(pos++, param);
+                      if (checkAction(mysqlServer, "add", db, user, "to")) {
+                        backupOnce.backup();
+                        Set<Permission> databaseUserPermissions = version.getDatabaseUserPermissions();
+                        if (version.supportsDirectGrantTableUpdates()) {
+                          String host =
+                              user.equals(User.MYSQL_SESSION)
+                                  || user.equals(User.MYSQL_SYS)
+                                  ? "localhost"
+                                  : UserServer.ANY_HOST;
+                          logger.info(() -> "Inserting '" + user + "'@'" + host + "'→'" + db + "' to mysql.db on " + mysqlServer);
+                          StringBuilder sql = new StringBuilder();
+                          sql.append("INSERT INTO db (Host, Db, User, ")
+                              .append(databaseUserPermissions.stream().map(Permission::getMysqlColumn).collect(Collectors.joining(", ")))
+                              .append(") VALUES (?, ?, ?, ")
+                              .append(databaseUserPermissions.stream().map(permission -> "?").collect(Collectors.joining(", ")))
+                              .append(")");
+                          List<String> params = new ArrayList<>();
+                          params.add(host);
+                          params.add(db.toString());
+                          params.add(user.toString());
+                          for (Permission permission : databaseUserPermissions) {
+                            params.add(permission.isDatabaseUserGranted(mdu) ? "Y" : "N");
                           }
-                          pstmt.executeUpdate();
-                        } catch (Error | RuntimeException | SQLException e) {
-                          ErrorPrinter.addSql(e, currentSql);
-                          throw e;
+                          currentSql = null;
+                          try (PreparedStatement pstmt = conn.prepareStatement(currentSql = sql.toString())) {
+                            // Add the db entry
+                            int pos = 1;
+                            for (String param : params) {
+                              pstmt.setString(pos++, param);
+                            }
+                            pstmt.executeUpdate();
+                          } catch (Error | RuntimeException | SQLException e) {
+                            ErrorPrinter.addSql(e, currentSql);
+                            throw e;
+                          }
+                          needsFlush = true;
                         }
-                        needsFlush = true;
                       }
                     } else {
                       throw new NotImplementedException("TODO: Update via GRANT/REVOKE (and other things) for MySQL " + version);
@@ -221,21 +250,23 @@ public final class MySQLDBUserManager extends BuilderThread {
                             new SQLException("Refusing to delete system MySQL db user: " + key + " on " + mysqlServer)
                         );
                       } else {
-                        backupOnce.backup();
-                        if (version.supportsDirectGrantTableUpdates()) {
-                          Database.Name db = key.getElement1();
-                          User.Name user = key.getElement2();
-                          logger.info(() -> "Deleting '" + user + "'→'" + db + "' from mysql.db on " + mysqlServer);
-                          // Remove the extra db entry
-                          executeUpdate(
-                              conn,
-                              "DELETE FROM db WHERE db=? AND user=?",
-                              db.toString(),
-                              user.toString()
-                          );
-                          needsFlush = true;
-                        } else {
-                          throw new NotImplementedException("TODO: Update via GRANT/REVOKE (and other things) for MySQL " + version);
+                        Database.Name db = key.getElement1();
+                        User.Name user = key.getElement2();
+                        if (checkAction(mysqlServer, "remove", db, user, "from")) {
+                          backupOnce.backup();
+                          if (version.supportsDirectGrantTableUpdates()) {
+                            logger.info(() -> "Deleting '" + user + "'→'" + db + "' from mysql.db on " + mysqlServer);
+                            // Remove the extra db entry
+                            executeUpdate(
+                                conn,
+                                "DELETE FROM db WHERE db=? AND user=?",
+                                db.toString(),
+                                user.toString()
+                            );
+                            needsFlush = true;
+                          } else {
+                            throw new NotImplementedException("TODO: Update via GRANT/REVOKE (and other things) for MySQL " + version);
+                          }
                         }
                       }
                     }
