@@ -172,7 +172,7 @@ public final class MySQLCreditCardScanner implements CronJob {
       StringBuilder report
   ) throws SQLException {
     DatabaseMetaData metaData = conn.getMetaData();
-    String[] tableTypes = new String[]{"TABLE"};
+    String[] tableTypes = new String[] {"TABLE"};
     try (ResultSet tables = metaData.getTables(catalog, null, null, tableTypes)) {
       while (tables.next()) {
         String table = tables.getString(3);

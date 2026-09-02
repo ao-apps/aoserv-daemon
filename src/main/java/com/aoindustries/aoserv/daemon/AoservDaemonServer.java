@@ -141,9 +141,9 @@ public final class AoservDaemonServer extends Thread {
         switch (protocol) {
           case AppProtocol.AOSERV_DAEMON:
             {
-              try (ServerSocket SS = new ServerSocket(serverPort, 50, serverBind.isUnspecified() ? null : address)) {
+              try (ServerSocket ss = new ServerSocket(serverPort, 50, serverBind.isUnspecified() ? null : address)) {
                 while (!Thread.currentThread().isInterrupted()) {
-                  Socket socket = SS.accept();
+                  Socket socket = ss.accept();
                   socket.setKeepAlive(true);
                   socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
                   // socket.setTcpNoDelay(true);

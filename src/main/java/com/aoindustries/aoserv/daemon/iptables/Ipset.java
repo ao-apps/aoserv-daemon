@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2012, 2013, 2017, 2018, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2012, 2013, 2017, 2018, 2020, 2021, 2022, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -98,7 +98,7 @@ public final class Ipset {
    */
   public static String save(String setName, boolean missingAsNull) throws IOException {
     ProcessResult result = ProcessResult.exec(
-        new String[]{
+        new String[] {
             IPSET,
             "-S",
             setName
@@ -159,7 +159,7 @@ public final class Ipset {
    */
   public static void delete(String setName, int entry) throws IOException {
     ProcessResult result = ProcessResult.exec(
-        new String[]{
+        new String[] {
             IPSET,
             "-D",
             setName,
@@ -177,7 +177,7 @@ public final class Ipset {
    */
   public static void add(String setName, int entry) throws IOException {
     ProcessResult result = ProcessResult.exec(
-        new String[]{
+        new String[] {
             IPSET,
             "-A",
             setName,
@@ -231,7 +231,7 @@ public final class Ipset {
       logger.log(
           Level.WARNING,
           "Only the first {0} entries used for ipset \"{1}\"",
-          new Object[]{
+          new Object[] {
               MAX_IPSET_SIZE,
               setName
           }

@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025  AO Industries, Inc.
+ * Copyright (C) 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -160,7 +160,7 @@ public abstract class VersionedSharedTomcatManager<T extends VersionedTomcatComm
     // Find the first host (same order as hosts added below)
     String defaultHostPrimaryHostname = null;
     FIND_FIRST:
-    for (boolean listFirst : new boolean[]{true, false}) {
+    for (boolean listFirst : new boolean[] {true, false}) {
       for (SharedTomcatSite site : sites) {
         com.aoindustries.aoserv.client.web.Site hs = site.getHttpdTomcatSite().getHttpdSite();
         if (hs.getListFirst() == listFirst && !hs.isDisabled()) {
@@ -180,7 +180,7 @@ public abstract class VersionedSharedTomcatManager<T extends VersionedTomcatComm
         + "        <Realm className=\"org.apache.catalina.realm.UserDatabaseRealm\"\n"
         + "               resourceName=\"UserDatabase\"/>\n"
         + "      </Realm>\n");
-    for (boolean listFirst : new boolean[]{true, false}) {
+    for (boolean listFirst : new boolean[] {true, false}) {
       for (SharedTomcatSite site : sites) {
         com.aoindustries.aoserv.client.web.Site hs = site.getHttpdTomcatSite().getHttpdSite();
         if (hs.getListFirst() == listFirst && !hs.isDisabled()) {

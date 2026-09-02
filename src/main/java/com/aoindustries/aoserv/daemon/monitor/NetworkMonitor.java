@@ -357,8 +357,7 @@ public final class NetworkMonitor {
               final String[] cmd = new String[
                   (controllingNullRoutes ? 0 : 1)
                   + 6
-                  + networkRanges.size()
-                  ];
+                  + networkRanges.size()];
               int index = 0;
               // No nice level when controlling null routes
               if (!controllingNullRoutes) {

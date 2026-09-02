@@ -197,7 +197,7 @@ public final class AoservDaemonServerThread extends Thread {
         String[] versions;
         if (preferredVersion.equals(AoservDaemonProtocol.Version.VERSION_1_77.getVersion())) {
           // Client 1.77 only sends the single preferred version
-          versions = new String[]{preferredVersion};
+          versions = new String[] {preferredVersion};
         } else {
           versions = new String[1 + in.readCompressedInt()];
           versions[0] = preferredVersion;

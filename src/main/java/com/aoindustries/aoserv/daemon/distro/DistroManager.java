@@ -497,7 +497,7 @@ public final class DistroManager implements Runnable {
     {
       // First look for exact match
       String filename = file.getPath();
-      int index = Collections.binarySearch(distroFiles, new Object[]{PosixPath.valueOf(filename), osVersionPkey}, pathComparator);
+      int index = Collections.binarySearch(distroFiles, new Object[] {PosixPath.valueOf(filename), osVersionPkey}, pathComparator);
       if (index >= 0) {
         distroFile = distroFiles.get(index);
         // Flag as found
@@ -508,7 +508,7 @@ public final class DistroManager implements Runnable {
         int pos = filename.indexOf(hostname);
         if (pos >= 0) {
           filename = filename.substring(0, pos) + "$h" + filename.substring(pos + hostname.length());
-          index = Collections.binarySearch(distroFiles, new Object[]{PosixPath.valueOf(filename), osVersionPkey}, pathComparator);
+          index = Collections.binarySearch(distroFiles, new Object[] {PosixPath.valueOf(filename), osVersionPkey}, pathComparator);
           if (index >= 0) {
             distroFile = distroFiles.get(index);
             // Flag as found

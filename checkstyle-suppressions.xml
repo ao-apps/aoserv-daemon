@@ -30,6 +30,9 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
   <!-- TODO: Complete Javadocs -->
   <suppress checks="(MissingJavadocMethod|MissingJavadocType|SummaryJavadoc)" />
 
+  <!-- TODO: Complete checkstyle-14.1.0 compatibility -->
+  <suppress checks="(MultilineCommentLeadingAsteriskPresence|SingleSpaceSeparator)" />
+
   <!-- Intentionally matching the names used by xinetd -->
   <suppress
     checks="(GoogleNonConstantFieldName|ParameterName)"

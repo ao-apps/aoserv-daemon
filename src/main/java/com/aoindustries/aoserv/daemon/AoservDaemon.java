@@ -753,7 +753,7 @@ public final class AoservDaemon {
 
     String[] cmd;
     if (nice != 0) {
-      cmd = new String[]{
+      cmd = new String[] {
           "/bin/nice",
           "-n",
           Integer.toString(nice),
@@ -765,7 +765,7 @@ public final class AoservDaemon {
           username.toString()
       };
     } else {
-      cmd = new String[]{
+      cmd = new String[] {
           "/bin/su",
           "-s",
           Shell.BASH.toString(),

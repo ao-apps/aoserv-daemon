@@ -2173,7 +2173,7 @@ public final class FailoverFileReplicationManager {
               File serviceFile = new File("/etc/systemd/system/" + serviceName);
               if (serviceFile.exists()) {
                 // Run via systemctl
-                command = new String[]{
+                command = new String[] {
                     "/usr/bin/systemctl",
                     "try-restart", // Do not start if not currently running
                     serviceName
@@ -2183,7 +2183,7 @@ public final class FailoverFileReplicationManager {
                 File initFile = new File(toPath + initPath);
                 if (initFile.exists()) {
                   // Run via chroot /etc/rc.d/init.d
-                  command = new String[]{
+                  command = new String[] {
                       "/usr/sbin/chroot",
                       toPath,
                       initPath,

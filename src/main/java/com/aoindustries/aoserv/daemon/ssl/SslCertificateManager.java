@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
+ * Copyright (C) 2018, 2019, 2020, 2021, 2022, 2024, 2025, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -694,8 +694,8 @@ public final class SslCertificateManager {
                 keyModifyTime,
                 allowCached,
                 isNewOpenssl
-                    ? new String[]{"openssl", "pkey", "-outform", "PEM", "-in", keyCanonical.getPath(), "-pubout"}
-                    : new String[]{"openssl", "rsa", "-in", keyCanonical.getPath(), "-noout", "-modulus"}
+                    ? new String[] {"openssl", "pkey", "-outform", "PEM", "-in", keyCanonical.getPath(), "-pubout"}
+                    : new String[] {"openssl", "rsa", "-in", keyCanonical.getPath(), "-noout", "-modulus"}
             ) : null;
             String csrHash  = csrCanonicalExists  ? getCommandHash(
                 csrCanonical,
@@ -703,8 +703,8 @@ public final class SslCertificateManager {
                 csrModifyTime,
                 allowCached,
                 isNewOpenssl
-                    ? new String[]{"openssl", "req", "-outform", "PEM", "-in", csrCanonical.getPath(), "-pubkey", "-noout"}
-                    : new String[]{"openssl", "req", "-in", csrCanonical.getPath(), "-noout", "-modulus"}
+                    ? new String[] {"openssl", "req", "-outform", "PEM", "-in", csrCanonical.getPath(), "-pubkey", "-noout"}
+                    : new String[] {"openssl", "req", "-in", csrCanonical.getPath(), "-noout", "-modulus"}
             ) : null;
             String certHash = certCanonicalExists ? getCommandHash(
                 certCanonical,
@@ -712,8 +712,8 @@ public final class SslCertificateManager {
                 certModifyTime,
                 allowCached,
                 isNewOpenssl
-                    ? new String[]{"openssl", "x509", "-outform", "PEM", "-in", certCanonical.getPath(), "-pubkey", "-noout"}
-                    : new String[]{"openssl", "x509", "-in", certCanonical.getPath(), "-noout", "-modulus"}
+                    ? new String[] {"openssl", "x509", "-outform", "PEM", "-in", certCanonical.getPath(), "-pubkey", "-noout"}
+                    : new String[] {"openssl", "x509", "-in", certCanonical.getPath(), "-noout", "-modulus"}
             ) : null;
             // TODO: Do we need to support both cert and fullchain files no Certificate class?  Check both with x509 command for match
             // TODO: PostgreSQL uses fullchain for Let's Encrypt.

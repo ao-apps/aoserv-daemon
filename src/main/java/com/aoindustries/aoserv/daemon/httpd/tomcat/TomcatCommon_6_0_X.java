@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2008-2013, 2015, 2016, 2017, 2018, 2020, 2021, 2022, 2023  AO Industries, Inc.
+ * Copyright (C) 2008-2013, 2015, 2016, 2017, 2018, 2020, 2021, 2022, 2023, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -143,7 +143,7 @@ final class TomcatCommon_6_0_X extends TomcatCommon {
         if (osConfig == OperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) {
           // Switch from Java 1.7 to Java 1.* now that compatible with Java 1.8
           String results = AoservDaemon.execAndCapture(
-              new String[]{
+              new String[] {
                   osConfig.getReplaceCommand().toString(),
                   "/opt/jdk1.7-i686/setenv.sh",
                   "/opt/jdk1-i686/setenv.sh",

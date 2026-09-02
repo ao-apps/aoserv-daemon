@@ -1812,7 +1812,7 @@ public final class ImapManager extends BuilderThread {
 
                       // Copy to newFolder
                       incAppendCounter();
-                      AppendUID[] newUids = newFolder.appendUIDMessages(new Message[]{oldMessage});
+                      AppendUID[] newUids = newFolder.appendUIDMessages(new Message[] {oldMessage});
                       if (newUids.length != 1) {
                         throw new MessagingException("newUids.length != 1: " + newUids.length);
                       }

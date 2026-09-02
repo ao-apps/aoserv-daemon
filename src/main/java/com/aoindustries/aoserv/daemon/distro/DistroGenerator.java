@@ -586,7 +586,7 @@ public final class DistroGenerator {
           // Initialize the stacks, if needed
           if (currentDirectories == null) {
             (currentDirectories = new Stack<>()).push("");
-            (currentLists = new Stack<>()).push(new String[]{""});
+            (currentLists = new Stack<>()).push(new String[] {""});
             (currentIndexes = new Stack<>()).push(0);
           }
           String currentDirectory;

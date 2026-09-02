@@ -145,7 +145,7 @@ public final class VirtualServerManager {
         // store_mfn is skipped
         // console_mfn is skipped
       } else if (osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64) {
-        Type type = new TypeToken<List<Map<String, Object>>>(){
+        Type type = new TypeToken<List<Map<String, Object>>>() {
           // https://stackoverflow.com/questions/21014407/json-array-in-hashmap-using-google-gson
         }.getType();
         List<Map<String, Object>> rootList = new Gson().fromJson(
@@ -528,7 +528,7 @@ public final class VirtualServerManager {
 
   public static String createVirtualServer(String virtualServer) throws IOException, SQLException {
     ProcessResult result = ProcessResult.exec(
-        new String[]{
+        new String[] {
             getXmCommand(),
             "create",
             // Now using auto directory to avoid starting wrong place: "/etc/xen/guests/"+virtualServer+"/config"
@@ -549,7 +549,7 @@ public final class VirtualServerManager {
 
   public static String rebootVirtualServer(String virtualServer) throws IOException, SQLException {
     ProcessResult result = ProcessResult.exec(
-        new String[]{
+        new String[] {
             getXmCommand(),
             "reboot",
             virtualServer
@@ -569,7 +569,7 @@ public final class VirtualServerManager {
 
   public static String shutdownVirtualServer(String virtualServer) throws IOException, SQLException {
     ProcessResult result = ProcessResult.exec(
-        new String[]{
+        new String[] {
             getXmCommand(),
             "shutdown",
             virtualServer
@@ -589,7 +589,7 @@ public final class VirtualServerManager {
 
   public static String destroyVirtualServer(String virtualServer) throws IOException, SQLException {
     ProcessResult result = ProcessResult.exec(
-        new String[]{
+        new String[] {
             getXmCommand(),
             "destroy",
             virtualServer
@@ -609,7 +609,7 @@ public final class VirtualServerManager {
 
   public static String pauseVirtualServer(String virtualServer) throws IOException, SQLException {
     ProcessResult result = ProcessResult.exec(
-        new String[]{
+        new String[] {
             getXmCommand(),
             "pause",
             virtualServer
@@ -629,7 +629,7 @@ public final class VirtualServerManager {
 
   public static String unpauseVirtualServer(String virtualServer) throws IOException, SQLException {
     ProcessResult result = ProcessResult.exec(
-        new String[]{
+        new String[] {
             getXmCommand(),
             "unpause",
             virtualServer

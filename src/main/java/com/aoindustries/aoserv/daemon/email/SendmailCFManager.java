@@ -1414,7 +1414,7 @@ public final class SendmailCFManager extends BuilderThread {
             }
             // Iterate through all servers, and a "null" iteration when there are no servers
             for (SendmailServer sendmailServer : sendmailServers.isEmpty()
-                ? new SendmailServer[]{null}
+                ? new SendmailServer[] {null}
                 : sendmailServers.toArray(new SendmailServer[sendmailServers.size()])
             ) {
               // Build the new version of /etc/mail/sendmail[@*].mc in RAM

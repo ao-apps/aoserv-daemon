@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2013, 2017, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
+ * Copyright (C) 2001-2013, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -200,7 +200,7 @@ public class LinuxServerEnvironment extends PosixFileEnvironment {
     filesystemRules.put(
         "/ao/",
         new FileExistsRule(
-            new String[]{"/ao.aes128.img", "/ao.aes256.img", "/ao.copy.aes128.img", "/ao.copy.aes256.img"},
+            new String[] {"/ao.aes128.img", "/ao.aes256.img", "/ao.copy.aes128.img", "/ao.copy.aes256.img"},
             FilesystemIteratorRule.SKIP,
             FilesystemIteratorRule.OK
         )
@@ -208,7 +208,7 @@ public class LinuxServerEnvironment extends PosixFileEnvironment {
     filesystemRules.put(
         "/ao.copy/",
         new FileExistsRule(
-            new String[]{"/ao.aes128.img", "/ao.aes256.img", "/ao.copy.aes128.img", "/ao.copy.aes256.img"},
+            new String[] {"/ao.aes128.img", "/ao.aes256.img", "/ao.copy.aes128.img", "/ao.copy.aes256.img"},
             FilesystemIteratorRule.SKIP,
             FilesystemIteratorRule.OK
         )
@@ -216,7 +216,7 @@ public class LinuxServerEnvironment extends PosixFileEnvironment {
     filesystemRules.put(
         "/encrypted/",
         new FileExistsRule(
-            new String[]{"/encrypted.aes128.img", "/encrypted.aes256.img"},
+            new String[] {"/encrypted.aes128.img", "/encrypted.aes256.img"},
             FilesystemIteratorRule.SKIP,
             FilesystemIteratorRule.OK
         )
@@ -224,7 +224,7 @@ public class LinuxServerEnvironment extends PosixFileEnvironment {
     filesystemRules.put(
         "/home/",
         new FileExistsRule(
-            new String[]{"/home.aes128.img", "/home.aes256.img"},
+            new String[] {"/home.aes128.img", "/home.aes256.img"},
             FilesystemIteratorRule.SKIP,
             FilesystemIteratorRule.OK
         )
@@ -232,7 +232,7 @@ public class LinuxServerEnvironment extends PosixFileEnvironment {
     filesystemRules.put(
         "/logs/",
         new FileExistsRule(
-            new String[]{"/logs.aes128.img", "/logs.aes256.img"},
+            new String[] {"/logs.aes128.img", "/logs.aes256.img"},
             FilesystemIteratorRule.SKIP,
             FilesystemIteratorRule.OK
         )
@@ -264,7 +264,7 @@ public class LinuxServerEnvironment extends PosixFileEnvironment {
     filesystemRules.put(
         CvsRepository.DEFAULT_CVS_DIRECTORY + "/",
         new FileExistsRule(
-            new String[]{
+            new String[] {
                 CvsRepository.DEFAULT_CVS_DIRECTORY + ".aes128.img",
                 CvsRepository.DEFAULT_CVS_DIRECTORY + ".aes256.img"
             },
@@ -275,7 +275,7 @@ public class LinuxServerEnvironment extends PosixFileEnvironment {
     filesystemRules.put(
         "/var/git/",
         new FileExistsRule(
-            new String[]{"/var/git.aes128.img", "/var/git.aes256.img"},
+            new String[] {"/var/git.aes128.img", "/var/git.aes256.img"},
             FilesystemIteratorRule.SKIP,
             FilesystemIteratorRule.OK
         )
@@ -327,7 +327,7 @@ public class LinuxServerEnvironment extends PosixFileEnvironment {
     filesystemRules.put(
         "/var/lib/pgsql/",
         new FileExistsRule(
-            new String[]{"/var/lib/pgsql.aes128.img", "/var/lib/pgsql.aes256.img"},
+            new String[] {"/var/lib/pgsql.aes128.img", "/var/lib/pgsql.aes256.img"},
             FilesystemIteratorRule.SKIP,
             FilesystemIteratorRule.OK
         )
@@ -423,7 +423,7 @@ public class LinuxServerEnvironment extends PosixFileEnvironment {
     filesystemRules.put(
         "/var/spool/",
         new FileExistsRule(
-            new String[]{"/var/spool.aes128.img", "/var/spool.aes256.img"},
+            new String[] {"/var/spool.aes128.img", "/var/spool.aes256.img"},
             FilesystemIteratorRule.SKIP,
             FilesystemIteratorRule.OK
         )
@@ -439,7 +439,7 @@ public class LinuxServerEnvironment extends PosixFileEnvironment {
     filesystemRules.put(
         "/www/",
         new FileExistsRule(
-            new String[]{"/www.aes128.img", "/www.aes256.img"},
+            new String[] {"/www.aes128.img", "/www.aes256.img"},
             FilesystemIteratorRule.SKIP,
             FilesystemIteratorRule.OK
         )
