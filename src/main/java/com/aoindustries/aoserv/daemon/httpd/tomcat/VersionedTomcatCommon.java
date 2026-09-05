@@ -308,7 +308,10 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
     return new Version(rpm.getVersion(), rpm.getRelease());
   }
 
-  void addNewSymlink(String optSlash, Map<String, List<UpgradeSymlink>> versionUpgrades, String version, String newSymlink) {
+  /**
+   * @return  Returns {@link newSymlink}
+   */
+  String addNewSymlink(String optSlash, Map<String, List<UpgradeSymlink>> versionUpgrades, String version, String newSymlink) {
     final String tomcatDir = "../" + optSlash + getApacheTomcatDir();
     versionUpgrades.computeIfAbsent(version, k -> new ArrayList<>()).add(
       new UpgradeSymlink(
@@ -317,9 +320,13 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
           tomcatDir + "/" + newSymlink
       )
     );
+    return newSymlink;
   }
 
-  void addUpgradeSymlink(String optSlash, Map<String, List<UpgradeSymlink>> versionUpgrades, String version, String oldSymlink, String newSymlink) {
+  /**
+   * @return  Returns {@link newSymlink}
+   */
+  String addUpgradeSymlink(String optSlash, Map<String, List<UpgradeSymlink>> versionUpgrades, String version, String oldSymlink, String newSymlink) {
     if (oldSymlink.equals(newSymlink)) {
       throw new IllegalArgumentException("oldSymlink == newSymlink: " + oldSymlink);
     }
@@ -332,9 +339,13 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
           tomcatDir + "/" + newSymlink
       )
     );
+    return newSymlink;
   }
 
-  void addUpgradeSymlinkWithDevNull(String optSlash, Map<String, List<UpgradeSymlink>> versionUpgrades, String version, String oldSymlink, String newSymlink) {
+  /**
+   * @return  Returns {@link newSymlink}
+   */
+  String addUpgradeSymlinkWithDevNull(String optSlash, Map<String, List<UpgradeSymlink>> versionUpgrades, String version, String oldSymlink, String newSymlink) {
     if (oldSymlink.equals(newSymlink)) {
       throw new IllegalArgumentException("oldSymlink == newSymlink: " + oldSymlink);
     }
@@ -346,7 +357,7 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
             "/dev/null"
         )
     );
-    addUpgradeSymlink(optSlash, versionUpgrades, version, oldSymlink, newSymlink);
+    return addUpgradeSymlink(optSlash, versionUpgrades, version, oldSymlink, newSymlink);
   }
 
   void addUpgradeWithNoSymlinkChanges(Map<String, List<UpgradeSymlink>> versionUpgrades, String version) {

@@ -155,4 +155,10 @@ along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
     files="[/\\]com[/\\]aoindustries[/\\]aoserv[/\\]daemon[/\\]failover[/\\]FailoverFileReplicationManager\.java$"
   />
 
+  <!-- "Starting point" variables grouped at top for maintainability -->
+  <suppress
+    checks="VariableDeclarationUsageDistance"
+    files="[/\\]com[/\\]aoindustries[/\\]aoserv[/\\]daemon[/\\]httpd[/\\]tomcat[/\\]TomcatCommon_.*\.java$"
+  />
+
 </suppressions>
