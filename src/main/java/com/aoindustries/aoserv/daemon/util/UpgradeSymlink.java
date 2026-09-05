@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2008-2012, 2015, 2019, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2008-2012, 2015, 2019, 2020, 2021, 2022, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -150,5 +150,17 @@ public class UpgradeSymlink {
       newLink.chown(uid, gid);
     }
     return needsRestart;
+  }
+
+  /**
+   * Downgrades the symlink if needed.  Will also reset the UID
+   * and GID if they mismatch.
+   *
+   * @return  <code>true</code> if link modified.  UID and GID changes alone will not
+   *          count as a change.
+   */
+  public boolean downgradeLinkTarget(PosixFile baseDirectory, int uid, int gid) throws IOException {
+    return new UpgradeSymlink(newLinkPath, newLinkTarget, oldLinkPath, oldLinkTarget)
+        .upgradeLinkTarget(baseDirectory, uid, gid);
   }
 }

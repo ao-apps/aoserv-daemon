@@ -38,7 +38,9 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -171,950 +173,106 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
     OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
     if (osConfig == OperatingSystemConfiguration.CENTOS_7_X86_64
         || osConfig == OperatingSystemConfiguration.ROCKY_9_X86_64) {
-      final Version version = getRpmVersion(PackageManager.PackageName.APACHE_TOMCAT_10_1,
+      final Version rpmVersion = getRpmVersion(PackageManager.PackageName.APACHE_TOMCAT_10_1,
           PackageManager.PackageName.OLD_APACHE_TOMCAT_10_1);
       final String suffix = osConfig.getPackageReleaseSuffix();
-      final String tomcatDir = "../" + optSlash + getApacheTomcatDir();
-      // Downgrade support
-      if (version.compareTo("10.1.59-1" + suffix) < 0) {
-        UpgradeSymlink[] downgradeSymlinks = {
-            // jakartaee-migration-1.0.12-shaded.jar -> jakartaee-migration-1.0.10-shaded.jar
-            new UpgradeSymlink(
-                "lib/jakartaee-migration-1.0.12-shaded.jar",
-                tomcatDir + "/lib/jakartaee-migration-1.0.12-shaded.jar",
-                "lib/jakartaee-migration-1.0.10-shaded.jar",
-                tomcatDir + "/lib/jakartaee-migration-1.0.10-shaded.jar"
-            ),
-            // mysql-connector-j-26.7.0.jar -> mysql-connector-j-9.7.0.jar
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-26.7.0.jar",
-                "/dev/null",
-                "lib/mysql-connector-j-9.7.0.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-26.7.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-26.7.0.jar",
-                "lib/mysql-connector-j-9.7.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-9.7.0.jar"
-            ),
-            // postgresql-42.7.13.jar -> postgresql-42.7.11.jar
-            new UpgradeSymlink(
-                "lib/postgresql-42.7.13.jar",
-                "/dev/null",
-                "lib/postgresql-42.7.11.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/postgresql-42.7.13.jar",
-                tomcatDir + "/lib/postgresql-42.7.13.jar",
-                "lib/postgresql-42.7.11.jar",
-                tomcatDir + "/lib/postgresql-42.7.11.jar"
-            ),
-        };
-        for (UpgradeSymlink symlink : downgradeSymlinks) {
-          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
-            needsRestart = true;
-          }
-        }
-      }
-      if (version.compareTo("10.1.55-1" + suffix) < 0) {
-        UpgradeSymlink[] downgradeSymlinks = {
-            // mysql-connector-j-9.7.0.jar -> mysql-connector-j-9.5.0.jar
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-9.7.0.jar",
-                "/dev/null",
-                "lib/mysql-connector-j-9.5.0.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-9.7.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-9.7.0.jar",
-                "lib/mysql-connector-j-9.5.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-9.5.0.jar"
-            ),
-            // postgresql-42.7.11.jar -> postgresql-42.7.8.jar
-            new UpgradeSymlink(
-                "lib/postgresql-42.7.11.jar",
-                "/dev/null",
-                "lib/postgresql-42.7.8.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/postgresql-42.7.11.jar",
-                tomcatDir + "/lib/postgresql-42.7.11.jar",
-                "lib/postgresql-42.7.8.jar",
-                tomcatDir + "/lib/postgresql-42.7.8.jar"
-            ),
-        };
-        for (UpgradeSymlink symlink : downgradeSymlinks) {
-          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
-            needsRestart = true;
-          }
-        }
-      }
-      if (version.compareTo("10.1.50-1" + suffix) < 0) {
-        UpgradeSymlink[] downgradeSymlinks = {
-            // jakartaee-migration-1.0.10-shaded.jar -> jakartaee-migration-1.0.9-shaded.jar
-            new UpgradeSymlink(
-                "lib/jakartaee-migration-1.0.10-shaded.jar",
-                tomcatDir + "/lib/jakartaee-migration-1.0.10-shaded.jar",
-                "lib/jakartaee-migration-1.0.9-shaded.jar",
-                tomcatDir + "/lib/jakartaee-migration-1.0.9-shaded.jar"
-            ),
-        };
-        for (UpgradeSymlink symlink : downgradeSymlinks) {
-          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
-            needsRestart = true;
-          }
-        }
-      }
-      if (version.compareTo("10.1.49-1" + suffix) < 0) {
-        UpgradeSymlink[] downgradeSymlinks = {
-            // mysql-connector-j-9.5.0.jar -> mysql-connector-j-9.3.0.jar
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-9.5.0.jar",
-                "/dev/null",
-                "lib/mysql-connector-j-9.3.0.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-9.5.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-9.5.0.jar",
-                "lib/mysql-connector-j-9.3.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-9.3.0.jar"
-            ),
-            // postgresql-42.7.8.jar -> postgresql-42.7.7.jar
-            new UpgradeSymlink(
-                "lib/postgresql-42.7.8.jar",
-                "/dev/null",
-                "lib/postgresql-42.7.7.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/postgresql-42.7.8.jar",
-                tomcatDir + "/lib/postgresql-42.7.8.jar",
-                "lib/postgresql-42.7.7.jar",
-                tomcatDir + "/lib/postgresql-42.7.7.jar"
-            ),
-        };
-        for (UpgradeSymlink symlink : downgradeSymlinks) {
-          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
-            needsRestart = true;
-          }
-        }
-      }
-      if (version.compareTo("10.1.43-1" + suffix) < 0) {
-        // 10.1.43-1 has same files as 10.1.42-1
-      }
-      if (version.compareTo("10.1.42-1" + suffix) < 0) {
-        UpgradeSymlink[] downgradeSymlinks = {
-            // jakartaee-migration-1.0.9-shaded.jar -> jakartaee-migration-1.0.8-shaded.jar
-            new UpgradeSymlink(
-                "lib/jakartaee-migration-1.0.9-shaded.jar",
-                tomcatDir + "/lib/jakartaee-migration-1.0.9-shaded.jar",
-                "lib/jakartaee-migration-1.0.8-shaded.jar",
-                tomcatDir + "/lib/jakartaee-migration-1.0.8-shaded.jar"
-            ),
-            // mysql-connector-j-9.3.0.jar -> mysql-connector-j-9.2.0.jar
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-9.3.0.jar",
-                "/dev/null",
-                "lib/mysql-connector-j-9.2.0.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-9.3.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-9.3.0.jar",
-                "lib/mysql-connector-j-9.2.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-9.2.0.jar"
-            ),
-            // postgresql-42.7.7.jar -> postgresql-42.7.5.jar
-            new UpgradeSymlink(
-                "lib/postgresql-42.7.7.jar",
-                "/dev/null",
-                "lib/postgresql-42.7.5.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/postgresql-42.7.7.jar",
-                tomcatDir + "/lib/postgresql-42.7.7.jar",
-                "lib/postgresql-42.7.5.jar",
-                tomcatDir + "/lib/postgresql-42.7.5.jar"
-            ),
-        };
-        for (UpgradeSymlink symlink : downgradeSymlinks) {
-          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
-            needsRestart = true;
-          }
-        }
-      }
-      if (version.compareTo("10.1.34-1" + suffix) < 0) {
-        UpgradeSymlink[] downgradeSymlinks = {
-            // mysql-connector-j-9.2.0.jar -> mysql-connector-j-9.0.0.jar
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-9.2.0.jar",
-                "/dev/null",
-                "lib/mysql-connector-j-9.0.0.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-9.2.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-9.2.0.jar",
-                "lib/mysql-connector-j-9.0.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-9.0.0.jar"
-            ),
-            // postgresql-42.7.5.jar -> postgresql-42.7.3.jar
-            new UpgradeSymlink(
-                "lib/postgresql-42.7.5.jar",
-                "/dev/null",
-                "lib/postgresql-42.7.3.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/postgresql-42.7.5.jar",
-                tomcatDir + "/lib/postgresql-42.7.5.jar",
-                "lib/postgresql-42.7.3.jar",
-                tomcatDir + "/lib/postgresql-42.7.3.jar"
-            ),
-        };
-        for (UpgradeSymlink symlink : downgradeSymlinks) {
-          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
-            needsRestart = true;
-          }
-        }
-      }
-      if (version.compareTo("10.1.28-1" + suffix) < 0) {
-        // 10.1.28-1 has same files as 10.1.26-1
-      }
-      if (version.compareTo("10.1.26-1" + suffix) < 0) {
-        UpgradeSymlink[] downgradeSymlinks = {
-            // mysql-connector-j-9.0.0.jar -> mysql-connector-j-8.4.0.jar
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-9.0.0.jar",
-                "/dev/null",
-                "lib/mysql-connector-j-8.4.0.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-9.0.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-9.0.0.jar",
-                "lib/mysql-connector-j-8.4.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-8.4.0.jar"
-            ),
-            // tomcat-coyote-ffm.jar introduced
-            new UpgradeSymlink(
-                "lib/tomcat-coyote-ffm.jar",
-                tomcatDir + "/lib/tomcat-coyote-ffm.jar",
-                null
-            ),
-        };
-        for (UpgradeSymlink symlink : downgradeSymlinks) {
-          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
-            needsRestart = true;
-          }
-        }
-      }
-      if (version.compareTo("10.1.24-1" + suffix) < 0) {
-        UpgradeSymlink[] downgradeSymlinks = {
-            // jakartaee-migration-1.0.8-shaded.jar -> jakartaee-migration-1.0.7-shaded.jar
-            new UpgradeSymlink(
-                "lib/jakartaee-migration-1.0.8-shaded.jar",
-                tomcatDir + "/lib/jakartaee-migration-1.0.8-shaded.jar",
-                "lib/jakartaee-migration-1.0.7-shaded.jar",
-                tomcatDir + "/lib/jakartaee-migration-1.0.7-shaded.jar"
-            ),
-            // mysql-connector-j-8.4.0.jar -> mysql-connector-j-8.2.0.jar
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-8.4.0.jar",
-                "/dev/null",
-                "lib/mysql-connector-j-8.2.0.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-8.4.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-8.4.0.jar",
-                "lib/mysql-connector-j-8.2.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-8.2.0.jar"
-            ),
-            // postgresql-42.7.3.jar -> postgresql-42.6.0.jar
-            new UpgradeSymlink(
-                "lib/postgresql-42.7.3.jar",
-                "/dev/null",
-                "lib/postgresql-42.6.0.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/postgresql-42.7.3.jar",
-                tomcatDir + "/lib/postgresql-42.7.3.jar",
-                "lib/postgresql-42.6.0.jar",
-                tomcatDir + "/lib/postgresql-42.6.0.jar"
-            ),
-        };
-        for (UpgradeSymlink symlink : downgradeSymlinks) {
-          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
-            needsRestart = true;
-          }
-        }
-      }
-      if (version.compareTo("10.1.16-1" + suffix) < 0) {
-        UpgradeSymlink[] downgradeSymlinks = {
-            // mysql-connector-j-8.2.0.jar -> mysql-connector-j-8.1.0.jar
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-8.2.0.jar",
-                "/dev/null",
-                "lib/mysql-connector-j-8.1.0.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-8.2.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-8.2.0.jar",
-                "lib/mysql-connector-j-8.1.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-8.1.0.jar"
-            ),
-        };
-        for (UpgradeSymlink symlink : downgradeSymlinks) {
-          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
-            needsRestart = true;
-          }
-        }
-      }
-      if (version.compareTo("10.1.15-1" + suffix) < 0) {
-        // 10.1.15-1 has same files as 10.1.14-1
-      }
-      if (version.compareTo("10.1.14-1" + suffix) < 0) {
-        // 10.1.14-1 has same files as 10.1.13-1
-      }
-      if (version.compareTo("10.1.13-1" + suffix) < 0) {
-        // 10.1.13-1 has same files as 10.1.12-1
-      }
-      if (version.compareTo("10.1.12-1" + suffix) < 0) {
-        // 10.1.12-1 has same files as 10.1.11-2
-      }
-      if (version.compareTo("10.1.11-2" + suffix) < 0) {
-        UpgradeSymlink[] downgradeSymlinks = {
-            // mysql-connector-j-8.1.0.jar -> mysql-connector-j-8.0.33.jar
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-8.1.0.jar",
-                "/dev/null",
-                "lib/mysql-connector-j-8.0.33.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-8.1.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-8.1.0.jar",
-                "lib/mysql-connector-j-8.0.33.jar",
-                tomcatDir + "/lib/mysql-connector-j-8.0.33.jar"
-            ),
-        };
-        for (UpgradeSymlink symlink : downgradeSymlinks) {
-          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
-            needsRestart = true;
-          }
-        }
-      }
-      if (version.compareTo("10.1.11-1" + suffix) < 0) {
-        UpgradeSymlink[] downgradeSymlinks = {
-            // ecj-4.27.jar -> ecj-4.26.jar
-            new UpgradeSymlink(
-                "lib/ecj-4.27.jar",
-                tomcatDir + "/lib/ecj-4.27.jar",
-                "lib/ecj-4.26.jar",
-                tomcatDir + "/lib/ecj-4.26.jar"
-            ),
-            // jakartaee-migration-1.0.7-shaded.jar -> jakartaee-migration-1.0.6-shaded.jar
-            new UpgradeSymlink(
-                "lib/jakartaee-migration-1.0.7-shaded.jar",
-                tomcatDir + "/lib/jakartaee-migration-1.0.7-shaded.jar",
-                "lib/jakartaee-migration-1.0.6-shaded.jar",
-                tomcatDir + "/lib/jakartaee-migration-1.0.6-shaded.jar"
-            ),
-            // mysql-connector-j-8.0.33.jar -> mysql-connector-j-8.0.32.jar
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-8.0.33.jar",
-                "/dev/null",
-                "lib/mysql-connector-j-8.0.32.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-8.0.33.jar",
-                tomcatDir + "/lib/mysql-connector-j-8.0.33.jar",
-                "lib/mysql-connector-j-8.0.32.jar",
-                tomcatDir + "/lib/mysql-connector-j-8.0.32.jar"
-            ),
-            // postgresql-42.6.0.jar -> postgresql-42.5.4.jar
-            new UpgradeSymlink(
-                "lib/postgresql-42.6.0.jar",
-                "/dev/null",
-                "lib/postgresql-42.5.4.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/postgresql-42.6.0.jar",
-                tomcatDir + "/lib/postgresql-42.6.0.jar",
-                "lib/postgresql-42.5.4.jar",
-                tomcatDir + "/lib/postgresql-42.5.4.jar"
-            ),
-        };
-        for (UpgradeSymlink symlink : downgradeSymlinks) {
-          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
-            needsRestart = true;
-          }
-        }
-      }
-      if (version.compareTo("10.1.5-1" + suffix) < 0) {
-        UpgradeSymlink[] downgradeSymlinks = {
-            // ecj-4.26.jar -> ecj-4.25.jar
-            new UpgradeSymlink(
-                "lib/ecj-4.26.jar",
-                tomcatDir + "/lib/ecj-4.26.jar",
-                "lib/ecj-4.25.jar",
-                tomcatDir + "/lib/ecj-4.25.jar"
-            ),
-            // mysql-connector-j-8.0.32.jar -> mysql-connector-j-8.0.31.jar
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-8.0.32.jar",
-                "/dev/null",
-                "lib/mysql-connector-j-8.0.31.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-8.0.32.jar",
-                tomcatDir + "/lib/mysql-connector-j-8.0.32.jar",
-                "lib/mysql-connector-j-8.0.31.jar",
-                tomcatDir + "/lib/mysql-connector-j-8.0.31.jar"
-            ),
-            // postgresql-42.5.4.jar -> postgresql-42.5.1.jar
-            new UpgradeSymlink(
-                "lib/postgresql-42.5.4.jar",
-                "/dev/null",
-                "lib/postgresql-42.5.1.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/postgresql-42.5.4.jar",
-                tomcatDir + "/lib/postgresql-42.5.4.jar",
-                "lib/postgresql-42.5.1.jar",
-                tomcatDir + "/lib/postgresql-42.5.1.jar"
-            ),
-        };
-        for (UpgradeSymlink symlink : downgradeSymlinks) {
-          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
-            needsRestart = true;
-          }
-        }
-      }
-      if (version.compareTo("10.1.4-1" + suffix) < 0) {
-        UpgradeSymlink[] downgradeSymlinks = {
-            // jakartaee-migration-1.0.6-shaded.jar -> jakartaee-migration-1.0.5-shaded.jar
-            new UpgradeSymlink(
-                "lib/jakartaee-migration-1.0.6-shaded.jar",
-                tomcatDir + "/lib/jakartaee-migration-1.0.6-shaded.jar",
-                "lib/jakartaee-migration-1.0.5-shaded.jar",
-                tomcatDir + "/lib/jakartaee-migration-1.0.5-shaded.jar"
-            ),
-        };
-        for (UpgradeSymlink symlink : downgradeSymlinks) {
-          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
-            needsRestart = true;
-          }
-        }
-      }
       final String oldSuffix = osConfig.getOldPackageReleaseSuffix();
-      if (version.compareTo("10.1.2-2" + oldSuffix) < 0) {
-        UpgradeSymlink[] downgradeSymlinks = {
-            // postgresql-42.5.1.jar -> postgresql-42.5.0.jar
-            new UpgradeSymlink(
-                "lib/postgresql-42.5.1.jar",
-                "/dev/null",
-                "lib/postgresql-42.5.0.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/postgresql-42.5.1.jar",
-                tomcatDir + "/lib/postgresql-42.5.1.jar",
-                "lib/postgresql-42.5.0.jar",
-                tomcatDir + "/lib/postgresql-42.5.0.jar"
-            ),
-        };
-        for (UpgradeSymlink symlink : downgradeSymlinks) {
-          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
-            needsRestart = true;
-          }
-        }
+
+      // Version history
+      Map<String, List<UpgradeSymlink>> versionUpgrades = new LinkedHashMap<>();
+      // 10.1.2-2
+      addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.2-2" + oldSuffix,
+          "lib/postgresql-42.5.0.jar", "lib/postgresql-42.5.1.jar");
+      // 10.1.4-1 (switch to aorepo.org here, oldSuffix becomes suffix)
+      addUpgradeSymlink(optSlash, versionUpgrades, "10.1.4-1" + suffix,
+          "lib/jakartaee-migration-1.0.5-shaded.jar", "lib/jakartaee-migration-1.0.6-shaded.jar");
+      // 10.1.5-1
+      addUpgradeSymlink(optSlash, versionUpgrades, "10.1.5-1" + suffix,
+          "lib/ecj-4.25.jar", "lib/ecj-4.26.jar");
+      addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.5-1" + suffix,
+          "lib/mysql-connector-j-8.0.31.jar", "lib/mysql-connector-j-8.0.32.jar");
+      addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.5-1" + suffix,
+          "lib/postgresql-42.5.1.jar", "lib/postgresql-42.5.4.jar");
+      // 10.1.11-1
+      addUpgradeSymlink(optSlash, versionUpgrades, "10.1.11-1" + suffix,
+          "lib/ecj-4.26.jar", "lib/ecj-4.27.jar");
+      addUpgradeSymlink(optSlash, versionUpgrades, "10.1.11-1" + suffix,
+          "lib/jakartaee-migration-1.0.6-shaded.jar", "lib/jakartaee-migration-1.0.7-shaded.jar");
+      addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.11-1" + suffix,
+          "lib/mysql-connector-j-8.0.32.jar", "lib/mysql-connector-j-8.0.33.jar");
+      addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.11-1" + suffix,
+          "lib/postgresql-42.5.4.jar", "lib/postgresql-42.6.0.jar");
+      // 10.1.11-2
+      addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.11-2" + suffix,
+          "lib/mysql-connector-j-8.0.33.jar", "lib/mysql-connector-j-8.1.0.jar");
+      // 10.1.12-1
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, "10.1.12-1" + suffix);
+      // 10.1.13-1
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, "10.1.13-1" + suffix);
+      // 10.1.14-1
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, "10.1.14-1" + suffix);
+      // 10.1.15-1
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, "10.1.15-1" + suffix);
+      // 10.1.16-1
+      addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.16-1" + suffix,
+          "lib/mysql-connector-j-8.1.0.jar", "lib/mysql-connector-j-8.2.0.jar");
+      // 10.1.24-1
+      addUpgradeSymlink(optSlash, versionUpgrades, "10.1.24-1" + suffix,
+          "lib/jakartaee-migration-1.0.7-shaded.jar", "lib/jakartaee-migration-1.0.8-shaded.jar");
+      addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.24-1" + suffix,
+          "lib/mysql-connector-j-8.2.0.jar", "lib/mysql-connector-j-8.4.0.jar");
+      addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.24-1" + suffix,
+          "lib/postgresql-42.6.0.jar", "lib/postgresql-42.7.3.jar");
+      // 10.1.26-1 (tomcat-coyote-ffm.jar introduced)
+      addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.26-1" + suffix,
+          "lib/mysql-connector-j-8.4.0.jar", "lib/mysql-connector-j-9.0.0.jar");
+      addNewSymlink(optSlash, versionUpgrades, "10.1.26-1" + suffix,
+          "lib/tomcat-coyote-ffm.jar");
+      // 10.1.28-1
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, "10.1.28-1" + suffix);
+      // 10.1.34-1
+      addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.34-1" + suffix,
+          "lib/mysql-connector-j-9.0.0.jar", "lib/mysql-connector-j-9.2.0.jar");
+      addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.34-1" + suffix,
+          "lib/postgresql-42.7.3.jar", "lib/postgresql-42.7.5.jar");
+      // 10.1.42-1
+      addUpgradeSymlink(optSlash, versionUpgrades, "10.1.42-1" + suffix,
+          "lib/jakartaee-migration-1.0.8-shaded.jar", "lib/jakartaee-migration-1.0.9-shaded.jar");
+      addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.42-1" + suffix,
+          "lib/mysql-connector-j-9.2.0.jar", "lib/mysql-connector-j-9.3.0.jar");
+      addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.42-1" + suffix,
+          "lib/postgresql-42.7.5.jar", "lib/postgresql-42.7.7.jar");
+      // 10.1.43-1
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, "10.1.43-1" + suffix);
+      // 10.1.49-1
+      addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.49-1" + suffix,
+          "lib/mysql-connector-j-9.3.0.jar", "lib/mysql-connector-j-9.5.0.jar");
+      addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.49-1" + suffix,
+          "lib/postgresql-42.7.7.jar", "lib/postgresql-42.7.8.jar");
+      // 10.1.50-1
+      addUpgradeSymlink(optSlash, versionUpgrades, "10.1.50-1" + suffix,
+          "lib/jakartaee-migration-1.0.9-shaded.jar", "lib/jakartaee-migration-1.0.10-shaded.jar");
+      // 10.1.55-1
+      addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.55-1" + suffix,
+          "lib/mysql-connector-j-9.5.0.jar", "lib/mysql-connector-j-9.7.0.jar");
+      addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.55-1" + suffix,
+          "lib/postgresql-42.7.8.jar", "lib/postgresql-42.7.11.jar");
+      // 10.1.59-1
+      addUpgradeSymlink(optSlash, versionUpgrades, "10.1.59-1" + suffix,
+          "lib/jakartaee-migration-1.0.10-shaded.jar", "lib/jakartaee-migration-1.0.12-shaded.jar");
+      addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.59-1" + suffix,
+          "lib/mysql-connector-j-9.7.0.jar", "lib/mysql-connector-j-26.7.0.jar");
+      addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.59-1" + suffix,
+          "lib/postgresql-42.7.11.jar", "lib/postgresql-42.7.13.jar");
+
+      // Downgrade support
+      if (doDowngrades(tomcatDirectory, uid, gid, rpmVersion, versionUpgrades)) {
+        needsRestart = true;
       }
-      if (version.compareTo("10.1.2-1" + oldSuffix) < 0) {
-        throw new IllegalStateException("Version of Tomcat older than expected: " + version);
-      }
+
       // Upgrade support
-      if (version.compareTo("10.1.2-2" + oldSuffix) >= 0) {
-        UpgradeSymlink[] upgradeSymlinks = {
-            // postgresql-42.5.0.jar -> postgresql-42.5.1.jar
-            new UpgradeSymlink(
-                "lib/postgresql-42.5.0.jar",
-                "/dev/null",
-                "lib/postgresql-42.5.1.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/postgresql-42.5.0.jar",
-                tomcatDir + "/lib/postgresql-42.5.0.jar",
-                "lib/postgresql-42.5.1.jar",
-                tomcatDir + "/lib/postgresql-42.5.1.jar"
-            ),
-        };
-        for (UpgradeSymlink symlink : upgradeSymlinks) {
-          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
-            needsRestart = true;
-          }
-        }
-      }
-      if (version.compareTo("10.1.4-1" + suffix) >= 0) {
-        UpgradeSymlink[] upgradeSymlinks = {
-            // jakartaee-migration-1.0.5-shaded.jar -> jakartaee-migration-1.0.6-shaded.jar
-            new UpgradeSymlink(
-                "lib/jakartaee-migration-1.0.5-shaded.jar",
-                tomcatDir + "/lib/jakartaee-migration-1.0.5-shaded.jar",
-                "lib/jakartaee-migration-1.0.6-shaded.jar",
-                tomcatDir + "/lib/jakartaee-migration-1.0.6-shaded.jar"
-            ),
-        };
-        for (UpgradeSymlink symlink : upgradeSymlinks) {
-          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
-            needsRestart = true;
-          }
-        }
-      }
-      if (version.compareTo("10.1.5-1" + suffix) >= 0) {
-        UpgradeSymlink[] upgradeSymlinks = {
-            // ecj-4.25.jar -> ecj-4.26.jar
-            new UpgradeSymlink(
-                "lib/ecj-4.25.jar",
-                tomcatDir + "/lib/ecj-4.25.jar",
-                "lib/ecj-4.26.jar",
-                tomcatDir + "/lib/ecj-4.26.jar"
-            ),
-            // mysql-connector-j-8.0.31.jar -> mysql-connector-j-8.0.32.jar
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-8.0.31.jar",
-                "/dev/null",
-                "lib/mysql-connector-j-8.0.32.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-8.0.31.jar",
-                tomcatDir + "/lib/mysql-connector-j-8.0.31.jar",
-                "lib/mysql-connector-j-8.0.32.jar",
-                tomcatDir + "/lib/mysql-connector-j-8.0.32.jar"
-            ),
-            // postgresql-42.5.1.jar -> postgresql-42.5.4.jar
-            new UpgradeSymlink(
-                "lib/postgresql-42.5.1.jar",
-                "/dev/null",
-                "lib/postgresql-42.5.4.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/postgresql-42.5.1.jar",
-                tomcatDir + "/lib/postgresql-42.5.1.jar",
-                "lib/postgresql-42.5.4.jar",
-                tomcatDir + "/lib/postgresql-42.5.4.jar"
-            ),
-        };
-        for (UpgradeSymlink symlink : upgradeSymlinks) {
-          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
-            needsRestart = true;
-          }
-        }
-      }
-      if (version.compareTo("10.1.11-1" + suffix) >= 0) {
-        UpgradeSymlink[] upgradeSymlinks = {
-            // ecj-4.26.jar -> ecj-4.27.jar
-            new UpgradeSymlink(
-                "lib/ecj-4.26.jar",
-                tomcatDir + "/lib/ecj-4.26.jar",
-                "lib/ecj-4.27.jar",
-                tomcatDir + "/lib/ecj-4.27.jar"
-            ),
-            // jakartaee-migration-1.0.6-shaded.jar -> jakartaee-migration-1.0.7-shaded.jar
-            new UpgradeSymlink(
-                "lib/jakartaee-migration-1.0.6-shaded.jar",
-                tomcatDir + "/lib/jakartaee-migration-1.0.6-shaded.jar",
-                "lib/jakartaee-migration-1.0.7-shaded.jar",
-                tomcatDir + "/lib/jakartaee-migration-1.0.7-shaded.jar"
-            ),
-            // mysql-connector-j-8.0.32.jar -> mysql-connector-j-8.0.33.jar
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-8.0.32.jar",
-                "/dev/null",
-                "lib/mysql-connector-j-8.0.33.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-8.0.32.jar",
-                tomcatDir + "/lib/mysql-connector-j-8.0.32.jar",
-                "lib/mysql-connector-j-8.0.33.jar",
-                tomcatDir + "/lib/mysql-connector-j-8.0.33.jar"
-            ),
-            // postgresql-42.5.4.jar -> postgresql-42.6.0.jar
-            new UpgradeSymlink(
-                "lib/postgresql-42.5.4.jar",
-                "/dev/null",
-                "lib/postgresql-42.6.0.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/postgresql-42.5.4.jar",
-                tomcatDir + "/lib/postgresql-42.5.4.jar",
-                "lib/postgresql-42.6.0.jar",
-                tomcatDir + "/lib/postgresql-42.6.0.jar"
-            ),
-        };
-        for (UpgradeSymlink symlink : upgradeSymlinks) {
-          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
-            needsRestart = true;
-          }
-        }
-      }
-      if (version.compareTo("10.1.11-2" + suffix) >= 0) {
-        UpgradeSymlink[] upgradeSymlinks = {
-            // mysql-connector-j-8.0.33.jar -> mysql-connector-j-8.1.0.jar
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-8.0.33.jar",
-                "/dev/null",
-                "lib/mysql-connector-j-8.1.0.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-8.0.33.jar",
-                tomcatDir + "/lib/mysql-connector-j-8.0.33.jar",
-                "lib/mysql-connector-j-8.1.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-8.1.0.jar"
-            ),
-        };
-        for (UpgradeSymlink symlink : upgradeSymlinks) {
-          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
-            needsRestart = true;
-          }
-        }
-      }
-      if (version.compareTo("10.1.12-1" + suffix) >= 0) {
-        // 10.1.12-1 has same files as 10.1.11-2
-      }
-      if (version.compareTo("10.1.13-1" + suffix) >= 0) {
-        // 10.1.13-1 has same files as 10.1.12-1
-      }
-      if (version.compareTo("10.1.14-1" + suffix) >= 0) {
-        // 10.1.14-1 has same files as 10.1.13-1
-      }
-      if (version.compareTo("10.1.15-1" + suffix) >= 0) {
-        // 10.1.15-1 has same files as 10.1.14-1
-      }
-      if (version.compareTo("10.1.16-1" + suffix) >= 0) {
-        UpgradeSymlink[] upgradeSymlinks = {
-            // mysql-connector-j-8.1.0.jar -> mysql-connector-j-8.2.0.jar
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-8.1.0.jar",
-                "/dev/null",
-                "lib/mysql-connector-j-8.2.0.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-8.1.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-8.1.0.jar",
-                "lib/mysql-connector-j-8.2.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-8.2.0.jar"
-            ),
-        };
-        for (UpgradeSymlink symlink : upgradeSymlinks) {
-          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
-            needsRestart = true;
-          }
-        }
-      }
-      if (version.compareTo("10.1.24-1" + suffix) >= 0) {
-        UpgradeSymlink[] upgradeSymlinks = {
-            // jakartaee-migration-1.0.7-shaded.jar -> jakartaee-migration-1.0.8-shaded.jar
-            new UpgradeSymlink(
-                "lib/jakartaee-migration-1.0.7-shaded.jar",
-                tomcatDir + "/lib/jakartaee-migration-1.0.7-shaded.jar",
-                "lib/jakartaee-migration-1.0.8-shaded.jar",
-                tomcatDir + "/lib/jakartaee-migration-1.0.8-shaded.jar"
-            ),
-            // mysql-connector-j-8.2.0.jar -> mysql-connector-j-8.4.0.jar
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-8.2.0.jar",
-                "/dev/null",
-                "lib/mysql-connector-j-8.4.0.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-8.2.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-8.2.0.jar",
-                "lib/mysql-connector-j-8.4.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-8.4.0.jar"
-            ),
-            // postgresql-42.6.0.jar -> postgresql-42.7.3.jar
-            new UpgradeSymlink(
-                "lib/postgresql-42.6.0.jar",
-                "/dev/null",
-                "lib/postgresql-42.7.3.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/postgresql-42.6.0.jar",
-                tomcatDir + "/lib/postgresql-42.6.0.jar",
-                "lib/postgresql-42.7.3.jar",
-                tomcatDir + "/lib/postgresql-42.7.3.jar"
-            ),
-        };
-        for (UpgradeSymlink symlink : upgradeSymlinks) {
-          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
-            needsRestart = true;
-          }
-        }
-      }
-      if (version.compareTo("10.1.26-1" + suffix) >= 0) {
-        UpgradeSymlink[] upgradeSymlinks = {
-            // mysql-connector-j-8.4.0.jar -> mysql-connector-j-9.0.0.jar
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-8.4.0.jar",
-                "/dev/null",
-                "lib/mysql-connector-j-9.0.0.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-8.4.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-8.4.0.jar",
-                "lib/mysql-connector-j-9.0.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-9.0.0.jar"
-            ),
-            // tomcat-coyote-ffm.jar introduced
-            new UpgradeSymlink(
-                "lib/tomcat-coyote-ffm.jar",
-                null,
-                tomcatDir + "/lib/tomcat-coyote-ffm.jar"
-            ),
-        };
-        for (UpgradeSymlink symlink : upgradeSymlinks) {
-          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
-            needsRestart = true;
-          }
-        }
-      }
-      if (version.compareTo("10.1.28-1" + suffix) >= 0) {
-        // 10.1.28-1 has same files as 10.1.26-1
-      }
-      if (version.compareTo("10.1.34-1" + suffix) >= 0) {
-        UpgradeSymlink[] upgradeSymlinks = {
-            // mysql-connector-j-9.0.0.jar -> mysql-connector-j-9.2.0.jar
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-9.0.0.jar",
-                "/dev/null",
-                "lib/mysql-connector-j-9.2.0.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-9.0.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-9.0.0.jar",
-                "lib/mysql-connector-j-9.2.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-9.2.0.jar"
-            ),
-            // postgresql-42.7.3.jar -> postgresql-42.7.5.jar
-            new UpgradeSymlink(
-                "lib/postgresql-42.7.3.jar",
-                "/dev/null",
-                "lib/postgresql-42.7.5.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/postgresql-42.7.3.jar",
-                tomcatDir + "/lib/postgresql-42.7.3.jar",
-                "lib/postgresql-42.7.5.jar",
-                tomcatDir + "/lib/postgresql-42.7.5.jar"
-            ),
-        };
-        for (UpgradeSymlink symlink : upgradeSymlinks) {
-          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
-            needsRestart = true;
-          }
-        }
-      }
-      if (version.compareTo("10.1.42-1" + suffix) >= 0) {
-        UpgradeSymlink[] upgradeSymlinks = {
-            // jakartaee-migration-1.0.8-shaded.jar -> jakartaee-migration-1.0.9-shaded.jar
-            new UpgradeSymlink(
-                "lib/jakartaee-migration-1.0.8-shaded.jar",
-                tomcatDir + "/lib/jakartaee-migration-1.0.8-shaded.jar",
-                "lib/jakartaee-migration-1.0.9-shaded.jar",
-                tomcatDir + "/lib/jakartaee-migration-1.0.9-shaded.jar"
-            ),
-            // mysql-connector-j-9.2.0.jar -> mysql-connector-j-9.3.0.jar
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-9.2.0.jar",
-                "/dev/null",
-                "lib/mysql-connector-j-9.3.0.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-9.2.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-9.2.0.jar",
-                "lib/mysql-connector-j-9.3.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-9.3.0.jar"
-            ),
-            // postgresql-42.7.5.jar -> postgresql-42.7.7.jar
-            new UpgradeSymlink(
-                "lib/postgresql-42.7.5.jar",
-                "/dev/null",
-                "lib/postgresql-42.7.7.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/postgresql-42.7.5.jar",
-                tomcatDir + "/lib/postgresql-42.7.5.jar",
-                "lib/postgresql-42.7.7.jar",
-                tomcatDir + "/lib/postgresql-42.7.7.jar"
-            ),
-        };
-        for (UpgradeSymlink symlink : upgradeSymlinks) {
-          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
-            needsRestart = true;
-          }
-        }
-      }
-      if (version.compareTo("10.1.43-1" + suffix) >= 0) {
-        // 10.1.43-1 has same files as 10.1.42-1
-      }
-      if (version.compareTo("10.1.49-1" + suffix) >= 0) {
-        UpgradeSymlink[] upgradeSymlinks = {
-            // mysql-connector-j-9.3.0.jar -> mysql-connector-j-9.5.0.jar
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-9.3.0.jar",
-                "/dev/null",
-                "lib/mysql-connector-j-9.5.0.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-9.3.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-9.3.0.jar",
-                "lib/mysql-connector-j-9.5.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-9.5.0.jar"
-            ),
-            // postgresql-42.7.7.jar -> postgresql-42.7.8.jar
-            new UpgradeSymlink(
-                "lib/postgresql-42.7.7.jar",
-                "/dev/null",
-                "lib/postgresql-42.7.8.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/postgresql-42.7.7.jar",
-                tomcatDir + "/lib/postgresql-42.7.7.jar",
-                "lib/postgresql-42.7.8.jar",
-                tomcatDir + "/lib/postgresql-42.7.8.jar"
-            ),
-        };
-        for (UpgradeSymlink symlink : upgradeSymlinks) {
-          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
-            needsRestart = true;
-          }
-        }
-      }
-      if (version.compareTo("10.1.50-1" + suffix) >= 0) {
-        UpgradeSymlink[] upgradeSymlinks = {
-            // jakartaee-migration-1.0.9-shaded.jar -> jakartaee-migration-1.0.10-shaded.jar
-            new UpgradeSymlink(
-                "lib/jakartaee-migration-1.0.9-shaded.jar",
-                tomcatDir + "/lib/jakartaee-migration-1.0.9-shaded.jar",
-                "lib/jakartaee-migration-1.0.10-shaded.jar",
-                tomcatDir + "/lib/jakartaee-migration-1.0.10-shaded.jar"
-            ),
-        };
-        for (UpgradeSymlink symlink : upgradeSymlinks) {
-          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
-            needsRestart = true;
-          }
-        }
-      }
-      if (version.compareTo("10.1.55-1" + suffix) >= 0) {
-        UpgradeSymlink[] upgradeSymlinks = {
-            // mysql-connector-j-9.5.0.jar -> mysql-connector-j-9.7.0.jar
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-9.5.0.jar",
-                "/dev/null",
-                "lib/mysql-connector-j-9.7.0.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-9.5.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-9.5.0.jar",
-                "lib/mysql-connector-j-9.7.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-9.7.0.jar"
-            ),
-            // postgresql-42.7.8.jar -> postgresql-42.7.11.jar
-            new UpgradeSymlink(
-                "lib/postgresql-42.7.8.jar",
-                "/dev/null",
-                "lib/postgresql-42.7.11.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/postgresql-42.7.8.jar",
-                tomcatDir + "/lib/postgresql-42.7.8.jar",
-                "lib/postgresql-42.7.11.jar",
-                tomcatDir + "/lib/postgresql-42.7.11.jar"
-            ),
-        };
-        for (UpgradeSymlink symlink : upgradeSymlinks) {
-          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
-            needsRestart = true;
-          }
-        }
-      }
-      if (version.compareTo("10.1.59-1" + suffix) >= 0) {
-        UpgradeSymlink[] upgradeSymlinks = {
-            // jakartaee-migration-1.0.10-shaded.jar -> jakartaee-migration-1.0.12-shaded.jar
-            new UpgradeSymlink(
-                "lib/jakartaee-migration-1.0.10-shaded.jar",
-                tomcatDir + "/lib/jakartaee-migration-1.0.10-shaded.jar",
-                "lib/jakartaee-migration-1.0.12-shaded.jar",
-                tomcatDir + "/lib/jakartaee-migration-1.0.12-shaded.jar"
-            ),
-            // mysql-connector-j-9.7.0.jar -> mysql-connector-j-26.7.0.jar
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-9.7.0.jar",
-                "/dev/null",
-                "lib/mysql-connector-j-26.7.0.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/mysql-connector-j-9.7.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-9.7.0.jar",
-                "lib/mysql-connector-j-26.7.0.jar",
-                tomcatDir + "/lib/mysql-connector-j-26.7.0.jar"
-            ),
-            // postgresql-42.7.11.jar -> postgresql-42.7.13.jar
-            new UpgradeSymlink(
-                "lib/postgresql-42.7.11.jar",
-                "/dev/null",
-                "lib/postgresql-42.7.13.jar",
-                "/dev/null"
-            ),
-            new UpgradeSymlink(
-                "lib/postgresql-42.7.11.jar",
-                tomcatDir + "/lib/postgresql-42.7.11.jar",
-                "lib/postgresql-42.7.13.jar",
-                tomcatDir + "/lib/postgresql-42.7.13.jar"
-            ),
-        };
-        for (UpgradeSymlink symlink : upgradeSymlinks) {
-          if (symlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
-            needsRestart = true;
-          }
-        }
-      }
-      if (version.compareTo("10.1.59-1" + suffix) > 0) {
-        throw new IllegalStateException("Version of Tomcat newer than expected: " + version);
+      if (doUpgrades(tomcatDirectory, uid, gid, rpmVersion, versionUpgrades)) {
+        needsRestart = true;
       }
     }
     return needsRestart;

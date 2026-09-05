@@ -30,13 +30,18 @@ import com.aoapps.lang.util.CalendarUtils;
 import com.aoindustries.aoserv.client.web.tomcat.ContextDataSource;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.posix.linux.PackageManager;
+import com.aoindustries.aoserv.daemon.util.UpgradeSymlink;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -301,6 +306,125 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
       }
     }
     return new Version(rpm.getVersion(), rpm.getRelease());
+  }
+
+  void addNewSymlink(String optSlash, Map<String, List<UpgradeSymlink>> versionUpgrades, String version, String newSymlink) {
+    final String tomcatDir = "../" + optSlash + getApacheTomcatDir();
+    versionUpgrades.computeIfAbsent(version, k -> new ArrayList<>()).add(
+      new UpgradeSymlink(
+          newSymlink,
+          null,
+          tomcatDir + "/" + newSymlink
+      )
+    );
+  }
+
+  void addUpgradeSymlink(String optSlash, Map<String, List<UpgradeSymlink>> versionUpgrades, String version, String oldSymlink, String newSymlink) {
+    if (oldSymlink.equals(newSymlink)) {
+      throw new IllegalArgumentException("oldSymlink == newSymlink: " + oldSymlink);
+    }
+    final String tomcatDir = "../" + optSlash + getApacheTomcatDir();
+    versionUpgrades.computeIfAbsent(version, k -> new ArrayList<>()).add(
+      new UpgradeSymlink(
+          oldSymlink,
+          tomcatDir + "/" + oldSymlink,
+          newSymlink,
+          tomcatDir + "/" + newSymlink
+      )
+    );
+  }
+
+  void addUpgradeSymlinkWithDevNull(String optSlash, Map<String, List<UpgradeSymlink>> versionUpgrades, String version, String oldSymlink, String newSymlink) {
+    if (oldSymlink.equals(newSymlink)) {
+      throw new IllegalArgumentException("oldSymlink == newSymlink: " + oldSymlink);
+    }
+    versionUpgrades.computeIfAbsent(version, k -> new ArrayList<>()).add(
+        new UpgradeSymlink(
+            oldSymlink,
+            "/dev/null",
+            newSymlink,
+            "/dev/null"
+        )
+    );
+    addUpgradeSymlink(optSlash, versionUpgrades, version, oldSymlink, newSymlink);
+  }
+
+  void addUpgradeWithNoSymlinkChanges(Map<String, List<UpgradeSymlink>> versionUpgrades, String version) {
+    if (versionUpgrades.containsKey(version)) {
+      throw new IllegalArgumentException("Duplicate version: " + version);
+    }
+    versionUpgrades.put(version, Collections.emptyList());
+  }
+
+  /**
+   * Verifies version numbers are non-empty, non-duplicate, and increasing only
+   */
+  private void verifyVersionsIncreasing(Map<String, List<UpgradeSymlink>> versionUpgrades) throws IllegalArgumentException {
+    if (versionUpgrades.isEmpty()) {
+      throw new IllegalArgumentException("versionUpgrades is empty");
+    }
+    PackageManager.Version last = null;
+    for (String version : versionUpgrades.keySet()) {
+      PackageManager.Version rpmVersion = new PackageManager.Version(version);
+      if (last != null) {
+        if (rpmVersion.compareTo(last) <= 0) {
+          throw new IllegalArgumentException("Versions out of order: " + rpmVersion + " <= " + last);
+        }
+      }
+      last = rpmVersion;
+    }
+  }
+
+  boolean doDowngrades(PosixFile tomcatDirectory, int uid, int gid, Version rpmVersion,
+      Map<String, List<UpgradeSymlink>> versionUpgrades) throws IOException {
+    verifyVersionsIncreasing(versionUpgrades);
+    // Downgrade support
+    boolean needsRestart = false;
+    List<Map.Entry<String, List<UpgradeSymlink>>> entries = new ArrayList<>(versionUpgrades.entrySet());
+    // Java 21: entries.reversed()
+    ListIterator<Map.Entry<String, List<UpgradeSymlink>>> entriesIter = entries.listIterator(entries.size());
+    while (entriesIter.hasPrevious()) {
+      Map.Entry<String, List<UpgradeSymlink>> entry = entriesIter.previous();
+      String version = entry.getKey();
+      if (rpmVersion.compareTo(version) < 0) {
+        List<UpgradeSymlink> upgradeSymlinks = entry.getValue();
+        // Java 21: upgradeSymlinks.reversed()
+        ListIterator<UpgradeSymlink> upgradeSymlinksIter = upgradeSymlinks.listIterator(upgradeSymlinks.size());
+        while (upgradeSymlinksIter.hasPrevious()) {
+          UpgradeSymlink upgradeSymlink = upgradeSymlinksIter.previous();
+          if (upgradeSymlink.downgradeLinkTarget(tomcatDirectory, uid, gid)) {
+            needsRestart = true;
+          }
+        }
+      }
+    }
+    if (rpmVersion.compareTo(entries.get(0).getKey()) < 0) {
+      throw new IllegalStateException("Version of Tomcat older than expected: " + rpmVersion);
+    }
+    return needsRestart;
+  }
+
+  boolean doUpgrades(PosixFile tomcatDirectory, int uid, int gid, Version rpmVersion,
+      Map<String, List<UpgradeSymlink>> versionUpgrades) throws IOException {
+    verifyVersionsIncreasing(versionUpgrades);
+    // Upgrade support
+    boolean needsRestart = false;
+    List<Map.Entry<String, List<UpgradeSymlink>>> entries = new ArrayList<>(versionUpgrades.entrySet());
+    for (Map.Entry<String, List<UpgradeSymlink>> entry : entries) {
+      String version = entry.getKey();
+      if (rpmVersion.compareTo(version) >= 0) {
+        List<UpgradeSymlink> upgradeSymlinks = entry.getValue();
+        for (UpgradeSymlink upgradeSymlink : upgradeSymlinks) {
+          if (upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) {
+            needsRestart = true;
+          }
+        }
+      }
+    }
+    if (rpmVersion.compareTo(entries.get(entries.size() - 1).getKey()) > 0) {
+      throw new IllegalStateException("Version of Tomcat newer than expected: " + rpmVersion);
+    }
+    return needsRestart;
   }
 
   /**
