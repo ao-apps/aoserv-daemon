@@ -181,118 +181,173 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 
       // Version history
       Map<String, List<UpgradeSymlink>> versionUpgrades = new LinkedHashMap<>();
+
       // Starting point
+      String version;
       String ecj = "lib/ecj-4.18.jar";
       String mysql = "lib/mysql-connector-java-8.0.24.jar";
       String psql = "lib/postgresql-42.2.20.jar";
-      // 9.0.46-1
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.46-1" + oldSuffix, mysql, "lib/mysql-connector-java-8.0.25.jar");
-      // 9.0.48-1
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.48-1" + oldSuffix, psql, "lib/postgresql-42.2.22.jar");
-      // 9.0.50-1
-      ecj = addUpgradeSymlink(optSlash, versionUpgrades, "9.0.50-1" + oldSuffix, ecj, "lib/ecj-4.20.jar");
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.50-1" + oldSuffix, mysql, "lib/mysql-connector-java-8.0.26.jar");
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.50-1" + oldSuffix, psql, "lib/postgresql-42.2.23.jar");
-      // 9.0.52-1
-      addUpgradeWithNoSymlinkChanges(versionUpgrades, "9.0.52-1" + oldSuffix);
-      // 9.0.53-1
-      addUpgradeWithNoSymlinkChanges(versionUpgrades, "9.0.53-1" + oldSuffix);
-      // 9.0.53-2
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.53-2" + oldSuffix, psql, "lib/postgresql-42.2.24.jar");
-      // 9.0.54-1
-      addUpgradeWithNoSymlinkChanges(versionUpgrades, "9.0.54-1" + oldSuffix);
-      // 9.0.54-2
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.54-2" + oldSuffix, mysql, "lib/mysql-connector-java-8.0.27.jar");
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.54-2" + oldSuffix, psql, "lib/postgresql-42.3.0.jar");
-      // 9.0.55-1
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.55-1" + oldSuffix, psql, "lib/postgresql-42.3.1.jar");
-      // 9.0.56-1
-      addUpgradeWithNoSymlinkChanges(versionUpgrades, "9.0.56-1" + oldSuffix);
-      // 9.0.56-2
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.56-2" + oldSuffix, mysql, "lib/mysql-connector-java-8.0.28.jar");
-      // 9.0.58-1
-      addUpgradeWithNoSymlinkChanges(versionUpgrades, "9.0.58-1" + oldSuffix);
-      // 9.0.59-1
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.59-1" + oldSuffix, psql, "lib/postgresql-42.3.3.jar");
-      // 9.0.60-1
-      addUpgradeWithNoSymlinkChanges(versionUpgrades, "9.0.60-1" + oldSuffix);
-      // 9.0.62-1
-      addUpgradeWithNoSymlinkChanges(versionUpgrades, "9.0.62-1" + oldSuffix);
-      // 9.0.62-2
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.62-2" + oldSuffix, psql, "lib/postgresql-42.3.4.jar");
-      // 9.0.62-3
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.62-3" + oldSuffix, mysql, "lib/mysql-connector-java-8.0.29.jar");
-      // 9.0.63-1
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.63-1" + oldSuffix, psql, "lib/postgresql-42.3.5.jar");
-      // 9.0.63-2
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.63-2" + oldSuffix, psql, "lib/postgresql-42.3.6.jar");
-      // 9.0.64-1
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.64-1" + oldSuffix, psql, "lib/postgresql-42.4.0.jar");
-      // 9.0.65-1
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.65-1" + oldSuffix, mysql, "lib/mysql-connector-java-8.0.30.jar");
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.65-1" + oldSuffix, psql, "lib/postgresql-42.4.1.jar");
-      // 9.0.65-2
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.65-2" + oldSuffix, psql, "lib/postgresql-42.4.2.jar");
-      // 9.0.65-3
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.65-3" + oldSuffix, psql, "lib/postgresql-42.5.0.jar");
-      // 9.0.67-1
-      addUpgradeWithNoSymlinkChanges(versionUpgrades, "9.0.67-1" + oldSuffix);
-      // 9.0.68-1
-      addUpgradeWithNoSymlinkChanges(versionUpgrades, "9.0.68-1" + oldSuffix);
-      // 9.0.68-2
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.68-2" + oldSuffix, mysql, "lib/mysql-connector-j-8.0.31.jar");
-      // 9.0.69-1
-      addUpgradeWithNoSymlinkChanges(versionUpgrades, "9.0.69-1" + oldSuffix);
-      // 9.0.69-2
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.69-2" + oldSuffix, psql, "lib/postgresql-42.5.1.jar");
-      // 9.0.70-1
-      addUpgradeWithNoSymlinkChanges(versionUpgrades, "9.0.70-1" + oldSuffix);
-      // 9.0.70-2
-      addUpgradeWithNoSymlinkChanges(versionUpgrades, "9.0.70-2" + oldSuffix);
-      // 9.0.71-1 (switch to aorepo.org here, oldSuffix becomes suffix)
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.71-1" + suffix, mysql, "lib/mysql-connector-j-8.0.32.jar");
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.71-1" + suffix, psql, "lib/postgresql-42.5.4.jar");
-      // 9.0.78-1
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.78-1" + suffix, mysql, "lib/mysql-connector-j-8.0.33.jar");
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.78-1" + suffix, psql, "lib/postgresql-42.6.0.jar");
-      // 9.0.78-2
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.78-2" + suffix, mysql, "lib/mysql-connector-j-8.1.0.jar");
-      // 9.0.79-1
-      addUpgradeWithNoSymlinkChanges(versionUpgrades, "9.0.79-1" + suffix);
-      // 9.0.80-1
-      addUpgradeWithNoSymlinkChanges(versionUpgrades, "9.0.80-1" + suffix);
-      // 9.0.81-1
-      addUpgradeWithNoSymlinkChanges(versionUpgrades, "9.0.81-1" + suffix);
-      // 9.0.82-1
-      addUpgradeWithNoSymlinkChanges(versionUpgrades, "9.0.82-1" + suffix);
-      // 9.0.83-1
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.83-1" + suffix, mysql, "lib/mysql-connector-j-8.2.0.jar");
-      // 9.0.89-1
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.89-1" + suffix, mysql, "lib/mysql-connector-j-8.4.0.jar");
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.89-1" + suffix, psql, "lib/postgresql-42.7.3.jar");
-      // 9.0.91-1
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.91-1" + suffix, mysql, "lib/mysql-connector-j-9.0.0.jar");
-      // 9.0.93-1 (tomcat-coyote-ffm.jar introduced)
-      String tomcatCoyoteFfm = addNewSymlink(optSlash, versionUpgrades, "9.0.93-1" + suffix, "lib/tomcat-coyote-ffm.jar");
-      // 9.0.98-1
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.98-1" + suffix, mysql, "lib/mysql-connector-j-9.2.0.jar");
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.98-1" + suffix, psql, "lib/postgresql-42.7.5.jar");
-      // 9.0.106-1
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.106-1" + suffix, mysql, "lib/mysql-connector-j-9.3.0.jar");
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.106-1" + suffix, psql, "lib/postgresql-42.7.7.jar");
-      // 9.0.107-1
-      addUpgradeWithNoSymlinkChanges(versionUpgrades, "9.0.107-1" + suffix);
-      // 9.0.112-1
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.112-1" + suffix, mysql, "lib/mysql-connector-j-9.5.0.jar");
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.112-1" + suffix, psql, "lib/postgresql-42.7.8.jar");
-      // 9.0.113-1
-      addUpgradeWithNoSymlinkChanges(versionUpgrades, "9.0.113-1" + suffix);
-      // 9.0.118-1
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.118-1" + suffix, mysql, "lib/mysql-connector-j-9.7.0.jar");
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.118-1" + suffix, psql, "lib/postgresql-42.7.11.jar");
-      // 9.0.121-1
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.121-1" + suffix, mysql, "lib/mysql-connector-j-26.7.0.jar");
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "9.0.121-1" + suffix, psql, "lib/postgresql-42.7.13.jar");
+
+      // Versions
+      version = "9.0.46-1" + oldSuffix;
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-java-8.0.25.jar");
+
+      version = "9.0.48-1" + oldSuffix;
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.2.22.jar");
+
+      version = "9.0.50-1" + oldSuffix;
+      ecj = addUpgradeSymlink(optSlash, versionUpgrades, version, ecj, "lib/ecj-4.20.jar");
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-java-8.0.26.jar");
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.2.23.jar");
+
+      version = "9.0.52-1" + oldSuffix;
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, version);
+
+      version = "9.0.53-1" + oldSuffix;
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, version);
+
+      version = "9.0.53-2" + oldSuffix;
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.2.24.jar");
+
+      version = "9.0.54-1" + oldSuffix;
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, version);
+
+      version = "9.0.54-2" + oldSuffix;
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-java-8.0.27.jar");
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.3.0.jar");
+
+      version = "9.0.55-1" + oldSuffix;
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.3.1.jar");
+
+      version = "9.0.56-1" + oldSuffix;
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, version);
+
+      version = "9.0.56-2" + oldSuffix;
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-java-8.0.28.jar");
+
+      version = "9.0.58-1" + oldSuffix;
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, version);
+
+      version = "9.0.59-1" + oldSuffix;
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.3.3.jar");
+
+      version = "9.0.60-1" + oldSuffix;
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, version);
+
+      version = "9.0.62-1" + oldSuffix;
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, version);
+
+      version = "9.0.62-2" + oldSuffix;
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.3.4.jar");
+
+      version = "9.0.62-3" + oldSuffix;
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-java-8.0.29.jar");
+
+      version = "9.0.63-1" + oldSuffix;
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.3.5.jar");
+
+      version = "9.0.63-2" + oldSuffix;
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.3.6.jar");
+
+      version = "9.0.64-1" + oldSuffix;
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.4.0.jar");
+
+      version = "9.0.65-1" + oldSuffix;
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-java-8.0.30.jar");
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.4.1.jar");
+
+      version = "9.0.65-2" + oldSuffix;
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.4.2.jar");
+
+      version = "9.0.65-3" + oldSuffix;
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.5.0.jar");
+
+      version = "9.0.67-1" + oldSuffix;
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, version);
+
+      version = "9.0.68-1" + oldSuffix;
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, version);
+
+      version = "9.0.68-2" + oldSuffix;
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-j-8.0.31.jar");
+
+      version = "9.0.69-1" + oldSuffix;
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, version);
+
+      version = "9.0.69-2" + oldSuffix;
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.5.1.jar");
+
+      version = "9.0.70-1" + oldSuffix;
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, version);
+
+      version = "9.0.70-2" + oldSuffix;
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, version);
+
+      // switch to aorepo.org here, oldSuffix becomes suffix
+
+      version = "9.0.71-1" + suffix;
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-j-8.0.32.jar");
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.5.4.jar");
+
+      version = "9.0.78-1" + suffix;
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-j-8.0.33.jar");
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.6.0.jar");
+
+      version = "9.0.78-2" + suffix;
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-j-8.1.0.jar");
+
+      version = "9.0.79-1" + suffix;
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, version);
+
+      version = "9.0.80-1" + suffix;
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, version);
+
+      version = "9.0.81-1" + suffix;
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, version);
+
+      version = "9.0.82-1" + suffix;
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, version);
+
+      version = "9.0.83-1" + suffix;
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-j-8.2.0.jar");
+
+      version = "9.0.89-1" + suffix;
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-j-8.4.0.jar");
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.7.3.jar");
+
+      version = "9.0.91-1" + suffix;
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-j-9.0.0.jar");
+
+      // tomcat-coyote-ffm.jar introduced
+      version = "9.0.93-1" + suffix;
+      @SuppressWarnings("unused")
+      String tomcatCoyoteFfm = addNewSymlink(optSlash, versionUpgrades, version, "lib/tomcat-coyote-ffm.jar");
+
+      version = "9.0.98-1" + suffix;
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-j-9.2.0.jar");
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.7.5.jar");
+
+      version = "9.0.106-1" + suffix;
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-j-9.3.0.jar");
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.7.7.jar");
+
+      version = "9.0.107-1" + suffix;
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, version);
+
+      version = "9.0.112-1" + suffix;
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-j-9.5.0.jar");
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.7.8.jar");
+
+      version = "9.0.113-1" + suffix;
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, version);
+
+      version = "9.0.118-1" + suffix;
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-j-9.7.0.jar");
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.7.11.jar");
+
+      version = "9.0.121-1" + suffix;
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-j-26.7.0.jar");
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.7.13.jar");
 
       // Downgrade support
       if (doDowngrades(tomcatDirectory, uid, gid, rpmVersion, versionUpgrades)) {

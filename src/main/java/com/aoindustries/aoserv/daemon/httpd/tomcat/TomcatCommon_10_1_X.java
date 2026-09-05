@@ -167,7 +167,7 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
    * @param optSlash  Relative path from the CATALINA_HOME to /opt/, including trailing slash, such as <code>../../opt/</code>.
    */
   @Override
-  @SuppressWarnings({"UnusedAssignment", "unused"})
+  @SuppressWarnings("UnusedAssignment")
   protected boolean upgradeTomcatDirectory(String optSlash, PosixFile tomcatDirectory, int uid, int gid) throws IOException, SQLException {
     // TODO: This might be able to simply use the same lnAll as used to initially create the lib/ directory
     boolean needsRestart = false;
@@ -181,66 +181,94 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
 
       // Version history
       Map<String, List<UpgradeSymlink>> versionUpgrades = new LinkedHashMap<>();
+
       // Starting point
+      String version;
       String ecj = "lib/ecj-4.25.jar";
       String jakartaeeMigration = "lib/jakartaee-migration-1.0.5-shaded.jar";
       String mysql = "lib/mysql-connector-j-8.0.31.jar";
       String psql = "lib/postgresql-42.5.0.jar";
-      // 10.1.2-2
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.2-2" + oldSuffix, psql, "lib/postgresql-42.5.1.jar");
-      // 10.1.4-1 (switch to aorepo.org here, oldSuffix becomes suffix)
-      jakartaeeMigration = addUpgradeSymlink(optSlash, versionUpgrades, "10.1.4-1" + suffix, jakartaeeMigration, "lib/jakartaee-migration-1.0.6-shaded.jar");
-      // 10.1.5-1
-      ecj = addUpgradeSymlink(optSlash, versionUpgrades, "10.1.5-1" + suffix, ecj, "lib/ecj-4.26.jar");
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.5-1" + suffix, mysql, "lib/mysql-connector-j-8.0.32.jar");
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.5-1" + suffix, psql, "lib/postgresql-42.5.4.jar");
-      // 10.1.11-1
-      ecj = addUpgradeSymlink(optSlash, versionUpgrades, "10.1.11-1" + suffix, ecj, "lib/ecj-4.27.jar");
-      jakartaeeMigration = addUpgradeSymlink(optSlash, versionUpgrades, "10.1.11-1" + suffix, jakartaeeMigration, "lib/jakartaee-migration-1.0.7-shaded.jar");
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.11-1" + suffix, mysql, "lib/mysql-connector-j-8.0.33.jar");
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.11-1" + suffix, psql, "lib/postgresql-42.6.0.jar");
-      // 10.1.11-2
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.11-2" + suffix, mysql, "lib/mysql-connector-j-8.1.0.jar");
-      // 10.1.12-1
-      addUpgradeWithNoSymlinkChanges(versionUpgrades, "10.1.12-1" + suffix);
-      // 10.1.13-1
-      addUpgradeWithNoSymlinkChanges(versionUpgrades, "10.1.13-1" + suffix);
-      // 10.1.14-1
-      addUpgradeWithNoSymlinkChanges(versionUpgrades, "10.1.14-1" + suffix);
-      // 10.1.15-1
-      addUpgradeWithNoSymlinkChanges(versionUpgrades, "10.1.15-1" + suffix);
-      // 10.1.16-1
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.16-1" + suffix, mysql, "lib/mysql-connector-j-8.2.0.jar");
-      // 10.1.24-1
-      jakartaeeMigration = addUpgradeSymlink(optSlash, versionUpgrades, "10.1.24-1" + suffix, jakartaeeMigration, "lib/jakartaee-migration-1.0.8-shaded.jar");
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.24-1" + suffix, mysql, "lib/mysql-connector-j-8.4.0.jar");
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.24-1" + suffix, psql, "lib/postgresql-42.7.3.jar");
-      // 10.1.26-1 (tomcat-coyote-ffm.jar introduced)
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.26-1" + suffix, mysql, "lib/mysql-connector-j-9.0.0.jar");
-      String tomcatCoyoteFfm = addNewSymlink(optSlash, versionUpgrades, "10.1.26-1" + suffix, "lib/tomcat-coyote-ffm.jar");
-      // 10.1.28-1
-      addUpgradeWithNoSymlinkChanges(versionUpgrades, "10.1.28-1" + suffix);
-      // 10.1.34-1
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.34-1" + suffix, mysql, "lib/mysql-connector-j-9.2.0.jar");
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.34-1" + suffix, psql, "lib/postgresql-42.7.5.jar");
-      // 10.1.42-1
-      jakartaeeMigration = addUpgradeSymlink(optSlash, versionUpgrades, "10.1.42-1" + suffix, jakartaeeMigration, "lib/jakartaee-migration-1.0.9-shaded.jar");
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.42-1" + suffix, mysql, "lib/mysql-connector-j-9.3.0.jar");
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.42-1" + suffix, psql, "lib/postgresql-42.7.7.jar");
-      // 10.1.43-1
-      addUpgradeWithNoSymlinkChanges(versionUpgrades, "10.1.43-1" + suffix);
-      // 10.1.49-1
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.49-1" + suffix, mysql, "lib/mysql-connector-j-9.5.0.jar");
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.49-1" + suffix, psql, "lib/postgresql-42.7.8.jar");
-      // 10.1.50-1
-      jakartaeeMigration = addUpgradeSymlink(optSlash, versionUpgrades, "10.1.50-1" + suffix, jakartaeeMigration, "lib/jakartaee-migration-1.0.10-shaded.jar");
-      // 10.1.55-1
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.55-1" + suffix, mysql, "lib/mysql-connector-j-9.7.0.jar");
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.55-1" + suffix, psql, "lib/postgresql-42.7.11.jar");
-      // 10.1.59-1
-      jakartaeeMigration = addUpgradeSymlink(optSlash, versionUpgrades, "10.1.59-1" + suffix, jakartaeeMigration, "lib/jakartaee-migration-1.0.12-shaded.jar");
-      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.59-1" + suffix, mysql, "lib/mysql-connector-j-26.7.0.jar");
-      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, "10.1.59-1" + suffix, psql, "lib/postgresql-42.7.13.jar");
+
+      // Versions
+      version = "10.1.2-2" + oldSuffix;
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.5.1.jar");
+
+      // switch to aorepo.org here, oldSuffix becomes suffix
+
+      version = "10.1.4-1" + suffix;
+      jakartaeeMigration = addUpgradeSymlink(optSlash, versionUpgrades, version, jakartaeeMigration, "lib/jakartaee-migration-1.0.6-shaded.jar");
+
+      version = "10.1.5-1" + suffix;
+      ecj = addUpgradeSymlink(optSlash, versionUpgrades, version, ecj, "lib/ecj-4.26.jar");
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-j-8.0.32.jar");
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.5.4.jar");
+
+      version = "10.1.11-1" + suffix;
+      ecj = addUpgradeSymlink(optSlash, versionUpgrades, version, ecj, "lib/ecj-4.27.jar");
+      jakartaeeMigration = addUpgradeSymlink(optSlash, versionUpgrades, version, jakartaeeMigration, "lib/jakartaee-migration-1.0.7-shaded.jar");
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-j-8.0.33.jar");
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.6.0.jar");
+
+      version = "10.1.11-2" + suffix;
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-j-8.1.0.jar");
+
+      version = "10.1.12-1" + suffix;
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, version);
+
+      version = "10.1.13-1" + suffix;
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, version);
+
+      version = "10.1.14-1" + suffix;
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, version);
+
+      version = "10.1.15-1" + suffix;
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, version);
+
+      version = "10.1.16-1" + suffix;
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-j-8.2.0.jar");
+
+      version = "10.1.24-1" + suffix;
+      jakartaeeMigration = addUpgradeSymlink(optSlash, versionUpgrades, version, jakartaeeMigration, "lib/jakartaee-migration-1.0.8-shaded.jar");
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-j-8.4.0.jar");
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.7.3.jar");
+
+      // tomcat-coyote-ffm.jar introduced
+
+      version = "10.1.26-1" + suffix;
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-j-9.0.0.jar");
+      @SuppressWarnings("unused")
+      String tomcatCoyoteFfm = addNewSymlink(optSlash, versionUpgrades, version, "lib/tomcat-coyote-ffm.jar");
+
+      version = "10.1.28-1" + suffix;
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, version);
+
+      version = "10.1.34-1" + suffix;
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-j-9.2.0.jar");
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.7.5.jar");
+
+      version = "10.1.42-1" + suffix;
+      jakartaeeMigration = addUpgradeSymlink(optSlash, versionUpgrades, version, jakartaeeMigration, "lib/jakartaee-migration-1.0.9-shaded.jar");
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-j-9.3.0.jar");
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.7.7.jar");
+
+      version = "10.1.43-1" + suffix;
+      addUpgradeWithNoSymlinkChanges(versionUpgrades, version);
+
+      version = "10.1.49-1" + suffix;
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-j-9.5.0.jar");
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.7.8.jar");
+
+      version = "10.1.50-1" + suffix;
+      jakartaeeMigration = addUpgradeSymlink(optSlash, versionUpgrades, version, jakartaeeMigration, "lib/jakartaee-migration-1.0.10-shaded.jar");
+
+      version = "10.1.55-1" + suffix;
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-j-9.7.0.jar");
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.7.11.jar");
+
+      version = "10.1.59-1" + suffix;
+      jakartaeeMigration = addUpgradeSymlink(optSlash, versionUpgrades, version, jakartaeeMigration, "lib/jakartaee-migration-1.0.12-shaded.jar");
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-j-26.7.0.jar");
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.7.13.jar");
 
       // Downgrade support
       if (doDowngrades(tomcatDirectory, uid, gid, rpmVersion, versionUpgrades)) {
