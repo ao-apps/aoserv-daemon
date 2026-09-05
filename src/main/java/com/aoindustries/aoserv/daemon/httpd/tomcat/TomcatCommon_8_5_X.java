@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025  AO Industries, Inc.
+ * Copyright (C) 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -174,6 +174,7 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
       final Version version = getRpmVersion(PackageManager.PackageName.APACHE_TOMCAT_8_5,
           PackageManager.PackageName.OLD_APACHE_TOMCAT_8_5);
       final String suffix = osConfig.getPackageReleaseSuffix();
+      final String tomcatDir = "../" + optSlash + getApacheTomcatDir();
       // Downgrade support
       if (version.compareTo("8.5.100-1" + suffix) < 0) {
         UpgradeSymlink[] downgradeSymlinks = {
@@ -186,9 +187,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-8.4.0.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-j-8.4.0.jar",
+                tomcatDir + "/lib/mysql-connector-j-8.4.0.jar",
                 "lib/mysql-connector-j-8.2.0.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-j-8.2.0.jar"
+                tomcatDir + "/lib/mysql-connector-j-8.2.0.jar"
             ),
             // postgresql-42.7.3.jar -> postgresql-42.6.0.jar
             new UpgradeSymlink(
@@ -199,9 +200,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.7.3.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.7.3.jar",
+                tomcatDir + "/lib/postgresql-42.7.3.jar",
                 "lib/postgresql-42.6.0.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.6.0.jar"
+                tomcatDir + "/lib/postgresql-42.6.0.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -221,9 +222,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-8.2.0.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-j-8.2.0.jar",
+                tomcatDir + "/lib/mysql-connector-j-8.2.0.jar",
                 "lib/mysql-connector-j-8.1.0.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-j-8.1.0.jar"
+                tomcatDir + "/lib/mysql-connector-j-8.1.0.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -255,9 +256,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-8.1.0.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-j-8.1.0.jar",
+                tomcatDir + "/lib/mysql-connector-j-8.1.0.jar",
                 "lib/mysql-connector-j-8.0.33.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-j-8.0.33.jar"
+                tomcatDir + "/lib/mysql-connector-j-8.0.33.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -277,9 +278,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-8.0.33.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-j-8.0.33.jar",
+                tomcatDir + "/lib/mysql-connector-j-8.0.33.jar",
                 "lib/mysql-connector-j-8.0.32.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-j-8.0.32.jar"
+                tomcatDir + "/lib/mysql-connector-j-8.0.32.jar"
             ),
             // postgresql-42.6.0.jar -> postgresql-42.5.4.jar
             new UpgradeSymlink(
@@ -290,9 +291,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.6.0.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.6.0.jar",
+                tomcatDir + "/lib/postgresql-42.6.0.jar",
                 "lib/postgresql-42.5.4.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.5.4.jar"
+                tomcatDir + "/lib/postgresql-42.5.4.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -312,9 +313,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-8.0.32.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-j-8.0.32.jar",
+                tomcatDir + "/lib/mysql-connector-j-8.0.32.jar",
                 "lib/mysql-connector-j-8.0.31.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-j-8.0.31.jar"
+                tomcatDir + "/lib/mysql-connector-j-8.0.31.jar"
             ),
             // postgresql-42.5.4.jar -> postgresql-42.5.1.jar
             new UpgradeSymlink(
@@ -325,9 +326,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.5.4.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.5.4.jar",
+                tomcatDir + "/lib/postgresql-42.5.4.jar",
                 "lib/postgresql-42.5.1.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.5.1.jar"
+                tomcatDir + "/lib/postgresql-42.5.1.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -351,9 +352,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.5.1.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.5.1.jar",
+                tomcatDir + "/lib/postgresql-42.5.1.jar",
                 "lib/postgresql-42.5.0.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.5.0.jar"
+                tomcatDir + "/lib/postgresql-42.5.0.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -373,9 +374,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-8.0.31.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-j-8.0.31.jar",
+                tomcatDir + "/lib/mysql-connector-j-8.0.31.jar",
                 "lib/mysql-connector-java-8.0.30.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.30.jar"
+                tomcatDir + "/lib/mysql-connector-java-8.0.30.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -395,9 +396,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.5.0.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.5.0.jar",
+                tomcatDir + "/lib/postgresql-42.5.0.jar",
                 "lib/postgresql-42.4.2.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.4.2.jar"
+                tomcatDir + "/lib/postgresql-42.4.2.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -417,9 +418,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.4.2.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.4.2.jar",
+                tomcatDir + "/lib/postgresql-42.4.2.jar",
                 "lib/postgresql-42.4.1.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.4.1.jar"
+                tomcatDir + "/lib/postgresql-42.4.1.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -439,9 +440,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-java-8.0.30.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.30.jar",
+                tomcatDir + "/lib/mysql-connector-java-8.0.30.jar",
                 "lib/mysql-connector-java-8.0.29.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.29.jar"
+                tomcatDir + "/lib/mysql-connector-java-8.0.29.jar"
             ),
             // postgresql-42.4.1.jar -> postgresql-42.4.0.jar
             new UpgradeSymlink(
@@ -452,9 +453,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.4.1.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.4.1.jar",
+                tomcatDir + "/lib/postgresql-42.4.1.jar",
                 "lib/postgresql-42.4.0.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.4.0.jar"
+                tomcatDir + "/lib/postgresql-42.4.0.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -474,9 +475,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.4.0.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.4.0.jar",
+                tomcatDir + "/lib/postgresql-42.4.0.jar",
                 "lib/postgresql-42.3.6.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.3.6.jar"
+                tomcatDir + "/lib/postgresql-42.3.6.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -496,9 +497,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.3.6.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.3.6.jar",
+                tomcatDir + "/lib/postgresql-42.3.6.jar",
                 "lib/postgresql-42.3.4.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.3.4.jar"
+                tomcatDir + "/lib/postgresql-42.3.4.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -518,9 +519,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-java-8.0.29.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.29.jar",
+                tomcatDir + "/lib/mysql-connector-java-8.0.29.jar",
                 "lib/mysql-connector-java-8.0.28.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.28.jar"
+                tomcatDir + "/lib/mysql-connector-java-8.0.28.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -540,9 +541,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.3.4.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.3.4.jar",
+                tomcatDir + "/lib/postgresql-42.3.4.jar",
                 "lib/postgresql-42.3.3.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.3.3.jar"
+                tomcatDir + "/lib/postgresql-42.3.3.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -568,9 +569,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.3.3.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.3.3.jar",
+                tomcatDir + "/lib/postgresql-42.3.3.jar",
                 "lib/postgresql-42.3.1.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.3.1.jar"
+                tomcatDir + "/lib/postgresql-42.3.1.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -593,9 +594,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-java-8.0.28.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.28.jar",
+                tomcatDir + "/lib/mysql-connector-java-8.0.28.jar",
                 "lib/mysql-connector-java-8.0.27.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.27.jar"
+                tomcatDir + "/lib/mysql-connector-java-8.0.27.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -615,9 +616,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.3.1.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.3.1.jar",
+                tomcatDir + "/lib/postgresql-42.3.1.jar",
                 "lib/postgresql-42.3.0.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.3.0.jar"
+                tomcatDir + "/lib/postgresql-42.3.0.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -637,9 +638,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-java-8.0.27.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.27.jar",
+                tomcatDir + "/lib/mysql-connector-java-8.0.27.jar",
                 "lib/mysql-connector-java-8.0.26.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.26.jar"
+                tomcatDir + "/lib/mysql-connector-java-8.0.26.jar"
             ),
             // postgresql-42.3.0.jar -> postgresql-42.2.24.jar
             new UpgradeSymlink(
@@ -650,9 +651,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.3.0.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.3.0.jar",
+                tomcatDir + "/lib/postgresql-42.3.0.jar",
                 "lib/postgresql-42.2.24.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.24.jar"
+                tomcatDir + "/lib/postgresql-42.2.24.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -672,9 +673,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.2.24.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.24.jar",
+                tomcatDir + "/lib/postgresql-42.2.24.jar",
                 "lib/postgresql-42.2.23.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.23.jar"
+                tomcatDir + "/lib/postgresql-42.2.23.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -700,9 +701,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-java-8.0.26.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.26.jar",
+                tomcatDir + "/lib/mysql-connector-java-8.0.26.jar",
                 "lib/mysql-connector-java-8.0.25.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.25.jar"
+                tomcatDir + "/lib/mysql-connector-java-8.0.25.jar"
             ),
             // postgresql-42.2.23.jar -> postgresql-42.2.22.jar
             new UpgradeSymlink(
@@ -713,9 +714,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.2.23.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.23.jar",
+                tomcatDir + "/lib/postgresql-42.2.23.jar",
                 "lib/postgresql-42.2.22.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.22.jar"
+                tomcatDir + "/lib/postgresql-42.2.22.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -735,9 +736,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.2.22.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.22.jar",
+                tomcatDir + "/lib/postgresql-42.2.22.jar",
                 "lib/postgresql-42.2.20.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.20.jar"
+                tomcatDir + "/lib/postgresql-42.2.20.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -761,9 +762,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-java-8.0.24.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.24.jar",
+                tomcatDir + "/lib/mysql-connector-java-8.0.24.jar",
                 "lib/mysql-connector-java-8.0.25.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.25.jar"
+                tomcatDir + "/lib/mysql-connector-java-8.0.25.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -783,9 +784,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.2.20.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.20.jar",
+                tomcatDir + "/lib/postgresql-42.2.20.jar",
                 "lib/postgresql-42.2.22.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.22.jar"
+                tomcatDir + "/lib/postgresql-42.2.22.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -805,9 +806,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-java-8.0.25.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.25.jar",
+                tomcatDir + "/lib/mysql-connector-java-8.0.25.jar",
                 "lib/mysql-connector-java-8.0.26.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.26.jar"
+                tomcatDir + "/lib/mysql-connector-java-8.0.26.jar"
             ),
             // postgresql-42.2.22.jar -> postgresql-42.2.23.jar
             new UpgradeSymlink(
@@ -818,9 +819,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.2.22.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.22.jar",
+                tomcatDir + "/lib/postgresql-42.2.22.jar",
                 "lib/postgresql-42.2.23.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.23.jar"
+                tomcatDir + "/lib/postgresql-42.2.23.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -846,9 +847,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.2.23.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.23.jar",
+                tomcatDir + "/lib/postgresql-42.2.23.jar",
                 "lib/postgresql-42.2.24.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.24.jar"
+                tomcatDir + "/lib/postgresql-42.2.24.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -868,9 +869,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-java-8.0.26.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.26.jar",
+                tomcatDir + "/lib/mysql-connector-java-8.0.26.jar",
                 "lib/mysql-connector-java-8.0.27.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.27.jar"
+                tomcatDir + "/lib/mysql-connector-java-8.0.27.jar"
             ),
             // postgresql-42.2.24.jar -> postgresql-42.3.0.jar
             new UpgradeSymlink(
@@ -881,9 +882,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.2.24.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.24.jar",
+                tomcatDir + "/lib/postgresql-42.2.24.jar",
                 "lib/postgresql-42.3.0.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.3.0.jar"
+                tomcatDir + "/lib/postgresql-42.3.0.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -903,9 +904,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.3.0.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.3.0.jar",
+                tomcatDir + "/lib/postgresql-42.3.0.jar",
                 "lib/postgresql-42.3.1.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.3.1.jar"
+                tomcatDir + "/lib/postgresql-42.3.1.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -925,9 +926,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-java-8.0.27.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.27.jar",
+                tomcatDir + "/lib/mysql-connector-java-8.0.27.jar",
                 "lib/mysql-connector-java-8.0.28.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.28.jar"
+                tomcatDir + "/lib/mysql-connector-java-8.0.28.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -950,9 +951,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.3.1.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.3.1.jar",
+                tomcatDir + "/lib/postgresql-42.3.1.jar",
                 "lib/postgresql-42.3.3.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.3.3.jar"
+                tomcatDir + "/lib/postgresql-42.3.3.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -978,9 +979,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.3.3.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.3.3.jar",
+                tomcatDir + "/lib/postgresql-42.3.3.jar",
                 "lib/postgresql-42.3.4.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.3.4.jar"
+                tomcatDir + "/lib/postgresql-42.3.4.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -1000,9 +1001,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-java-8.0.28.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.28.jar",
+                tomcatDir + "/lib/mysql-connector-java-8.0.28.jar",
                 "lib/mysql-connector-java-8.0.29.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.29.jar"
+                tomcatDir + "/lib/mysql-connector-java-8.0.29.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -1022,9 +1023,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.3.4.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.3.4.jar",
+                tomcatDir + "/lib/postgresql-42.3.4.jar",
                 "lib/postgresql-42.3.6.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.3.6.jar"
+                tomcatDir + "/lib/postgresql-42.3.6.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -1044,9 +1045,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.3.6.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.3.6.jar",
+                tomcatDir + "/lib/postgresql-42.3.6.jar",
                 "lib/postgresql-42.4.0.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.4.0.jar"
+                tomcatDir + "/lib/postgresql-42.4.0.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -1066,9 +1067,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-java-8.0.29.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.29.jar",
+                tomcatDir + "/lib/mysql-connector-java-8.0.29.jar",
                 "lib/mysql-connector-java-8.0.30.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.30.jar"
+                tomcatDir + "/lib/mysql-connector-java-8.0.30.jar"
             ),
             // postgresql-42.4.0.jar -> postgresql-42.4.1.jar
             new UpgradeSymlink(
@@ -1079,9 +1080,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.4.0.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.4.0.jar",
+                tomcatDir + "/lib/postgresql-42.4.0.jar",
                 "lib/postgresql-42.4.1.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.4.1.jar"
+                tomcatDir + "/lib/postgresql-42.4.1.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -1101,9 +1102,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.4.1.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.4.1.jar",
+                tomcatDir + "/lib/postgresql-42.4.1.jar",
                 "lib/postgresql-42.4.2.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.4.2.jar"
+                tomcatDir + "/lib/postgresql-42.4.2.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -1123,9 +1124,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.4.2.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.4.2.jar",
+                tomcatDir + "/lib/postgresql-42.4.2.jar",
                 "lib/postgresql-42.5.0.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.5.0.jar"
+                tomcatDir + "/lib/postgresql-42.5.0.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -1145,9 +1146,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-java-8.0.30.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.30.jar",
+                tomcatDir + "/lib/mysql-connector-java-8.0.30.jar",
                 "lib/mysql-connector-j-8.0.31.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-j-8.0.31.jar"
+                tomcatDir + "/lib/mysql-connector-j-8.0.31.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -1167,9 +1168,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.5.0.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.5.0.jar",
+                tomcatDir + "/lib/postgresql-42.5.0.jar",
                 "lib/postgresql-42.5.1.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.5.1.jar"
+                tomcatDir + "/lib/postgresql-42.5.1.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -1192,9 +1193,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-8.0.31.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-j-8.0.31.jar",
+                tomcatDir + "/lib/mysql-connector-j-8.0.31.jar",
                 "lib/mysql-connector-j-8.0.32.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-j-8.0.32.jar"
+                tomcatDir + "/lib/mysql-connector-j-8.0.32.jar"
             ),
             // postgresql-42.5.1.jar -> postgresql-42.5.4.jar
             new UpgradeSymlink(
@@ -1205,9 +1206,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.5.1.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.5.1.jar",
+                tomcatDir + "/lib/postgresql-42.5.1.jar",
                 "lib/postgresql-42.5.4.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.5.4.jar"
+                tomcatDir + "/lib/postgresql-42.5.4.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -1227,9 +1228,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-8.0.32.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-j-8.0.32.jar",
+                tomcatDir + "/lib/mysql-connector-j-8.0.32.jar",
                 "lib/mysql-connector-j-8.0.33.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-j-8.0.33.jar"
+                tomcatDir + "/lib/mysql-connector-j-8.0.33.jar"
             ),
             // postgresql-42.5.4.jar -> postgresql-42.6.0.jar
             new UpgradeSymlink(
@@ -1240,9 +1241,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.5.4.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.5.4.jar",
+                tomcatDir + "/lib/postgresql-42.5.4.jar",
                 "lib/postgresql-42.6.0.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.6.0.jar"
+                tomcatDir + "/lib/postgresql-42.6.0.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -1262,9 +1263,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-8.0.33.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-j-8.0.33.jar",
+                tomcatDir + "/lib/mysql-connector-j-8.0.33.jar",
                 "lib/mysql-connector-j-8.1.0.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-j-8.1.0.jar"
+                tomcatDir + "/lib/mysql-connector-j-8.1.0.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -1296,9 +1297,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-8.1.0.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-j-8.1.0.jar",
+                tomcatDir + "/lib/mysql-connector-j-8.1.0.jar",
                 "lib/mysql-connector-j-8.2.0.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-j-8.2.0.jar"
+                tomcatDir + "/lib/mysql-connector-j-8.2.0.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -1318,9 +1319,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-8.2.0.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-j-8.2.0.jar",
+                tomcatDir + "/lib/mysql-connector-j-8.2.0.jar",
                 "lib/mysql-connector-j-8.4.0.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-j-8.4.0.jar"
+                tomcatDir + "/lib/mysql-connector-j-8.4.0.jar"
             ),
             // postgresql-42.6.0.jar -> postgresql-42.7.3.jar
             new UpgradeSymlink(
@@ -1331,9 +1332,9 @@ final class TomcatCommon_8_5_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.6.0.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.6.0.jar",
+                tomcatDir + "/lib/postgresql-42.6.0.jar",
                 "lib/postgresql-42.7.3.jar",
-                "../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.7.3.jar"
+                tomcatDir + "/lib/postgresql-42.7.3.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {

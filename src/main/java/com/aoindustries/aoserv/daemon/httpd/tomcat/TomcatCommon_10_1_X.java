@@ -174,15 +174,16 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
       final Version version = getRpmVersion(PackageManager.PackageName.APACHE_TOMCAT_10_1,
           PackageManager.PackageName.OLD_APACHE_TOMCAT_10_1);
       final String suffix = osConfig.getPackageReleaseSuffix();
+      final String tomcatDir = "../" + optSlash + getApacheTomcatDir();
       // Downgrade support
       if (version.compareTo("10.1.59-1" + suffix) < 0) {
         UpgradeSymlink[] downgradeSymlinks = {
             // jakartaee-migration-1.0.12-shaded.jar -> jakartaee-migration-1.0.10-shaded.jar
             new UpgradeSymlink(
                 "lib/jakartaee-migration-1.0.12-shaded.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/jakartaee-migration-1.0.12-shaded.jar",
+                tomcatDir + "/lib/jakartaee-migration-1.0.12-shaded.jar",
                 "lib/jakartaee-migration-1.0.10-shaded.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/jakartaee-migration-1.0.10-shaded.jar"
+                tomcatDir + "/lib/jakartaee-migration-1.0.10-shaded.jar"
             ),
             // mysql-connector-j-26.7.0.jar -> mysql-connector-j-9.7.0.jar
             new UpgradeSymlink(
@@ -193,9 +194,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-26.7.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-26.7.0.jar",
+                tomcatDir + "/lib/mysql-connector-j-26.7.0.jar",
                 "lib/mysql-connector-j-9.7.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-9.7.0.jar"
+                tomcatDir + "/lib/mysql-connector-j-9.7.0.jar"
             ),
             // postgresql-42.7.13.jar -> postgresql-42.7.11.jar
             new UpgradeSymlink(
@@ -206,9 +207,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.7.13.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.7.13.jar",
+                tomcatDir + "/lib/postgresql-42.7.13.jar",
                 "lib/postgresql-42.7.11.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.7.11.jar"
+                tomcatDir + "/lib/postgresql-42.7.11.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -228,9 +229,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-9.7.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-9.7.0.jar",
+                tomcatDir + "/lib/mysql-connector-j-9.7.0.jar",
                 "lib/mysql-connector-j-9.5.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-9.5.0.jar"
+                tomcatDir + "/lib/mysql-connector-j-9.5.0.jar"
             ),
             // postgresql-42.7.11.jar -> postgresql-42.7.8.jar
             new UpgradeSymlink(
@@ -241,9 +242,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.7.11.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.7.11.jar",
+                tomcatDir + "/lib/postgresql-42.7.11.jar",
                 "lib/postgresql-42.7.8.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.7.8.jar"
+                tomcatDir + "/lib/postgresql-42.7.8.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -257,9 +258,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             // jakartaee-migration-1.0.10-shaded.jar -> jakartaee-migration-1.0.9-shaded.jar
             new UpgradeSymlink(
                 "lib/jakartaee-migration-1.0.10-shaded.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/jakartaee-migration-1.0.10-shaded.jar",
+                tomcatDir + "/lib/jakartaee-migration-1.0.10-shaded.jar",
                 "lib/jakartaee-migration-1.0.9-shaded.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/jakartaee-migration-1.0.9-shaded.jar"
+                tomcatDir + "/lib/jakartaee-migration-1.0.9-shaded.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -279,9 +280,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-9.5.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-9.5.0.jar",
+                tomcatDir + "/lib/mysql-connector-j-9.5.0.jar",
                 "lib/mysql-connector-j-9.3.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-9.3.0.jar"
+                tomcatDir + "/lib/mysql-connector-j-9.3.0.jar"
             ),
             // postgresql-42.7.8.jar -> postgresql-42.7.7.jar
             new UpgradeSymlink(
@@ -292,9 +293,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.7.8.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.7.8.jar",
+                tomcatDir + "/lib/postgresql-42.7.8.jar",
                 "lib/postgresql-42.7.7.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.7.7.jar"
+                tomcatDir + "/lib/postgresql-42.7.7.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -311,9 +312,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             // jakartaee-migration-1.0.9-shaded.jar -> jakartaee-migration-1.0.8-shaded.jar
             new UpgradeSymlink(
                 "lib/jakartaee-migration-1.0.9-shaded.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/jakartaee-migration-1.0.9-shaded.jar",
+                tomcatDir + "/lib/jakartaee-migration-1.0.9-shaded.jar",
                 "lib/jakartaee-migration-1.0.8-shaded.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/jakartaee-migration-1.0.8-shaded.jar"
+                tomcatDir + "/lib/jakartaee-migration-1.0.8-shaded.jar"
             ),
             // mysql-connector-j-9.3.0.jar -> mysql-connector-j-9.2.0.jar
             new UpgradeSymlink(
@@ -324,9 +325,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-9.3.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-9.3.0.jar",
+                tomcatDir + "/lib/mysql-connector-j-9.3.0.jar",
                 "lib/mysql-connector-j-9.2.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-9.2.0.jar"
+                tomcatDir + "/lib/mysql-connector-j-9.2.0.jar"
             ),
             // postgresql-42.7.7.jar -> postgresql-42.7.5.jar
             new UpgradeSymlink(
@@ -337,9 +338,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.7.7.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.7.7.jar",
+                tomcatDir + "/lib/postgresql-42.7.7.jar",
                 "lib/postgresql-42.7.5.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.7.5.jar"
+                tomcatDir + "/lib/postgresql-42.7.5.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -359,9 +360,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-9.2.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-9.2.0.jar",
+                tomcatDir + "/lib/mysql-connector-j-9.2.0.jar",
                 "lib/mysql-connector-j-9.0.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-9.0.0.jar"
+                tomcatDir + "/lib/mysql-connector-j-9.0.0.jar"
             ),
             // postgresql-42.7.5.jar -> postgresql-42.7.3.jar
             new UpgradeSymlink(
@@ -372,9 +373,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.7.5.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.7.5.jar",
+                tomcatDir + "/lib/postgresql-42.7.5.jar",
                 "lib/postgresql-42.7.3.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.7.3.jar"
+                tomcatDir + "/lib/postgresql-42.7.3.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -397,14 +398,14 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-9.0.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-9.0.0.jar",
+                tomcatDir + "/lib/mysql-connector-j-9.0.0.jar",
                 "lib/mysql-connector-j-8.4.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.4.0.jar"
+                tomcatDir + "/lib/mysql-connector-j-8.4.0.jar"
             ),
             // tomcat-coyote-ffm.jar introduced
             new UpgradeSymlink(
                 "lib/tomcat-coyote-ffm.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/tomcat-coyote-ffm.jar",
+                tomcatDir + "/lib/tomcat-coyote-ffm.jar",
                 null
             ),
         };
@@ -419,9 +420,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             // jakartaee-migration-1.0.8-shaded.jar -> jakartaee-migration-1.0.7-shaded.jar
             new UpgradeSymlink(
                 "lib/jakartaee-migration-1.0.8-shaded.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/jakartaee-migration-1.0.8-shaded.jar",
+                tomcatDir + "/lib/jakartaee-migration-1.0.8-shaded.jar",
                 "lib/jakartaee-migration-1.0.7-shaded.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/jakartaee-migration-1.0.7-shaded.jar"
+                tomcatDir + "/lib/jakartaee-migration-1.0.7-shaded.jar"
             ),
             // mysql-connector-j-8.4.0.jar -> mysql-connector-j-8.2.0.jar
             new UpgradeSymlink(
@@ -432,9 +433,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-8.4.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.4.0.jar",
+                tomcatDir + "/lib/mysql-connector-j-8.4.0.jar",
                 "lib/mysql-connector-j-8.2.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.2.0.jar"
+                tomcatDir + "/lib/mysql-connector-j-8.2.0.jar"
             ),
             // postgresql-42.7.3.jar -> postgresql-42.6.0.jar
             new UpgradeSymlink(
@@ -445,9 +446,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.7.3.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.7.3.jar",
+                tomcatDir + "/lib/postgresql-42.7.3.jar",
                 "lib/postgresql-42.6.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.6.0.jar"
+                tomcatDir + "/lib/postgresql-42.6.0.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -467,9 +468,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-8.2.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.2.0.jar",
+                tomcatDir + "/lib/mysql-connector-j-8.2.0.jar",
                 "lib/mysql-connector-j-8.1.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.1.0.jar"
+                tomcatDir + "/lib/mysql-connector-j-8.1.0.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -501,9 +502,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-8.1.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.1.0.jar",
+                tomcatDir + "/lib/mysql-connector-j-8.1.0.jar",
                 "lib/mysql-connector-j-8.0.33.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.0.33.jar"
+                tomcatDir + "/lib/mysql-connector-j-8.0.33.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -517,16 +518,16 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             // ecj-4.27.jar -> ecj-4.26.jar
             new UpgradeSymlink(
                 "lib/ecj-4.27.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/ecj-4.27.jar",
+                tomcatDir + "/lib/ecj-4.27.jar",
                 "lib/ecj-4.26.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/ecj-4.26.jar"
+                tomcatDir + "/lib/ecj-4.26.jar"
             ),
             // jakartaee-migration-1.0.7-shaded.jar -> jakartaee-migration-1.0.6-shaded.jar
             new UpgradeSymlink(
                 "lib/jakartaee-migration-1.0.7-shaded.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/jakartaee-migration-1.0.7-shaded.jar",
+                tomcatDir + "/lib/jakartaee-migration-1.0.7-shaded.jar",
                 "lib/jakartaee-migration-1.0.6-shaded.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/jakartaee-migration-1.0.6-shaded.jar"
+                tomcatDir + "/lib/jakartaee-migration-1.0.6-shaded.jar"
             ),
             // mysql-connector-j-8.0.33.jar -> mysql-connector-j-8.0.32.jar
             new UpgradeSymlink(
@@ -537,9 +538,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-8.0.33.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.0.33.jar",
+                tomcatDir + "/lib/mysql-connector-j-8.0.33.jar",
                 "lib/mysql-connector-j-8.0.32.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.0.32.jar"
+                tomcatDir + "/lib/mysql-connector-j-8.0.32.jar"
             ),
             // postgresql-42.6.0.jar -> postgresql-42.5.4.jar
             new UpgradeSymlink(
@@ -550,9 +551,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.6.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.6.0.jar",
+                tomcatDir + "/lib/postgresql-42.6.0.jar",
                 "lib/postgresql-42.5.4.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.5.4.jar"
+                tomcatDir + "/lib/postgresql-42.5.4.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -566,9 +567,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             // ecj-4.26.jar -> ecj-4.25.jar
             new UpgradeSymlink(
                 "lib/ecj-4.26.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/ecj-4.26.jar",
+                tomcatDir + "/lib/ecj-4.26.jar",
                 "lib/ecj-4.25.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/ecj-4.25.jar"
+                tomcatDir + "/lib/ecj-4.25.jar"
             ),
             // mysql-connector-j-8.0.32.jar -> mysql-connector-j-8.0.31.jar
             new UpgradeSymlink(
@@ -579,9 +580,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-8.0.32.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.0.32.jar",
+                tomcatDir + "/lib/mysql-connector-j-8.0.32.jar",
                 "lib/mysql-connector-j-8.0.31.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.0.31.jar"
+                tomcatDir + "/lib/mysql-connector-j-8.0.31.jar"
             ),
             // postgresql-42.5.4.jar -> postgresql-42.5.1.jar
             new UpgradeSymlink(
@@ -592,9 +593,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.5.4.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.5.4.jar",
+                tomcatDir + "/lib/postgresql-42.5.4.jar",
                 "lib/postgresql-42.5.1.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.5.1.jar"
+                tomcatDir + "/lib/postgresql-42.5.1.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -608,9 +609,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             // jakartaee-migration-1.0.6-shaded.jar -> jakartaee-migration-1.0.5-shaded.jar
             new UpgradeSymlink(
                 "lib/jakartaee-migration-1.0.6-shaded.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/jakartaee-migration-1.0.6-shaded.jar",
+                tomcatDir + "/lib/jakartaee-migration-1.0.6-shaded.jar",
                 "lib/jakartaee-migration-1.0.5-shaded.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/jakartaee-migration-1.0.5-shaded.jar"
+                tomcatDir + "/lib/jakartaee-migration-1.0.5-shaded.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -631,9 +632,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.5.1.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.5.1.jar",
+                tomcatDir + "/lib/postgresql-42.5.1.jar",
                 "lib/postgresql-42.5.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.5.0.jar"
+                tomcatDir + "/lib/postgresql-42.5.0.jar"
             ),
         };
         for (UpgradeSymlink symlink : downgradeSymlinks) {
@@ -657,9 +658,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.5.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.5.0.jar",
+                tomcatDir + "/lib/postgresql-42.5.0.jar",
                 "lib/postgresql-42.5.1.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.5.1.jar"
+                tomcatDir + "/lib/postgresql-42.5.1.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -673,9 +674,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             // jakartaee-migration-1.0.5-shaded.jar -> jakartaee-migration-1.0.6-shaded.jar
             new UpgradeSymlink(
                 "lib/jakartaee-migration-1.0.5-shaded.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/jakartaee-migration-1.0.5-shaded.jar",
+                tomcatDir + "/lib/jakartaee-migration-1.0.5-shaded.jar",
                 "lib/jakartaee-migration-1.0.6-shaded.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/jakartaee-migration-1.0.6-shaded.jar"
+                tomcatDir + "/lib/jakartaee-migration-1.0.6-shaded.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -689,9 +690,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             // ecj-4.25.jar -> ecj-4.26.jar
             new UpgradeSymlink(
                 "lib/ecj-4.25.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/ecj-4.25.jar",
+                tomcatDir + "/lib/ecj-4.25.jar",
                 "lib/ecj-4.26.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/ecj-4.26.jar"
+                tomcatDir + "/lib/ecj-4.26.jar"
             ),
             // mysql-connector-j-8.0.31.jar -> mysql-connector-j-8.0.32.jar
             new UpgradeSymlink(
@@ -702,9 +703,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-8.0.31.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.0.31.jar",
+                tomcatDir + "/lib/mysql-connector-j-8.0.31.jar",
                 "lib/mysql-connector-j-8.0.32.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.0.32.jar"
+                tomcatDir + "/lib/mysql-connector-j-8.0.32.jar"
             ),
             // postgresql-42.5.1.jar -> postgresql-42.5.4.jar
             new UpgradeSymlink(
@@ -715,9 +716,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.5.1.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.5.1.jar",
+                tomcatDir + "/lib/postgresql-42.5.1.jar",
                 "lib/postgresql-42.5.4.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.5.4.jar"
+                tomcatDir + "/lib/postgresql-42.5.4.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -731,16 +732,16 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             // ecj-4.26.jar -> ecj-4.27.jar
             new UpgradeSymlink(
                 "lib/ecj-4.26.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/ecj-4.26.jar",
+                tomcatDir + "/lib/ecj-4.26.jar",
                 "lib/ecj-4.27.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/ecj-4.27.jar"
+                tomcatDir + "/lib/ecj-4.27.jar"
             ),
             // jakartaee-migration-1.0.6-shaded.jar -> jakartaee-migration-1.0.7-shaded.jar
             new UpgradeSymlink(
                 "lib/jakartaee-migration-1.0.6-shaded.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/jakartaee-migration-1.0.6-shaded.jar",
+                tomcatDir + "/lib/jakartaee-migration-1.0.6-shaded.jar",
                 "lib/jakartaee-migration-1.0.7-shaded.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/jakartaee-migration-1.0.7-shaded.jar"
+                tomcatDir + "/lib/jakartaee-migration-1.0.7-shaded.jar"
             ),
             // mysql-connector-j-8.0.32.jar -> mysql-connector-j-8.0.33.jar
             new UpgradeSymlink(
@@ -751,9 +752,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-8.0.32.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.0.32.jar",
+                tomcatDir + "/lib/mysql-connector-j-8.0.32.jar",
                 "lib/mysql-connector-j-8.0.33.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.0.33.jar"
+                tomcatDir + "/lib/mysql-connector-j-8.0.33.jar"
             ),
             // postgresql-42.5.4.jar -> postgresql-42.6.0.jar
             new UpgradeSymlink(
@@ -764,9 +765,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.5.4.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.5.4.jar",
+                tomcatDir + "/lib/postgresql-42.5.4.jar",
                 "lib/postgresql-42.6.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.6.0.jar"
+                tomcatDir + "/lib/postgresql-42.6.0.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -786,9 +787,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-8.0.33.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.0.33.jar",
+                tomcatDir + "/lib/mysql-connector-j-8.0.33.jar",
                 "lib/mysql-connector-j-8.1.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.1.0.jar"
+                tomcatDir + "/lib/mysql-connector-j-8.1.0.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -820,9 +821,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-8.1.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.1.0.jar",
+                tomcatDir + "/lib/mysql-connector-j-8.1.0.jar",
                 "lib/mysql-connector-j-8.2.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.2.0.jar"
+                tomcatDir + "/lib/mysql-connector-j-8.2.0.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -836,9 +837,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             // jakartaee-migration-1.0.7-shaded.jar -> jakartaee-migration-1.0.8-shaded.jar
             new UpgradeSymlink(
                 "lib/jakartaee-migration-1.0.7-shaded.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/jakartaee-migration-1.0.7-shaded.jar",
+                tomcatDir + "/lib/jakartaee-migration-1.0.7-shaded.jar",
                 "lib/jakartaee-migration-1.0.8-shaded.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/jakartaee-migration-1.0.8-shaded.jar"
+                tomcatDir + "/lib/jakartaee-migration-1.0.8-shaded.jar"
             ),
             // mysql-connector-j-8.2.0.jar -> mysql-connector-j-8.4.0.jar
             new UpgradeSymlink(
@@ -849,9 +850,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-8.2.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.2.0.jar",
+                tomcatDir + "/lib/mysql-connector-j-8.2.0.jar",
                 "lib/mysql-connector-j-8.4.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.4.0.jar"
+                tomcatDir + "/lib/mysql-connector-j-8.4.0.jar"
             ),
             // postgresql-42.6.0.jar -> postgresql-42.7.3.jar
             new UpgradeSymlink(
@@ -862,9 +863,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.6.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.6.0.jar",
+                tomcatDir + "/lib/postgresql-42.6.0.jar",
                 "lib/postgresql-42.7.3.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.7.3.jar"
+                tomcatDir + "/lib/postgresql-42.7.3.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -884,15 +885,15 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-8.4.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-8.4.0.jar",
+                tomcatDir + "/lib/mysql-connector-j-8.4.0.jar",
                 "lib/mysql-connector-j-9.0.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-9.0.0.jar"
+                tomcatDir + "/lib/mysql-connector-j-9.0.0.jar"
             ),
             // tomcat-coyote-ffm.jar introduced
             new UpgradeSymlink(
                 "lib/tomcat-coyote-ffm.jar",
                 null,
-                "../" + optSlash + "apache-tomcat-10.1/lib/tomcat-coyote-ffm.jar"
+                tomcatDir + "/lib/tomcat-coyote-ffm.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -915,9 +916,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-9.0.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-9.0.0.jar",
+                tomcatDir + "/lib/mysql-connector-j-9.0.0.jar",
                 "lib/mysql-connector-j-9.2.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-9.2.0.jar"
+                tomcatDir + "/lib/mysql-connector-j-9.2.0.jar"
             ),
             // postgresql-42.7.3.jar -> postgresql-42.7.5.jar
             new UpgradeSymlink(
@@ -928,9 +929,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.7.3.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.7.3.jar",
+                tomcatDir + "/lib/postgresql-42.7.3.jar",
                 "lib/postgresql-42.7.5.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.7.5.jar"
+                tomcatDir + "/lib/postgresql-42.7.5.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -944,9 +945,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             // jakartaee-migration-1.0.8-shaded.jar -> jakartaee-migration-1.0.9-shaded.jar
             new UpgradeSymlink(
                 "lib/jakartaee-migration-1.0.8-shaded.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/jakartaee-migration-1.0.8-shaded.jar",
+                tomcatDir + "/lib/jakartaee-migration-1.0.8-shaded.jar",
                 "lib/jakartaee-migration-1.0.9-shaded.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/jakartaee-migration-1.0.9-shaded.jar"
+                tomcatDir + "/lib/jakartaee-migration-1.0.9-shaded.jar"
             ),
             // mysql-connector-j-9.2.0.jar -> mysql-connector-j-9.3.0.jar
             new UpgradeSymlink(
@@ -957,9 +958,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-9.2.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-9.2.0.jar",
+                tomcatDir + "/lib/mysql-connector-j-9.2.0.jar",
                 "lib/mysql-connector-j-9.3.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-9.3.0.jar"
+                tomcatDir + "/lib/mysql-connector-j-9.3.0.jar"
             ),
             // postgresql-42.7.5.jar -> postgresql-42.7.7.jar
             new UpgradeSymlink(
@@ -970,9 +971,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.7.5.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.7.5.jar",
+                tomcatDir + "/lib/postgresql-42.7.5.jar",
                 "lib/postgresql-42.7.7.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.7.7.jar"
+                tomcatDir + "/lib/postgresql-42.7.7.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -995,9 +996,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-9.3.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-9.3.0.jar",
+                tomcatDir + "/lib/mysql-connector-j-9.3.0.jar",
                 "lib/mysql-connector-j-9.5.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-9.5.0.jar"
+                tomcatDir + "/lib/mysql-connector-j-9.5.0.jar"
             ),
             // postgresql-42.7.7.jar -> postgresql-42.7.8.jar
             new UpgradeSymlink(
@@ -1008,9 +1009,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.7.7.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.7.7.jar",
+                tomcatDir + "/lib/postgresql-42.7.7.jar",
                 "lib/postgresql-42.7.8.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.7.8.jar"
+                tomcatDir + "/lib/postgresql-42.7.8.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -1024,9 +1025,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             // jakartaee-migration-1.0.9-shaded.jar -> jakartaee-migration-1.0.10-shaded.jar
             new UpgradeSymlink(
                 "lib/jakartaee-migration-1.0.9-shaded.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/jakartaee-migration-1.0.9-shaded.jar",
+                tomcatDir + "/lib/jakartaee-migration-1.0.9-shaded.jar",
                 "lib/jakartaee-migration-1.0.10-shaded.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/jakartaee-migration-1.0.10-shaded.jar"
+                tomcatDir + "/lib/jakartaee-migration-1.0.10-shaded.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -1046,9 +1047,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-9.5.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-9.5.0.jar",
+                tomcatDir + "/lib/mysql-connector-j-9.5.0.jar",
                 "lib/mysql-connector-j-9.7.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-9.7.0.jar"
+                tomcatDir + "/lib/mysql-connector-j-9.7.0.jar"
             ),
             // postgresql-42.7.8.jar -> postgresql-42.7.11.jar
             new UpgradeSymlink(
@@ -1059,9 +1060,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.7.8.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.7.8.jar",
+                tomcatDir + "/lib/postgresql-42.7.8.jar",
                 "lib/postgresql-42.7.11.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.7.11.jar"
+                tomcatDir + "/lib/postgresql-42.7.11.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
@@ -1075,9 +1076,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             // jakartaee-migration-1.0.10-shaded.jar -> jakartaee-migration-1.0.12-shaded.jar
             new UpgradeSymlink(
                 "lib/jakartaee-migration-1.0.10-shaded.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/jakartaee-migration-1.0.10-shaded.jar",
+                tomcatDir + "/lib/jakartaee-migration-1.0.10-shaded.jar",
                 "lib/jakartaee-migration-1.0.12-shaded.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/jakartaee-migration-1.0.12-shaded.jar"
+                tomcatDir + "/lib/jakartaee-migration-1.0.12-shaded.jar"
             ),
             // mysql-connector-j-9.7.0.jar -> mysql-connector-j-26.7.0.jar
             new UpgradeSymlink(
@@ -1088,9 +1089,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/mysql-connector-j-9.7.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-9.7.0.jar",
+                tomcatDir + "/lib/mysql-connector-j-9.7.0.jar",
                 "lib/mysql-connector-j-26.7.0.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/mysql-connector-j-26.7.0.jar"
+                tomcatDir + "/lib/mysql-connector-j-26.7.0.jar"
             ),
             // postgresql-42.7.11.jar -> postgresql-42.7.13.jar
             new UpgradeSymlink(
@@ -1101,9 +1102,9 @@ final class TomcatCommon_10_1_X extends VersionedTomcatCommon {
             ),
             new UpgradeSymlink(
                 "lib/postgresql-42.7.11.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.7.11.jar",
+                tomcatDir + "/lib/postgresql-42.7.11.jar",
                 "lib/postgresql-42.7.13.jar",
-                "../" + optSlash + "apache-tomcat-10.1/lib/postgresql-42.7.13.jar"
+                tomcatDir + "/lib/postgresql-42.7.13.jar"
             ),
         };
         for (UpgradeSymlink symlink : upgradeSymlinks) {
