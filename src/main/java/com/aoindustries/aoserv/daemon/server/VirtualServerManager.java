@@ -165,7 +165,7 @@ public final class VirtualServerManager {
         // for (Map.Entry<String, Object> entry : domainNode.entrySet()) {
         //   System.out.println(entry.getKey() + ": (" + entry.getValue().getClass() + ") " + entry.getValue());
         // }
-        domid = ((Double) domainNode.get("domid")).intValue();
+        domid = ((Number) domainNode.get("domid")).intValue();
         @SuppressWarnings("unchecked")
         Map<String, Object> configNode = (Map<String, Object>) domainNode.get("config");
         @SuppressWarnings("unchecked")
@@ -173,13 +173,13 @@ public final class VirtualServerManager {
         uuid = (String) cinfoNode.get("uuid");
         @SuppressWarnings("unchecked")
         Map<String, Object> binfoNode = (Map<String, Object>) configNode.get("b_info");
-        vcpus = ((Double) binfoNode.get("max_vcpus")).intValue();
+        vcpus = ((Number) binfoNode.get("max_vcpus")).intValue();
         @SuppressWarnings("unchecked")
         Map<String, Object> schedParamsNode = (Map<String, Object>) binfoNode.get("sched_params");
-        cpuWeight = (Double) schedParamsNode.get("weight");
-        memory = ((Double) binfoNode.get("target_memkb")).longValue();
-        shadowMemory = ((Double) binfoNode.get("shadow_memkb")).longValue();
-        maxmem = ((Double) binfoNode.get("max_memkb")).longValue();
+        cpuWeight = ((Number) schedParamsNode.get("weight")).doubleValue();
+        memory = ((Number) binfoNode.get("target_memkb")).longValue();
+        shadowMemory = ((Number) binfoNode.get("shadow_memkb")).longValue();
+        maxmem = ((Number) binfoNode.get("max_memkb")).longValue();
         name = (String) cinfoNode.get("name");
         onReboot = (String) configNode.get("on_reboot");
       } else {
