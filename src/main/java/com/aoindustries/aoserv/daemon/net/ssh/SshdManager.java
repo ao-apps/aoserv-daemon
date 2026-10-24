@@ -697,7 +697,7 @@ public final class SshdManager extends BuilderThread {
                       "reload"
                   );
                 } catch (IOException err) {
-                  logger.log(Level.SEVERE, null, err);
+                  logger.log(Level.SEVERE, "TODO: message here", err);
 
                   // Try more forceful stop/start
                   try {
@@ -706,12 +706,12 @@ public final class SshdManager extends BuilderThread {
                         "stop"
                     );
                   } catch (IOException err2) {
-                    logger.log(Level.SEVERE, null, err2);
+                    logger.log(Level.SEVERE, "TODO: message here", err2);
                   }
                   try {
                     Thread.sleep(1000);
                   } catch (InterruptedException err2) {
-                    logger.log(Level.WARNING, null, err2);
+                    logger.log(Level.WARNING, "TODO: message here", err2);
                     // Restore the interrupted status
                     Thread.currentThread().interrupt();
                   }
@@ -744,7 +744,7 @@ public final class SshdManager extends BuilderThread {
       }
       return true;
     } catch (Throwable t) {
-      logger.log(Level.SEVERE, null, t);
+      logger.log(Level.SEVERE, "TODO: message here", t);
       return false;
     }
   }

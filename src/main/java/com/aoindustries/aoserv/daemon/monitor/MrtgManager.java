@@ -716,7 +716,7 @@ public final class MrtgManager extends BuilderThread {
       }
       return true;
     } catch (Throwable t) {
-      logger.log(Level.SEVERE, null, t);
+      logger.log(Level.SEVERE, "TODO: message here", t);
       return false;
     }
   }
@@ -798,7 +798,7 @@ public final class MrtgManager extends BuilderThread {
             String line;
             while ((line = in.readLine()) != null) {
               if (devices.contains(line)) {
-                logger.log(Level.WARNING, null, new Throwable("Warning: duplicate device from list_partitions: " + line));
+                logger.log(Level.WARNING, "TODO: message here", new Throwable("Warning: duplicate device from list_partitions: " + line));
               } else {
                 devices.add(line);
               }

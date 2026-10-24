@@ -167,7 +167,7 @@ public final class AoservDaemonServer extends Thread {
                     AoservDaemonServerThread thread = new AoservDaemonServerThread(this, socket);
                     thread.start();
                   } catch (Throwable t) {
-                    logger.log(Level.SEVERE, null, t);
+                    logger.log(Level.SEVERE, "TODO: message here", t);
                   }
                 }
               } finally {
@@ -179,13 +179,13 @@ public final class AoservDaemonServer extends Thread {
             throw new IllegalArgumentException("Unsupported protocol: " + protocol);
         }
       } catch (Throwable t) {
-        logger.log(Level.SEVERE, null, t);
+        logger.log(Level.SEVERE, "TODO: message here", t);
       }
       if (!Thread.currentThread().isInterrupted()) {
         try {
           sleep(60000);
         } catch (InterruptedException err) {
-          logger.log(Level.WARNING, null, err);
+          logger.log(Level.WARNING, "TODO: message here", err);
           // Restore the interrupted status
           Thread.currentThread().interrupt();
         }

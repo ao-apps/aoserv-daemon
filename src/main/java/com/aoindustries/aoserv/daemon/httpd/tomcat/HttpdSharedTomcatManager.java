@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
+ * Copyright (C) 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024, 2025, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -221,7 +221,7 @@ public abstract class HttpdSharedTomcatManager<T extends TomcatCommon> implement
                 try {
                   Thread.sleep(5000);
                 } catch (InterruptedException err) {
-                  logger.log(Level.WARNING, null, err);
+                  logger.log(Level.WARNING, "TODO: message here", err);
                   // Restore the interrupted status
                   Thread.currentThread().interrupt();
                 }
@@ -253,12 +253,12 @@ public abstract class HttpdSharedTomcatManager<T extends TomcatCommon> implement
         Future<Object> commandFuture = AoservDaemon.executorService.submit(commandCallable);
         commandFuture.get(60, TimeUnit.SECONDS);
       } catch (InterruptedException err) {
-        logger.log(Level.WARNING, null, err);
+        logger.log(Level.WARNING, "TODO: message here", err);
         // Restore the interrupted status
         Thread.currentThread().interrupt();
         break;
       } catch (ExecutionException | TimeoutException err) {
-        logger.log(Level.WARNING, null, err);
+        logger.log(Level.WARNING, "TODO: message here", err);
       }
     }
   }
@@ -517,7 +517,7 @@ public abstract class HttpdSharedTomcatManager<T extends TomcatCommon> implement
             return true;
           }
         } catch (NumberFormatException err) {
-          logger.log(Level.WARNING, null, err);
+          logger.log(Level.WARNING, "TODO: message here", err);
         }
         return false;
       }

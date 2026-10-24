@@ -309,18 +309,18 @@ public final class RandomEntropyManager implements Runnable {
             try {
               Thread.sleep(sleepyTime);
             } catch (InterruptedException err) {
-              logger.log(Level.WARNING, null, err);
+              logger.log(Level.WARNING, "TODO: message here", err);
               // Restore the interrupted status
               Thread.currentThread().interrupt();
             }
           }
         }
       } catch (Throwable t) {
-        logger.log(Level.SEVERE, null, t);
+        logger.log(Level.SEVERE, "TODO: message here", t);
         try {
           Thread.sleep(ERROR_DELAY);
         } catch (InterruptedException err) {
-          logger.log(Level.WARNING, null, err);
+          logger.log(Level.WARNING, "TODO: message here", err);
           // Restore the interrupted status
           Thread.currentThread().interrupt();
         }

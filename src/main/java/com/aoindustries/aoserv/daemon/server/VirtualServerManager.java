@@ -294,7 +294,7 @@ public final class VirtualServerManager {
           }
         } catch (IOException err) {
           // Log as warning
-          logger.log(Level.FINE, null, err);
+          logger.log(Level.FINE, "TODO: message here", err);
         }
       }
     }
@@ -406,11 +406,11 @@ public final class VirtualServerManager {
                       try {
                         vncSocket.close();
                       } catch (SocketException e) {
-                        logger.log(Level.FINE, null, e);
+                        logger.log(Level.FINE, "TODO: message here", e);
                       }
                     }
                   } catch (Throwable t) {
-                    logger.log(Level.SEVERE, null, t);
+                    logger.log(Level.SEVERE, "TODO: message here", t);
                   }
                 });
                 inThread.start();
@@ -440,14 +440,14 @@ public final class VirtualServerManager {
                 try {
                   vncOut.close();
                 } catch (SocketException e) {
-                  logger.log(Level.FINE, null, e);
+                  logger.log(Level.FINE, "TODO: message here", e);
                 }
               }
             } finally {
               try {
                 vncIn.close();
               } catch (SocketException e) {
-                logger.log(Level.FINE, null, e);
+                logger.log(Level.FINE, "TODO: message here", e);
               }
             }
           } finally {
@@ -457,14 +457,14 @@ public final class VirtualServerManager {
           try {
             socketIn.close();
           } catch (SocketException e) {
-            logger.log(Level.FINE, null, e);
+            logger.log(Level.FINE, "TODO: message here", e);
           }
         }
       } finally {
         try {
           socketOut.close();
         } catch (SocketException e) {
-          logger.log(Level.FINE, null, e);
+          logger.log(Level.FINE, "TODO: message here", e);
         }
       }
     } catch (ParseException err) {
@@ -473,7 +473,7 @@ public final class VirtualServerManager {
       try {
         socket.close();
       } catch (SocketException e) {
-        logger.log(Level.FINE, null, e);
+        logger.log(Level.FINE, "TODO: message here", e);
       }
     }
   }
@@ -499,7 +499,7 @@ public final class VirtualServerManager {
         try {
           existingSocket.close();
         } catch (IOException err) {
-          logger.log(Level.INFO, null, err);
+          logger.log(Level.INFO, "TODO: message here", err);
         }
       }
       Socket vncSocket = new Socket("127.0.0.1", vncPort);
@@ -518,7 +518,7 @@ public final class VirtualServerManager {
       try {
         vncSocket.close();
       } catch (IOException err) {
-        logger.log(Level.INFO, null, err);
+        logger.log(Level.INFO, "TODO: message here", err);
       }
       if (openVncSockets.get(vncPort) == vncSocket) {
         openVncSockets.remove(vncPort);

@@ -1031,14 +1031,14 @@ public final class PackageManager {
                   try {
                     Thread.sleep(60000); // Sleep one minute between polls
                   } catch (InterruptedException e) {
-                    logger.log(Level.WARNING, null, e);
+                    logger.log(Level.WARNING, "TODO: message here", e);
                     // Restore the interrupted status
                     Thread.currentThread().interrupt();
                     break;
                   }
                   getAllRpms();
                 } catch (Throwable t) {
-                  logger.log(Level.SEVERE, null, t);
+                  logger.log(Level.SEVERE, "TODO: message here", t);
                 }
               }
             },

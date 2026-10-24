@@ -154,7 +154,7 @@ public final class BackupManager {
             }
           }
         } catch (Throwable t) {
-          logger.log(Level.SEVERE, null, t);
+          logger.log(Level.SEVERE, "TODO: message here", t);
         }
       } finally {
         timer.stop();
@@ -194,7 +194,7 @@ public final class BackupManager {
           }
         }
       } catch (Throwable t) {
-        logger.log(Level.SEVERE, null, t);
+        logger.log(Level.SEVERE, "TODO: message here", t);
       }
     } finally {
       timer.stop();
@@ -234,7 +234,7 @@ public final class BackupManager {
           }
         }
       } catch (Throwable t) {
-        logger.log(Level.SEVERE, null, t);
+        logger.log(Level.SEVERE, "TODO: message here", t);
       }
     } finally {
       timer.stop();
@@ -285,7 +285,7 @@ public final class BackupManager {
         }
       }
     } catch (Throwable t) {
-      logger.log(Level.SEVERE, null, t);
+      logger.log(Level.SEVERE, "TODO: message here", t);
     }
   }
 

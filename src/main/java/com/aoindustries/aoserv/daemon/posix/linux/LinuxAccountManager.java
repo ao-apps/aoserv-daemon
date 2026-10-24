@@ -148,7 +148,7 @@ public final class LinuxAccountManager extends BuilderThread {
       rebuildLinuxAccountSettings();
       return true;
     } catch (Throwable t) {
-      logger.log(Level.SEVERE, null, t);
+      logger.log(Level.SEVERE, "TODO: message here", t);
       return false;
     }
   }
@@ -946,7 +946,7 @@ public final class LinuxAccountManager extends BuilderThread {
           }
         }
       } catch (InterruptedException e) {
-        logger.log(Level.WARNING, null, e);
+        logger.log(Level.WARNING, "TODO: message here", e);
         // Restore the interrupted status
         Thread.currentThread().interrupt();
       } finally {

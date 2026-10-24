@@ -230,7 +230,7 @@ public final class SmtpRelayManager extends BuilderThread implements Runnable {
       }
       return true;
     } catch (Throwable t) {
-      logger.log(Level.SEVERE, null, t);
+      logger.log(Level.SEVERE, "TODO: message here", t);
       return false;
     }
   }
@@ -305,7 +305,7 @@ public final class SmtpRelayManager extends BuilderThread implements Runnable {
         try {
           Thread.sleep(REFRESH_PERIOD);
         } catch (InterruptedException err) {
-          logger.log(Level.WARNING, null, err);
+          logger.log(Level.WARNING, "TODO: message here", err);
           // Restore the interrupted status
           Thread.currentThread().interrupt();
           break;
@@ -328,11 +328,11 @@ public final class SmtpRelayManager extends BuilderThread implements Runnable {
           doRebuild();
         }
       } catch (Throwable t) {
-        logger.log(Level.SEVERE, null, t);
+        logger.log(Level.SEVERE, "TODO: message here", t);
         try {
           Thread.sleep(REFRESH_PERIOD);
         } catch (InterruptedException err) {
-          logger.log(Level.WARNING, null, err);
+          logger.log(Level.WARNING, "TODO: message here", err);
           // Restore the interrupted status
           Thread.currentThread().interrupt();
         }

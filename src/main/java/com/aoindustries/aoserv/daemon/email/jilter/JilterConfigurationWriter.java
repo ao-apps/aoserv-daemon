@@ -202,7 +202,7 @@ public class JilterConfigurationWriter extends BuilderThread {
               allowRelays.add(host);
               break;
             default:
-              logger.log(Level.WARNING, null, new SQLException("Unexpected value for type: " + type));
+              logger.log(Level.WARNING, "TODO: message here", new SQLException("Unexpected value for type: " + type));
           }
         }
 
@@ -295,7 +295,7 @@ public class JilterConfigurationWriter extends BuilderThread {
       }
       return true;
     } catch (Throwable t) {
-      logger.log(Level.SEVERE, null, t);
+      logger.log(Level.SEVERE, "TODO: message here", t);
       return false;
     }
   }

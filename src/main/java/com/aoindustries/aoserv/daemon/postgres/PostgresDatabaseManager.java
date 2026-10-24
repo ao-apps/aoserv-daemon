@@ -260,7 +260,7 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
                             throw e;
                           }
                         } catch (SQLException err2) {
-                          logger.log(Level.SEVERE, null, err2);
+                          logger.log(Level.SEVERE, "TODO: message here", err2);
                           throw err2;
                         }
                         throw err;
@@ -306,7 +306,7 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
       }
       return true;
     } catch (Throwable t) {
-      logger.log(Level.SEVERE, null, t);
+      logger.log(Level.SEVERE, "TODO: message here", t);
       return false;
     }
   }
@@ -600,7 +600,7 @@ public final class PostgresDatabaseManager extends BuilderThread implements Cron
         }
       }
     } catch (Throwable t) {
-      logger.log(Level.SEVERE, null, t);
+      logger.log(Level.SEVERE, "TODO: message here", t);
     }
   }
 }

@@ -167,7 +167,7 @@ public final class AoservDaemonServerThread extends Thread {
           } else {
             level = Level.FINE;
           }
-          logger.log(level, null, err);
+          logger.log(level, "TODO: message here", err);
           return;
         }
         // Then connector key
@@ -1861,12 +1861,12 @@ public final class AoservDaemonServerThread extends Thread {
               logIoException
                   && !"Connection reset by peer".equals(message)
           ) {
-            logger.log(Level.SEVERE, null, err);
+            logger.log(Level.SEVERE, "TODO: message here", err);
           }
           out.write(AoservDaemonProtocol.IO_EXCEPTION);
           out.writeUTF(message == null ? "null" : message);
         } catch (SQLException err) {
-          logger.log(Level.SEVERE, null, err);
+          logger.log(Level.SEVERE, "TODO: message here", err);
           out.write(AoservDaemonProtocol.SQL_EXCEPTION);
           String message = err.getMessage();
           out.writeUTF(message == null ? "null" : message);
@@ -1881,10 +1881,10 @@ public final class AoservDaemonServerThread extends Thread {
           !"Socket closed".equals(message)
               && !"Socket is closed".equals(message)
       ) {
-        logger.log(Level.SEVERE, null, err);
+        logger.log(Level.SEVERE, "TODO: message here", err);
       }
     } catch (Exception t) {
-      logger.log(Level.SEVERE, null, t);
+      logger.log(Level.SEVERE, "TODO: message here", t);
     } finally {
       // Close the socket
       try {

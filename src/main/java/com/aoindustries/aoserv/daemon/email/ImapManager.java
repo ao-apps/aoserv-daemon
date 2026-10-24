@@ -349,7 +349,7 @@ public final class ImapManager extends BuilderThread {
         try {
           _adminStore.close();
         } catch (MessagingException err) {
-          logger.log(Level.SEVERE, null, err);
+          logger.log(Level.SEVERE, "TODO: message here", err);
         }
         _adminSession = null;
         _adminStore = null;
@@ -1344,13 +1344,13 @@ public final class ImapManager extends BuilderThread {
       return true;
     } catch (StoreClosedException err) {
       if ("* BYE idle for too long".equals(err.getMessage())) {
-        logger.log(Level.INFO, null, err);
+        logger.log(Level.INFO, "TODO: message here", err);
       } else {
-        logger.log(Level.SEVERE, null, err);
+        logger.log(Level.SEVERE, "TODO: message here", err);
       }
       return false;
     } catch (Throwable t) {
-      logger.log(Level.SEVERE, null, t);
+      logger.log(Level.SEVERE, "TODO: message here", t);
       return false;
     }
   }
@@ -2613,7 +2613,7 @@ public final class ImapManager extends BuilderThread {
           try {
             Thread.sleep(100);
           } catch (InterruptedException err) {
-            logger.log(Level.WARNING, null, err);
+            logger.log(Level.WARNING, "TODO: message here", err);
             // Restore the interrupted status
             Thread.currentThread().interrupt();
             break;

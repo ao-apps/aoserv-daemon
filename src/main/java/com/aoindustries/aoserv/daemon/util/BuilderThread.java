@@ -117,7 +117,7 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
                           sleepLock.wait(getRandomDelay());
                         }
                       } catch (InterruptedException err) {
-                        logger.logp(Level.WARNING, BuilderThread.this.getClass().getName(), "run", null, err);
+                        logger.logp(Level.WARNING, BuilderThread.this.getClass().getName(), "run", "TODO: message here", err);
                         // Restore the interrupted status
                         Thread.currentThread().interrupt();
                       }
@@ -129,13 +129,13 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
                     }
                   }
                 } catch (Throwable t) {
-                  logger.logp(Level.SEVERE, BuilderThread.this.getClass().getName(), "run", null, t);
+                  logger.logp(Level.SEVERE, BuilderThread.this.getClass().getName(), "run", "TODO: message here", t);
                   try {
                     synchronized (sleepLock) {
                       sleepLock.wait(getRandomDelay());
                     }
                   } catch (InterruptedException err) {
-                    logger.logp(Level.WARNING, BuilderThread.this.getClass().getName(), "run", null, err);
+                    logger.logp(Level.WARNING, BuilderThread.this.getClass().getName(), "run", "TODO: message here", err);
                     // Restore the interrupted status
                     Thread.currentThread().interrupt();
                   }
@@ -146,7 +146,7 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
               }
               BuilderThread.this.rebuildThread = null;
             } catch (Throwable t) {
-              logger.logp(Level.SEVERE, BuilderThread.this.getClass().getName(), "run", null, t);
+              logger.logp(Level.SEVERE, BuilderThread.this.getClass().getName(), "run", "TODO: message here", t);
             }
           }
         };
@@ -176,7 +176,7 @@ public abstract class BuilderThread implements TableListener, PackageManager.Pac
           try {
             wait();
           } catch (InterruptedException err) {
-            logger.log(Level.WARNING, null, err);
+            logger.log(Level.WARNING, "TODO: message here", err);
             // Restore the interrupted status
             Thread.currentThread().interrupt();
           }

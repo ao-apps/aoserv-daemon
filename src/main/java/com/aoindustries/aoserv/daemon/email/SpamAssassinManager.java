@@ -197,7 +197,7 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
           try {
             Thread.sleep(DELAY_INTERVAL);
           } catch (InterruptedException err) {
-            logger.log(Level.WARNING, null, err);
+            logger.log(Level.WARNING, "TODO: message here", err);
             // Restore the interrupted status
             Thread.currentThread().interrupt();
             break;
@@ -208,11 +208,11 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
         // Process incoming messages
         processIncomingMessages();
       } catch (Throwable t) {
-        logger.log(Level.SEVERE, null, t);
+        logger.log(Level.SEVERE, "TODO: message here", t);
         try {
           Thread.sleep(60000);
         } catch (InterruptedException err) {
-          logger.log(Level.WARNING, null, err);
+          logger.log(Level.WARNING, "TODO: message here", err);
           // Restore the interrupted status
           Thread.currentThread().interrupt();
         }
@@ -992,7 +992,7 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
       }
       return true;
     } catch (Throwable t) {
-      logger.log(Level.SEVERE, null, t);
+      logger.log(Level.SEVERE, "TODO: message here", t);
       return false;
     }
   }
@@ -1088,7 +1088,7 @@ public final class SpamAssassinManager extends BuilderThread implements Runnable
           DaemonFileUtils.restorecon(restorecon);
         }
       } catch (Throwable t) {
-        logger.log(Level.SEVERE, null, t);
+        logger.log(Level.SEVERE, "TODO: message here", t);
       }
     }
 

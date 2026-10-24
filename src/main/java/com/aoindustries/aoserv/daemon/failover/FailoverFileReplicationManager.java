@@ -2593,22 +2593,22 @@ public final class FailoverFileReplicationManager {
                           }
                           directories.add(filename);
                         } else {
-                          logger.log(Level.WARNING, null, new IOException("Skipping unexpected directory: " + filename));
+                          logger.log(Level.WARNING, "TODO: message here", new IOException("Skipping unexpected directory: " + filename));
                         }
                       } else {
-                        logger.log(Level.WARNING, null, new IOException("Directory date in future: " + filename));
+                        logger.log(Level.WARNING, "TODO: message here", new IOException("Directory date in future: " + filename));
                       }
                     } else {
-                      logger.log(Level.WARNING, null, new IOException("Unable to parse filename: " + filename));
+                      logger.log(Level.WARNING, "TODO: message here", new IOException("Unable to parse filename: " + filename));
                     }
                   } else {
-                    logger.log(Level.WARNING, null, new IOException("Unable to parse filename: " + filename));
+                    logger.log(Level.WARNING, "TODO: message here", new IOException("Unable to parse filename: " + filename));
                   }
                 } catch (NumberFormatException err) {
-                  logger.log(Level.WARNING, null, new IOException("Unable to parse filename: " + filename));
+                  logger.log(Level.WARNING, "TODO: message here", new IOException("Unable to parse filename: " + filename));
                 }
               } else {
-                logger.log(Level.WARNING, null, new IOException("Filename too short: " + filename));
+                logger.log(Level.WARNING, "TODO: message here", new IOException("Filename too short: " + filename));
               }
             }
           }
@@ -2791,14 +2791,14 @@ public final class FailoverFileReplicationManager {
                   ParallelDelete.parallelDelete(directories, null, false);
                 }
               } catch (IOException err) {
-                logger.log(Level.SEVERE, null, err);
+                logger.log(Level.SEVERE, "TODO: message here", err);
               }
             });
           }
         }
       }
     } catch (Throwable t) {
-      logger.log(Level.SEVERE, null, t);
+      logger.log(Level.SEVERE, "TODO: message here", t);
     }
   }
 

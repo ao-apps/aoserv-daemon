@@ -361,7 +361,7 @@ public final class EmailAddressManager extends BuilderThread {
       }
       return true;
     } catch (Throwable t) {
-      logger.log(Level.SEVERE, null, t);
+      logger.log(Level.SEVERE, "TODO: message here", t);
       return false;
     }
   }

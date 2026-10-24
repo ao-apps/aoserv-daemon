@@ -142,7 +142,7 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
       }
       return true;
     } catch (Throwable t) {
-      logger.log(Level.SEVERE, null, t);
+      logger.log(Level.SEVERE, "TODO: message here", t);
       return false;
     }
   }
@@ -380,7 +380,7 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
                         )
                       )
                 ) {
-                  logger.log(Level.WARNING, null, new IOException("Warning, unexpected filename, will not remove: " + logDirectory.getPath() + "/" + filename));
+                  logger.log(Level.WARNING, "TODO: message here", new IOException("Warning, unexpected filename, will not remove: " + logDirectory.getPath() + "/" + filename));
                 } else {
                   // Determine the timestamp of the file
                   GregorianCalendar fileDate = new GregorianCalendar();
@@ -405,7 +405,7 @@ public final class PostgresServerManager extends BuilderThread implements CronJo
         }
       }
     } catch (Throwable t) {
-      logger.log(Level.SEVERE, null, t);
+      logger.log(Level.SEVERE, "TODO: message here", t);
     }
   }
 }
