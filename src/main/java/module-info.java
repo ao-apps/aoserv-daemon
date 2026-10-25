@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2021, 2022, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -21,35 +21,6 @@
  * along with aoserv-daemon.  If not, see <https://www.gnu.org/licenses/>.
  */
 module com.aoindustries.aoserv.daemon {
-  exports com.aoindustries.aoserv.daemon;
-  exports com.aoindustries.aoserv.daemon.backup;
-  exports com.aoindustries.aoserv.daemon.cvsd;
-  exports com.aoindustries.aoserv.daemon.distro;
-  exports com.aoindustries.aoserv.daemon.dns;
-  exports com.aoindustries.aoserv.daemon.email;
-  exports com.aoindustries.aoserv.daemon.email.jilter;
-  exports com.aoindustries.aoserv.daemon.failover;
-  exports com.aoindustries.aoserv.daemon.ftp;
-  exports com.aoindustries.aoserv.daemon.httpd;
-  exports com.aoindustries.aoserv.daemon.httpd.jboss;
-  exports com.aoindustries.aoserv.daemon.httpd.tomcat;
-  exports com.aoindustries.aoserv.daemon.iptables;
-  exports com.aoindustries.aoserv.daemon.monitor;
-  exports com.aoindustries.aoserv.daemon.mysql;
-  exports com.aoindustries.aoserv.daemon.net;
-  exports com.aoindustries.aoserv.daemon.net.fail2ban;
-  exports com.aoindustries.aoserv.daemon.net.firewalld;
-  exports com.aoindustries.aoserv.daemon.net.ssh;
-  exports com.aoindustries.aoserv.daemon.net.xinetd;
-  exports com.aoindustries.aoserv.daemon.posix;
-  exports com.aoindustries.aoserv.daemon.posix.linux;
-  exports com.aoindustries.aoserv.daemon.postgres;
-  exports com.aoindustries.aoserv.daemon.random;
-  exports com.aoindustries.aoserv.daemon.report;
-  exports com.aoindustries.aoserv.daemon.server;
-  exports com.aoindustries.aoserv.daemon.ssl;
-  exports com.aoindustries.aoserv.daemon.timezone;
-  exports com.aoindustries.aoserv.daemon.util;
   // Direct
   requires com.aoapps.collections; // <groupId>com.aoapps</groupId><artifactId>ao-collections</artifactId>
   requires com.aoapps.concurrent; // <groupId>com.aoapps</groupId><artifactId>ao-concurrent</artifactId>
@@ -79,4 +50,34 @@ module com.aoindustries.aoserv.daemon {
   // requires java.logging;
   requires java.naming;
   requires java.sql;
+
+  exports com.aoindustries.aoserv.daemon;
+  exports com.aoindustries.aoserv.daemon.backup;
+  exports com.aoindustries.aoserv.daemon.cvsd;
+  exports com.aoindustries.aoserv.daemon.distro;
+  exports com.aoindustries.aoserv.daemon.dns;
+  exports com.aoindustries.aoserv.daemon.email;
+  exports com.aoindustries.aoserv.daemon.email.jilter;
+  exports com.aoindustries.aoserv.daemon.failover;
+  exports com.aoindustries.aoserv.daemon.ftp;
+  exports com.aoindustries.aoserv.daemon.httpd;
+  exports com.aoindustries.aoserv.daemon.httpd.jboss;
+  exports com.aoindustries.aoserv.daemon.httpd.tomcat;
+  exports com.aoindustries.aoserv.daemon.iptables;
+  exports com.aoindustries.aoserv.daemon.monitor;
+  exports com.aoindustries.aoserv.daemon.mysql;
+  exports com.aoindustries.aoserv.daemon.net;
+  exports com.aoindustries.aoserv.daemon.net.fail2ban;
+  exports com.aoindustries.aoserv.daemon.net.firewalld;
+  exports com.aoindustries.aoserv.daemon.net.ssh;
+  exports com.aoindustries.aoserv.daemon.net.xinetd;
+  exports com.aoindustries.aoserv.daemon.posix;
+  exports com.aoindustries.aoserv.daemon.posix.linux;
+  exports com.aoindustries.aoserv.daemon.postgres;
+  exports com.aoindustries.aoserv.daemon.random;
+  exports com.aoindustries.aoserv.daemon.report;
+  exports com.aoindustries.aoserv.daemon.server;
+  exports com.aoindustries.aoserv.daemon.ssl;
+  exports com.aoindustries.aoserv.daemon.timezone;
+  exports com.aoindustries.aoserv.daemon.util;
 }
