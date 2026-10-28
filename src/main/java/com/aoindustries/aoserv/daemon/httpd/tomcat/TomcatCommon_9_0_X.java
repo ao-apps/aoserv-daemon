@@ -349,6 +349,10 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
       mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-j-26.7.0.jar");
       psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.7.13.jar");
 
+      version = "9.0.123-1" + suffix;
+      mysql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, mysql, "lib/mysql-connector-j-26.10.0.jar");
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.7.14.jar");
+
       // Downgrade support
       if (doDowngrades(tomcatDirectory, uid, gid, rpmVersion, versionUpgrades)) {
         needsRestart = true;
