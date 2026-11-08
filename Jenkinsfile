@@ -67,6 +67,11 @@ binding.setVariable('upstreamProjects', [
   // No Jenkins: <groupId>junit</groupId><artifactId>junit</artifactId>
 ])
 
+// This project is packaged and deployed via RPM / Debian packages.
+// Also audit per-platform release branches on each build.
+// Note: matches docs-ao/**/dists.jspf:aoservDaemonDists
+binding.setVariable('scmAdditionalAuditBranches', ['el7', 'el9', 'deb13'])
+
 /******************************************************************************************
  *                                                                                        *
  * Everything below this line is identical for all projects, except the copied matrix     *
