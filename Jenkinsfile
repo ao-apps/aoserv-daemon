@@ -70,6 +70,7 @@ binding.setVariable('upstreamProjects', [
 // This project is packaged and deployed via RPM / Debian packages.
 // Also audit per-platform release branches on each build.
 // Note: matches docs-ao/**/dists.jspf:aoservDaemonDists
+// Note: These branches are added as additional build triggers
 binding.setVariable('scmAdditionalAuditBranches', ['el7', 'el9', 'deb13'])
 
 /******************************************************************************************
