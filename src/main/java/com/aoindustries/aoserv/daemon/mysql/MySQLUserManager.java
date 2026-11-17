@@ -401,6 +401,9 @@ public final class MySQLUserManager extends BuilderThread {
           sql.append("SELECT ");
           // permissions
           sql.append(userPermissions.stream().map(Permission::getMysqlColumn).collect(Collectors.joining(", ")));
+          if (!userPermissions.isEmpty()) {
+            sql.append(", ");
+          }
           final EnumSet<Permission> currentPermissions = EnumSet.noneOf(Permission.class);
           // max_*
           sql.append("max_questions, max_updates, max_connections");
