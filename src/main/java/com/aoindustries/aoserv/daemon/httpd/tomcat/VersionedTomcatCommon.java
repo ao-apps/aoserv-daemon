@@ -409,8 +409,9 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
         }
       }
     }
-    if (rpmVersion.compareTo(entries.get(0).getKey()) < 0) {
-      throw new IllegalStateException("Version of Tomcat older than expected: " + rpmVersion);
+    String oldest = entries.get(0).getKey();
+    if (rpmVersion.compareTo(oldest) < 0) {
+      throw new IllegalStateException("Version of Tomcat older than expected: " + rpmVersion + " < " + oldest);
     }
     return needsRestart;
   }
@@ -432,8 +433,9 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
         }
       }
     }
-    if (rpmVersion.compareTo(entries.get(entries.size() - 1).getKey()) > 0) {
-      throw new IllegalStateException("Version of Tomcat newer than expected: " + rpmVersion);
+    String newest = entries.get(entries.size() - 1).getKey();
+    if (rpmVersion.compareTo(newest) > 0) {
+      throw new IllegalStateException("Version of Tomcat newer than expected: " + rpmVersion + " > " + newest);
     }
     return needsRestart;
   }
