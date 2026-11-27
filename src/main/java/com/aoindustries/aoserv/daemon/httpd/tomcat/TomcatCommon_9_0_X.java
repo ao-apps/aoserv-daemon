@@ -356,6 +356,9 @@ final class TomcatCommon_9_0_X extends VersionedTomcatCommon {
       version = "9.0.124-1" + suffix;
       addUpgradeWithNoSymlinkChanges(versionUpgrades, version);
 
+      version = "9.0.124-2" + suffix;
+      psql = addUpgradeSymlinkWithDevNull(optSlash, versionUpgrades, version, psql, "lib/postgresql-42.7.15.jar");
+
       // Downgrade support
       if (doDowngrades(tomcatDirectory, uid, gid, rpmVersion, versionUpgrades)) {
         needsRestart = true;
